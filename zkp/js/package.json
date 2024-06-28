@@ -1,0 +1,22 @@
+{
+  "name": "zk-utxo-js",
+  "version": "0.0.1",
+  "description": "JS library for ZK circuits for use with Kaleido's Confidential UTXO design",
+  "license": "Apache-2.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --exit --recursive test/*.js test/lib",
+    "compile:tests": "circom ./test/circuits/check-hashes-sum.circom --sym --wasm -o ./test/circuits && circom ./test/circuits/check-nullifier-hashes-sum.circom --sym --wasm -o ./test/circuits",
+    "compile": "circom ../circuits/confidential-utxo_1.circom --sym --wasm -o ./lib && circom ../circuits/confidential-utxo_2.circom --sym --wasm -o ./lib && circom ../circuits/confidential-utxo_3.circom --sym --wasm -o ./lib"
+  },
+  "dependencies": {
+    "maci-crypto": "^1.1.1",
+    "poseidon-lite": "^0.2.0",
+    "snarkjs": "^0.7.4"
+  },
+  "devDependencies": {
+    "@iden3/js-merkletree": "^1.2.0",
+    "chai": "^4.4.1",
+    "mocha": "^10.2.0"
+  }
+}
