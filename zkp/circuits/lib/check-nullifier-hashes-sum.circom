@@ -6,12 +6,12 @@ include "../node_modules/circomlib/circuits/babyjub.circom";
 include "../node_modules/circomlib/circuits/smt/smtverifier.circom";
 
 // CheckNullifierHashesAndSum is a circuit that checks the integrity of transactions of Fungible Tokens
-//   - it checks that all output values are positive numbers (within the range of 0 to 2^40)
-//   - It checks that the nullifiers are correctly computed from the input values and salts
-//   - It checks that the input commitments are correctly computed from the input values, salts, and owner public keys
-//   - It checks that the input commitments are included in the Sparse Merkle Tree with the root `root`
-//   - It checks that the output commitments are correctly computed from the output values, salts, and owner public keys
-//   - It checks that the sum of input values equals the sum of output values
+//   - check that all output values are positive numbers (within the range of 0 to 2^40)
+//   - check that the nullifiers are correctly computed from the input values and salts
+//   - check that the input commitments are correctly computed from the input values, salts, and owner public keys
+//   - check that the input commitments are included in the Sparse Merkle Tree with the root `root`
+//   - check that the output commitments are correctly computed from the output values, salts, and owner public keys
+//   - check that the sum of input values equals the sum of output values
 //
 // nullifiers: array of hashes for the nullifiers corresponding to the input utxos
 // inputValues: array of values, as preimages for the input hashes, for the input utxos
@@ -36,7 +36,6 @@ template CheckNullifierHashesAndSum(numInputs, numOutputs, nSMTLevels) {
   signal input outputValues[numOutputs];
   signal input outputSalts[numOutputs];
   signal input outputOwnerPublicKeys[numOutputs][2];
-  // TODO: non-inclusion merkle proof for the outputCommitments
   signal output out;
 
   // check that the output values are within the expected range. we don't allow negative values

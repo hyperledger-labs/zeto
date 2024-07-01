@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {Groth16Verifier_NF_Anonymity} from "./lib/verifier_nf_anon.sol";
-import {zkConfidentialUTXOBase} from "./lib/zkConfidentialUTXOBase.sol";
+import {zkConfidentialUTXO} from "./lib/zkConfidentialUTXO.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -15,13 +15,13 @@ import "hardhat/console.sol";
 ///        - The input UTXOs and output UTXOs are valid in terms of obeying mass conservation rules
 /// @author Kaleido, Inc.
 /// @dev Implements double-spend protection with zkp
-contract zkConfidentialUTXO_NF_Anonymity is zkConfidentialUTXOBase {
+contract zkConfidentialUTXO_NF_Anonymity is zkConfidentialUTXO {
     Groth16Verifier_NF_Anonymity internal verifier;
 
     constructor(
         Groth16Verifier_NF_Anonymity _verifier,
         Registry _registry
-    ) zkConfidentialUTXOBase(_registry) {
+    ) zkConfidentialUTXO(_registry) {
         verifier = _verifier;
     }
 

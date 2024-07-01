@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {Groth16Verifier_Anonymity_Encryption} from "./lib/verifier_anon_enc.sol";
-import {zkConfidentialUTXOBase} from "./lib/zkConfidentialUTXOBase.sol";
+import {zkConfidentialUTXO} from "./lib/zkConfidentialUTXO.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -18,13 +18,13 @@ import "hardhat/console.sol";
 ///          the ECDH protocol between the sender and receiver (this guarantees data availability for the receiver)
 /// @author Kaleido, Inc.
 /// @dev Implements double-spend protection with zkp
-contract zkConfidentialUTXO_Anonymity_Encryption is zkConfidentialUTXOBase {
+contract zkConfidentialUTXO_Anonymity_Encryption is zkConfidentialUTXO {
     Groth16Verifier_Anonymity_Encryption internal verifier;
 
     constructor(
         Groth16Verifier_Anonymity_Encryption _verifier,
         Registry _registry
-    ) zkConfidentialUTXOBase(_registry) {
+    ) zkConfidentialUTXO(_registry) {
         verifier = _verifier;
     }
 

@@ -25,7 +25,7 @@ const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
 const poseidonHash3 = Poseidon.poseidon3;
 
-describe('main circuit tests for ConfidentialUTXO with encryption and anonymity', () => {
+describe('main circuit tests for ConfidentialUTXO with encryption and anonymity using nullifiers', () => {
   let circuit, provingKeyFile, verificationKey, smtAlice, smtBob;
 
   const Alice = {};

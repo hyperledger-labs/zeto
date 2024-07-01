@@ -298,6 +298,78 @@ func TestConfidentialUTXO_4_SuccessfulProving(t *testing.T) {
 	assert.Equal(t, 2, len(proof.PubSignals))
 }
 
+func TestConfidentialUTXO_5_SuccessfulProving(t *testing.T) {
+	calc, provingKey, err := LoadCircuit("nf_anon_nullifier")
+	assert.NoError(t, err)
+	assert.NotNil(t, calc)
+
+	sender := newKeypair()
+	receiver := newKeypair()
+
+	tokenId := big.NewInt(1001)
+	tokenUri, err := HashTokenUri("https://example.com/token/1001")
+	assert.NoError(t, err)
+
+	salt1 := newSalt()
+	input1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt1, sender.PublicKey.X, sender.PublicKey.Y})
+	assert.NoError(t, err)
+
+	nullifier1, _ := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt1, sender.PrivateKeyBigInt})
+
+	MAX_HEIGHT := 64
+	smt, err := merkletree.NewMerkleTree(memory.NewMemoryStorage(), MAX_HEIGHT)
+	assert.NoError(t, err)
+	err = smt.Add(input1, input1)
+	assert.NoError(t, err)
+	proof1, err := smt.GenerateCircomVerifierProof(input1, nil)
+	assert.NoError(t, err)
+	proof1Siblings := make([]*big.Int, len(proof1.Siblings)-1)
+	for i, s := range proof1.Siblings[0 : len(proof1.Siblings)-1] {
+		proof1Siblings[i] = s.BigInt()
+	}
+
+	salt3 := newSalt()
+	output1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
+	assert.NoError(t, err)
+
+	witnessInputs := map[string]interface{}{
+		"tokenId":              tokenId,
+		"tokenUri":             tokenUri,
+		"nullifier":            nullifier1,
+		"inputCommitment":      input1,
+		"inputSalt":            salt1,
+		"inputOwnerPrivateKey": sender.PrivateKeyBigInt,
+		"root":                 proof1.Root.BigInt(),
+		"merkleProof":          proof1Siblings,
+		"outputCommitment":     output1,
+		"outputSalt":           salt3,
+		"outputOwnerPublicKey": []*big.Int{receiver.PublicKey.X, receiver.PublicKey.Y},
+	}
+
+	// calculate the witness object for checking correctness
+	witness, err := calc.CalculateWitness(witnessInputs, true)
+	assert.NoError(t, err)
+	assert.NotNil(t, witness)
+
+	assert.Equal(t, 0, witness[0].Cmp(big.NewInt(1)))
+	assert.Equal(t, 0, witness[1].Cmp(nullifier1))
+
+	// generate the witness binary to feed into the prover
+	startTime := time.Now()
+	witnessBin, err := calc.CalculateWTNSBin(witnessInputs, true)
+	assert.NoError(t, err)
+	assert.NotNil(t, witnessBin)
+
+	proof, err := prover.Groth16Prover(provingKey, witnessBin)
+	elapsedTime := time.Since(startTime)
+	fmt.Printf("Proving time: %s\n", elapsedTime)
+	assert.NoError(t, err)
+	assert.Equal(t, 3, len(proof.Proof.A))
+	assert.Equal(t, 3, len(proof.Proof.B))
+	assert.Equal(t, 3, len(proof.Proof.C))
+	assert.Equal(t, 3, len(proof.PubSignals))
+}
+
 // generate a new BabyJub keypair
 func newKeypair() *User {
 	// generate babyJubjub private key randomly
