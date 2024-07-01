@@ -70,6 +70,11 @@ export function newNullifier(utxo: UTXO, owner: User): UTXO {
   return { value: utxo.value, hash, salt: utxo.salt };
 }
 
+export function newAssetNullifier(utxo: UTXO, owner: User): UTXO {
+  const hash = poseidonHash4([BigInt(utxo.tokenId!), hashTokenUri(utxo.uri), utxo.salt, owner.formattedPrivateKey]);
+  return { tokenId: utxo.tokenId, uri: utxo.uri, hash, salt: utxo.salt };
+}
+
 export async function doMint(zkConfidentialUTXO: any, minter: Signer, outputs: UTXO[]): Promise<ContractTransactionReceipt> {
   const outputCommitments = outputs.map((output) => output.hash) as BigNumberish[];
   const tx = await zkConfidentialUTXO.connect(minter).mint(outputCommitments);

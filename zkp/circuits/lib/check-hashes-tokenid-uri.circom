@@ -4,9 +4,9 @@ include "../node_modules/circomlib/circuits/poseidon.circom";
 include "../node_modules/circomlib/circuits/comparators.circom";
 
 // CheckHashesForTokenIdAndUri is a circuit that checks the integrity of transactions of Non-Fungible Tokens (NFTs)
-//   - it checks that the input commitments match the calculated hashes
-//   - it checks that the output commitments match the calculated hashes
-//   - it checks that the same tokenId and URI are used for the input and output commitments
+//   - check that the input commitments match the calculated hashes
+//   - check that the output commitments match the calculated hashes
+//   - check that the same tokenId and URI are used for the input and output commitments
 //
 // commitment = hash(tokenId, uri, salt, ownerAddress)
 //

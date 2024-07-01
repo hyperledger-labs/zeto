@@ -6,15 +6,15 @@ The following circuits are included:
 
 - `anon.circom`: fungible tokens with anonymity, no encrypted secrets, no history masking
 - `anon_enc.circom`: fungible tokens with anonymity and encrypted secrets, no history masking
-- `anon_nullifier.circom`: (todo) fungible tokens with anonymity, no encrypted secrets, with history masking using nullifiers
+- `anon_nullifier.circom`: fungible tokens with anonymity, no encrypted secrets, with history masking using nullifiers
 - `anon_enc_nullifier.circom`: fungible tokens with anonymity and encrypted secrets, with history masking using nullifiers
 
 ## Circuits for non-fungible tokens
 
 - `nf_anon.circom`: non-fungible tokens with anonymity, no encrypted secrets, no history masking
-- `nf_anon_enc.circom`: (todo) fungible tokens with anonymity and encrypted secrets, no history masking
-- `nf_anon_nullifier.circom`: (todo) fungible tokens with anonymity, no encrypted secrets, with history masking using nullifiers
-- `nf_anon_enc_nullifier.circom`: (todo) fungible tokens with anonymity and encrypted secrets, with history masking using nullifiers
+- `nf_anon_enc.circom`: (todo) non-fungible tokens with anonymity and encrypted secrets, no history masking
+- `nf_anon_nullifier.circom`: non-fungible tokens with anonymity, no encrypted secrets, with history masking using nullifiers
+- `nf_anon_enc_nullifier.circom`: (todo) non-fungible tokens with anonymity and encrypted secrets, with history masking using nullifiers
 
 ## Circuits for misc. usage
 

@@ -6,12 +6,12 @@ include "./lib/encrypt.circom";
 include "./node_modules/circomlib/circuits/babyjub.circom";
 
 // This version of the circuit performs the following operations:
-// - It derives the sender's public key from the sender's private key
-// - It checks the input and output commitments match the expected hashes
-// - It checks the input and output values sum to the same amount
-// - It performs encryption of the receiver's output UTXO value and salt
-// - It checks the nullifiers are derived from the input commitments and the sender's private key
-// - It checks the nullifiers are included in the Merkle tree
+// - derive the sender's public key from the sender's private key
+// - check the input and output commitments match the expected hashes
+// - check the input and output values sum to the same amount
+// - perform encryption of the receiver's output UTXO value and salt
+// - check the nullifiers are derived from the input commitments and the sender's private key
+// - check the nullifiers are included in the Merkle tree
 template ConfidentialUTXO(nInputs, nOutputs, nSMTLevels) {
   signal input nullifiers[nInputs];
   signal input inputCommitments[nInputs];

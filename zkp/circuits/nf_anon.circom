@@ -6,10 +6,9 @@ include "./lib/encrypt.circom";
 include "./node_modules/circomlib/circuits/babyjub.circom";
 
 // This version of the circuit performs the following operations:
-// - It derives the sender's public key from the sender's private key
-// - It checks the input and output commitments match the expected hashes
-// - It checks the token id and URI remain constant across the input and output commitments
-// - It DOES NOT perform encryption of the receiver's output UTXO value and salt (see confidential-utxo_5.circom for that)
+// - derive the sender's public key from the sender's private key
+// - check the input and output commitments match the expected hashes
+// - check the token id and URI remain constant across the input and output commitments
 template ConfidentialUTXO(nInputs, nOutputs) {
   signal input tokenIds[nInputs];
   signal input tokenUris[nInputs];

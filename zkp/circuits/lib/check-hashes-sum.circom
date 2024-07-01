@@ -4,10 +4,10 @@ include "../node_modules/circomlib/circuits/poseidon.circom";
 include "../node_modules/circomlib/circuits/comparators.circom";
 
 // CheckHashesAndSum is a circuit that checks the integrity of transactions of Fungible Tokens
-//   - it checks that all output values are positive numbers (within the range of 0 to 2^40)
-//   - it checks that the input commitments are the hash of the input values
-//   - it checks that the output commitments are the hash of the output values
-//   - it checks that the sum of input values equals the sum of output values
+//   - check that all output values are positive numbers (within the range of 0 to 2^40)
+//   - check that the input commitments are the hash of the input values
+//   - check that the output commitments are the hash of the output values
+//   - check that the sum of input values equals the sum of output values
 //
 // input commitments: array of hashes for the input utxos
 // inputValues: array of values, as preimages for the input hashes, for the input utxos
