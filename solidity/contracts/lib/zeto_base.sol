@@ -3,14 +3,14 @@ pragma solidity ^0.8.20;
 
 import {Commonlib} from "./common.sol";
 import {Registry} from "./registry.sol";
-import {zkConfidentialUTXOBase} from "./zkConfidentialUTXOBase.sol";
+import {ZetoCommon} from "./zeto_common.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title A sample base implementation of a ZKP based C-UTXO token contract
-///        without using nullifiers. Each UTXO's spending status is maintained
+///        without using nullifiers. Each UTXO's spending status is explicitly tracked.
 /// @author Kaleido, Inc.
 /// @dev Implements common functionalities of ZKP based C-UTXO tokens
-abstract contract zkConfidentialUTXO is zkConfidentialUTXOBase {
+abstract contract ZetoBase is ZetoCommon {
     enum UTXOStatus {
         UNKNOWN, // default value for the empty UTXO slots
         UNSPENT,
@@ -20,7 +20,7 @@ abstract contract zkConfidentialUTXO is zkConfidentialUTXOBase {
     // maintains all the UTXOs
     mapping(uint256 => UTXOStatus) internal _utxos;
 
-    constructor(Registry _registry) zkConfidentialUTXOBase(_registry) {}
+    constructor(Registry _registry) ZetoCommon(_registry) {}
 
     /// @dev query whether a UTXO is currently spent
     /// @return owner the non-zero owner address, or zero if the TXO ID is not in the unspent map

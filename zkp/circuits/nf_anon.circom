@@ -9,7 +9,7 @@ include "./node_modules/circomlib/circuits/babyjub.circom";
 // - derive the sender's public key from the sender's private key
 // - check the input and output commitments match the expected hashes
 // - check the token id and URI remain constant across the input and output commitments
-template ConfidentialUTXO(nInputs, nOutputs) {
+template Zeto(nInputs, nOutputs) {
   signal input tokenIds[nInputs];
   signal input tokenUris[nInputs];
   signal input inputCommitments[nInputs];
@@ -47,4 +47,4 @@ template ConfidentialUTXO(nInputs, nOutputs) {
   assert(CheckHashesForTokenIdAndUri.out == 1);
 }
 
-component main { public [ inputCommitments, outputCommitments ] } = ConfidentialUTXO(1, 1);
+component main { public [ inputCommitments, outputCommitments ] } = Zeto(1, 1);

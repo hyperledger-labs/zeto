@@ -16,20 +16,20 @@
 
 const { expect } = require('chai');
 const { groth16 } = require('snarkjs');
-const { genRandomSalt, genKeypair, genEcdhSharedKey, formatPrivKeyForBabyJub, stringifyBigInts } = require('maci-crypto');
-const { Poseidon, newSalt, poseidonDecrypt, loadCircuits } = require('../index.js');
+const { genKeypair, formatPrivKeyForBabyJub, stringifyBigInts } = require('maci-crypto');
+const { Poseidon, newSalt, loadCircuits } = require('../index.js');
 
 const ZERO_PUBKEY = [0, 0];
 const poseidonHash = Poseidon.poseidon4;
 
-describe('main circuit tests for ConfidentialUTXO with encryption', () => {
+describe('main circuit tests for Zeto fungible tokens with anonymity without encryption', () => {
   let circuit, provingKeyFile, verificationKey;
 
   const sender = {};
   const receiver = {};
 
   before(async () => {
-    const result = await loadCircuits('anon_enc');
+    const result = await loadCircuits('anon');
     circuit = result.circuit;
     provingKeyFile = result.provingKeyFile;
     verificationKey = result.verificationKey;
@@ -43,7 +43,7 @@ describe('main circuit tests for ConfidentialUTXO with encryption', () => {
     receiver.pubKey = keypair.pubKey;
   });
 
-  it('should succeed for valid witness and produce an encypted value', async () => {
+  it('should succeed for valid witness', async () => {
     const inputValues = [32, 40];
     const outputValues = [20, 52];
 
@@ -57,13 +57,10 @@ describe('main circuit tests for ConfidentialUTXO with encryption', () => {
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
     const output1 = poseidonHash([BigInt(outputValues[0]), salt3, ...receiver.pubKey]);
-    const salt4 = newSalt();
-    const output2 = poseidonHash([BigInt(outputValues[1]), salt4, ...sender.pubKey]);
+    const output2 = poseidonHash([BigInt(outputValues[1]), salt3, ...sender.pubKey]);
     const outputCommitments = [output1, output2];
 
-    const encryptionNonce = genRandomSalt();
-    const encryptInputs = stringifyBigInts({
-      encryptionNonce,
+    const otherInputs = stringifyBigInts({
       senderPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
     });
 
@@ -74,9 +71,9 @@ describe('main circuit tests for ConfidentialUTXO with encryption', () => {
         inputSalts: [salt1, salt2],
         outputCommitments,
         outputValues,
-        outputSalts: [salt3, salt4],
+        outputSalts: [salt3, salt3],
         outputOwnerPublicKeys: [receiver.pubKey, sender.pubKey],
-        ...encryptInputs,
+        ...otherInputs,
       },
       true
     );
@@ -84,21 +81,14 @@ describe('main circuit tests for ConfidentialUTXO with encryption', () => {
     // console.log('witness', witness.slice(0, 15));
     // console.log('salt3', salt3);
     // console.log('inputCommitments', inputCommitments);
-    // console.log('senderPublicKey', senderPubKey);
-    // console.log('receiverPublicKey', receiverPubKey);
-    // console.log('encryptionNonce', encryptionNonce);
+    // console.log('outputCommitments', outputCommitments);
+    // console.log('senderPublicKey', sender.pubKey);
+    // console.log('receiverPublicKey', receiver.pubKey);
 
-    expect(witness[3]).to.equal(BigInt(inputCommitments[0]));
-    expect(witness[4]).to.equal(BigInt(inputCommitments[1]));
-    expect(witness[5]).to.equal(BigInt(outputCommitments[0]));
-    expect(witness[6]).to.equal(BigInt(outputCommitments[1]));
-
-    // take the output from the proof circuit and attempt to decrypt
-    // as the receiver
-    const cipherText = [witness[1], witness[2]]; // index 1 is the encrypted value, index 2 is the encrypted salt
-    const recoveredKey = genEcdhSharedKey(receiver.privKey, sender.pubKey);
-    const plainText = poseidonDecrypt(cipherText, recoveredKey, encryptionNonce);
-    expect(plainText).to.deep.equal([20n, salt3]);
+    expect(witness[1]).to.equal(BigInt(inputCommitments[0]));
+    expect(witness[2]).to.equal(BigInt(inputCommitments[1]));
+    expect(witness[3]).to.equal(BigInt(outputCommitments[0]));
+    expect(witness[4]).to.equal(BigInt(outputCommitments[1]));
   });
 
   it('should fail to generate a witness because mass conservation is not obeyed', async () => {
@@ -117,10 +107,7 @@ describe('main circuit tests for ConfidentialUTXO with encryption', () => {
     const output2 = poseidonHash([BigInt(outputValues[1]), salt3, ...sender.pubKey]);
     const outputCommitments = [output1, output2];
 
-    const sharedSecret = genEcdhSharedKey(sender.privKey, receiver.pubKey);
-    const encryptionNonce = genRandomSalt();
-    const encryptInputs = stringifyBigInts({
-      encryptionNonce,
+    const otherInputs = stringifyBigInts({
       senderPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
     });
 
@@ -135,7 +122,7 @@ describe('main circuit tests for ConfidentialUTXO with encryption', () => {
           outputValues,
           outputSalts: [salt3, salt3],
           outputOwnerPublicKeys: [receiver.pubKey, sender.pubKey],
-          ...encryptInputs,
+          ...otherInputs,
         },
         true
       );
@@ -147,21 +134,21 @@ describe('main circuit tests for ConfidentialUTXO with encryption', () => {
   });
 
   it('should generate a valid proof that can be verified successfully', async () => {
-    const inputValues = [115, 0];
+    const inputValues = [15, 100];
     const outputValues = [115, 0];
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
     const input1 = poseidonHash([BigInt(inputValues[0]), salt1, ...sender.pubKey]);
-    const inputCommitments = [input1, 0];
+    const salt2 = newSalt();
+    const input2 = poseidonHash([BigInt(inputValues[1]), salt2, ...sender.pubKey]);
+    const inputCommitments = [input1, input2];
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
     const output1 = poseidonHash([BigInt(outputValues[0]), salt3, ...receiver.pubKey]);
     const outputCommitments = [output1, 0];
 
-    const encryptionNonce = genRandomSalt();
-    const encryptInputs = stringifyBigInts({
-      encryptionNonce,
+    const otherInputs = stringifyBigInts({
       senderPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
     });
 
@@ -170,12 +157,12 @@ describe('main circuit tests for ConfidentialUTXO with encryption', () => {
       {
         inputCommitments,
         inputValues,
-        inputSalts: [salt1, 0],
+        inputSalts: [salt1, salt2],
         outputCommitments,
         outputValues,
-        outputSalts: [salt3, 0],
+        outputSalts: [salt3, salt3],
         outputOwnerPublicKeys: [receiver.pubKey, ZERO_PUBKEY],
-        ...encryptInputs,
+        ...otherInputs,
       },
       true
     );
@@ -188,7 +175,6 @@ describe('main circuit tests for ConfidentialUTXO with encryption', () => {
     // console.log('outputCommitments', outputCommitments);
     // console.log('senderPublicKey', sender.pubKey);
     // console.log('receiverPublicKey', receiver.pubKey);
-    // console.log('encryptionNonce', encryptionNonce);
     // console.log('publicSignals', publicSignals);
     expect(success, true);
   }).timeout(60000);

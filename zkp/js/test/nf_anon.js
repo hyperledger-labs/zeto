@@ -21,7 +21,7 @@ const { Poseidon, newSalt, loadCircuits, hashTokenUri } = require('../index.js')
 
 const poseidonHash = Poseidon.poseidon5;
 
-describe('main circuit tests for ConfidentialUTXO (NFT) without encryption', () => {
+describe('main circuit tests for Zeto non-fungible tokens with anonymity without encryption', () => {
   let circuit, provingKeyFile, verificationKey;
 
   const sender = {};

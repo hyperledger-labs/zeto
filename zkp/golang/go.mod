@@ -1,4 +1,4 @@
-module github.com/kaleido-io/kaleido-confidential-utxo
+module github.com/kaleido-io/zeto
 
 go 1.22.0
 

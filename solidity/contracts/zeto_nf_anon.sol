@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Groth16Verifier_NF_Anonymity} from "./lib/verifier_nf_anon.sol";
-import {zkConfidentialUTXO} from "./lib/zkConfidentialUTXO.sol";
+import {Groth16Verifier_NFAnon} from "./lib/verifier_nf_anon.sol";
+import {ZetoBase} from "./lib/zeto_base.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -15,13 +15,13 @@ import "hardhat/console.sol";
 ///        - The input UTXOs and output UTXOs are valid in terms of obeying mass conservation rules
 /// @author Kaleido, Inc.
 /// @dev Implements double-spend protection with zkp
-contract zkConfidentialUTXO_NF_Anonymity is zkConfidentialUTXO {
-    Groth16Verifier_NF_Anonymity internal verifier;
+contract Zeto_NFAnon is ZetoBase {
+    Groth16Verifier_NFAnon internal verifier;
 
     constructor(
-        Groth16Verifier_NF_Anonymity _verifier,
+        Groth16Verifier_NFAnon _verifier,
         Registry _registry
-    ) zkConfidentialUTXO(_registry) {
+    ) ZetoBase(_registry) {
         verifier = _verifier;
     }
 

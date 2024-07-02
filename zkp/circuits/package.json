@@ -1,7 +1,7 @@
 {
-  "name": "zk-utxo-circuits",
+  "name": "zeto-circuits",
   "version": "0.0.1",
-  "description": "Circom library for ZK circuits for use with Confidential UTXO patterns",
+  "description": "Circom library for ZK circuits for use with Zeto based privacy-preserving tokens",
   "license": "Apache-2.0",
   "dependencies": {
     "circomlib": "^2.0.5"

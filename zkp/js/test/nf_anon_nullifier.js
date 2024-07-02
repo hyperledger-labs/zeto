@@ -25,7 +25,7 @@ const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon5;
 const poseidonHash4 = Poseidon.poseidon4;
 
-describe('main circuit tests for ConfidentialUTXO (NFT) with anonymity using nullifiers and without encryption', () => {
+describe('main circuit tests for Zeto non-fungible tokens with anonymity using nullifiers and without encryption', () => {
   let circuit, provingKeyFile, verificationKey, smtAlice, smtBob;
 
   const Alice = {};

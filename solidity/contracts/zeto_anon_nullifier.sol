@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Groth16Verifier_Anonymity_Encryption_Nullifier} from "./lib/verifier_anon_enc_nullifier.sol";
-import {zkConfidentialUTXONullifier} from "./lib/zkConfidentialUTXONullifier.sol";
+import {Groth16Verifier_AnonNullifier} from "./lib/verifier_anon_nullifier.sol";
+import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
+import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
 import "hardhat/console.sol";
+
+uint256 constant MAX_SMT_DEPTH = 64;
 
 /// @title A sample on-chain implementation of a ZKP based C-UTXO pattern with confidentiality, anonymity and history masking
 ///        The proof has the following statements:
@@ -13,19 +18,16 @@ import "hardhat/console.sol";
 ///        - the sum of the nullified values match the sum of output values
 ///        - the hashes in the input and output match the hash(value, salt, owner public key) formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers
-///        - the encrypted value in the input is derived from the receiver's UTXO value and encrypted with a shared secret using the ECDH protocol between the sender and receiver (this guarantees data availability for the receiver)
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 /// @author Kaleido, Inc.
 /// @dev Implements double-spend protection with zkp
-contract zkConfidentialUTXO_Anonymity_Encryption_Nullifier is
-    zkConfidentialUTXONullifier
-{
-    Groth16Verifier_Anonymity_Encryption_Nullifier verifier;
+contract Zeto_AnonNullifier is ZetoNullifier {
+    Groth16Verifier_AnonNullifier verifier;
 
     constructor(
-        Groth16Verifier_Anonymity_Encryption_Nullifier _verifier,
+        Groth16Verifier_AnonNullifier _verifier,
         Registry _registry
-    ) zkConfidentialUTXONullifier(_registry) {
+    ) ZetoNullifier(_registry) {
         verifier = _verifier;
     }
 
@@ -44,8 +46,6 @@ contract zkConfidentialUTXO_Anonymity_Encryption_Nullifier is
         uint256[2] memory nullifiers,
         uint256[2] memory outputs,
         uint256 root,
-        uint256 encryptionNonce,
-        uint256[2] memory encryptedValues,
         Commonlib.Proof calldata proof
     ) public returns (bool) {
         require(
@@ -54,17 +54,14 @@ contract zkConfidentialUTXO_Anonymity_Encryption_Nullifier is
         );
 
         // construct the public inputs
-        uint256[10] memory publicInputs;
-        publicInputs[0] = encryptedValues[0]; // encrypted value for the receiver UTXO
-        publicInputs[1] = encryptedValues[1]; // encrypted salt for the receiver UTXO
-        publicInputs[2] = nullifiers[0];
-        publicInputs[3] = nullifiers[1];
-        publicInputs[4] = root;
-        publicInputs[5] = (nullifiers[0] == 0) ? 0 : 1; // enable MT proof for the first nullifier
-        publicInputs[6] = (nullifiers[1] == 0) ? 0 : 1; // enable MT proof for the second nullifier
-        publicInputs[7] = outputs[0];
-        publicInputs[8] = outputs[1];
-        publicInputs[9] = encryptionNonce;
+        uint256[7] memory publicInputs;
+        publicInputs[0] = nullifiers[0];
+        publicInputs[1] = nullifiers[1];
+        publicInputs[2] = root;
+        publicInputs[3] = (nullifiers[0] == 0) ? 0 : 1; // enable MT proof for the first nullifier
+        publicInputs[4] = (nullifiers[1] == 0) ? 0 : 1; // enable MT proof for the second nullifier
+        publicInputs[5] = outputs[0];
+        publicInputs[6] = outputs[1];
 
         // // Check the proof
         require(
@@ -72,27 +69,15 @@ contract zkConfidentialUTXO_Anonymity_Encryption_Nullifier is
             "Invalid proof"
         );
 
-        // accept the transaction to consume the input UTXOs and produce new UTXOs
         processInputsAndOutputs(nullifiers, outputs);
 
         uint256[] memory nullifierArray = new uint256[](nullifiers.length);
         uint256[] memory outputArray = new uint256[](outputs.length);
-        uint256[] memory encryptedValuesArray = new uint256[](
-            encryptedValues.length
-        );
         for (uint256 i = 0; i < nullifiers.length; ++i) {
             nullifierArray[i] = nullifiers[i];
             outputArray[i] = outputs[i];
-            encryptedValuesArray[i] = encryptedValues[i];
         }
-
-        emit UTXOBranchWithEncryptedValues(
-            nullifierArray,
-            outputArray,
-            encryptionNonce,
-            encryptedValuesArray,
-            msg.sender
-        );
+        emit UTXOBranch(nullifierArray, outputArray, msg.sender);
         return true;
     }
 }

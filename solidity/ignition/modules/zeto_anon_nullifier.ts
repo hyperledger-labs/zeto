@@ -30,19 +30,19 @@ const SmtLibModule = buildModule("SmtLib", (m) => {
   return { smtLib, poseidon3 };
 });
 
-const VerifierModule = buildModule("Groth16Verifier_Anonymity_Nullifier", (m) => {
-  const verifier = m.contract('Groth16Verifier_Anonymity_Nullifier', []);
+const VerifierModule = buildModule("Groth16Verifier_AnonNullifier", (m) => {
+  const verifier = m.contract('Groth16Verifier_AnonNullifier', []);
   return { verifier };
 });
 
-export default buildModule("zkConfidentialUTXO_Anonymity_Nullifier", (m) => {
+export default buildModule("Zeto_AnonNullifier", (m) => {
   const { smtLib, poseidon3 } = m.useModule(SmtLibModule);
   const { verifier } = m.useModule(VerifierModule);
   const commonlib = m.library('Commonlib');
   const registryAddress = m.getParameter("registry");
   const registry = m.contractAt('Registry', registryAddress);
 
-  const zkConfidentialUTXO = m.contract('zkConfidentialUTXO_Anonymity_Nullifier', [verifier, registry], {
+  const zeto = m.contract('Zeto_AnonNullifier', [verifier, registry], {
     libraries: {
       SmtLib: smtLib,
       PoseidonUnit3L: poseidon3,
@@ -50,7 +50,7 @@ export default buildModule("zkConfidentialUTXO_Anonymity_Nullifier", (m) => {
     },
   });
 
-  return { zkConfidentialUTXO, registry };
+  return { zeto, registry };
 });
 
 function PoseidonArtifact(param: number): Artifact {

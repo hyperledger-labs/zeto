@@ -18,9 +18,9 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
 export default buildModule("zkDvP", (m) => {
   const paymentTokenAddress = m.getParameter("paymentToken");
-  const paymentToken = m.contractAt('zkConfidentialUTXO_Anonymity', paymentTokenAddress);
+  const paymentToken = m.contractAt('Zeto_Anon', paymentTokenAddress);
   const assetTokenAddress = m.getParameter("assetToken");
-  const assetToken = m.contractAt('zkConfidentialUTXO_NF_Anonymity', assetTokenAddress);
+  const assetToken = m.contractAt('Zeto_NFAnon', assetTokenAddress);
 
   const zkDvP = m.contract('zkDvP', [paymentToken, assetToken]);
   return { zkDvP };

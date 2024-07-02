@@ -21,17 +21,17 @@ import { loadCircuits, poseidonDecrypt, encodeProof, Poseidon } from "zk-utxo";
 import { groth16 } from 'snarkjs';
 import { genRandomSalt, formatPrivKeyForBabyJub, genEcdhSharedKey, stringifyBigInts } from 'maci-crypto';
 import RegistryModule from '../ignition/modules/registry';
-import zkConfidentialUTXOModule from '../ignition/modules/zkConfidentialUTXO_anon_enc';
+import zetoModule from '../ignition/modules/zeto_anon_enc';
 import { User, UTXO, newUser, newUTXO, doMint, ZERO_UTXO, parseUTXOBranchEvents } from './lib/utils';
 
 const poseidonHash = Poseidon.poseidon4;
 
-describe("zkConfidentialUTXO with anonymity and encryption", function () {
+describe("Zeto based fungible token with anonymity and encryption", function () {
   let deployer: Signer;
   let Alice: User;
   let Bob: User;
   let Charlie: User;
-  let zkConfidentialUTXO: any;
+  let zeto: any;
   let registry: any;
   let utxo1: UTXO;
   let utxo2: UTXO;
@@ -47,7 +47,7 @@ describe("zkConfidentialUTXO with anonymity and encryption", function () {
     Charlie = await newUser(c);
     const registryContract = await ignition.deploy(RegistryModule);
     registry = registryContract.registry;
-    ({ zkConfidentialUTXO } = await ignition.deploy(zkConfidentialUTXOModule, { parameters: { zkConfidentialUTXO_Anonymity_Encryption: { registry: registry.target } } }));
+    ({ zeto } = await ignition.deploy(zetoModule, { parameters: { Zeto_AnonEnc: { registry: registry.target } } }));
 
     const tx1 = await registry.connect(deployer).register(Alice.ethAddress, Alice.babyJubPublicKey as [BigNumberish, BigNumberish]);
     await tx1.wait();
@@ -65,7 +65,7 @@ describe("zkConfidentialUTXO with anonymity and encryption", function () {
     // first the authority mints UTXOs to Alice
     utxo1 = newUTXO(10, Alice);
     utxo2 = newUTXO(20, Alice);
-    await doMint(zkConfidentialUTXO, deployer, [utxo1, utxo2]);
+    await doMint(zeto, deployer, [utxo1, utxo2]);
 
     // Alice proposes the output UTXOs
     const _utxo1 = newUTXO(25, Bob);
@@ -76,7 +76,7 @@ describe("zkConfidentialUTXO with anonymity and encryption", function () {
 
     // Bob uses the information in the event to recover the incoming UTXO
     // first obtain the UTXO from the transaction event
-    const events = parseUTXOBranchEvents(zkConfidentialUTXO, result.txResult!);
+    const events = parseUTXOBranchEvents(zeto, result.txResult!);
     expect(events[0].inputs).to.deep.equal([utxo1.hash, utxo2.hash]);
     expect(events[0].outputs).to.deep.equal([_utxo1.hash, utxo4.hash]);
     const incomingUTXOs: any = events[0].outputs;
@@ -103,11 +103,11 @@ describe("zkConfidentialUTXO with anonymity and encryption", function () {
   });
 
   it("mint existing unspent UTXOs should fail", async function () {
-    await expect(doMint(zkConfidentialUTXO, deployer, [utxo4])).rejectedWith("UTXOAlreadyOwned");
+    await expect(doMint(zeto, deployer, [utxo4])).rejectedWith("UTXOAlreadyOwned");
   });
 
   it("mint existing spent UTXOs should fail", async function () {
-    await expect(doMint(zkConfidentialUTXO, deployer, [utxo1])).rejectedWith("UTXOAlreadySpent");
+    await expect(doMint(zeto, deployer, [utxo1])).rejectedWith("UTXOAlreadySpent");
   });
 
   it("transfer non-existing UTXOs should fail", async function () {
@@ -126,7 +126,7 @@ describe("zkConfidentialUTXO with anonymity and encryption", function () {
   it("spend by using the same UTXO as both inputs should fail", async function () {
     // mint a new UTXO to Bob
     const _utxo1 = newUTXO(20, Bob);
-    await doMint(zkConfidentialUTXO, deployer, [_utxo1]);
+    await doMint(zeto, deployer, [_utxo1]);
 
     const _utxo2 = newUTXO(25, Alice);
     const _utxo3 = newUTXO(15, Bob);
@@ -205,16 +205,16 @@ describe("zkConfidentialUTXO with anonymity and encryption", function () {
     encryptionNonce: BigNumberish,
     encodedProof: any
   ) {
-    const tx = await zkConfidentialUTXO.connect(signer.signer).branch(inputCommitments, outputCommitments, encryptionNonce, encryptedValues, encodedProof);
+    const tx = await zeto.connect(signer.signer).branch(inputCommitments, outputCommitments, encryptionNonce, encryptedValues, encodedProof);
     const results: ContractTransactionReceipt | null = await tx.wait();
 
     for (const input of inputCommitments) {
       if (input === 0n) continue;
-      expect(await zkConfidentialUTXO.spent(input)).to.equal(true);
+      expect(await zeto.spent(input)).to.equal(true);
     }
     for (const output of outputCommitments) {
       if (output === 0n) continue;
-      expect(await zkConfidentialUTXO.spent(output)).to.equal(false);
+      expect(await zeto.spent(output)).to.equal(false);
     }
     console.log(`Method branch() complete. Gas used: ${results?.gasUsed}`);
 

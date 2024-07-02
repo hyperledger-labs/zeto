@@ -11,7 +11,7 @@ include "./node_modules/circomlib/circuits/babyjub.circom";
 // - check the input and output values sum to the same amount
 // - check the nullifiers are derived from the input commitments and the sender's private key
 // - check the nullifiers are included in the Merkle tree
-template ConfidentialUTXO(nSMTLevels) {
+template Zeto(nSMTLevels) {
   signal input tokenId;
   signal input tokenUri;
   signal input nullifier;
@@ -45,4 +45,4 @@ template ConfidentialUTXO(nSMTLevels) {
   checkHashesSum.out === 1;
 }
 
-component main { public [ nullifier, outputCommitment, root ] } = ConfidentialUTXO(64);
+component main { public [ nullifier, outputCommitment, root ] } = Zeto(64);

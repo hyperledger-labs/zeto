@@ -23,14 +23,14 @@ import { formatPrivKeyForBabyJub, stringifyBigInts } from 'maci-crypto';
 import { User, UTXO, newUser, newAssetUTXO, doMint } from './lib/utils';
 
 import RegistryModule from '../ignition/modules/registry';
-import zkConfidentialUTXOModule from '../ignition/modules/zkConfidentialUTXO_nf_anon';
+import zetoModule from '../ignition/modules/zeto_nf_anon';
 
-describe("zkConfidentialUTXO for non-fungible assets with anonymity without encryption", function () {
+describe("Zeto based non-fungible token with anonymity without encryption or nullifiers", function () {
   let deployer: Signer;
   let Alice: User;
   let Bob: User;
   let Charlie: User;
-  let zkConfidentialUTXO: any;
+  let zeto: any;
   let utxo1: UTXO;
   let utxo2: UTXO;
   let utxo3: UTXO;
@@ -43,7 +43,7 @@ describe("zkConfidentialUTXO for non-fungible assets with anonymity without encr
     Bob = await newUser(b);
     Charlie = await newUser(c);
     const { registry } = await ignition.deploy(RegistryModule);
-    ({ zkConfidentialUTXO } = await ignition.deploy(zkConfidentialUTXOModule, { parameters: { zkConfidentialUTXO_NF_Anonymity: { registry: registry.target } } }));
+    ({ zeto } = await ignition.deploy(zetoModule, { parameters: { Zeto_NFAnon: { registry: registry.target } } }));
 
     const tx1 = await registry.connect(deployer).register(Alice.ethAddress, Alice.babyJubPublicKey as [BigNumberish, BigNumberish]);
     await tx1.wait();
@@ -61,7 +61,7 @@ describe("zkConfidentialUTXO for non-fungible assets with anonymity without encr
     const tokenId = 1001;
     const uri = 'http://ipfs.io/file-hash-1';
     utxo1 = newAssetUTXO(tokenId, uri, Alice);
-    await doMint(zkConfidentialUTXO, deployer, [utxo1]);
+    await doMint(zeto, deployer, [utxo1]);
 
     // propose the output UTXOs
     const _utxo3 = newAssetUTXO(tokenId, uri, Bob);
@@ -82,11 +82,11 @@ describe("zkConfidentialUTXO for non-fungible assets with anonymity without encr
   });
 
   it("mint existing unspent UTXOs should fail", async function () {
-    await expect(doMint(zkConfidentialUTXO, deployer, [utxo3])).rejectedWith("UTXOAlreadyOwned");
+    await expect(doMint(zeto, deployer, [utxo3])).rejectedWith("UTXOAlreadyOwned");
   });
 
   it("mint existing spent UTXOs should fail", async function () {
-    await expect(doMint(zkConfidentialUTXO, deployer, [utxo1])).rejectedWith("UTXOAlreadySpent");
+    await expect(doMint(zeto, deployer, [utxo1])).rejectedWith("UTXOAlreadySpent");
   });
 
   it("transfer non-existing UTXOs should fail", async function () {
@@ -122,12 +122,12 @@ describe("zkConfidentialUTXO for non-fungible assets with anonymity without encr
     outputCommitment: BigNumberish,
     encodedProof: any
   ) {
-    const tx = await zkConfidentialUTXO.connect(signer.signer).branch(inputCommitment, outputCommitment, encodedProof);
+    const tx = await zeto.connect(signer.signer).branch(inputCommitment, outputCommitment, encodedProof);
     const results = await tx.wait();
     console.log(`Method branch() complete. Gas used: ${results?.gasUsed}`);
 
-    expect(await zkConfidentialUTXO.spent(inputCommitment)).to.equal(true);
-    expect(await zkConfidentialUTXO.spent(outputCommitment)).to.equal(false);
+    expect(await zeto.spent(inputCommitment)).to.equal(true);
+    expect(await zeto.spent(outputCommitment)).to.equal(false);
   }
 });
 

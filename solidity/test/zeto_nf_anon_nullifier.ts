@@ -21,20 +21,17 @@ import { loadCircuits, Poseidon, encodeProof, hashTokenUri } from "zk-utxo";
 import { groth16 } from 'snarkjs';
 import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
 import RegistryModule from '../ignition/modules/registry';
-import zkConfidentialUTXOModule from '../ignition/modules/zkConfidentialUTXO_nf_anon_nullifier';
-import { UTXO, User, newUser, newAssetUTXO, newAssetNullifier, doMint, ZERO_UTXO, parseUTXOBranchEvents } from './lib/utils';
+import zetoModule from '../ignition/modules/zeto_nf_anon_nullifier';
+import { UTXO, User, newUser, newAssetUTXO, newAssetNullifier, doMint, parseUTXOBranchEvents } from './lib/utils';
 
-describe("zkConfidentialUTXO for non-fungible assets with anonymity using nullifiers without encryption", function () {
+describe("Zeto based non-fungible token with anonymity using nullifiers without encryption", function () {
   let deployer: Signer;
   let Alice: User;
   let Bob: User;
   let Charlie: User;
-  let zkConfidentialUTXO: any;
+  let zeto: any;
   let utxo1: UTXO;
-  let utxo2: UTXO;
   let utxo3: UTXO;
-  let utxo4: UTXO;
-  let utxo7: UTXO;
   let circuit: any, provingKey: any;
   let smtAlice: Merkletree;
   let smtBob: Merkletree;
@@ -46,7 +43,7 @@ describe("zkConfidentialUTXO for non-fungible assets with anonymity using nullif
     Bob = await newUser(b);
     Charlie = await newUser(c);
     const { registry } = await ignition.deploy(RegistryModule);
-    ({ zkConfidentialUTXO } = await ignition.deploy(zkConfidentialUTXOModule, { parameters: { zkConfidentialUTXO_NF_Anonymity_Nullifier: { registry: registry.target } } }));
+    ({ zeto } = await ignition.deploy(zetoModule, { parameters: { Zeto_NFAnonNullifier: { registry: registry.target } } }));
 
     const tx1 = await registry.connect(deployer).register(Alice.ethAddress, Alice.babyJubPublicKey as [BigNumberish, BigNumberish]);
     await tx1.wait();
@@ -68,7 +65,7 @@ describe("zkConfidentialUTXO for non-fungible assets with anonymity using nullif
 
   it("onchain SMT root should be equal to the offchain SMT root", async function () {
     const root = await smtAlice.root();
-    const onchainRoot = await zkConfidentialUTXO.getRoot();
+    const onchainRoot = await zeto.getRoot();
     expect(onchainRoot).to.equal(0n);
     expect(root.string()).to.equal(onchainRoot.toString());
   });
@@ -78,15 +75,15 @@ describe("zkConfidentialUTXO for non-fungible assets with anonymity using nullif
     const tokenId = 1001;
     const uri = 'http://ipfs.io/file-hash-1';
     utxo1 = newAssetUTXO(tokenId, uri, Alice);
-    const result1 = await doMint(zkConfidentialUTXO, deployer, [utxo1]);
+    const result1 = await doMint(zeto, deployer, [utxo1]);
 
     // Alice locally tracks the UTXOs inside the Sparse Merkle Tree
     // hardhat doesn't have a good way to subscribe to events so we have to parse the Tx result object
-    const mintEvents = parseUTXOBranchEvents(zkConfidentialUTXO, result1);
+    const mintEvents = parseUTXOBranchEvents(zeto, result1);
     const [_utxo1] = mintEvents[0].outputs;
     await smtAlice.add(_utxo1, _utxo1);
     let root = await smtAlice.root();
-    let onchainRoot = await zkConfidentialUTXO.getRoot();
+    let onchainRoot = await zeto.getRoot();
     expect(root.string()).to.equal(onchainRoot.toString());
     // Bob also locally tracks the UTXOs inside the Sparse Merkle Tree
     await smtBob.add(_utxo1, _utxo1);
@@ -107,13 +104,13 @@ describe("zkConfidentialUTXO for non-fungible assets with anonymity using nullif
     // Alice locally tracks the UTXOs inside the Sparse Merkle Tree
     await smtAlice.add(_utxo3.hash, _utxo3.hash);
     root = await smtAlice.root();
-    onchainRoot = await zkConfidentialUTXO.getRoot();
+    onchainRoot = await zeto.getRoot();
     expect(root.string()).to.equal(onchainRoot.toString());
 
     // Bob locally tracks the UTXOs inside the Sparse Merkle Tree
     // Bob parses the UTXOs from the onchain event
     const signerAddress = await Alice.signer.getAddress();
-    const events = parseUTXOBranchEvents(zkConfidentialUTXO, result2.txResult!);
+    const events = parseUTXOBranchEvents(zeto, result2.txResult!);
     expect(events[0].submitter).to.equal(signerAddress);
     expect(events[0].inputs).to.deep.equal([nullifier1.hash]);
     expect(events[0].outputs).to.deep.equal([_utxo3.hash]);
@@ -150,16 +147,16 @@ describe("zkConfidentialUTXO for non-fungible assets with anonymity using nullif
     await smtBob.add(utxo6.hash, utxo6.hash);
 
     // Alice gets the new UTXOs from the onchain event and keeps the local SMT in sync
-    const events = parseUTXOBranchEvents(zkConfidentialUTXO, result.txResult!);
+    const events = parseUTXOBranchEvents(zeto, result.txResult!);
     await smtAlice.add(events[0].outputs[0], events[0].outputs[0]);
   }).timeout(600000);
 
   it("mint existing unspent UTXOs should fail", async function () {
-    await expect(doMint(zkConfidentialUTXO, deployer, [utxo3])).rejectedWith("UTXOAlreadyOwned");
+    await expect(doMint(zeto, deployer, [utxo3])).rejectedWith("UTXOAlreadyOwned");
   });
 
   it("mint existing spent UTXOs should fail", async function () {
-    await expect(doMint(zkConfidentialUTXO, deployer, [utxo1])).rejectedWith("UTXOAlreadyOwned");
+    await expect(doMint(zeto, deployer, [utxo1])).rejectedWith("UTXOAlreadyOwned");
   });
 
   it("transfer spent UTXOs should fail (double spend protection)", async function () {
@@ -265,7 +262,7 @@ describe("zkConfidentialUTXO for non-fungible assets with anonymity using nullif
     encodedProof: any
   ) {
     const startTx = Date.now();
-    const tx = await zkConfidentialUTXO.connect(signer.signer).branch(nullifier, outputCommitment, root, encodedProof);
+    const tx = await zeto.connect(signer.signer).branch(nullifier, outputCommitment, root, encodedProof);
     const results: ContractTransactionReceipt | null = await tx.wait();
     console.log(`Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${results?.gasUsed}`);
     return results;

@@ -25,7 +25,7 @@ const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
 const poseidonHash3 = Poseidon.poseidon3;
 
-describe('main circuit tests for ConfidentialUTXO with encryption and anonymity using nullifiers', () => {
+describe('main circuit tests for Zeto fungible tokens with anonymity using nullifiers and without encryption', () => {
   let circuit, provingKeyFile, verificationKey, smtAlice, smtBob;
 
   const Alice = {};
@@ -33,7 +33,7 @@ describe('main circuit tests for ConfidentialUTXO with encryption and anonymity 
   let senderPrivateKey;
 
   before(async () => {
-    const result = await loadCircuits('anon_enc_nullifier');
+    const result = await loadCircuits('anon_nullifier');
     circuit = result.circuit;
     provingKeyFile = result.provingKeyFile;
     verificationKey = result.verificationKey;
@@ -56,7 +56,7 @@ describe('main circuit tests for ConfidentialUTXO with encryption and anonymity 
     smtBob = new Merkletree(storage2, true, SMT_HEIGHT);
   });
 
-  it('should succeed for valid witness and produce an encypted value', async () => {
+  it('should succeed for valid witness', async () => {
     const inputValues = [32, 40];
     const outputValues = [20, 52];
 
@@ -87,11 +87,6 @@ describe('main circuit tests for ConfidentialUTXO with encryption and anonymity 
     const output2 = poseidonHash([BigInt(outputValues[1]), salt4, ...Alice.pubKey]);
     const outputCommitments = [output1, output2];
 
-    const encryptionNonce = genRandomSalt();
-    const encryptInputs = stringifyBigInts({
-      encryptionNonce,
-    });
-
     const witness = await circuit.calculateWitness(
       {
         nullifiers,
@@ -106,12 +101,11 @@ describe('main circuit tests for ConfidentialUTXO with encryption and anonymity 
         outputValues,
         outputSalts: [salt3, salt4],
         outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
-        ...encryptInputs,
       },
       true
     );
 
-    // console.log('witness', witness);
+    // console.log('witness', witness.slice(0, 10));
     // console.log('nullifiers', nullifiers);
     // console.log('inputCommitments', inputCommitments);
     // console.log('inputValues', inputValues);
@@ -121,21 +115,13 @@ describe('main circuit tests for ConfidentialUTXO with encryption and anonymity 
     // console.log('outputValues', outputValues);
     // console.log('outputSalt', salt3);
     // console.log('outputOwnerPublicKeys', [receiver.pubKey, sender.pubKey]);
-    // console.log('encryptionNonce', encryptionNonce);
 
-    expect(witness[3]).to.equal(BigInt(nullifiers[0]));
-    expect(witness[4]).to.equal(BigInt(nullifiers[1]));
-    expect(witness[5]).to.equal(proof1.root.bigInt());
-
-    // take the output from the proof circuit and attempt to decrypt
-    // as the receiver
-    const cipherText = [witness[1], witness[2]]; // index 1 is the encrypted value, index 2 is the encrypted salt
-    const recoveredKey = genEcdhSharedKey(Bob.privKey, Alice.pubKey);
-    const plainText = poseidonDecrypt(cipherText, recoveredKey, encryptionNonce);
-    expect(plainText).to.deep.equal([20n, salt3]);
+    expect(witness[1]).to.equal(BigInt(nullifiers[0]));
+    expect(witness[2]).to.equal(BigInt(nullifiers[1]));
+    expect(witness[3]).to.equal(proof1.root.bigInt());
   });
 
-  it('should succeed for valid witness and produce an encypted value - single input', async () => {
+  it('should succeed for valid witness - single input', async () => {
     const inputValues = [72, 0];
     const outputValues = [20, 52];
 
@@ -162,11 +148,6 @@ describe('main circuit tests for ConfidentialUTXO with encryption and anonymity 
     const output2 = poseidonHash([BigInt(outputValues[1]), salt4, ...Alice.pubKey]);
     const outputCommitments = [output1, output2];
 
-    const encryptionNonce = genRandomSalt();
-    const encryptInputs = stringifyBigInts({
-      encryptionNonce,
-    });
-
     const witness = await circuit.calculateWitness(
       {
         nullifiers,
@@ -181,33 +162,13 @@ describe('main circuit tests for ConfidentialUTXO with encryption and anonymity 
         outputValues,
         outputSalts: [salt3, salt4],
         outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
-        ...encryptInputs,
       },
       true
     );
 
-    // console.log('witness', witness);
-    // console.log('nullifiers', nullifiers);
-    // console.log('inputCommitments', inputCommitments);
-    // console.log('inputValues', inputValues);
-    // console.log('inputSalts', [salt1, salt2]);
-    // console.log('outputCommitments', outputCommitments);
-    // console.log('root', proof1.root.bigInt());
-    // console.log('outputValues', outputValues);
-    // console.log('outputSalt', salt3);
-    // console.log('outputOwnerPublicKeys', [receiver.pubKey, sender.pubKey]);
-    // console.log('encryptionNonce', encryptionNonce);
-
-    expect(witness[3]).to.equal(BigInt(nullifiers[0]));
-    expect(witness[4]).to.equal(BigInt(nullifiers[1]));
-    expect(witness[5]).to.equal(proof1.root.bigInt());
-
-    // take the output from the proof circuit and attempt to decrypt
-    // as the receiver
-    const cipherText = [witness[1], witness[2]]; // index 1 is the encrypted value, index 2 is the encrypted salt
-    const recoveredKey = genEcdhSharedKey(Bob.privKey, Alice.pubKey);
-    const plainText = poseidonDecrypt(cipherText, recoveredKey, encryptionNonce);
-    expect(plainText).to.deep.equal([20n, salt3]);
+    expect(witness[1]).to.equal(BigInt(nullifiers[0]));
+    expect(witness[2]).to.equal(BigInt(nullifiers[1]));
+    expect(witness[3]).to.equal(proof1.root.bigInt());
   });
 
   it('should fail to generate a witness because mass conservation is not obeyed', async () => {
@@ -240,12 +201,6 @@ describe('main circuit tests for ConfidentialUTXO with encryption and anonymity 
     const output2 = poseidonHash([BigInt(outputValues[1]), salt3, ...Alice.pubKey]);
     const outputCommitments = [output1, output2];
 
-    const sharedSecret = genEcdhSharedKey(Alice.privKey, Bob.pubKey);
-    const encryptionNonce = genRandomSalt();
-    const encryptInputs = stringifyBigInts({
-      encryptionNonce,
-    });
-
     let err;
     try {
       await circuit.calculateWTNSBin(
@@ -262,7 +217,6 @@ describe('main circuit tests for ConfidentialUTXO with encryption and anonymity 
           outputValues,
           outputSalts: [salt3, salt3],
           outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
-          ...encryptInputs,
         },
         true
       );
@@ -270,8 +224,8 @@ describe('main circuit tests for ConfidentialUTXO with encryption and anonymity 
       err = e;
     }
     // console.log(err);
-    expect(err).to.match(/Error in template CheckNullifierHashesAndSum_246 line: 157/);
-    expect(err).to.match(/Error in template ConfidentialUTXO_254 line: 46/);
+    expect(err).to.match(/Error in template CheckNullifierHashesAndSum_246 line: 156/);
+    expect(err).to.match(/Error in template Zeto_247 line: 43/);
   });
 
   it('should generate a valid proof that can be verified successfully', async () => {
@@ -304,11 +258,6 @@ describe('main circuit tests for ConfidentialUTXO with encryption and anonymity 
     const output2 = poseidonHash([BigInt(outputValues[1]), salt3, ...Alice.pubKey]);
     const outputCommitments = [output1, output2];
 
-    const encryptionNonce = genRandomSalt();
-    const encryptInputs = stringifyBigInts({
-      encryptionNonce,
-    });
-
     const startTime = Date.now();
     const witness = await circuit.calculateWTNSBin(
       {
@@ -324,7 +273,6 @@ describe('main circuit tests for ConfidentialUTXO with encryption and anonymity 
         outputValues,
         outputSalts: [salt3, salt3],
         outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
-        ...encryptInputs,
       },
       true
     );
@@ -337,7 +285,6 @@ describe('main circuit tests for ConfidentialUTXO with encryption and anonymity 
     // console.log('inputCommitments', inputCommitments);
     // console.log('outputCommitments', outputCommitments);
     // console.log('root', proof1.root.bigInt());
-    // console.log('encryptionNonce', encryptionNonce);
     // console.log('publicSignals', publicSignals);
     expect(success, true);
   }).timeout(600000);
