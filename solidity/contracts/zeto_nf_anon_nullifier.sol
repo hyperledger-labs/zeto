@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Groth16Verifier_Anonymity_Nullifier} from "./lib/verifier_anon_nullifier.sol";
-import {zkConfidentialUTXONullifier} from "./lib/zkConfidentialUTXONullifier.sol";
+import {Groth16Verifier_NFAnonNullifier} from "./lib/verifier_nf_anon_nullifier.sol";
+import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -21,47 +21,48 @@ uint256 constant MAX_SMT_DEPTH = 64;
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 /// @author Kaleido, Inc.
 /// @dev Implements double-spend protection with zkp
-contract zkConfidentialUTXO_Anonymity_Nullifier is zkConfidentialUTXONullifier {
-    Groth16Verifier_Anonymity_Nullifier verifier;
+contract Zeto_NFAnonNullifier is ZetoNullifier {
+    Groth16Verifier_NFAnonNullifier verifier;
 
     constructor(
-        Groth16Verifier_Anonymity_Nullifier _verifier,
+        Groth16Verifier_NFAnonNullifier _verifier,
         Registry _registry
-    ) zkConfidentialUTXONullifier(_registry) {
+    ) ZetoNullifier(_registry) {
         verifier = _verifier;
     }
 
     /**
      * @dev the main function of the contract.
      *
-     * @param nullifiers Array of zero or more outputs of a previous `branch()` function call against this
+     * @param nullifier Array of zero or more outputs of a previous `branch()` function call against this
      *      contract that have not yet been spent, and the owner is authorized to spend.
-     * @param outputs Array of zero or more new outputs to generate, for future transactions to spend.
+     * @param output Array of zero or more new outputs to generate, for future transactions to spend.
      * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
      *      that the outputs are valid in terms of obeying mass conservation rules.
      *
      * Emits a {UTXOBranch} event.
      */
     function branch(
-        uint256[2] memory nullifiers,
-        uint256[2] memory outputs,
+        uint256 nullifier,
+        uint256 output,
         uint256 root,
         Commonlib.Proof calldata proof
     ) public returns (bool) {
         require(
-            validateTransactionProposal(nullifiers, outputs, root, proof),
+            validateTransactionProposal(
+                [nullifier, 0],
+                [output, 0],
+                root,
+                proof
+            ),
             "Invalid transaction proposal"
         );
 
         // construct the public inputs
-        uint256[7] memory publicInputs;
-        publicInputs[0] = nullifiers[0];
-        publicInputs[1] = nullifiers[1];
-        publicInputs[2] = root;
-        publicInputs[3] = (nullifiers[0] == 0) ? 0 : 1; // enable MT proof for the first nullifier
-        publicInputs[4] = (nullifiers[1] == 0) ? 0 : 1; // enable MT proof for the second nullifier
-        publicInputs[5] = outputs[0];
-        publicInputs[6] = outputs[1];
+        uint256[3] memory publicInputs;
+        publicInputs[0] = nullifier;
+        publicInputs[1] = root;
+        publicInputs[2] = output;
 
         // // Check the proof
         require(
@@ -69,14 +70,13 @@ contract zkConfidentialUTXO_Anonymity_Nullifier is zkConfidentialUTXONullifier {
             "Invalid proof"
         );
 
-        processInputsAndOutputs(nullifiers, outputs);
+        processInputsAndOutputs([nullifier, 0], [output, 0]);
 
-        uint256[] memory nullifierArray = new uint256[](nullifiers.length);
-        uint256[] memory outputArray = new uint256[](outputs.length);
-        for (uint256 i = 0; i < nullifiers.length; ++i) {
-            nullifierArray[i] = nullifiers[i];
-            outputArray[i] = outputs[i];
-        }
+        uint256[] memory nullifierArray = new uint256[](1);
+        uint256[] memory outputArray = new uint256[](1);
+        nullifierArray[0] = nullifier;
+        outputArray[0] = output;
+
         emit UTXOBranch(nullifierArray, outputArray, msg.sender);
         return true;
     }

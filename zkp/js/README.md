@@ -1,6 +1,6 @@
-# Confidential UTXO javascript library
+# Zeto toolkit javascript library
 
-The main purpose of the javascript project is testing the circom based ZKP circuits. The test cases demonstrate the expected behaviors of the circuits, which can be used as the reference to build a client implementation for the Confidential UTXO.
+The main purpose of the javascript project is testing the circom based ZKP circuits. The test cases demonstrate the expected behaviors of the circuits, which can be used as the reference to build a client implementation for the Zeto toolkit.
 
 # Build
 
@@ -85,38 +85,50 @@ Once the proving keys and verification keys are generated, set the environment v
 $ npm i
 $ npm t
 
-> zk-utxo-js@0.0.1 test
+> zeto-js@0.0.1 test
 > mocha
 
-  check-nullifiers circuit tests
-    ✔ should return true for valid witness (45ms)
-    ✔ should fail to generate a witness because incorrect values are not used
-Proving time:  0.282 s
-    ✔ should generate a valid proof using groth16 that can be verified successfully (314ms)
-
-  main circuit tests for ConfidentialUTXO without encryption
+  main circuit tests for Zeto fungible tokens with anonymity without encryption
     ✔ should succeed for valid witness (39ms)
     ✔ should fail to generate a witness because mass conservation is not obeyed
-Proving time:  0.191 s
-    ✔ should generate a valid proof that can be verified successfully (205ms)
+Proving time:  0.333 s
+    ✔ should generate a valid proof that can be verified successfully (345ms)
 
-  main circuit tests for ConfidentialUTXO with encryption
-    ✔ should succeed for valid witness and produce an encypted value (69ms)
+  main circuit tests for Zeto fungible tokens with anonymity with encryption
+    ✔ should succeed for valid witness and produce an encypted value (70ms)
     ✔ should fail to generate a witness because mass conservation is not obeyed
-Proving time:  0.363 s
-    ✔ should generate a valid proof that can be verified successfully (375ms)
+Proving time:  0.372 s
+    ✔ should generate a valid proof that can be verified successfully (383ms)
 
-  main circuit tests for ConfidentialUTXO with encryption and anonymity
-    ✔ should succeed for valid witness and produce an encypted value (156ms)
-    ✔ should succeed for valid witness and produce an encypted value - single input (107ms)
-    ✔ should fail to generate a witness because mass conservation is not obeyed (72ms)
-Proving time:  2.235 s
-    ✔ should generate a valid proof that can be verified successfully (2253ms)
+  main circuit tests for Zeto fungible tokens with encryption and anonymity using nullifiers
+    ✔ should succeed for valid witness and produce an encypted value (160ms)
+    ✔ should succeed for valid witness and produce an encypted value - single input (108ms)
+    ✔ should fail to generate a witness because mass conservation is not obeyed (74ms)
+Proving time:  2.167 s
+    ✔ should generate a valid proof that can be verified successfully (2183ms)
 
-  main circuit tests for ConfidentialUTXO (NFT) without encryption
+  main circuit tests for Zeto fungible tokens with anonymity using nullifiers and without encryption
+    ✔ should succeed for valid witness (126ms)
+    ✔ should succeed for valid witness - single input (79ms)
+    ✔ should fail to generate a witness because mass conservation is not obeyed (57ms)
+Proving time:  2.056 s
+    ✔ should generate a valid proof that can be verified successfully (2076ms)
+
+  check-nullifiers circuit tests
+    ✔ should return true for valid witness (44ms)
+    ✔ should fail to generate a witness because incorrect values are not used
+Proving time:  0.138 s
+    ✔ should generate a valid proof using groth16 that can be verified successfully (168ms)
+
+  main circuit tests for Zeto non-fungible tokens with anonymity without encryption
     ✔ should succeed for valid witness and produce an encypted value (39ms)
-Proving time:  0.131 s
-    ✔ should generate a valid proof that can be verified successfully (141ms)
+Proving time:  0.135 s
+    ✔ should generate a valid proof that can be verified successfully (144ms)
+
+  main circuit tests for Zeto non-fungible tokens with anonymity using nullifiers and without encryption
+    ✔ should succeed for valid witness (88ms)
+Proving time:  1.08 s
+    ✔ should generate a valid proof that can be verified successfully (1093ms)
 
   check-hashes-sum circuit tests
     ✔ should return true for valid witness
@@ -140,18 +152,25 @@ Proving time:  0.131 s
     ✔ should fail to generate a witness because of invalid output commitments
 
   check-nullifier-hashes-sum circuit tests
-    ✔ should return true for valid witness (131ms)
+    ✔ should return true for valid witness (126ms)
     ✔ should return true for valid witness - single input (78ms)
-    ✔ should fail due to using single input but with both merkle proof enablement indicators set to "enabled" (55ms)
-    ✔ should fail to generate a witness because mass conservation is not obeyed (58ms)
+    ✔ should fail due to using single input but with both merkle proof enablement indicators set to "enabled" (56ms)
+    ✔ should fail to generate a witness because mass conservation is not obeyed (57ms)
+
+  check-nullifier-tokenid-uri circuit tests
+    ✔ should return true for valid witness (95ms)
+    ✔ should fail to generate a witness because token ID changed (40ms)
+    ✔ should fail to generate a witness because token URI changed (40ms)
+    ✔ should fail to generate a witness because of invalid input commitments
+    ✔ should fail to generate a witness because of invalid output commitments
 
   Ecdh circuit tests
     ✔ should generate the shared secret in the proof circuit, which can be reproduced by the receiver
 
   Encryption circuit tests
-    ✔ should generate the cipher text in the proof circuit, which can be decrypted by the receiver (109ms)
+    ✔ should generate the cipher text in the proof circuit, which can be decrypted by the receiver (48ms)
 
 
-  38 passing (5s)
+  49 passing (9s)
 
 ```

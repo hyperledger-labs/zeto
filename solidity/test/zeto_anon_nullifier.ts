@@ -17,20 +17,19 @@
 import { ethers, ignition } from 'hardhat';
 import { ContractTransactionReceipt, Signer, BigNumberish, AddressLike } from 'ethers';
 import { expect } from 'chai';
-import { loadCircuits, poseidonDecrypt, encodeProof } from "zk-utxo";
+import { loadCircuits, Poseidon, encodeProof } from "zk-utxo";
 import { groth16 } from 'snarkjs';
-import { genRandomSalt, genEcdhSharedKey, stringifyBigInts } from 'maci-crypto';
 import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
 import RegistryModule from '../ignition/modules/registry';
-import zkConfidentialUTXOModule from '../ignition/modules/zkConfidentialUTXO_anon_enc_nullifier';
+import zetoModule from '../ignition/modules/zeto_anon_nullifier';
 import { UTXO, User, newUser, newUTXO, newNullifier, doMint, ZERO_UTXO, parseUTXOBranchEvents } from './lib/utils';
 
-describe("zkConfidentialUTXO with anonymity using nullifiers and encryption", function () {
+describe("Zeto based fungible token with anonymity using nullifiers without encryption", function () {
   let deployer: Signer;
   let Alice: User;
   let Bob: User;
   let Charlie: User;
-  let zkConfidentialUTXO: any;
+  let zeto: any;
   let utxo1: UTXO;
   let utxo2: UTXO;
   let utxo3: UTXO;
@@ -47,7 +46,7 @@ describe("zkConfidentialUTXO with anonymity using nullifiers and encryption", fu
     Bob = await newUser(b);
     Charlie = await newUser(c);
     const { registry } = await ignition.deploy(RegistryModule);
-    ({ zkConfidentialUTXO } = await ignition.deploy(zkConfidentialUTXOModule, { parameters: { zkConfidentialUTXO_Anonymity_Encryption_Nullifier: { registry: registry.target } } }));
+    ({ zeto } = await ignition.deploy(zetoModule, { parameters: { Zeto_AnonNullifier: { registry: registry.target } } }));
 
     const tx1 = await registry.connect(deployer).register(Alice.ethAddress, Alice.babyJubPublicKey as [BigNumberish, BigNumberish]);
     await tx1.wait();
@@ -56,7 +55,7 @@ describe("zkConfidentialUTXO with anonymity using nullifiers and encryption", fu
     const tx3 = await registry.connect(deployer).register(Charlie.ethAddress, Charlie.babyJubPublicKey as [BigNumberish, BigNumberish]);
     await tx3.wait();
 
-    const result = await loadCircuits('anon_enc_nullifier');
+    const result = await loadCircuits('anon_nullifier');
     circuit = result.circuit;
     provingKey = result.provingKeyFile;
 
@@ -69,7 +68,7 @@ describe("zkConfidentialUTXO with anonymity using nullifiers and encryption", fu
 
   it("onchain SMT root should be equal to the offchain SMT root", async function () {
     const root = await smtAlice.root();
-    const onchainRoot = await zkConfidentialUTXO.getRoot();
+    const onchainRoot = await zeto.getRoot();
     expect(onchainRoot).to.equal(0n);
     expect(root.string()).to.equal(onchainRoot.toString());
   });
@@ -78,16 +77,16 @@ describe("zkConfidentialUTXO with anonymity using nullifiers and encryption", fu
     // The authority mints a new UTXO and assigns it to Alice
     utxo1 = newUTXO(10, Alice);
     utxo2 = newUTXO(20, Alice);
-    const result1 = await doMint(zkConfidentialUTXO, deployer, [utxo1, utxo2]);
+    const result1 = await doMint(zeto, deployer, [utxo1, utxo2]);
 
     // Alice locally tracks the UTXOs inside the Sparse Merkle Tree
     // hardhat doesn't have a good way to subscribe to events so we have to parse the Tx result object
-    const mintEvents = parseUTXOBranchEvents(zkConfidentialUTXO, result1);
+    const mintEvents = parseUTXOBranchEvents(zeto, result1);
     const [_utxo1, _utxo2] = mintEvents[0].outputs;
     await smtAlice.add(_utxo1, _utxo1);
     await smtAlice.add(_utxo2, _utxo2);
     let root = await smtAlice.root();
-    let onchainRoot = await zkConfidentialUTXO.getRoot();
+    let onchainRoot = await zeto.getRoot();
     expect(root.string()).to.equal(onchainRoot.toString());
     // Bob also locally tracks the UTXOs inside the Sparse Merkle Tree
     await smtBob.add(_utxo1, _utxo1);
@@ -113,26 +112,28 @@ describe("zkConfidentialUTXO with anonymity using nullifiers and encryption", fu
     await smtAlice.add(_utxo3.hash, _utxo3.hash);
     await smtAlice.add(utxo4.hash, utxo4.hash);
     root = await smtAlice.root();
-    onchainRoot = await zkConfidentialUTXO.getRoot();
+    onchainRoot = await zeto.getRoot();
     expect(root.string()).to.equal(onchainRoot.toString());
 
     // Bob locally tracks the UTXOs inside the Sparse Merkle Tree
     // Bob parses the UTXOs from the onchain event
     const signerAddress = await Alice.signer.getAddress();
-    const events = parseUTXOBranchEvents(zkConfidentialUTXO, result2.txResult!);
+    const events = parseUTXOBranchEvents(zeto, result2.txResult!);
     expect(events[0].submitter).to.equal(signerAddress);
     expect(events[0].inputs).to.deep.equal([nullifier1.hash, nullifier2.hash]);
     expect(events[0].outputs).to.deep.equal([_utxo3.hash, utxo4.hash]);
     await smtBob.add(events[0].outputs[0], events[0].outputs[0]);
     await smtBob.add(events[0].outputs[1], events[0].outputs[1]);
 
-    // Bob uses the encrypted values in the event to decrypt and recover the UTXO value and salt
-    const sharedKey = genEcdhSharedKey(Bob.babyJubPrivateKey, Alice.babyJubPublicKey);
-    const plainText = poseidonDecrypt(events[0].encryptedValues, sharedKey, events[0].encryptionNonce);
-    expect(plainText).to.deep.equal([25n, result2.plainTextSalt]);
+    // Bob uses the information received from Alice to reconstruct the UTXO sent to him
+    const receivedValue = _utxo3.value!;
+    const receivedSalt = _utxo3.salt;
+    const incomingUTXOs: any = events[0].outputs;
+    const hash = Poseidon.poseidon4([BigInt(receivedValue), receivedSalt, Bob.babyJubPublicKey[0], Bob.babyJubPublicKey[1]]);
+    expect(incomingUTXOs[0]).to.equal(hash);
 
     // Bob uses the decrypted values to construct the UTXO received from the transaction
-    utxo3 = newUTXO(Number(plainText[0]), Bob, plainText[1]);
+    utxo3 = newUTXO(receivedValue, Bob, receivedSalt);
   }).timeout(600000);
 
   it("Bob transfers UTXOs, previously received from Alice, honestly to Charlie should succeed", async function () {
@@ -157,17 +158,17 @@ describe("zkConfidentialUTXO with anonymity using nullifiers and encryption", fu
     await smtBob.add(utxo7.hash, utxo7.hash);
 
     // Alice gets the new UTXOs from the onchain event and keeps the local SMT in sync
-    const events = parseUTXOBranchEvents(zkConfidentialUTXO, result.txResult!);
+    const events = parseUTXOBranchEvents(zeto, result.txResult!);
     await smtAlice.add(events[0].outputs[0], events[0].outputs[0]);
     await smtAlice.add(events[0].outputs[1], events[0].outputs[1]);
   }).timeout(600000);
 
   it("mint existing unspent UTXOs should fail", async function () {
-    await expect(doMint(zkConfidentialUTXO, deployer, [utxo4])).rejectedWith("UTXOAlreadyOwned");
+    await expect(doMint(zeto, deployer, [utxo4])).rejectedWith("UTXOAlreadyOwned");
   });
 
   it("mint existing spent UTXOs should fail", async function () {
-    await expect(doMint(zkConfidentialUTXO, deployer, [utxo1])).rejectedWith("UTXOAlreadyOwned");
+    await expect(doMint(zeto, deployer, [utxo1])).rejectedWith("UTXOAlreadyOwned");
   });
 
   it("transfer spent UTXOs should fail (double spend protection)", async function () {
@@ -191,7 +192,7 @@ describe("zkConfidentialUTXO with anonymity using nullifiers and encryption", fu
   it("transfer with existing UTXOs in the output should fail (mass conservation protection)", async function () {
     // give Bob another UTXO to be able to spend
     const _utxo1 = newUTXO(15, Bob);
-    await doMint(zkConfidentialUTXO, deployer, [_utxo1]);
+    await doMint(zeto, deployer, [_utxo1]);
     await smtBob.add(_utxo1.hash, _utxo1.hash);
 
     const nullifier1 = newNullifier(utxo7, Bob);
@@ -250,17 +251,13 @@ describe("zkConfidentialUTXO with anonymity using nullifiers and encryption", fu
   async function doBranch(signer: User, inputs: UTXO[], _nullifiers: UTXO[], outputs: UTXO[], root: BigInt, merkleProofs: BigInt[][], owners: User[]) {
     let nullifiers: [BigNumberish, BigNumberish];
     let outputCommitments: [BigNumberish, BigNumberish];
-    let encryptedValues: [BigNumberish, BigNumberish];
-    let encryptionNonce: BigNumberish;
     let encodedProof: any;
     const result = await prepareProof(signer, inputs, _nullifiers, outputs, root, merkleProofs, owners);
     nullifiers = _nullifiers.map((nullifier) => nullifier.hash) as [BigNumberish, BigNumberish];
     outputCommitments = result.outputCommitments;
     encodedProof = result.encodedProof;
-    encryptedValues = result.encryptedValues;
-    encryptionNonce = result.encryptionNonce;
 
-    const txResult = await sendTx(signer, nullifiers, outputCommitments, root, encryptedValues, encryptionNonce, encodedProof);
+    const txResult = await sendTx(signer, nullifiers, outputCommitments, root, encodedProof);
     // add the clear text value so that it can be used by tests to compare with the decrypted value
     return { txResult, plainTextSalt: outputs[0].salt };
   }
@@ -273,10 +270,6 @@ describe("zkConfidentialUTXO with anonymity using nullifiers and encryption", fu
     const outputCommitments: [BigNumberish, BigNumberish] = outputs.map((output) => output.hash) as [BigNumberish, BigNumberish];
     const outputValues = outputs.map((output) => BigInt(output.value || 0n));
     const outputOwnerPublicKeys: [[BigNumberish, BigNumberish], [BigNumberish, BigNumberish]] = owners.map(owner => owner.babyJubPublicKey) as [[BigNumberish, BigNumberish], [BigNumberish, BigNumberish]];
-    const encryptionNonce: BigNumberish = genRandomSalt() as BigNumberish;
-    const encryptInputs = stringifyBigInts({
-      encryptionNonce,
-    });
 
     const startWitnessCalculation = Date.now();
     const inputObj = {
@@ -292,7 +285,6 @@ describe("zkConfidentialUTXO with anonymity using nullifiers and encryption", fu
       outputValues,
       outputSalts: outputs.map((output) => output.salt),
       outputOwnerPublicKeys,
-      ...encryptInputs
     };
     const witness = await circuit.calculateWTNSBin(
       inputObj,
@@ -307,13 +299,9 @@ describe("zkConfidentialUTXO with anonymity using nullifiers and encryption", fu
     console.log(`Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`);
 
     const encodedProof = encodeProof(proof);
-    const encryptedValue = publicSignals[0];
-    const encryptedSalt = publicSignals[1];
     return {
       inputCommitments,
       outputCommitments,
-      encryptedValues: [encryptedValue, encryptedSalt] as [BigNumberish, BigNumberish],
-      encryptionNonce,
       encodedProof
     };
   }
@@ -323,12 +311,10 @@ describe("zkConfidentialUTXO with anonymity using nullifiers and encryption", fu
     nullifiers: [BigNumberish, BigNumberish],
     outputCommitments: [BigNumberish, BigNumberish],
     root: BigNumberish,
-    encryptedValues: [BigNumberish, BigNumberish],
-    encryptionNonce: BigNumberish,
     encodedProof: any
   ) {
     const startTx = Date.now();
-    const tx = await zkConfidentialUTXO.connect(signer.signer).branch(nullifiers, outputCommitments, root, encryptionNonce, encryptedValues, encodedProof);
+    const tx = await zeto.connect(signer.signer).branch(nullifiers, outputCommitments, root, encodedProof);
     const results: ContractTransactionReceipt | null = await tx.wait();
     console.log(`Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${results?.gasUsed}`);
     return results;

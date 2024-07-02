@@ -75,18 +75,18 @@ export function newAssetNullifier(utxo: UTXO, owner: User): UTXO {
   return { tokenId: utxo.tokenId, uri: utxo.uri, hash, salt: utxo.salt };
 }
 
-export async function doMint(zkConfidentialUTXO: any, minter: Signer, outputs: UTXO[]): Promise<ContractTransactionReceipt> {
+export async function doMint(zetoTokenContract: any, minter: Signer, outputs: UTXO[]): Promise<ContractTransactionReceipt> {
   const outputCommitments = outputs.map((output) => output.hash) as BigNumberish[];
-  const tx = await zkConfidentialUTXO.connect(minter).mint(outputCommitments);
+  const tx = await zetoTokenContract.connect(minter).mint(outputCommitments);
   const result = await tx.wait();
   console.log(`Method mint() complete. Gas used: ${result?.gasUsed}`);
   return result;
 }
 
-export function parseUTXOBranchEvents(zkConfidentialUTXO: any, result: ContractTransactionReceipt) {
+export function parseUTXOBranchEvents(zetoTokenContract: any, result: ContractTransactionReceipt) {
   let returnValues: any[] = [];
   for (const log of result.logs || []) {
-    const event = zkConfidentialUTXO.interface.parseLog(log as any);
+    const event = zetoTokenContract.interface.parseLog(log as any);
     if (event?.name === 'UTXOBranch') {
       const branch = {
         inputs: event?.args.inputs,

@@ -19,15 +19,15 @@ import { Signer, BigNumberish, AddressLike, encodeBytes32String, ZeroAddress, Ze
 import { expect } from 'chai';
 import { loadCircuits, getProofHash } from "zk-utxo";
 import RegistryModule from '../ignition/modules/registry';
-import zkConfidentialUTXOAnonModule from '../ignition/modules/zkConfidentialUTXO_anon';
-import zkConfidentialUTXONFAnonModule from '../ignition/modules/zkConfidentialUTXO_nf_anon';
+import zetoAnonModule from '../ignition/modules/zeto_anon';
+import zetoNFAnonModule from '../ignition/modules/zeto_nf_anon';
 import zkDvPModule from '../ignition/modules/zkDvP';
-import zkConfidentialUTXOAnonTests from './zkConfidentialUTXO_anon';
-import zkConfidentialUTXONFAnonTests from './zkConfidentialUTXO_nf_anon';
+import zetoAnonTests from './zeto_anon';
+import zetoNFAnonTests from './zeto_nf_anon';
 
 import { UTXO, User, newUser, newUTXO, doMint, newAssetUTXO, ZERO_UTXO, parseUTXOBranchEvents } from './lib/utils';
 
-describe("DvP flows with encryption and anonymity", function () {
+describe("DvP flows between fungible and non-fungible tokens based on Zeto with anonymity without encryption or nullifiers", function () {
   // users interacting with each other in the DvP transactions
   let Alice: User;
   let Bob: User;
@@ -56,9 +56,9 @@ describe("DvP flows with encryption and anonymity", function () {
     Charlie = await newUser(c);
 
     const { registry } = await ignition.deploy(RegistryModule);
-    ({ zkConfidentialUTXO: zkAsset } = await ignition.deploy(zkConfidentialUTXONFAnonModule, { parameters: { zkConfidentialUTXO_NF_Anonymity: { registry: registry.target } } }));
+    ({ zeto: zkAsset } = await ignition.deploy(zetoNFAnonModule, { parameters: { Zeto_NFAnon: { registry: registry.target } } }));
     console.log(`ZK Asset contract deployed at ${zkAsset.target}`);
-    ({ zkConfidentialUTXO: zkPayment } = await ignition.deploy(zkConfidentialUTXOAnonModule, { parameters: { zkConfidentialUTXO_Anonymity: { registry: registry.target } } }));
+    ({ zeto: zkPayment } = await ignition.deploy(zetoAnonModule, { parameters: { Zeto_Anon: { registry: registry.target } } }));
     console.log(`ZK Payment contract deployed at ${zkPayment.target}`);
     ({ zkDvP } = await ignition.deploy(zkDvPModule, { parameters: { zkDvP: { assetToken: zkAsset.target, paymentToken: zkPayment.target } } }));
 
@@ -183,7 +183,7 @@ describe("DvP flows with encryption and anonymity", function () {
 
     // 1.2 Alice generates the proof for the trade proposal
     const { circuit: circuit1, provingKeyFile: provingKey1 } = await loadCircuits('anon');
-    const proof1 = await zkConfidentialUTXOAnonTests.prepareProof(circuit1, provingKey1, Alice, [_utxo1, ZERO_UTXO], [utxo2, ZERO_UTXO], [Bob, {}]);
+    const proof1 = await zetoAnonTests.prepareProof(circuit1, provingKey1, Alice, [_utxo1, ZERO_UTXO], [utxo2, ZERO_UTXO], [Bob, {}]);
     const hash1 = getProofHash(proof1.encodedProof);
 
     // 1.3 Alice initiates the trade with Bob
@@ -198,7 +198,7 @@ describe("DvP flows with encryption and anonymity", function () {
 
     // 2.2 Bob generates the proof for accepting the trade
     const { circuit: circuit2, provingKeyFile: provingKey2 } = await loadCircuits('nf_anon');
-    const proof2 = await zkConfidentialUTXONFAnonTests.prepareProof(circuit2, provingKey2, Bob, utxo3, utxo4, Alice);
+    const proof2 = await zetoNFAnonTests.prepareProof(circuit2, provingKey2, Bob, utxo3, utxo4, Alice);
     const hash2 = getProofHash(proof2.encodedProof);
 
     await expect(zkDvP.connect(Bob.signer).acceptTrade(tradeId, [0, 0], [0, 0], ZeroHash, utxo3.hash, utxo4.hash, hash2)).fulfilled;

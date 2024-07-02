@@ -1,7 +1,7 @@
 {
-  "name": "confidential-utxo",
+  "name": "zeto",
   "version": "0.0.1",
-  "description": "",
+  "description": "Zero knowledge proof based UTXO tokens toolkit for fungible or non-fungible assets",
   "main": "index.js",
   "scripts": {
     "test": "npx hardhat test"

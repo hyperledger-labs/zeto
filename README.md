@@ -1,4 +1,4 @@
-# Confidential UTXO using Zero Knowledge Proofs
+# Zeto, a UTXO based privacy-preserving token toolkit using Zero Knowledge Proofs
 
 This project hosts the multiple patterns to implement privacy preserving tokens on EVM. The patterns all share the same basic architectural concepts:
 
@@ -12,7 +12,7 @@ The various patterns in this project use Zero Knowledge Proofs (ZKP) to demonstr
 
 Using ZKPs as validity proofs, each participant can independently submit transactions to the smart contract directly. As long as the participant is able to produce a valid proof, the transaction will be successfully verified and allowed to go through.
 
-This project will host multiple ZKP circuits to support various privacy levels with Confidential UTXO, as listed below.
+This project will host multiple ZKP circuits to support various privacy levels with Zeto, as listed below.
 
 Performing key pair operations, such as deriving the public key from the private key, in the ZKP circuit requires using ZKP-friendly curves, for which we picked Babyjubjub instead of the regular Ethereum curve (secp256k1).
 
@@ -29,7 +29,7 @@ The statements in the proof include:
 
 There is no history masking, meaning the associations between the consumed input UTXOs and the output UTXOs are in the clear.
 
-![Confidential UTXO without encryption or history masking](/resources/c-utxo-zkp-1.jpg)
+![Confidential payload without encryption or history masking](/resources/c-utxo-zkp-1.jpg)
 
 ## Confidential payload with anonymity, with encrypted values, without history masking
 
@@ -45,7 +45,7 @@ The statements in the proof include:
 
 There is no history masking, meaning the association between the consumed input UTXOs and the output UTXOs are in the clear.
 
-![Confidential UTXO with encryption but no history masking](/resources/c-utxo-zkp-2.jpg)
+![Confidential payload with encryption but no history masking](/resources/c-utxo-zkp-2.jpg)
 
 ## Confidential payload with anonymity, with encrypted values and history masking
 
@@ -64,7 +64,7 @@ The statements in the proof include:
 - the encrypted value in the input is derived from the receiver's UTXO value and encrypted with a shared secret using the ECDH protocol between the sender and receiver (this guarantees data availability for the receiver)
 - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 
-![Confidential UTXO with encryption and history masking](/resources/c-utxo-zkp-3.jpg)
+![Confidential payload with encryption and history masking](/resources/c-utxo-zkp-3.jpg)
 
 In particular, two types of merkle trees can be used, depending on the requirement to protect against [total supply reduction](#total-supply-reduction) or not.
 
@@ -144,13 +144,13 @@ This pattern relies on a central party, called "Notary", that has access to the 
 
 The project does not include an implementation of a notary based token transfer policy enforcement.
 
-![Confidential UTXO with Notary](/resources/c-utxo-notary.jpg)
+![Confidential payload with Notary](/resources/c-utxo-notary.jpg)
 
 # Sub-projects
 
 There are 4 sub-projects. Navigate to each sub-project to run the tests and learn how to use each library:
 
-- [Confidential UTXO ZKP circuits](./zkp/circuits/): ZKP circuits written in circom to support the Confidential UTXO patterns
-- [Confidential UTXO golang library](./zkp/golang/): test cases written in golang
-- [Confidential UTXO javascript library](./zkp/js/): test cases written in javascript
-- [Confidential UTXO Solidity library](./solidity/): Sample Solidity contracts for all the ZKP based Confidential UTXO based patterns
+- [ZKP circuits](./zkp/circuits/): ZKP circuits written in circom to support the Zeto privacy patterns
+- [golang library for proof generation](./zkp/golang/): test cases written in golang
+- [javascript library for proof generation](./zkp/js/): test cases written in javascript
+- [Solidity library for onchain proof verification](./solidity/): Sample Solidity contracts for all the ZKP based Zeto privacy patterns

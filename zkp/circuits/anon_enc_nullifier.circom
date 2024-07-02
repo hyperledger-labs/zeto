@@ -12,7 +12,7 @@ include "./node_modules/circomlib/circuits/babyjub.circom";
 // - perform encryption of the receiver's output UTXO value and salt
 // - check the nullifiers are derived from the input commitments and the sender's private key
 // - check the nullifiers are included in the Merkle tree
-template ConfidentialUTXO(nInputs, nOutputs, nSMTLevels) {
+template Zeto(nInputs, nOutputs, nSMTLevels) {
   signal input nullifiers[nInputs];
   signal input inputCommitments[nInputs];
   signal input inputValues[nInputs];
@@ -68,4 +68,4 @@ template ConfidentialUTXO(nInputs, nOutputs, nSMTLevels) {
   encrypt.cipherText[1] --> cipherText[1];
 }
 
-component main { public [ nullifiers, outputCommitments, encryptionNonce, root, enabled ] } = ConfidentialUTXO(2, 2, 64);
+component main { public [ nullifiers, outputCommitments, encryptionNonce, root, enabled ] } = Zeto(2, 2, 64);

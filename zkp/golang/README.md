@@ -1,4 +1,4 @@
-# Confidential UTXO golang library
+# Zeto toolkit golang library
 
 The project does NOT contain some of the cryptographic materials to perform proof generations and verifications, such as the proving keys and the verification keys. You must run the [build steps](/zkp/js/README.md#build) before you can run the tests.
 
@@ -11,20 +11,23 @@ Once the proving keys and verification keys are generated, set the following env
 
 ```console
 $ go test -v ./lib
-=== RUN   TestConfidentialUTXO_1_SuccessfulProving
-Proving time: 198.941416ms
---- PASS: TestConfidentialUTXO_1_SuccessfulProving (0.62s)
-=== RUN   TestConfidentialUTXO_2_SuccessfulProving
-Proving time: 415.488125ms
---- PASS: TestConfidentialUTXO_2_SuccessfulProving (0.70s)
-=== RUN   TestConfidentialUTXO_3_SuccessfulProving
-Proving time: 2.292632292s
---- PASS: TestConfidentialUTXO_3_SuccessfulProving (2.61s)
+=== RUN   TestZeto_1_SuccessfulProving
+Proving time: 201.09225ms
+--- PASS: TestZeto_1_SuccessfulProving (0.58s)
+=== RUN   TestZeto_2_SuccessfulProving
+Proving time: 404.013542ms
+--- PASS: TestZeto_2_SuccessfulProving (0.69s)
+=== RUN   TestZeto_3_SuccessfulProving
+Proving time: 2.30433175s
+--- PASS: TestZeto_3_SuccessfulProving (2.61s)
 === RUN   TestHashTokenUri
 --- PASS: TestHashTokenUri (0.00s)
-=== RUN   TestConfidentialUTXO_4_SuccessfulProving
-Proving time: 128.751708ms
---- PASS: TestConfidentialUTXO_4_SuccessfulProving (0.47s)
+=== RUN   TestZeto_4_SuccessfulProving
+Proving time: 129.8345ms
+--- PASS: TestZeto_4_SuccessfulProving (0.46s)
+=== RUN   TestZeto_5_SuccessfulProving
+Proving time: 1.126922875s
+--- PASS: TestZeto_5_SuccessfulProving (1.64s)
 PASS
-ok  	github.com/kaleido-io/kaleido-confidential-utxo/lib	4.619s
+ok  	github.com/kaleido-io/zeto/lib	6.324s
 ```

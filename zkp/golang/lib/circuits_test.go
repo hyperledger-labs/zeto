@@ -37,7 +37,7 @@ type User struct {
 	PrivateKeyBigInt *big.Int
 }
 
-func TestConfidentialUTXO_1_SuccessfulProving(t *testing.T) {
+func TestZeto_1_SuccessfulProving(t *testing.T) {
 	calc, provingKey, err := LoadCircuit("anon")
 	assert.NoError(t, err)
 	assert.NotNil(t, calc)
@@ -98,7 +98,7 @@ func TestConfidentialUTXO_1_SuccessfulProving(t *testing.T) {
 	assert.Equal(t, 4, len(proof.PubSignals))
 }
 
-func TestConfidentialUTXO_2_SuccessfulProving(t *testing.T) {
+func TestZeto_2_SuccessfulProving(t *testing.T) {
 	calc, provingKey, err := LoadCircuit("anon_enc")
 	assert.NoError(t, err)
 	assert.NotNil(t, calc)
@@ -150,7 +150,7 @@ func TestConfidentialUTXO_2_SuccessfulProving(t *testing.T) {
 	assert.Equal(t, 7, len(proof.PubSignals))
 }
 
-func TestConfidentialUTXO_3_SuccessfulProving(t *testing.T) {
+func TestZeto_3_SuccessfulProving(t *testing.T) {
 	calc, provingKey, err := LoadCircuit("anon_enc_nullifier")
 	assert.NoError(t, err)
 	assert.NotNil(t, calc)
@@ -239,7 +239,7 @@ func TestHashTokenUri(t *testing.T) {
 	assert.Equal(t, check, hash)
 }
 
-func TestConfidentialUTXO_4_SuccessfulProving(t *testing.T) {
+func TestZeto_4_SuccessfulProving(t *testing.T) {
 	calc, provingKey, err := LoadCircuit("nf_anon")
 	assert.NoError(t, err)
 	assert.NotNil(t, calc)
@@ -298,7 +298,7 @@ func TestConfidentialUTXO_4_SuccessfulProving(t *testing.T) {
 	assert.Equal(t, 2, len(proof.PubSignals))
 }
 
-func TestConfidentialUTXO_5_SuccessfulProving(t *testing.T) {
+func TestZeto_5_SuccessfulProving(t *testing.T) {
 	calc, provingKey, err := LoadCircuit("nf_anon_nullifier")
 	assert.NoError(t, err)
 	assert.NotNil(t, calc)

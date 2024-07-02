@@ -8,7 +8,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 /// @title A sample base implementation of a ZKP based C-UTXO token contract
 /// @author Kaleido, Inc.
 /// @dev Implements common functionalities of ZKP based C-UTXO tokens
-abstract contract zkConfidentialUTXOBase is Ownable {
+abstract contract ZetoCommon is Ownable {
     event UTXOMint(uint256[] outputs, address indexed submitter);
 
     event UTXOBranch(

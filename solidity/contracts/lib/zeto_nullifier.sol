@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import {Commonlib} from "./common.sol";
 import {Registry} from "./registry.sol";
-import {zkConfidentialUTXOBase} from "./zkConfidentialUTXOBase.sol";
+import {ZetoCommon} from "./zeto_common.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
@@ -13,14 +13,14 @@ uint256 constant MAX_SMT_DEPTH = 64;
 /// @title A sample base implementation of a ZKP based C-UTXO token contract
 /// @author Kaleido, Inc.
 /// @dev Implements common functionalities of ZKP based C-UTXO tokens
-abstract contract zkConfidentialUTXONullifier is zkConfidentialUTXOBase {
+abstract contract ZetoNullifier is ZetoCommon {
     SmtLib.Data internal _commitmentsTree;
     using SmtLib for SmtLib.Data;
     mapping(uint256 => bool) private _nullifiers;
 
     error UTXORootNotFound(uint256 root);
 
-    constructor(Registry _registry) zkConfidentialUTXOBase(_registry) {
+    constructor(Registry _registry) ZetoCommon(_registry) {
         _commitmentsTree.initialize(MAX_SMT_DEPTH);
     }
 

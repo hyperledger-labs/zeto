@@ -10,7 +10,7 @@ include "./node_modules/circomlib/circuits/babyjub.circom";
 // - check the input and output commitments match the expected hashes
 // - check the input and output values sum to the same amount
 // - perform encryption of the receiver's output UTXO value and salt
-template ConfidentialUTXO(nInputs, nOutputs) {
+template Zeto(nInputs, nOutputs) {
   signal input inputCommitments[nInputs];
   signal input inputValues[nInputs];
   signal input inputSalts[nInputs];
@@ -67,4 +67,4 @@ template ConfidentialUTXO(nInputs, nOutputs) {
   encrypt.cipherText[1] --> cipherText[1];
 }
 
-component main { public [ inputCommitments, outputCommitments, encryptionNonce ] } = ConfidentialUTXO(2, 2);
+component main { public [ inputCommitments, outputCommitments, encryptionNonce ] } = Zeto(2, 2);

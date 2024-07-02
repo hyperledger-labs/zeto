@@ -1,4 +1,4 @@
-# Confidential UTXO circom based circuits
+# Circom based circuits library for Zeto
 
 The following circuits are included:
 
