@@ -17,7 +17,7 @@
 import { ethers, ignition } from 'hardhat';
 import { ContractTransactionReceipt, Signer, BigNumberish, AddressLike } from 'ethers';
 import { expect } from 'chai';
-import { loadCircuits, poseidonDecrypt, encodeProof, Poseidon } from "zk-utxo";
+import { loadCircuits, poseidonDecrypt, encodeProof, Poseidon } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { genRandomSalt, formatPrivKeyForBabyJub, genEcdhSharedKey, stringifyBigInts } from 'maci-crypto';
 import RegistryModule from '../ignition/modules/registry';

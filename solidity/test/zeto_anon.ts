@@ -17,7 +17,7 @@
 import { ethers, ignition } from 'hardhat';
 import { Signer, BigNumberish, AddressLike, ContractTransactionReceipt, ZeroAddress } from 'ethers';
 import { expect } from 'chai';
-import { loadCircuits, encodeProof, Poseidon } from "zk-utxo";
+import { loadCircuits, encodeProof, Poseidon } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { formatPrivKeyForBabyJub, stringifyBigInts } from 'maci-crypto';
 import { User, UTXO, newUser, newUTXO, doMint, parseUTXOEvents } from './lib/utils';

@@ -17,7 +17,7 @@
 import { ethers, ignition } from 'hardhat';
 import { Signer, BigNumberish, AddressLike } from 'ethers';
 import { expect } from 'chai';
-import { loadCircuits, hashTokenUri, encodeProof } from "zk-utxo";
+import { loadCircuits, hashTokenUri, encodeProof } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { formatPrivKeyForBabyJub, stringifyBigInts } from 'maci-crypto';
 import { User, UTXO, newUser, newAssetUTXO, doMint } from './lib/utils';
