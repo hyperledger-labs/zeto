@@ -4,15 +4,15 @@ This project hosts the multiple patterns to implement privacy preserving tokens 
 
 - **Transaction model**: the UTXO model is adopted instead of the account model, for better support of parallel processing. Due to the necessity of maintaining private states offchain in order to achieve privacy, the client must continuously keep their private states in sync with the smart contract. Using an account model makes it more difficult to achieve this because incoming transfers from other parties would invalidate an account's state, making the account owner unable to spend from its account unless the private state has been sync'ed again. Solutions to this issue, often referred to as front-running, typically involve a spending window with a pending queue, which result in limited parallel processing of transactions from the same spending account. With a UTXO model, each state is independent of the others, so parallel processing is better achieved.
 - **Commitments**: each UTXO is tracked by the smart contract as a hash, or commitment, of the following components: value, salt and owner public key
-- **Finality**: each transaction's validity is verified by the smart contract before allowing the proposed input UTXOs to be nullified and the output UTXOs to come into existence. In other words, this is not an optimistic design and as such does not rely on a multi-day challenge period before a transaction is finalize. Every transaction is immediately finalized once it's mined into a block.
+- **Finality**: each transaction's validity is verified by the smart contract before allowing the proposed input UTXOs to be nullified and the output UTXOs to come into existence. In other words, this is not an optimistic design and as such does not rely on a multi-day challenge period before a transaction is finalized. Every transaction is immediately finalized once it's mined into a block.
 
 # Enforcing token transfer policies with zero knowledge proofs
 
-The various patterns in this project use Zero Knowledge Proofs (ZKP) to demonstrate the validity of the proposed transaction. There is no centralized parties to trust as is the case with the [Notary pattern](#enforce-token-transfer-policies-with-a-notary), which is not implemented in this project but discussed briefly below.
+The various patterns in this project use Zero Knowledge Proofs (ZKP) to demonstrate the validity of the proposed transaction. There is no centralized party to trust as in the [Notary pattern](#enforce-token-transfer-policies-with-a-notary), which is not implemented in this project but discussed briefly below.
 
 Using ZKPs as validity proofs, each participant can independently submit transactions to the smart contract directly. As long as the participant is able to produce a valid proof, the transaction will be successfully verified and allowed to go through.
 
-This project will host multiple ZKP circuits to support various privacy levels with Zeto, as listed below.
+This project includes multiple ZKP circuits to support various privacy levels with Zeto, as listed below.
 
 Performing key pair operations, such as deriving the public key from the private key, in the ZKP circuit requires using ZKP-friendly curves, for which we picked Babyjubjub instead of the regular Ethereum curve (secp256k1).
 
