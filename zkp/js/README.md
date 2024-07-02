@@ -41,12 +41,16 @@ The result of a trusted setup from a well-coordinated ceremony can be used here.
 
 The different `ptau` files represent different levels of complexity with the circuits. In general, you want to use the smallest file that can accommodate the size of your circuit.
 
-- for `anon.circom`, `powersOfTau28_hez_final_12.ptau` can be used
-- for `anon_enc.circom`, `powersOfTau28_hez_final_13.ptau` can be used
-- for `anon_nullifier.circom`, `powersOfTau28_hez_final_16.ptau` can be used
-- for `anon_enc_nullifier.circom`, `powersOfTau28_hez_final_16.ptau` can be used
-- for `nf_anon.circom`, `powersOfTau28_hez_final_11.ptau` can be used
-- for `nf_anon_nullifier.circom`, `powersOfTau28_hez_final_15.ptau` can be used
+The steps below use `X` for the name of the circuit, and `Y` for the sequence number of the ptau files:
+
+| X                           | Y                                 |
+| --------------------------- | --------------------------------- |
+| `anon.circom`               | `powersOfTau28_hez_final_12.ptau` |
+| `anon_enc.circom`           | `powersOfTau28_hez_final_13.ptau` |
+| `anon_nullifier.circom`     | `powersOfTau28_hez_final_16.ptau` |
+| `anon_enc_nullifier.circom` | `powersOfTau28_hez_final_16.ptau` |
+| `nf_anon.circom`            | `powersOfTau28_hez_final_11.ptau` |
+| `nf_anon_nullifier.circom`  | `powersOfTau28_hez_final_15.ptau` |
 
 ### Generating the R1CS circuit format
 
