@@ -13,7 +13,8 @@ contract Registry is Ownable {
     constructor() Ownable(msg.sender) {}
 
     /// @dev Register a new public key for the calling Ethereum address
-    /// @param publicKey The public key to register
+    /// @param ethAddress The Ethereum address to register
+    /// @param publicKey The public Babyjubjub key to register
     function register(
         address ethAddress,
         uint256[2] memory publicKey

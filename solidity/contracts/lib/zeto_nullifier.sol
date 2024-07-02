@@ -10,9 +10,9 @@ import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
 
 uint256 constant MAX_SMT_DEPTH = 64;
 
-/// @title A sample base implementation of a ZKP based C-UTXO token contract
+/// @title A sample base implementation of a Zeto based token contract with nullifiers
 /// @author Kaleido, Inc.
-/// @dev Implements common functionalities of ZKP based C-UTXO tokens
+/// @dev Implements common functionalities of Zeto based tokens using nullifiers
 abstract contract ZetoNullifier is ZetoCommon {
     SmtLib.Data internal _commitmentsTree;
     using SmtLib for SmtLib.Data;
@@ -92,6 +92,8 @@ abstract contract ZetoNullifier is ZetoCommon {
         }
     }
 
+    // This function is used to mint new UTXOs, as an example implementation,
+    // which is only callable by the owner.
     function mint(uint256[] memory utxos) public onlyOwner {
         for (uint256 i = 0; i < utxos.length; ++i) {
             uint256 utxo = utxos[i];

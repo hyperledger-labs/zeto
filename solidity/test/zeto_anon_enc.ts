@@ -22,7 +22,7 @@ import { groth16 } from 'snarkjs';
 import { genRandomSalt, formatPrivKeyForBabyJub, genEcdhSharedKey, stringifyBigInts } from 'maci-crypto';
 import RegistryModule from '../ignition/modules/registry';
 import zetoModule from '../ignition/modules/zeto_anon_enc';
-import { User, UTXO, newUser, newUTXO, doMint, ZERO_UTXO, parseUTXOBranchEvents } from './lib/utils';
+import { User, UTXO, newUser, newUTXO, doMint, ZERO_UTXO, parseUTXOEvents } from './lib/utils';
 
 const poseidonHash = Poseidon.poseidon4;
 
@@ -76,7 +76,7 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
 
     // Bob uses the information in the event to recover the incoming UTXO
     // first obtain the UTXO from the transaction event
-    const events = parseUTXOBranchEvents(zeto, result.txResult!);
+    const events = parseUTXOEvents(zeto, result.txResult!);
     expect(events[0].inputs).to.deep.equal([utxo1.hash, utxo2.hash]);
     expect(events[0].outputs).to.deep.equal([_utxo1.hash, utxo4.hash]);
     const incomingUTXOs: any = events[0].outputs;
@@ -205,7 +205,7 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     encryptionNonce: BigNumberish,
     encodedProof: any
   ) {
-    const tx = await zeto.connect(signer.signer).branch(inputCommitments, outputCommitments, encryptionNonce, encryptedValues, encodedProof);
+    const tx = await zeto.connect(signer.signer).transfer(inputCommitments, outputCommitments, encryptionNonce, encryptedValues, encodedProof);
     const results: ContractTransactionReceipt | null = await tx.wait();
 
     for (const input of inputCommitments) {
@@ -216,7 +216,7 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
       if (output === 0n) continue;
       expect(await zeto.spent(output)).to.equal(false);
     }
-    console.log(`Method branch() complete. Gas used: ${results?.gasUsed}`);
+    console.log(`Method transfer() complete. Gas used: ${results?.gasUsed}`);
 
     return results;
   }

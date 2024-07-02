@@ -83,26 +83,26 @@ export async function doMint(zetoTokenContract: any, minter: Signer, outputs: UT
   return result;
 }
 
-export function parseUTXOBranchEvents(zetoTokenContract: any, result: ContractTransactionReceipt) {
+export function parseUTXOEvents(zetoTokenContract: any, result: ContractTransactionReceipt) {
   let returnValues: any[] = [];
   for (const log of result.logs || []) {
     const event = zetoTokenContract.interface.parseLog(log as any);
-    if (event?.name === 'UTXOBranch') {
-      const branch = {
+    if (event?.name === 'UTXOTransfer') {
+      const transfer = {
         inputs: event?.args.inputs,
         outputs: event?.args.outputs,
         submitter: event?.args.submitter
       };
-      returnValues.push(branch);
-    } else if (event?.name === 'UTXOBranchWithEncryptedValues') {
-      const branch = {
+      returnValues.push(transfer);
+    } else if (event?.name === 'UTXOTransferWithEncryptedValues') {
+      const transfer = {
         inputs: event?.args.inputs,
         outputs: event?.args.outputs,
         encryptedValues: event?.args.encryptedValues,
         encryptionNonce: event?.args.encryptionNonce,
         submitter: event?.args.submitter
       };
-      returnValues.push(branch);
+      returnValues.push(transfer);
     } else if (event?.name === 'UTXOMint') {
       const mint = {
         outputs: event?.args.outputs,
