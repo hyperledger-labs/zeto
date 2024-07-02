@@ -18,7 +18,14 @@ Follow the instructions here to install `circom`, the circuit compiler, and `sna
 
 ## Compile the circuit
 
-This step is only necessary if you have modified any of the circuits.
+First you must install the dependencies of the circuits, by going to the `/zkp/circuits` folder:
+
+```console
+cd zkp/circuits
+npm i
+```
+
+You can then compile the circuits:
 
 ```console
 circom circuits/X.circom --output ./js/lib --sym --wasm
@@ -66,15 +73,31 @@ When using the groth16 proving system, per-circuit set up ceremony must be condu
 The verification key is used by verifier code (either offchain with a JS library or onchain with Solidity). This can be derived from the proving key above.
 
 ```console
-snarkjs zkey export verificationkey ~/proving_keys/X.zkey ~/proving_keys/X-vkey.json
+snarkjs zkey export verificationkey ~/proving-keys/X.zkey ~/proving-keys/X-vkey.json
 ```
 
 ## Export the Solidity verifier library
 
-The verifier library in Solidity can also be derived from the proving key:
+You can skip this step for running tests. Solidity verifiers have already been generated from the UNSAFE test proving keys as described above.
+
+However, if you have performed the per-circuit set up ceremonies to generate the proving keys, for instance in a production deployment, then you must re-generated the solidity verifiers.
+
+The verifier library in Solidity are also derived from the proving key:
 
 ```console
-snarkjs zkey export solidityverifier ~/proving_keys/X.zkey ../solidity/contracts/lib/verifier_X.sol
+snarkjs zkey export solidityverifier ~/proving-keys/X.zkey ../solidity/contracts/lib/verifier_X.sol
+```
+
+After EACH verifier library is generated, you need to navigate to the solidity file for the verifier and modify the name of the contract, to match the naming convention used by the top-level token contract that references the verifier library. For instance, for the `anon_nullifier` circuit, you will have generated the following file:
+
+```
+/solidity/contracts/lib/verifier_anon_nullifier.sol
+```
+
+The file contains a contract called `Groth16Verifier`. That must be renamed to `Groth16Verifier_AnonEncNullifier` to match it's name used by the contract:
+
+```
+/solidity/contracts/zeto_anon_nullifier.sol
 ```
 
 # Run

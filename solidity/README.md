@@ -4,7 +4,7 @@ This project contains sample implementations of privacy preserving tokens for bo
 
 # Prerequisites
 
-The Hardhat test cases make use of the `zeto-js` library, which must be built first. Refer to the steps in [the library's README](/zkp/js/README.md) to build the proving keys, and verification keys. Make sure you can successfully run the unit tests for the zeto-js library, before returning back here to continue with the hardhat tests for the Solidity implementation.
+The Hardhat test cases make use of the `zeto-js` library, which must be built first. Refer to the steps in [the library's README](/zkp/js/README.md#build) to build the proving keys, and verification keys. Make sure you can successfully run the unit tests for the zeto-js library, before returning back here to continue with the hardhat tests for the Solidity implementation.
 
 # Run The Hardhat Tests
 

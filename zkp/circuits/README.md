@@ -22,6 +22,16 @@ The following circuits are included:
 
 # Testing
 
+## Install Dependencies
+
+The circuits make use of the `circomlib` library, which must be installed with:
+
+```console
+npm i
+```
+
+## Run Circuit Tests
+
 Tests for these circuits are provided in two programming languages:
 
 - node.js: go to the [js](/zkp/js/) folder
