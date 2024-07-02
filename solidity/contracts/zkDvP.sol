@@ -204,7 +204,7 @@ contract zkDvP {
             !isEmptyProof(trade.paymentProof) && !isEmptyProof(trade.assetProof)
         ) {
             require(
-                paymentToken.branch(
+                paymentToken.transfer(
                     trade.paymentInputs,
                     trade.paymentOutputs,
                     trade.paymentProof
@@ -212,7 +212,7 @@ contract zkDvP {
                 "Payment branch of the trade failed"
             );
             require(
-                assetToken.branch(
+                assetToken.transfer(
                     trade.assetInput,
                     trade.assetOutput,
                     trade.assetProof

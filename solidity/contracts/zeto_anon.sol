@@ -8,14 +8,13 @@ import {ZetoBase} from "./lib/zeto_base.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import "hardhat/console.sol";
 
-/// @title A sample on-chain implementation of a ZKP based C-UTXO pattern with confidentiality and anonymity
-///        The proof has the following statements:
+/// @title A sample implementation of a Zeto based fungible token with anonymity and no encryption
+/// @author Kaleido, Inc.
+/// @dev The proof has the following statements:
 ///        - each value in the output commitments must be a positive number in the range 0 ~ (2\*\*40 - 1)
 ///        - the sum of the input values match the sum of output values
 ///        - the hashes in the input and output match the `hash(value, salt, owner public key)` formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
-/// @author Kaleido, Inc.
-/// @dev Implements double-spend protection with zkp
 contract Zeto_Anon is ZetoBase {
     Groth16Verifier_Anon internal verifier;
 
@@ -29,15 +28,14 @@ contract Zeto_Anon is ZetoBase {
     /**
      * @dev the main function of the contract.
      *
-     * @param inputs Array of zero or more outputs of a previous `branch()` function call against this
-     *      contract that have not yet been spent, and the owner is authorized to spend.
-     * @param outputs Array of zero or more new outputs to generate, for future transactions to spend.
+     * @param inputs Array of UTXOs to be spent by the transaction.
+     * @param outputs Array of new UTXOs to generate, for future transactions to spend.
      * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
      *      that the outputs are valid in terms of obeying mass conservation rules.
      *
-     * Emits a {UTXOBranch} event.
+     * Emits a {UTXOTransfer} event.
      */
-    function branch(
+    function transfer(
         uint256[2] memory inputs,
         uint256[2] memory outputs,
         Commonlib.Proof calldata proof
@@ -74,7 +72,7 @@ contract Zeto_Anon is ZetoBase {
             inputArray[i] = inputs[i];
             outputArray[i] = outputs[i];
         }
-        emit UTXOBranch(inputArray, outputArray, msg.sender);
+        emit UTXOTransfer(inputArray, outputArray, msg.sender);
 
         return true;
     }

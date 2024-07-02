@@ -5,19 +5,19 @@ import {Commonlib} from "./common.sol";
 import {Registry} from "./registry.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-/// @title A sample base implementation of a ZKP based C-UTXO token contract
+/// @title A sample base implementation of a Zeto based token contract
 /// @author Kaleido, Inc.
-/// @dev Implements common functionalities of ZKP based C-UTXO tokens
+/// @dev Implements common functionalities of Zeto based tokens
 abstract contract ZetoCommon is Ownable {
     event UTXOMint(uint256[] outputs, address indexed submitter);
 
-    event UTXOBranch(
+    event UTXOTransfer(
         uint256[] inputs,
         uint256[] outputs,
         address indexed submitter
     );
 
-    event UTXOBranchWithEncryptedValues(
+    event UTXOTransferWithEncryptedValues(
         uint256[] inputs,
         uint256[] outputs,
         uint256 encryptionNonce,
