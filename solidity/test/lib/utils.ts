@@ -16,7 +16,7 @@
 
 import { ContractTransactionReceipt, Signer, BigNumberish, AddressLike } from 'ethers';
 import { genKeypair, formatPrivKeyForBabyJub, genEcdhSharedKey } from 'maci-crypto';
-import { Poseidon, newSalt, hashTokenUri } from "zk-utxo";
+import { Poseidon, newSalt, hashTokenUri } from "zeto-js";
 
 const poseidonHash3 = Poseidon.poseidon3;
 const poseidonHash4 = Poseidon.poseidon4;

@@ -17,7 +17,7 @@
 import { ethers, ignition } from 'hardhat';
 import { ContractTransactionReceipt, Signer, BigNumberish, AddressLike } from 'ethers';
 import { expect } from 'chai';
-import { loadCircuits, poseidonDecrypt, encodeProof } from "zk-utxo";
+import { loadCircuits, poseidonDecrypt, encodeProof } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { genRandomSalt, genEcdhSharedKey, stringifyBigInts } from 'maci-crypto';
 import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';

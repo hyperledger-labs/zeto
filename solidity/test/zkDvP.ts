@@ -17,7 +17,7 @@
 import { ethers, ignition } from 'hardhat';
 import { Signer, BigNumberish, AddressLike, encodeBytes32String, ZeroAddress, ZeroHash } from 'ethers';
 import { expect } from 'chai';
-import { loadCircuits, getProofHash } from "zk-utxo";
+import { loadCircuits, getProofHash } from "zeto-js";
 import RegistryModule from '../ignition/modules/registry';
 import zetoAnonModule from '../ignition/modules/zeto_anon';
 import zetoNFAnonModule from '../ignition/modules/zeto_nf_anon';

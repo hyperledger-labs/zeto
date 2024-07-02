@@ -17,7 +17,7 @@
 import { ethers, ignition } from 'hardhat';
 import { ContractTransactionReceipt, Signer, BigNumberish, AddressLike } from 'ethers';
 import { expect } from 'chai';
-import { loadCircuits, Poseidon, encodeProof, hashTokenUri } from "zk-utxo";
+import { loadCircuits, Poseidon, encodeProof, hashTokenUri } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
 import RegistryModule from '../ignition/modules/registry';
