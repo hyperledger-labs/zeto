@@ -8,13 +8,12 @@ import {Commonlib} from "./lib/common.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import "hardhat/console.sol";
 
-/// @title A sample on-chain implementation of a ZKP based C-UTXO pattern with confidentiality (but not anonymity)
-///        The proof has the following statements:
+/// @title A sample implementation of a Zeto based non-fungible token with anonymity and no encryption
+/// @author Kaleido, Inc.
+/// @dev The proof has the following statements:
 ///        - The sender owns the private key whose public key is part of the pre-image of the input UTXOs commitments
 ///          (aka the sender is authorized to spend the input UTXOs)
 ///        - The input UTXOs and output UTXOs are valid in terms of obeying mass conservation rules
-/// @author Kaleido, Inc.
-/// @dev Implements double-spend protection with zkp
 contract Zeto_NFAnon is ZetoBase {
     Groth16Verifier_NFAnon internal verifier;
 
@@ -28,15 +27,14 @@ contract Zeto_NFAnon is ZetoBase {
     /**
      * @dev the main function of the contract.
      *
-     * @param input output of a previous `branch()` function call against this
-     *      contract that have not yet been spent, and the owner is authorized to spend.
-     * @param output new output to generate, for future transactions to spend.
+     * @param input The UTXO to be spent by the transaction.
+     * @param output The new UTXO to generate, for future transactions to spend.
      * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
      *      that the outputs are valid in terms of obeying mass conservation rules.
      *
-     * Emits a {UTXOBranch} event.
+     * Emits a {UTXOTransfer} event.
      */
-    function branch(
+    function transfer(
         uint256 input,
         uint256 output,
         Commonlib.Proof calldata proof
@@ -65,7 +63,7 @@ contract Zeto_NFAnon is ZetoBase {
         inputArray[0] = input;
         outputArray[0] = output;
 
-        emit UTXOBranch(inputArray, outputArray, msg.sender);
+        emit UTXOTransfer(inputArray, outputArray, msg.sender);
         return true;
     }
 }

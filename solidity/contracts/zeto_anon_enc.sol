@@ -8,16 +8,15 @@ import {Commonlib} from "./lib/common.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import "hardhat/console.sol";
 
-/// @title A sample on-chain implementation of a ZKP based C-UTXO pattern with confidentiality (but not anonymity)
-///        The proof has the following statements:
+/// @title A sample implementation of a Zeto based fungible token with anonymity, and encryption
+/// @author Kaleido, Inc.
+/// @dev The proof has the following statements:
 ///        - each value in the output commitments must be a positive number in the range 0 ~ (2\*\*40 - 1)
 ///        - the sum of the input values match the sum of output values
 ///        - the hashes in the input and output match the hash(value, salt, owner public key) formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
 ///        - the encrypted value in the input is derived from the receiver's UTXO value and encrypted with a shared secret using
 ///          the ECDH protocol between the sender and receiver (this guarantees data availability for the receiver)
-/// @author Kaleido, Inc.
-/// @dev Implements double-spend protection with zkp
 contract Zeto_AnonEnc is ZetoBase {
     Groth16Verifier_AnonEnc internal verifier;
 
@@ -31,15 +30,14 @@ contract Zeto_AnonEnc is ZetoBase {
     /**
      * @dev the main function of the contract.
      *
-     * @param inputs Array of zero or more outputs of a previous `branch()` function call against this
-     *      contract that have not yet been spent, and the owner is authorized to spend.
-     * @param outputs Array of zero or more new outputs to generate, for future transactions to spend.
+     * @param inputs Array of UTXOs to be spent by the transaction.
+     * @param outputs Array of new UTXOs to generate, for future transactions to spend.
      * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
      *      that the outputs are valid in terms of obeying mass conservation rules.
      *
-     * Emits a {UTXOBranch} event.
+     * Emits a {UTXOTransferWithEncryptedValues} event.
      */
-    function branch(
+    function transfer(
         uint256[2] memory inputs,
         uint256[2] memory outputs,
         uint256 encryptionNonce,
@@ -86,7 +84,7 @@ contract Zeto_AnonEnc is ZetoBase {
             encryptedValuesArray[i] = encryptedValues[i];
         }
 
-        emit UTXOBranchWithEncryptedValues(
+        emit UTXOTransferWithEncryptedValues(
             inputArray,
             outputArray,
             encryptionNonce,

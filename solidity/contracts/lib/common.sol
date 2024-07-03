@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
+/// @title A core library for Zeto based token contracts
+/// @author Kaleido, Inc.
+/// @dev Implements common utility functions, such as proofs hashing and sorting
 library Commonlib {
     struct Proof {
         uint[2] pA;

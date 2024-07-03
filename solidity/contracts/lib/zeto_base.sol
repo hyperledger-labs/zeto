@@ -6,10 +6,10 @@ import {Registry} from "./registry.sol";
 import {ZetoCommon} from "./zeto_common.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-/// @title A sample base implementation of a ZKP based C-UTXO token contract
+/// @title A sample base implementation of a Zeto based token contract
 ///        without using nullifiers. Each UTXO's spending status is explicitly tracked.
 /// @author Kaleido, Inc.
-/// @dev Implements common functionalities of ZKP based C-UTXO tokens
+/// @dev Implements common functionalities of Zeto based tokens without nullifiers
 abstract contract ZetoBase is ZetoCommon {
     enum UTXOStatus {
         UNKNOWN, // default value for the empty UTXO slots
@@ -23,7 +23,7 @@ abstract contract ZetoBase is ZetoCommon {
     constructor(Registry _registry) ZetoCommon(_registry) {}
 
     /// @dev query whether a UTXO is currently spent
-    /// @return owner the non-zero owner address, or zero if the TXO ID is not in the unspent map
+    /// @return bool whether the UTXO is spent
     function spent(uint256 txo) public view returns (bool) {
         return _utxos[txo] == UTXOStatus.SPENT;
     }
@@ -82,6 +82,8 @@ abstract contract ZetoBase is ZetoCommon {
         return true;
     }
 
+    // This function is used to mint new UTXOs, as an example implementation,
+    // which is only callable by the owner.
     function mint(uint256[] memory utxos) public virtual onlyOwner {
         for (uint256 i = 0; i < utxos.length; ++i) {
             uint256 utxo = utxos[i];

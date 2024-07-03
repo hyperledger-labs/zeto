@@ -17,7 +17,7 @@
 import { ethers, ignition } from 'hardhat';
 import { Signer, BigNumberish, AddressLike, encodeBytes32String, ZeroAddress, ZeroHash } from 'ethers';
 import { expect } from 'chai';
-import { loadCircuits, getProofHash } from "zk-utxo";
+import { loadCircuits, getProofHash } from "zeto-js";
 import RegistryModule from '../ignition/modules/registry';
 import zetoAnonModule from '../ignition/modules/zeto_anon';
 import zetoNFAnonModule from '../ignition/modules/zeto_nf_anon';
@@ -25,7 +25,7 @@ import zkDvPModule from '../ignition/modules/zkDvP';
 import zetoAnonTests from './zeto_anon';
 import zetoNFAnonTests from './zeto_nf_anon';
 
-import { UTXO, User, newUser, newUTXO, doMint, newAssetUTXO, ZERO_UTXO, parseUTXOBranchEvents } from './lib/utils';
+import { UTXO, User, newUser, newUTXO, doMint, newAssetUTXO, ZERO_UTXO, parseUTXOEvents } from './lib/utils';
 
 describe("DvP flows between fungible and non-fungible tokens based on Zeto with anonymity without encryption or nullifiers", function () {
   // users interacting with each other in the DvP transactions
@@ -212,7 +212,7 @@ describe("DvP flows between fungible and non-fungible tokens based on Zeto with 
     const tx3Result = await tx3.wait();
 
     // check that the trade is completed
-    const events = parseUTXOBranchEvents(zkDvP, tx3Result);
+    const events = parseUTXOEvents(zkDvP, tx3Result);
     expect(events[0].tradeId).to.equal(tradeId);
     expect(events[0].trade.status).to.equal(2n); // enum for TradeStatus.Completed
   });

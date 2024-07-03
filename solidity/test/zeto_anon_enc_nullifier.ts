@@ -17,13 +17,13 @@
 import { ethers, ignition } from 'hardhat';
 import { ContractTransactionReceipt, Signer, BigNumberish, AddressLike } from 'ethers';
 import { expect } from 'chai';
-import { loadCircuits, poseidonDecrypt, encodeProof } from "zk-utxo";
+import { loadCircuits, poseidonDecrypt, encodeProof } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { genRandomSalt, genEcdhSharedKey, stringifyBigInts } from 'maci-crypto';
 import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
 import RegistryModule from '../ignition/modules/registry';
 import zetoModule from '../ignition/modules/zeto_anon_enc_nullifier';
-import { UTXO, User, newUser, newUTXO, newNullifier, doMint, ZERO_UTXO, parseUTXOBranchEvents } from './lib/utils';
+import { UTXO, User, newUser, newUTXO, newNullifier, doMint, ZERO_UTXO, parseUTXOEvents } from './lib/utils';
 
 describe("Zeto based fungible token with anonymity using nullifiers and encryption", function () {
   let deployer: Signer;
@@ -82,7 +82,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
 
     // Alice locally tracks the UTXOs inside the Sparse Merkle Tree
     // hardhat doesn't have a good way to subscribe to events so we have to parse the Tx result object
-    const mintEvents = parseUTXOBranchEvents(zeto, result1);
+    const mintEvents = parseUTXOEvents(zeto, result1);
     const [_utxo1, _utxo2] = mintEvents[0].outputs;
     await smtAlice.add(_utxo1, _utxo1);
     await smtAlice.add(_utxo2, _utxo2);
@@ -119,7 +119,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     // Bob locally tracks the UTXOs inside the Sparse Merkle Tree
     // Bob parses the UTXOs from the onchain event
     const signerAddress = await Alice.signer.getAddress();
-    const events = parseUTXOBranchEvents(zeto, result2.txResult!);
+    const events = parseUTXOEvents(zeto, result2.txResult!);
     expect(events[0].submitter).to.equal(signerAddress);
     expect(events[0].inputs).to.deep.equal([nullifier1.hash, nullifier2.hash]);
     expect(events[0].outputs).to.deep.equal([_utxo3.hash, utxo4.hash]);
@@ -157,7 +157,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     await smtBob.add(utxo7.hash, utxo7.hash);
 
     // Alice gets the new UTXOs from the onchain event and keeps the local SMT in sync
-    const events = parseUTXOBranchEvents(zeto, result.txResult!);
+    const events = parseUTXOEvents(zeto, result.txResult!);
     await smtAlice.add(events[0].outputs[0], events[0].outputs[0]);
     await smtAlice.add(events[0].outputs[1], events[0].outputs[1]);
   }).timeout(600000);
@@ -328,7 +328,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     encodedProof: any
   ) {
     const startTx = Date.now();
-    const tx = await zeto.connect(signer.signer).branch(nullifiers, outputCommitments, root, encryptionNonce, encryptedValues, encodedProof);
+    const tx = await zeto.connect(signer.signer).transfer(nullifiers, outputCommitments, root, encryptionNonce, encryptedValues, encodedProof);
     const results: ContractTransactionReceipt | null = await tx.wait();
     console.log(`Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${results?.gasUsed}`);
     return results;

@@ -17,10 +17,10 @@
 import { ethers, ignition } from 'hardhat';
 import { Signer, BigNumberish, AddressLike, ContractTransactionReceipt, ZeroAddress } from 'ethers';
 import { expect } from 'chai';
-import { loadCircuits, encodeProof, Poseidon } from "zk-utxo";
+import { loadCircuits, encodeProof, Poseidon } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { formatPrivKeyForBabyJub, stringifyBigInts } from 'maci-crypto';
-import { User, UTXO, newUser, newUTXO, doMint, parseUTXOBranchEvents } from './lib/utils';
+import { User, UTXO, newUser, newUTXO, doMint, parseUTXOEvents } from './lib/utils';
 
 import RegistryModule from '../ignition/modules/registry';
 import zetoModule from '../ignition/modules/zeto_anon';
@@ -77,7 +77,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
 
     // Bob reconstructs the UTXO from off-chain secure message channels with Alice
     // first obtain the UTXOs from the transaction event
-    const events = parseUTXOBranchEvents(zeto, result);
+    const events = parseUTXOEvents(zeto, result);
     const incomingUTXOs: any = events[0].outputs;
 
     // Bob uses the information received from Alice to reconstruct the UTXO sent to him
@@ -152,9 +152,9 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     encodedProof: any
   ) {
     const signerAddress = await signer.signer.getAddress();
-    const tx = await zeto.connect(signer.signer).branch(inputCommitments, outputCommitments, encodedProof);
+    const tx = await zeto.connect(signer.signer).transfer(inputCommitments, outputCommitments, encodedProof);
     const results = await tx.wait();
-    console.log(`Method branch() complete. Gas used: ${results?.gasUsed}`);
+    console.log(`Method transfer() complete. Gas used: ${results?.gasUsed}`);
 
     for (const input of inputCommitments) {
       const owner = await zeto.spent(input);
