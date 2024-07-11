@@ -29,7 +29,7 @@ describe('check-nullifiers circuit tests', () => {
   let senderPrivateKey;
 
   before(async () => {
-    const result = await loadCircuits('check-nullifiers');
+    const result = await loadCircuits('check_nullifiers');
     circuit = result.circuit;
     provingKeyFile = result.provingKeyFile;
     verificationKey = result.verificationKey;
