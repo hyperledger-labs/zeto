@@ -25,7 +25,7 @@ cd zkp/circuits
 npm i
 ```
 
-You can then compile the circuits:
+You can then compile the circuits (run the circom command in zkp folder):
 
 ```console
 circom circuits/X.circom --output ./js/lib --sym --wasm
@@ -54,7 +54,7 @@ The steps below use `X` for the name of the circuit, and `Y` for the sequence nu
 
 ### Generating the R1CS circuit format
 
-The first step is compiling the `.circom` files into an R1CS format that will then be used as input to generating the proving keys.
+The first step is compiling the `.circom` files into an R1CS format that will then be used as input to generating the proving keys. (the proving-keys folder contains the generated rlcs file, the folder needs to be generated before running the circom command)
 
 ```console
 circom circuits/X.circom --output ~/proving-keys --r1cs
@@ -106,7 +106,7 @@ The file contains a contract called `Groth16Verifier`. That must be renamed to `
 
 # Run
 
-Once the proving keys and verification keys are generated, set the environment variable `PROVING_KEYS_ROOT` to the folder that contains the proving keys and verification keys.
+Once the proving keys and verification keys are generated, set the environment variable `PROVING_KEYS_ROOT` to the folder that contains the proving keys and verification keys. (Run the test in js folder.)
 
 ```console
 $ npm i
