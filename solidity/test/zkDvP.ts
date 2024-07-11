@@ -15,17 +15,17 @@
 // limitations under the License.
 
 import { ethers, ignition } from 'hardhat';
-import { Signer, BigNumberish, AddressLike, encodeBytes32String, ZeroAddress, ZeroHash } from 'ethers';
+import { Signer, BigNumberish, encodeBytes32String, ZeroHash } from 'ethers';
 import { expect } from 'chai';
-import { loadCircuits, getProofHash } from "zeto-js";
+import { loadCircuit, getProofHash } from "zeto-js";
 import RegistryModule from '../ignition/modules/registry';
 import zetoAnonModule from '../ignition/modules/zeto_anon';
 import zetoNFAnonModule from '../ignition/modules/zeto_nf_anon';
 import zkDvPModule from '../ignition/modules/zkDvP';
 import zetoAnonTests from './zeto_anon';
 import zetoNFAnonTests from './zeto_nf_anon';
-
 import { UTXO, User, newUser, newUTXO, doMint, newAssetUTXO, ZERO_UTXO, parseUTXOEvents } from './lib/utils';
+import { loadProvingKeys } from './utils';
 
 describe("DvP flows between fungible and non-fungible tokens based on Zeto with anonymity without encryption or nullifiers", function () {
   // users interacting with each other in the DvP transactions
@@ -182,7 +182,8 @@ describe("DvP flows between fungible and non-fungible tokens based on Zeto with 
     const utxo2 = newUTXO(100, Bob);
 
     // 1.2 Alice generates the proof for the trade proposal
-    const { circuit: circuit1, provingKeyFile: provingKey1 } = await loadCircuits('anon');
+    const circuit1 = await loadCircuit('anon');
+    const { provingKeyFile: provingKey1 } = loadProvingKeys('anon');
     const proof1 = await zetoAnonTests.prepareProof(circuit1, provingKey1, Alice, [_utxo1, ZERO_UTXO], [utxo2, ZERO_UTXO], [Bob, {}]);
     const hash1 = getProofHash(proof1.encodedProof);
 
@@ -197,7 +198,8 @@ describe("DvP flows between fungible and non-fungible tokens based on Zeto with 
     const utxo4 = newAssetUTXO(202, "http://ipfs.io/file-hash-1", Alice);
 
     // 2.2 Bob generates the proof for accepting the trade
-    const { circuit: circuit2, provingKeyFile: provingKey2 } = await loadCircuits('nf_anon');
+    const circuit2 = await loadCircuit('nf_anon');
+    const { provingKeyFile: provingKey2 } = loadProvingKeys('nf_anon');
     const proof2 = await zetoNFAnonTests.prepareProof(circuit2, provingKey2, Bob, utxo3, utxo4, Alice);
     const hash2 = getProofHash(proof2.encodedProof);
 
