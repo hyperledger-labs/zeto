@@ -27,7 +27,7 @@ const {
 
 function loadCircuit(type) {
   if (!type) {
-    type = "3";
+    throw new Error('The circuit name must be provided');
   }
   const WitnessCalculator = require(`./lib/${type}_js/witness_calculator.js`);
   const buffer = readFileSync(
