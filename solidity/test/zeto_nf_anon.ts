@@ -17,13 +17,13 @@
 import { ethers, ignition } from 'hardhat';
 import { Signer, BigNumberish, AddressLike } from 'ethers';
 import { expect } from 'chai';
-import { loadCircuits, hashTokenUri, encodeProof } from "zeto-js";
+import { loadCircuit, hashTokenUri, encodeProof } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { formatPrivKeyForBabyJub, stringifyBigInts } from 'maci-crypto';
 import { User, UTXO, newUser, newAssetUTXO, doMint } from './lib/utils';
-
 import RegistryModule from '../ignition/modules/registry';
 import zetoModule from '../ignition/modules/zeto_nf_anon';
+import { loadProvingKeys } from './utils';
 
 describe("Zeto based non-fungible token with anonymity without encryption or nullifiers", function () {
   let deployer: Signer;
@@ -52,9 +52,8 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
     const tx3 = await registry.connect(deployer).register(Charlie.ethAddress, Charlie.babyJubPublicKey as [BigNumberish, BigNumberish]);
     await tx3.wait();
 
-    const result = await loadCircuits('nf_anon');
-    circuit = result.circuit;
-    provingKey = result.provingKeyFile;
+    circuit = await loadCircuit('nf_anon');
+    ({ provingKeyFile: provingKey } = loadProvingKeys('nf_anon'));
   });
 
   it("mint to Alice and transfer UTXOs honestly to Bob should succeed", async function () {

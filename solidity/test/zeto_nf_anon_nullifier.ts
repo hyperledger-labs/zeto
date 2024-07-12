@@ -17,12 +17,13 @@
 import { ethers, ignition } from 'hardhat';
 import { ContractTransactionReceipt, Signer, BigNumberish, AddressLike } from 'ethers';
 import { expect } from 'chai';
-import { loadCircuits, Poseidon, encodeProof, hashTokenUri } from "zeto-js";
+import { loadCircuit, Poseidon, encodeProof, hashTokenUri } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
 import RegistryModule from '../ignition/modules/registry';
 import zetoModule from '../ignition/modules/zeto_nf_anon_nullifier';
 import { UTXO, User, newUser, newAssetUTXO, newAssetNullifier, doMint, parseUTXOEvents } from './lib/utils';
+import { loadProvingKeys } from './utils';
 
 describe("Zeto based non-fungible token with anonymity using nullifiers without encryption", function () {
   let deployer: Signer;
@@ -52,9 +53,8 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
     const tx3 = await registry.connect(deployer).register(Charlie.ethAddress, Charlie.babyJubPublicKey as [BigNumberish, BigNumberish]);
     await tx3.wait();
 
-    const result = await loadCircuits('nf_anon_nullifier');
-    circuit = result.circuit;
-    provingKey = result.provingKeyFile;
+    circuit = await loadCircuit('nf_anon_nullifier');
+    ({ provingKeyFile: provingKey } = loadProvingKeys('nf_anon_nullifier'));
 
     const storage1 = new InMemoryDB(str2Bytes(""))
     smtAlice = new Merkletree(storage1, true, 64);

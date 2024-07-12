@@ -17,12 +17,13 @@
 import { ethers, ignition } from 'hardhat';
 import { ContractTransactionReceipt, Signer, BigNumberish, AddressLike } from 'ethers';
 import { expect } from 'chai';
-import { loadCircuits, poseidonDecrypt, encodeProof, Poseidon } from "zeto-js";
+import { loadCircuit, poseidonDecrypt, encodeProof, Poseidon } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { genRandomSalt, formatPrivKeyForBabyJub, genEcdhSharedKey, stringifyBigInts } from 'maci-crypto';
 import RegistryModule from '../ignition/modules/registry';
 import zetoModule from '../ignition/modules/zeto_anon_enc';
 import { User, UTXO, newUser, newUTXO, doMint, ZERO_UTXO, parseUTXOEvents } from './lib/utils';
+import { loadProvingKeys } from './utils';
 
 const poseidonHash = Poseidon.poseidon4;
 
@@ -56,9 +57,8 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     const tx3 = await registry.connect(deployer).register(Charlie.ethAddress, Charlie.babyJubPublicKey as [BigNumberish, BigNumberish]);
     await tx3.wait();
 
-    const result = await loadCircuits('anon_enc');
-    circuit = result.circuit;
-    provingKey = result.provingKeyFile;
+    circuit = await loadCircuit('anon_enc');
+    ({ provingKeyFile: provingKey } = loadProvingKeys('anon_enc'));
   });
 
   it("mint to Alice and transfer UTXOs honestly to Bob should succeed", async function () {

@@ -16,10 +16,10 @@
 
 const { expect } = require('chai');
 const { groth16 } = require('snarkjs');
-const { genRandomSalt, genKeypair, genEcdhSharedKey, formatPrivKeyForBabyJub, stringifyBigInts } = require('maci-crypto');
+const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
 const { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } = require('@iden3/js-merkletree');
-
-const { Poseidon, newSalt, hashTokenUri, loadCircuits } = require('../index.js');
+const { Poseidon, newSalt, hashTokenUri, loadCircuit } = require('../index.js');
+const { loadProvingKeys } = require('./utils.js');
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon5;
@@ -33,10 +33,8 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
   let senderPrivateKey;
 
   before(async () => {
-    const result = await loadCircuits('nf_anon_nullifier');
-    circuit = result.circuit;
-    provingKeyFile = result.provingKeyFile;
-    verificationKey = result.verificationKey;
+    circuit = await loadCircuit('nf_anon_nullifier');
+    ({ provingKeyFile, verificationKey } = loadProvingKeys('nf_anon_nullifier'));
 
     let keypair = genKeypair();
     Alice.privKey = keypair.privKey;

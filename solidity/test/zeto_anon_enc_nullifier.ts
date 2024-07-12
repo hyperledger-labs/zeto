@@ -15,15 +15,16 @@
 // limitations under the License.
 
 import { ethers, ignition } from 'hardhat';
-import { ContractTransactionReceipt, Signer, BigNumberish, AddressLike } from 'ethers';
+import { ContractTransactionReceipt, Signer, BigNumberish } from 'ethers';
 import { expect } from 'chai';
-import { loadCircuits, poseidonDecrypt, encodeProof } from "zeto-js";
+import { loadCircuit, poseidonDecrypt, encodeProof } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { genRandomSalt, genEcdhSharedKey, stringifyBigInts } from 'maci-crypto';
 import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
 import RegistryModule from '../ignition/modules/registry';
 import zetoModule from '../ignition/modules/zeto_anon_enc_nullifier';
 import { UTXO, User, newUser, newUTXO, newNullifier, doMint, ZERO_UTXO, parseUTXOEvents } from './lib/utils';
+import { loadProvingKeys } from './utils';
 
 describe("Zeto based fungible token with anonymity using nullifiers and encryption", function () {
   let deployer: Signer;
@@ -56,9 +57,8 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     const tx3 = await registry.connect(deployer).register(Charlie.ethAddress, Charlie.babyJubPublicKey as [BigNumberish, BigNumberish]);
     await tx3.wait();
 
-    const result = await loadCircuits('anon_enc_nullifier');
-    circuit = result.circuit;
-    provingKey = result.provingKeyFile;
+    circuit = await loadCircuit('anon_enc_nullifier');
+    ({ provingKeyFile: provingKey } = loadProvingKeys('anon_enc_nullifier'));
 
     const storage1 = new InMemoryDB(str2Bytes(""))
     smtAlice = new Merkletree(storage1, true, 64);

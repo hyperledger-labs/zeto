@@ -17,7 +17,8 @@
 const { expect } = require('chai');
 const { groth16 } = require('snarkjs');
 const { genKeypair, formatPrivKeyForBabyJub, stringifyBigInts } = require('maci-crypto');
-const { Poseidon, newSalt, loadCircuits } = require('../index.js');
+const { Poseidon, newSalt, loadCircuit } = require('../index.js');
+const { loadProvingKeys } = require('./utils.js');
 
 const ZERO_PUBKEY = [0, 0];
 const poseidonHash = Poseidon.poseidon4;
@@ -29,10 +30,8 @@ describe('main circuit tests for Zeto fungible tokens with anonymity without enc
   const receiver = {};
 
   before(async () => {
-    const result = await loadCircuits('anon');
-    circuit = result.circuit;
-    provingKeyFile = result.provingKeyFile;
-    verificationKey = result.verificationKey;
+    circuit = await loadCircuit('anon');
+    ({ provingKeyFile, verificationKey } = loadProvingKeys('anon'));
 
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;

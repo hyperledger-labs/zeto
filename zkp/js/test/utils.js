@@ -16,32 +16,26 @@
 
 const path = require("path");
 const { readFileSync } = require("fs");
-const Poseidon = require("poseidon-lite");
-const {
-  newSalt,
-  poseidonDecrypt,
-  encodeProof,
-  getProofHash,
-  hashTokenUri,
-} = require("./lib/util.js");
 
-function loadCircuit(type) {
-  if (!type) {
-    throw new Error('The circuit name must be provided');
+function provingKeysRoot() {
+  const PROVING_KEYS_ROOT = process.env.PROVING_KEYS_ROOT;
+  if (!PROVING_KEYS_ROOT) {
+    throw new Error("PROVING_KEYS_ROOT env var is not set");
   }
-  const WitnessCalculator = require(`./lib/${type}_js/witness_calculator.js`);
-  const buffer = readFileSync(
-    path.join(__dirname, `./lib/${type}_js/${type}.wasm`)
-  );
-  return WitnessCalculator(buffer);
+  return PROVING_KEYS_ROOT;
 }
 
-module.exports = {
-  loadCircuit,
-  Poseidon,
-  newSalt,
-  hashTokenUri,
-  poseidonDecrypt,
-  encodeProof,
-  getProofHash,
-};
+function loadProvingKeys(type) {
+  const provingKeyFile = path.join(provingKeysRoot(), `${type}.zkey`);
+  const verificationKey = JSON.parse(
+    new TextDecoder().decode(
+      readFileSync(path.join(provingKeysRoot(), `${type}-vkey.json`))
+    )
+  );
+  return {
+    provingKeyFile,
+    verificationKey,
+  };
+}
+
+module.exports = { loadProvingKeys };

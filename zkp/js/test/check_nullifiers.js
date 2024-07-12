@@ -17,7 +17,8 @@
 const { expect } = require('chai');
 const { groth16 } = require('snarkjs');
 const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
-const { Poseidon, newSalt, loadCircuits } = require('../index.js');
+const { Poseidon, newSalt, loadCircuit } = require('../index.js');
+const { loadProvingKeys } = require('./utils.js');
 
 const poseidonHash4 = Poseidon.poseidon4;
 const poseidonHash3 = Poseidon.poseidon3;
@@ -29,10 +30,8 @@ describe('check-nullifiers circuit tests', () => {
   let senderPrivateKey;
 
   before(async () => {
-    const result = await loadCircuits('check-nullifiers');
-    circuit = result.circuit;
-    provingKeyFile = result.provingKeyFile;
-    verificationKey = result.verificationKey;
+    circuit = await loadCircuit('check_nullifiers');
+    ({ provingKeyFile, verificationKey } = loadProvingKeys('check_nullifiers'));
 
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;
