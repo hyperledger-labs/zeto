@@ -17,10 +17,12 @@
 package zeto
 
 import (
+	"math/big"
 	"sync"
 
 	"github.com/hyperledger-labs/zeto/lib/smt"
 	"github.com/hyperledger-labs/zeto/lib/storage"
+	"github.com/hyperledger-labs/zeto/lib/utxo"
 )
 
 // An append-only sparse merkle tree implementation using a pluggable
@@ -32,6 +34,8 @@ type SparseMerkleTree interface {
 	Root() smt.NodeIndex
 	// Add adds a key-value pair to the tree
 	Add(smt.Node) error
+	// GetnerateProof generates a proof of existence (or non-existence) of a leaf node
+	GenerateProof(*big.Int, smt.NodeIndex) (*smt.Proof, *big.Int, error)
 }
 
 type sparseMerkleTree struct {
@@ -98,6 +102,64 @@ func (mt *sparseMerkleTree) GetNode(key smt.NodeIndex) (smt.Node, error) {
 		return nil, err
 	}
 	return node, nil
+}
+
+// GenerateProof generates the proof of existence (or non-existence) of a leaf node
+// for a Merkle Tree given the root. It uses the node's index to represent the node.
+// If the rootKey is nil, the current merkletree root is used
+func (mt *sparseMerkleTree) GenerateProof(k *big.Int, rootKey smt.NodeIndex) (*smt.Proof, *big.Int, error) {
+	p := &smt.Proof{}
+	var siblingKey smt.NodeIndex
+
+	kHash, err := smt.NewNodeIndexFromBigInt(k)
+	if err != nil {
+		return nil, nil, err
+	}
+	path := mt.getPath(kHash)
+	if rootKey == nil {
+		rootKey = mt.Root()
+	}
+	nextKey := rootKey
+	for p.Depth = 0; p.Depth < uint(mt.maxLevels); p.Depth++ {
+		n, err := mt.GetNode(nextKey)
+		if err != nil {
+			return nil, nil, err
+		}
+		switch n.Type() {
+		case smt.NodeTypeEmpty:
+			return p, big.NewInt(0), nil
+		case smt.NodeTypeLeaf:
+			idx := n.Index()
+			value := n.Index()
+			if kHash.Equal(idx) {
+				p.Existence = true
+				// in our nodes, the value is the same as the index
+				return p, value.BigInt(), nil
+			}
+			// We found a leaf whose entry didn't match the node index
+			p.ExistingNode, err = smt.NewLeafNode(utxo.NewIndexOnly(idx))
+			if err != nil {
+				return nil, nil, err
+			}
+			return p, value.BigInt(), nil
+		case smt.NodeTypeBranch:
+			if path[p.Depth] { // go right
+				nextKey = n.RightChild()
+				siblingKey = n.LeftChild()
+			} else { // go left
+				nextKey = n.LeftChild()
+				siblingKey = n.RightChild()
+			}
+		default:
+			return nil, nil, smt.ErrInvalidNodeFound
+		}
+
+		if !siblingKey.Equal(smt.ZERO_INDEX) {
+			p.MarkNonEmptySibling(uint(p.Depth))
+			p.Siblings = append(p.Siblings, siblingKey)
+		}
+	}
+	return nil, nil, smt.ErrKeyNotFound
 }
 
 // addLeaf adds a new LeafNode to the MerkleTree. It traverses the tree from
@@ -175,7 +237,7 @@ func (mt *sparseMerkleTree) addNode(n smt.Node) (smt.NodeIndex, error) {
 func (mt *sparseMerkleTree) getPath(index smt.NodeIndex) []bool {
 	path := make([]bool, mt.maxLevels)
 	for n := 0; n < mt.maxLevels; n++ {
-		path[n] = index.IsBitPositionOn(uint(n))
+		path[n] = index.IsBitOn(uint(n))
 	}
 	return path
 }

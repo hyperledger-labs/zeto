@@ -45,28 +45,35 @@ type NodeIndex interface {
 	Hex() string
 	IsZero() bool
 	Equal(NodeIndex) bool
-	IsBitPositionOn(uint) bool
+	IsBitOn(uint) bool
 }
 
+// Indexable is the interface that wraps the value object of a
+// Node, which is required to produce a unique index for the node.
 type Indexable interface {
 	CalculateIndex() (NodeIndex, error)
 }
 
-// LeafNode is the value object of a node in the Sparse Merkle Tree
+// Node is the object of a node in the Sparse Merkle Tree, which has an
+// index, and a value object. The node can be a leaf (sits on the bottom
+// of the tree), a branch (on the upper levels of the tree), or empty.
 type Node interface {
 	// returns the type of the node
 	Type() NodeType
-	// calculate the node index from the values, this determines
-	// the position of the node in the tree
+	// calculate the index from the values of a leaf node, which determines
+	// the position of the leaf node in the bottom level of the tree
 	Index() NodeIndex
 	// calculated by combining the index and value of the node, as
-	// the reference to the node from its parent in the tree
+	// the reference to the node from its parent in the tree, as well as the
+	// key to the storage record for the node
 	Ref() NodeIndex
-	// returns the value object
+	// returns the value object. only leaf nodes have a value object. If the
+	// client is the owner of a UTXO, the value object includes the secre values.
+	// otherwise the value object is simply the index of the node.
 	Value() Indexable
-	// returns the index of the left child
+	// returns the index of the left child. Only branch nodes have a left child.
 	LeftChild() NodeIndex
-	// returns the index of the right child
+	// returns the index of the right child. Only branch nodes have a right child.
 	RightChild() NodeIndex
 }
 
@@ -189,8 +196,8 @@ func (idx *nodeIndex) Equal(other NodeIndex) bool {
 	return idx.BigInt().Cmp(other.BigInt()) == 0
 }
 
-func (idx *nodeIndex) IsBitPositionOn(pos uint) bool {
-	if pos < 0 || pos >= 256 {
+func (idx *nodeIndex) IsBitOn(pos uint) bool {
+	if pos >= 256 {
 		return false
 	}
 	return (idx[pos/8] & (1 << (pos % 8))) != 0

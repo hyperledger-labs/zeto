@@ -104,3 +104,42 @@ func TestAddNode(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "abacf46f5217552ee28fe50b8fd7ca6aa46daeb9acf9f60928654c3b1a472f23", mt2.Root().Hex())
 }
+
+func TestGenerateProof(t *testing.T) {
+	const levels = 10
+	db := storage.NewMemoryStorage()
+	mt, _ := NewMerkleTree(db, levels)
+
+	alice := newKeypair()
+	utxo1 := utxo.NewFungible(big.NewInt(10), alice.PublicKey, big.NewInt(12345))
+	node1, err := smt.NewLeafNode(utxo1)
+	assert.NoError(t, err)
+	err = mt.Add(node1)
+	assert.NoError(t, err)
+
+	utxo2 := utxo.NewFungible(big.NewInt(10), alice.PublicKey, big.NewInt(12346))
+	node2, err := smt.NewLeafNode(utxo2)
+	assert.NoError(t, err)
+	err = mt.Add(node2)
+	assert.NoError(t, err)
+
+	target1 := node1.Index().BigInt()
+	proof1, foundValue1, err := mt.GenerateProof(target1, mt.Root())
+	assert.NoError(t, err)
+	assert.Equal(t, target1, foundValue1)
+	assert.True(t, proof1.Existence)
+	valid := smt.VerifyProof(mt.Root(), proof1, node1)
+	assert.True(t, valid)
+
+	utxo3 := utxo.NewFungible(big.NewInt(10), alice.PublicKey, big.NewInt(12347))
+	node3, err := smt.NewLeafNode(utxo3)
+	assert.NoError(t, err)
+	target2 := node3.Index().BigInt()
+	proof2, _, err := mt.GenerateProof(target2, mt.Root())
+	assert.NoError(t, err)
+	assert.False(t, proof2.Existence)
+
+	proof3, err := proof1.ToCircomVerifierProof(target1, foundValue1, mt.Root(), levels)
+	assert.NoError(t, err)
+	assert.False(t, proof3.IsOld0)
+}
