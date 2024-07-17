@@ -39,54 +39,68 @@ func TestAddNode(t *testing.T) {
 	mt, err := NewMerkleTree(db, 10)
 	assert.NoError(t, err)
 
-	x, _ := new(big.Int).SetString("11815296462877004816435684445965481797264633360809147413216887436044214137854", 10)
-	y, _ := new(big.Int).SetString("20876734580825686348991542223684971543479006160633392203305694346145015178322", 10)
+	x, _ := new(big.Int).SetString("9198063289874244593808956064764348354864043212453245695133881114917754098693", 10)
+	y, _ := new(big.Int).SetString("3600411115173311692823743444460566395943576560299970643507632418781961416843", 10)
 	alice := &babyjub.PublicKey{
 		X: x,
 		Y: y,
 	}
-	salt1, _ := new(big.Int).SetString("277194cf56e06208f361ad605b9a6fb0fa5377483b1ad94b7cdd45f61075db50", 16)
+	salt1, _ := new(big.Int).SetString("43c49e8ba68a9b8a6bb5c230a734d8271a83d2f63722e7651272ebeef5446e", 16)
 	utxo1 := utxo.NewFungible(big.NewInt(10), alice, salt1)
 	idx1, err := utxo1.CalculateIndex()
 	assert.NoError(t, err)
-	assert.Equal(t, "c7b236b843c3f2b1dcb5bc0771f204bb2f4f604b3280d47a07545f7d8a34efa", idx1.BigInt().Text(16))
+	assert.Equal(t, "11a22e32f5010d3658d1da9c93f26b77afe7a84346f49eae3d1d4fc6cd0a36fd", idx1.BigInt().Text(16))
 
 	n1, err := smt.NewLeafNode(utxo1)
 	assert.NoError(t, err)
 	err = mt.Add(n1)
 	assert.NoError(t, err)
-	assert.Equal(t, "7065e7374b480648ce4d60e81a981b1ff79e61bc07179572afac516b94e56223", mt.Root().Hex())
+	assert.Equal(t, "525b60b382630ee7825bea84fb8808c13ede1fb827fe683cd5b14d76f6ac6d0b", mt.Root().Hex())
 
-	salt2, _ := new(big.Int).SetString("2edbd10ad27b91e1579303fb5d14482bb3c4a2a032977b3cfe9115ef1b3b9e6a", 16)
+	// adding a 2nd node to test the tree update and branch nodes
+	salt2, _ := new(big.Int).SetString("19b965f7629e4f0c4bd0b8f9c87f17580f18a32a31b4641550071ee4916bbbfc", 16)
 	utxo2 := utxo.NewFungible(big.NewInt(20), alice, salt2)
 	idx2, err := utxo2.CalculateIndex()
 	assert.NoError(t, err)
-	assert.Equal(t, "1f8eede8ec2acfa35b2b2143e7c3842154a66cc936cb6a8e86baf110fa22146b", idx2.BigInt().Text(16))
+	assert.Equal(t, "197b0dc3f167041e03d3eafacec1aa3ab12a0d7a606581af01447c269935e521", idx2.BigInt().Text(16))
 	n2, err := smt.NewLeafNode(utxo2)
 	assert.NoError(t, err)
 	err = mt.Add(n2)
 	assert.NoError(t, err)
-	assert.Equal(t, "bf6f6bec16f8585b3a37f34fdd0cfe7cee7843a7e7a60fa4214b1c46b683022a", mt.Root().Hex())
+	assert.Equal(t, "c432caeb6448cb10bf8b449704f0fc79d84723b5aadeaf6f1b73cf00fe94c22f", mt.Root().Hex())
 
-	salt3, _ := new(big.Int).SetString("275adcc9717c2da2821d73eaef92009439413fdb50833fe2a89935559a7946c0", 16)
+	// adding a 3rd node to test the tree update and branch nodes with a left/right child node
+	salt3, _ := new(big.Int).SetString("9b0b93df975547e430eabff085a77831b8fcb6b5396e6bb815fda8d14125370", 16)
 	utxo3 := utxo.NewFungible(big.NewInt(30), alice, salt3)
 	idx3, err := utxo3.CalculateIndex()
 	assert.NoError(t, err)
-	assert.Equal(t, "20f9191701371640fb9e058dc1f8ba4ae7dfa2029640bc7017b9672d8616ceb1", idx3.BigInt().Text(16))
+	assert.Equal(t, "2d46e23e813abf1fdabffe3ff22a38ebf6bb92d7c381463bee666eb010289fd5", idx3.BigInt().Text(16))
 	n3, err := smt.NewLeafNode(utxo3)
 	assert.NoError(t, err)
 	err = mt.Add(n3)
 	assert.NoError(t, err)
-	assert.Equal(t, "c64612d9a7f792d4e8f3299e4119362ae6f8c7970467aae56c2fadcaf5e2cc09", mt.Root().Hex())
+	assert.Equal(t, "bf8409a4a6c7366bc64c154d3c2f40a8c3c5ddb0f1d47c41336d97ff27640502", mt.Root().Hex())
+
+	// adding a 4th node to test the tree update and branch nodes with the other left/right child node
+	salt4, _ := new(big.Int).SetString("194ec10ec96a507c7c9b60df133d13679b874b0bd6ab89920135508f55b3f064", 16)
+	utxo4 := utxo.NewFungible(big.NewInt(40), alice, salt4)
+	idx4, err := utxo4.CalculateIndex()
+	assert.NoError(t, err)
+	assert.Equal(t, "887884c3421b72f8f1991c64808262da78732abf961118d02b0792bd421521f", idx4.BigInt().Text(16))
+	n4, err := smt.NewLeafNode(utxo4)
+	assert.NoError(t, err)
+	err = mt.Add(n4)
+	assert.NoError(t, err)
+	assert.Equal(t, "abacf46f5217552ee28fe50b8fd7ca6aa46daeb9acf9f60928654c3b1a472f23", mt.Root().Hex())
 
 	// test storage persistence
 	rawDB := mt.(*sparseMerkleTree).db
 	rootIdx, err := rawDB.GetRootNodeIndex()
 	assert.NoError(t, err)
-	assert.Equal(t, "c64612d9a7f792d4e8f3299e4119362ae6f8c7970467aae56c2fadcaf5e2cc09", rootIdx.Hex())
+	assert.Equal(t, "abacf46f5217552ee28fe50b8fd7ca6aa46daeb9acf9f60928654c3b1a472f23", rootIdx.Hex())
 
 	// test storage persistence across tree creation
 	mt2, err := NewMerkleTree(db, 10)
 	assert.NoError(t, err)
-	assert.Equal(t, "c64612d9a7f792d4e8f3299e4119362ae6f8c7970467aae56c2fadcaf5e2cc09", mt2.Root().Hex())
+	assert.Equal(t, "abacf46f5217552ee28fe50b8fd7ca6aa46daeb9acf9f60928654c3b1a472f23", mt2.Root().Hex())
 }
