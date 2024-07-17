@@ -1,4 +1,4 @@
-module github.com/kaleido-io/zeto
+module github.com/hyperledger-labs/zeto
 
 go 1.22.0
 
