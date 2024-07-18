@@ -78,8 +78,8 @@ func (p *Proof) IsNonEmptySibling(level uint) bool {
 func (p *Proof) AllSiblings() []NodeIndex {
 	sibIdx := 0
 	siblings := []NodeIndex{}
-	for lvl := 0; lvl < int(p.Depth); lvl++ {
-		if p.IsNonEmptySibling(uint(lvl)) {
+	for level := 0; level < int(p.Depth); level++ {
+		if p.IsNonEmptySibling(uint(level)) {
 			siblings = append(siblings, p.Siblings[sibIdx])
 			sibIdx++
 		} else {
@@ -162,14 +162,14 @@ func CalculateRootFromProof(proof *Proof, leafNode Node) (NodeIndex, error) {
 	}
 	path := proof.getPath(leafNode.Index())
 	var siblingKey NodeIndex
-	for lvl := int(proof.Depth) - 1; lvl >= 0; lvl-- {
-		if proof.IsNonEmptySibling(uint(lvl)) {
+	for level := int(proof.Depth) - 1; level >= 0; level-- {
+		if proof.IsNonEmptySibling(uint(level)) {
 			siblingKey = proof.Siblings[sibIdx]
 			sibIdx--
 		} else {
 			siblingKey = ZERO_INDEX
 		}
-		if path[lvl] { // go right
+		if path[level] { // go right
 			branchNode, err := NewBranchNode(siblingKey, midKey)
 			if err != nil {
 				return nil, err

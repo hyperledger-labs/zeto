@@ -18,8 +18,6 @@ package smt
 
 import (
 	"encoding/hex"
-	"errors"
-	"fmt"
 	"math/big"
 	"strings"
 
@@ -34,18 +32,31 @@ var ZERO_INDEX, _ = NewNodeIndexFromBigInt(big.NewInt(0))
 type NodeType int
 
 const (
+	// in a sparse merkle tree, all nodes at every possible index are considered
+	// present, but nodes are empty until a value has been set to that index.
+	// The NodeTypeEmpty is used to represent a non-existent value at an index.
 	NodeTypeEmpty NodeType = iota
+	// NodeTypeBranch is a node that has two children, which are the left and right
 	NodeTypeBranch
+	// NodeTypeLeaf is a node that has a value object, and is the bottom level
+	// of the tree (which has the highest level number)
 	NodeTypeLeaf
 )
 
 // NodeIndex is the index of a node in the Sparse Merkle Tree
 type NodeIndex interface {
+	// BigInt returns the big integer representation of the index
 	BigInt() *big.Int
+	// Hex returns the hex string representation of the index in big-endian format
 	Hex() string
+	// IsZero returns true if the index is zero
 	IsZero() bool
+	// Equal returns true if the index is equal to another index
 	Equal(NodeIndex) bool
+	// IsBitOn returns true if the index bit at the given position is 1
 	IsBitOn(uint) bool
+	// ToPath returns the binary path from the root to the leaf
+	ToPath(int) []bool
 }
 
 // Indexable is the interface that wraps the value object of a
@@ -157,7 +168,7 @@ func (n *node) RightChild() NodeIndex {
 func NewNodeIndexFromBigInt(i *big.Int) (NodeIndex, error) {
 	// verfy that the integer are valid and fit inside the Finite Field.
 	if !cryptoUtils.CheckBigIntInField(i) {
-		return nil, errors.New("key for the new node not inside the Finite Field")
+		return nil, ErrNodeIndexTooLarge
 	}
 	idx := new(nodeIndex)
 	copy(idx[:], swapEndianness(i.Bytes()))
@@ -173,7 +184,7 @@ func NewNodeIndexFromHex(h string) (NodeIndex, error) {
 		return nil, err
 	}
 	if len(b) != INDEX_BYTES_LEN {
-		return nil, fmt.Errorf("expected 32 bytes for the decoded node index, but found %d bytes", len(b))
+		return nil, ErrNodeBytesBadSize
 	}
 	idx := new(nodeIndex)
 	copy(idx[:], b)
@@ -196,6 +207,15 @@ func (idx *nodeIndex) Equal(other NodeIndex) bool {
 	return idx.BigInt().Cmp(other.BigInt()) == 0
 }
 
+// getPath returns the binary path, from the root to the leaf.
+func (idx *nodeIndex) ToPath(levels int) []bool {
+	path := make([]bool, levels)
+	for l := 0; l < levels; l++ {
+		path[l] = idx.IsBitOn(uint(l))
+	}
+	return path
+}
+
 func (idx *nodeIndex) IsBitOn(pos uint) bool {
 	if pos >= 256 {
 		return false
@@ -203,7 +223,9 @@ func (idx *nodeIndex) IsBitOn(pos uint) bool {
 	return (idx[pos/8] & (1 << (pos % 8))) != 0
 }
 
-// swapEndianness swaps the order of the bytes in the slice
+// swapEndianness swaps the order of the bytes in the byte array of a node index.
+// the byte array is used in little-endian format for calculating the big integer value of the index,
+// while the big-endian format is used as the bit-wise path to traverse down the tree.
 func swapEndianness(b []byte) []byte {
 	o := make([]byte, len(b))
 	for i := range b {
