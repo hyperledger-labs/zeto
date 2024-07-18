@@ -13,7 +13,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dchest/blake512 v1.0.0 // indirect
 	github.com/iden3/go-iden3-crypto v0.0.16
-	github.com/iden3/go-merkletree v0.1.0
 	github.com/iden3/go-rapidsnark/prover v0.0.10
 	github.com/iden3/go-rapidsnark/types v0.0.2 // indirect
 	github.com/iden3/go-rapidsnark/witness/v2 v2.0.0

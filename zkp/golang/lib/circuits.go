@@ -17,9 +17,7 @@
 package zeto
 
 import (
-	"crypto/sha256"
 	"fmt"
-	"math/big"
 	"os"
 	"path"
 
@@ -58,26 +56,4 @@ func LoadCircuit(circuitName string) (witness.Calculator, []byte, error) {
 	}
 
 	return calc, zkeyBytes, err
-}
-
-func HashTokenUri(tokenUri string) (*big.Int, error) {
-	hash := sha256.New()
-	_, err := hash.Write([]byte(tokenUri))
-	if err != nil {
-		return nil, err
-	}
-	v := new(big.Int).SetBytes(hash.Sum(nil))
-
-	// to fit the result within the range of the Finite Field used in the poseidon hash,
-	// use 253 bit long numbers. we need to remove the most significant three bits.
-	// first print the binary representation of the big int with padding to 256 bits
-	binStr := fmt.Sprintf("%0256b", v)
-	// then remove the most significant three bits
-	binStr = binStr[3:]
-	// finally parse the binary string back to big int
-	v, ok := v.SetString(binStr, 2)
-	if !ok {
-		return nil, fmt.Errorf("failed to parse binary string")
-	}
-	return v, nil
 }
