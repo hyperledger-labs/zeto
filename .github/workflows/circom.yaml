@@ -1,0 +1,20 @@
+name: circom
+run-name: ${{ github.actor }} is building a circom circuit
+on: [push]
+jobs:
+  check-bats-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: install circom
+        run: |
+          curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh
+          git clone https://github.com/iden3/circom.git
+          cd circom
+          cargo build --release
+          cargo install --path circom
+      - name: run circom
+        run: circom --help
