@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/hyperledger-labs/zeto/internal/testutils"
+	"github.com/hyperledger-labs/zeto/pkg/core"
 	"github.com/hyperledger-labs/zeto/pkg/node"
 	"github.com/hyperledger-labs/zeto/pkg/smt"
 	"github.com/hyperledger-labs/zeto/pkg/storage"
@@ -34,7 +35,12 @@ import (
 	"github.com/iden3/go-rapidsnark/witness/v2"
 	"github.com/iden3/go-rapidsnark/witness/wasmer"
 	"github.com/stretchr/testify/assert"
+	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
+
+const MAX_HEIGHT = 64
 
 func LoadCircuit(circuitName string) (witness.Calculator, []byte, error) {
 	circuitRoot, exists := os.LookupEnv("CIRCUITS_ROOT")
@@ -203,7 +209,6 @@ func TestZeto_3_SuccessfulProving(t *testing.T) {
 	nullifier2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PrivateKeyBigInt})
 	nullifiers := []*big.Int{nullifier1, nullifier2}
 
-	MAX_HEIGHT := 64
 	mt, err := smt.NewMerkleTree(storage.NewMemoryStorage(), MAX_HEIGHT)
 	assert.NoError(t, err)
 	utxo1 := utxo.NewFungible(inputValues[0], sender.PublicKey, salt1)
@@ -349,7 +354,6 @@ func TestZeto_5_SuccessfulProving(t *testing.T) {
 
 	nullifier1, _ := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt1, sender.PrivateKeyBigInt})
 
-	MAX_HEIGHT := 64
 	mt, err := smt.NewMerkleTree(storage.NewMemoryStorage(), MAX_HEIGHT)
 	assert.NoError(t, err)
 	utxo1 := utxo.NewNonFungible(tokenId, tokenUri, sender.PublicKey, salt1)
@@ -406,4 +410,99 @@ func TestZeto_5_SuccessfulProving(t *testing.T) {
 	assert.Equal(t, 3, len(proof.Proof.B))
 	assert.Equal(t, 3, len(proof.Proof.C))
 	assert.Equal(t, 3, len(proof.PubSignals))
+}
+
+type testSqlProvider struct {
+	db *gorm.DB
+}
+
+func (s *testSqlProvider) DB() *gorm.DB {
+	return s.db
+}
+
+func (s *testSqlProvider) Close() {}
+
+func TestSqliteStorage(t *testing.T) {
+	dbfile, err := os.CreateTemp("", "gorm.db")
+	assert.NoError(t, err)
+	defer func() {
+		os.Remove(dbfile.Name())
+	}()
+	db, err := gorm.Open(sqlite.Open(dbfile.Name()), &gorm.Config{})
+	assert.NoError(t, err)
+	db.Table("smtRoots").AutoMigrate(&core.SMTRoot{})
+	db.Table("smtNodes_test_1").AutoMigrate(&core.SMTNode{})
+
+	provider := &testSqlProvider{db: db}
+	s, err := storage.NewSqlStorage(provider, "test_1")
+	assert.NoError(t, err)
+
+	mt, err := smt.NewMerkleTree(s, MAX_HEIGHT)
+	assert.NoError(t, err)
+
+	tokenId := big.NewInt(1001)
+	tokenUri, err := utxo.HashTokenUri("https://example.com/token/1001")
+	assert.NoError(t, err)
+	sender := testutils.NewKeypair()
+	salt1 := testutils.NewSalt()
+
+	utxo1 := utxo.NewNonFungible(tokenId, tokenUri, sender.PublicKey, salt1)
+	n1, err := node.NewLeafNode(utxo1)
+	assert.NoError(t, err)
+	err = mt.AddLeaf(n1)
+	assert.NoError(t, err)
+
+	root := mt.Root()
+	dbRoot := core.SMTRoot{Name: "test_1"}
+	err = db.Table("smtRoots").First(&dbRoot).Error
+	assert.NoError(t, err)
+	assert.Equal(t, root.Hex(), dbRoot.RootIndex)
+
+	dbNode := core.SMTNode{RefKey: n1.Ref().Hex()}
+	err = db.Table("smtNodes_test_1").First(&dbNode).Error
+	assert.NoError(t, err)
+	assert.Equal(t, n1.Ref().Hex(), dbNode.RefKey)
+}
+
+func TestPostgresStorage(t *testing.T) {
+	dsn := "host=localhost user=postgres password=my-secret dbname=postgres port=5432 sslmode=disable"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	assert.NoError(t, err)
+	db.Table("smtRoots").AutoMigrate(&core.SMTRoot{})
+	db.Table("smtNodes_test_1").AutoMigrate(&core.SMTNode{})
+
+	defer func() {
+		db.Exec("DROP TABLE smtRoots")
+		db.Exec("DROP TABLE smtNodes_test_1")
+	}()
+
+	provider := &testSqlProvider{db: db}
+	s, err := storage.NewSqlStorage(provider, "test_1")
+	assert.NoError(t, err)
+
+	mt, err := smt.NewMerkleTree(s, MAX_HEIGHT)
+	assert.NoError(t, err)
+
+	tokenId := big.NewInt(1001)
+	tokenUri, err := utxo.HashTokenUri("https://example.com/token/1001")
+	assert.NoError(t, err)
+	sender := testutils.NewKeypair()
+	salt1 := testutils.NewSalt()
+
+	utxo1 := utxo.NewNonFungible(tokenId, tokenUri, sender.PublicKey, salt1)
+	n1, err := node.NewLeafNode(utxo1)
+	assert.NoError(t, err)
+	err = mt.AddLeaf(n1)
+	assert.NoError(t, err)
+
+	root := mt.Root()
+	dbRoot := core.SMTRoot{Name: "test_1"}
+	err = db.Table("smtRoots").First(&dbRoot).Error
+	assert.NoError(t, err)
+	assert.Equal(t, root.Hex(), dbRoot.RootIndex)
+
+	dbNode := core.SMTNode{RefKey: n1.Ref().Hex()}
+	err = db.Table("smtNodes_test_1").First(&dbNode).Error
+	assert.NoError(t, err)
+	assert.Equal(t, n1.Ref().Hex(), dbNode.RefKey)
 }

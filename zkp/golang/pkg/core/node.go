@@ -78,3 +78,29 @@ type Node interface {
 	// returns the index of the right child. Only branch nodes have a right child.
 	RightChild() NodeIndex
 }
+
+func (t NodeType) ToByte() byte {
+	switch t {
+	case NodeTypeEmpty:
+		return 0
+	case NodeTypeBranch:
+		return 1
+	case NodeTypeLeaf:
+		return 2
+	default:
+		return 3
+	}
+}
+
+func NodeTypeFromByte(b byte) NodeType {
+	switch b {
+	case 0:
+		return NodeTypeEmpty
+	case 1:
+		return NodeTypeBranch
+	case 2:
+		return NodeTypeLeaf
+	default:
+		return NodeTypeEmpty
+	}
+}
