@@ -26,5 +26,6 @@ jobs:
           cd zkp/circuits
           npm install
           cd ..
-          circom circuits/X.circom --output ./js/lib --sym --wasm
+          circom circuits/anon_enc_nullifier.circom --output ./js/lib --sym --wasm
+          circom circuits/anon_enc.circom --output ./js/lib --sym --wasm
 
