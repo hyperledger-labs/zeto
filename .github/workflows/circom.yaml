@@ -28,4 +28,9 @@ jobs:
           cd ..
           circom circuits/anon_enc_nullifier.circom --output ./js/lib --sym --wasm
           circom circuits/anon_enc.circom --output ./js/lib --sym --wasm
+          circom circuits/anon_nullifier.circom --output ./js/lib --sym --wasm
+          circom circuits/anon.circom --output ./js/lib --sym --wasm
+          circom circuits/check-nullifiers.circom --output ./js/lib --sym --wasm
+          circom circuits/nf_anon_nullifier.circom --output ./js/lib --sym --wasm
+          circom circuits/nf_anon.circom --output ./js/lib --sym --wasm
 
