@@ -48,12 +48,4 @@ jobs:
           cd zkp/
           pwd
           ls -la
-          circom circuits/anon_enc_nullifier.circom --output ./proving-keys --r1cs
-          circom circuits/anon_enc.circom --output ./proving-keys --r1cs
-          circom circuits/anon_nullifier.circom --output ./proving-keys --r1cs
-          circom circuits/anon.circom --output ./proving-keys --r1cs
-          circom circuits/check-nullifiers.circom --output ./proving-keys --r1cs
-          circom circuits/nf_anon_nullifier.circom --output ./proving-keys --r1cs
-          circom circuits/nf_anon.circom --output ./proving-keys --r1cs
-
-
+         
