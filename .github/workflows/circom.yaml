@@ -33,4 +33,16 @@ jobs:
           circom circuits/check-nullifiers.circom --output ./js/lib --sym --wasm
           circom circuits/nf_anon_nullifier.circom --output ./js/lib --sym --wasm
           circom circuits/nf_anon.circom --output ./js/lib --sym --wasm
+      - name: create folder
+        run: mkdir -p ./proving-keys
+      - name: generate proving keys
+        run: |
+          circom circuits/anon_enc_nullifier.circom --output ./proving-keys --r1cs
+          circom circuits/anon_enc.circom --output ./proving-keys --r1cs
+          circom circuits/anon_nullifier.circom --output ./proving-keys --r1cs
+          circom circuits/anon.circom --output ./proving-keys --r1cs
+          circom circuits/check-nullifiers.circom --output ./proving-keys --r1cs
+          circom circuits/nf_anon_nullifier.circom --output ./proving-keys --r1cs
+          circom circuits/nf_anon.circom --output ./proving-keys --r1cs
+
 
