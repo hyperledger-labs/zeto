@@ -2,7 +2,7 @@ name: circom
 run-name: ${{ github.actor }} is building a circom circuit
 on: [push]
 jobs:
-  check-bats-version:
+  circom build circuit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,3 +18,5 @@ jobs:
           cargo install --path circom
       - name: run circom
         run: circom --help
+      - name: install snarkjs
+        run: npm install -g snarkjs@latest
