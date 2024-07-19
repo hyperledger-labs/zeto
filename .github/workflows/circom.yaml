@@ -48,4 +48,6 @@ jobs:
           cd zkp/
           pwd
           ls -la
+          ls circuits -la
          
+
