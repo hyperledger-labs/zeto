@@ -14,15 +14,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package zeto
+package smt
 
 import (
 	"math/big"
 	"testing"
 
-	"github.com/hyperledger-labs/zeto/lib/smt"
-	"github.com/hyperledger-labs/zeto/lib/storage"
-	"github.com/hyperledger-labs/zeto/lib/utxo"
+	"github.com/hyperledger-labs/zeto/internal/node"
+	"github.com/hyperledger-labs/zeto/internal/storage"
+	"github.com/hyperledger-labs/zeto/internal/testutils"
+	"github.com/hyperledger-labs/zeto/internal/utxo"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/stretchr/testify/assert"
 )
@@ -51,7 +52,7 @@ func TestAddNode(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "11a22e32f5010d3658d1da9c93f26b77afe7a84346f49eae3d1d4fc6cd0a36fd", idx1.BigInt().Text(16))
 
-	n1, err := smt.NewLeafNode(utxo1)
+	n1, err := node.NewLeafNode(utxo1)
 	assert.NoError(t, err)
 	err = mt.AddLeaf(n1)
 	assert.NoError(t, err)
@@ -63,7 +64,7 @@ func TestAddNode(t *testing.T) {
 	idx2, err := utxo2.CalculateIndex()
 	assert.NoError(t, err)
 	assert.Equal(t, "197b0dc3f167041e03d3eafacec1aa3ab12a0d7a606581af01447c269935e521", idx2.BigInt().Text(16))
-	n2, err := smt.NewLeafNode(utxo2)
+	n2, err := node.NewLeafNode(utxo2)
 	assert.NoError(t, err)
 	err = mt.AddLeaf(n2)
 	assert.NoError(t, err)
@@ -75,7 +76,7 @@ func TestAddNode(t *testing.T) {
 	idx3, err := utxo3.CalculateIndex()
 	assert.NoError(t, err)
 	assert.Equal(t, "2d46e23e813abf1fdabffe3ff22a38ebf6bb92d7c381463bee666eb010289fd5", idx3.BigInt().Text(16))
-	n3, err := smt.NewLeafNode(utxo3)
+	n3, err := node.NewLeafNode(utxo3)
 	assert.NoError(t, err)
 	err = mt.AddLeaf(n3)
 	assert.NoError(t, err)
@@ -87,7 +88,7 @@ func TestAddNode(t *testing.T) {
 	idx4, err := utxo4.CalculateIndex()
 	assert.NoError(t, err)
 	assert.Equal(t, "887884c3421b72f8f1991c64808262da78732abf961118d02b0792bd421521f", idx4.BigInt().Text(16))
-	n4, err := smt.NewLeafNode(utxo4)
+	n4, err := node.NewLeafNode(utxo4)
 	assert.NoError(t, err)
 	err = mt.AddLeaf(n4)
 	assert.NoError(t, err)
@@ -110,15 +111,15 @@ func TestGenerateProof(t *testing.T) {
 	db := storage.NewMemoryStorage()
 	mt, _ := NewMerkleTree(db, levels)
 
-	alice := newKeypair()
+	alice := testutils.NewKeypair()
 	utxo1 := utxo.NewFungible(big.NewInt(10), alice.PublicKey, big.NewInt(12345))
-	node1, err := smt.NewLeafNode(utxo1)
+	node1, err := node.NewLeafNode(utxo1)
 	assert.NoError(t, err)
 	err = mt.AddLeaf(node1)
 	assert.NoError(t, err)
 
 	utxo2 := utxo.NewFungible(big.NewInt(10), alice.PublicKey, big.NewInt(12346))
-	node2, err := smt.NewLeafNode(utxo2)
+	node2, err := node.NewLeafNode(utxo2)
 	assert.NoError(t, err)
 	err = mt.AddLeaf(node2)
 	assert.NoError(t, err)
@@ -127,17 +128,17 @@ func TestGenerateProof(t *testing.T) {
 	proof1, foundValue1, err := mt.GenerateProof(target1, mt.Root())
 	assert.NoError(t, err)
 	assert.Equal(t, target1, foundValue1)
-	assert.True(t, proof1.Existence)
-	valid := smt.VerifyProof(mt.Root(), proof1, node1)
+	assert.True(t, proof1.(*proof).existence)
+	valid := VerifyProof(mt.Root(), proof1, node1)
 	assert.True(t, valid)
 
 	utxo3 := utxo.NewFungible(big.NewInt(10), alice.PublicKey, big.NewInt(12347))
-	node3, err := smt.NewLeafNode(utxo3)
+	node3, err := node.NewLeafNode(utxo3)
 	assert.NoError(t, err)
 	target2 := node3.Index().BigInt()
 	proof2, _, err := mt.GenerateProof(target2, mt.Root())
 	assert.NoError(t, err)
-	assert.False(t, proof2.Existence)
+	assert.False(t, proof2.(*proof).existence)
 
 	proof3, err := proof1.ToCircomVerifierProof(target1, foundValue1, mt.Root(), levels)
 	assert.NoError(t, err)

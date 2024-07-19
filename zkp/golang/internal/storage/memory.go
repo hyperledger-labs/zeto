@@ -16,33 +16,33 @@
 
 package storage
 
-import "github.com/hyperledger-labs/zeto/lib/smt"
+import "github.com/hyperledger-labs/zeto/pkg/core"
 
 type memoryStorage struct {
-	root  smt.NodeIndex
-	nodes map[smt.NodeIndex]smt.Node
+	root  core.NodeIndex
+	nodes map[core.NodeIndex]core.Node
 }
 
 func NewMemoryStorage() *memoryStorage {
-	var nodes = make(map[smt.NodeIndex]smt.Node)
+	var nodes = make(map[core.NodeIndex]core.Node)
 	return &memoryStorage{
 		nodes: nodes,
 	}
 }
 
-func (m *memoryStorage) GetRootNodeIndex() (smt.NodeIndex, error) {
+func (m *memoryStorage) GetRootNodeIndex() (core.NodeIndex, error) {
 	if m.root == nil {
 		return nil, ErrNotFound
 	}
 	return m.root, nil
 }
 
-func (m *memoryStorage) UpsertRootNodeIndex(root smt.NodeIndex) error {
+func (m *memoryStorage) UpsertRootNodeIndex(root core.NodeIndex) error {
 	m.root = root
 	return nil
 }
 
-func (m *memoryStorage) GetNode(idx smt.NodeIndex) (smt.Node, error) {
+func (m *memoryStorage) GetNode(idx core.NodeIndex) (core.Node, error) {
 	n, ok := m.nodes[idx]
 	if !ok {
 		return nil, ErrNotFound
@@ -50,7 +50,7 @@ func (m *memoryStorage) GetNode(idx smt.NodeIndex) (smt.Node, error) {
 	return n, nil
 }
 
-func (m *memoryStorage) InsertNode(node smt.Node) error {
+func (m *memoryStorage) InsertNode(node core.Node) error {
 	m.nodes[node.Ref()] = node
 	return nil
 }

@@ -14,28 +14,59 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package zeto
+package integration_test
 
 import (
-	"crypto/rand"
 	"fmt"
 	"math/big"
+	"os"
+	"path"
 	"testing"
 	"time"
 
-	"github.com/hyperledger-labs/zeto/lib/smt"
-	"github.com/hyperledger-labs/zeto/lib/storage"
-	"github.com/hyperledger-labs/zeto/lib/utxo"
-	"github.com/iden3/go-iden3-crypto/babyjub"
+	"github.com/hyperledger-labs/zeto/internal/testutils"
+	"github.com/hyperledger-labs/zeto/pkg/node"
+	"github.com/hyperledger-labs/zeto/pkg/smt"
+	"github.com/hyperledger-labs/zeto/pkg/storage"
+	"github.com/hyperledger-labs/zeto/pkg/utxo"
 	"github.com/iden3/go-iden3-crypto/poseidon"
 	"github.com/iden3/go-rapidsnark/prover"
+	"github.com/iden3/go-rapidsnark/witness/v2"
+	"github.com/iden3/go-rapidsnark/witness/wasmer"
 	"github.com/stretchr/testify/assert"
 )
 
-type User struct {
-	PrivateKey       *babyjub.PrivateKey
-	PublicKey        *babyjub.PublicKey
-	PrivateKeyBigInt *big.Int
+func LoadCircuit(circuitName string) (witness.Calculator, []byte, error) {
+	circuitRoot, exists := os.LookupEnv("CIRCUITS_ROOT")
+	if !exists {
+		return nil, []byte{}, fmt.Errorf("CIRCUITS_ROOT not set")
+	}
+	provingKeysRoot, exists := os.LookupEnv("PROVING_KEYS_ROOT")
+	if !exists {
+		return nil, []byte{}, fmt.Errorf("PROVING_KEYS_ROOT not set")
+	}
+
+	// load the wasm file for the circuit
+	wasmBytes, err := os.ReadFile(path.Join(circuitRoot, fmt.Sprintf("%s_js", circuitName), fmt.Sprintf("%s.wasm", circuitName)))
+	if err != nil {
+		return nil, []byte{}, err
+	}
+
+	// create the prover
+	zkeyBytes, err := os.ReadFile(path.Join(provingKeysRoot, fmt.Sprintf("%s.zkey", circuitName)))
+	if err != nil {
+		return nil, []byte{}, err
+	}
+
+	// create the calculator
+	var ops []witness.Option
+	ops = append(ops, witness.WithWasmEngine(wasmer.NewCircom2WitnessCalculator))
+	calc, err := witness.NewCalculator(wasmBytes, ops...)
+	if err != nil {
+		return nil, []byte{}, err
+	}
+
+	return calc, zkeyBytes, err
 }
 
 func TestZeto_1_SuccessfulProving(t *testing.T) {
@@ -43,21 +74,21 @@ func TestZeto_1_SuccessfulProving(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, calc)
 
-	sender := newKeypair()
-	receiver := newKeypair()
+	sender := testutils.NewKeypair()
+	receiver := testutils.NewKeypair()
 
 	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
 	outputValues := []*big.Int{big.NewInt(32), big.NewInt(38)}
 
-	salt1 := newSalt()
+	salt1 := testutils.NewSalt()
 	input1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PublicKey.X, sender.PublicKey.Y})
-	salt2 := newSalt()
+	salt2 := testutils.NewSalt()
 	input2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PublicKey.X, sender.PublicKey.Y})
 	inputCommitments := []*big.Int{input1, input2}
 
-	salt3 := newSalt()
+	salt3 := testutils.NewSalt()
 	output1, _ := poseidon.Hash([]*big.Int{outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-	salt4 := newSalt()
+	salt4 := testutils.NewSalt()
 	output2, _ := poseidon.Hash([]*big.Int{outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
 	outputCommitments := []*big.Int{output1, output2}
 
@@ -104,25 +135,25 @@ func TestZeto_2_SuccessfulProving(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, calc)
 
-	sender := newKeypair()
-	receiver := newKeypair()
+	sender := testutils.NewKeypair()
+	receiver := testutils.NewKeypair()
 
 	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
 	outputValues := []*big.Int{big.NewInt(32), big.NewInt(38)}
 
-	salt1 := newSalt()
+	salt1 := testutils.NewSalt()
 	input1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PublicKey.X, sender.PublicKey.Y})
-	salt2 := newSalt()
+	salt2 := testutils.NewSalt()
 	input2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PublicKey.X, sender.PublicKey.Y})
 	inputCommitments := []*big.Int{input1, input2}
 
-	salt3 := newSalt()
+	salt3 := testutils.NewSalt()
 	output1, _ := poseidon.Hash([]*big.Int{outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-	salt4 := newSalt()
+	salt4 := testutils.NewSalt()
 	output2, _ := poseidon.Hash([]*big.Int{outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
 	outputCommitments := []*big.Int{output1, output2}
 
-	encryptionNonce := newSalt()
+	encryptionNonce := testutils.NewSalt()
 
 	witnessInputs := map[string]interface{}{
 		"inputCommitments":      inputCommitments,
@@ -156,15 +187,15 @@ func TestZeto_3_SuccessfulProving(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, calc)
 
-	sender := newKeypair()
-	receiver := newKeypair()
+	sender := testutils.NewKeypair()
+	receiver := testutils.NewKeypair()
 
 	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
 	outputValues := []*big.Int{big.NewInt(32), big.NewInt(38)}
 
-	salt1 := newSalt()
+	salt1 := testutils.NewSalt()
 	input1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PublicKey.X, sender.PublicKey.Y})
-	salt2 := newSalt()
+	salt2 := testutils.NewSalt()
 	input2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PublicKey.X, sender.PublicKey.Y})
 	inputCommitments := []*big.Int{input1, input2}
 
@@ -173,15 +204,15 @@ func TestZeto_3_SuccessfulProving(t *testing.T) {
 	nullifiers := []*big.Int{nullifier1, nullifier2}
 
 	MAX_HEIGHT := 64
-	mt, err := NewMerkleTree(storage.NewMemoryStorage(), MAX_HEIGHT)
+	mt, err := smt.NewMerkleTree(storage.NewMemoryStorage(), MAX_HEIGHT)
 	assert.NoError(t, err)
 	utxo1 := utxo.NewFungible(inputValues[0], sender.PublicKey, salt1)
-	n1, err := smt.NewLeafNode(utxo1)
+	n1, err := node.NewLeafNode(utxo1)
 	assert.NoError(t, err)
 	err = mt.AddLeaf(n1)
 	assert.NoError(t, err)
 	utxo2 := utxo.NewFungible(inputValues[1], sender.PublicKey, salt2)
-	n2, err := smt.NewLeafNode(utxo2)
+	n2, err := node.NewLeafNode(utxo2)
 	assert.NoError(t, err)
 	err = mt.AddLeaf(n2)
 	assert.NoError(t, err)
@@ -194,13 +225,13 @@ func TestZeto_3_SuccessfulProving(t *testing.T) {
 	circomProof2, err := proof2.ToCircomVerifierProof(input2, input2, mt.Root(), MAX_HEIGHT)
 	assert.NoError(t, err)
 
-	salt3 := newSalt()
+	salt3 := testutils.NewSalt()
 	output1, _ := poseidon.Hash([]*big.Int{outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-	salt4 := newSalt()
+	salt4 := testutils.NewSalt()
 	output2, _ := poseidon.Hash([]*big.Int{outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
 	outputCommitments := []*big.Int{output1, output2}
 
-	encryptionNonce := newSalt()
+	encryptionNonce := testutils.NewSalt()
 
 	proof1Siblings := make([]*big.Int, len(circomProof1.Siblings)-1)
 	for i, s := range circomProof1.Siblings[0 : len(circomProof1.Siblings)-1] {
@@ -246,18 +277,18 @@ func TestZeto_4_SuccessfulProving(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, calc)
 
-	sender := newKeypair()
-	receiver := newKeypair()
+	sender := testutils.NewKeypair()
+	receiver := testutils.NewKeypair()
 
 	tokenId := big.NewInt(1001)
 	tokenUri, err := utxo.HashTokenUri("https://example.com/token/1001")
 	assert.NoError(t, err)
 
-	salt1 := newSalt()
+	salt1 := testutils.NewSalt()
 	input1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt1, sender.PublicKey.X, sender.PublicKey.Y})
 	assert.NoError(t, err)
 
-	salt3 := newSalt()
+	salt3 := testutils.NewSalt()
 	output1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
 	assert.NoError(t, err)
 
@@ -305,24 +336,24 @@ func TestZeto_5_SuccessfulProving(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, calc)
 
-	sender := newKeypair()
-	receiver := newKeypair()
+	sender := testutils.NewKeypair()
+	receiver := testutils.NewKeypair()
 
 	tokenId := big.NewInt(1001)
 	tokenUri, err := utxo.HashTokenUri("https://example.com/token/1001")
 	assert.NoError(t, err)
 
-	salt1 := newSalt()
+	salt1 := testutils.NewSalt()
 	input1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt1, sender.PublicKey.X, sender.PublicKey.Y})
 	assert.NoError(t, err)
 
 	nullifier1, _ := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt1, sender.PrivateKeyBigInt})
 
 	MAX_HEIGHT := 64
-	mt, err := NewMerkleTree(storage.NewMemoryStorage(), MAX_HEIGHT)
+	mt, err := smt.NewMerkleTree(storage.NewMemoryStorage(), MAX_HEIGHT)
 	assert.NoError(t, err)
 	utxo1 := utxo.NewNonFungible(tokenId, tokenUri, sender.PublicKey, salt1)
-	n1, err := smt.NewLeafNode(utxo1)
+	n1, err := node.NewLeafNode(utxo1)
 	assert.NoError(t, err)
 	err = mt.AddLeaf(n1)
 	assert.NoError(t, err)
@@ -335,7 +366,7 @@ func TestZeto_5_SuccessfulProving(t *testing.T) {
 		proof1Siblings[i] = s.BigInt()
 	}
 
-	salt3 := newSalt()
+	salt3 := testutils.NewSalt()
 	output1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
 	assert.NoError(t, err)
 
@@ -375,26 +406,4 @@ func TestZeto_5_SuccessfulProving(t *testing.T) {
 	assert.Equal(t, 3, len(proof.Proof.B))
 	assert.Equal(t, 3, len(proof.Proof.C))
 	assert.Equal(t, 3, len(proof.PubSignals))
-}
-
-// generate a new BabyJub keypair
-func newKeypair() *User {
-	// generate babyJubjub private key randomly
-	babyJubjubPrivKey := babyjub.NewRandPrivKey()
-	// generate public key from private key
-	babyJubjubPubKey := babyJubjubPrivKey.Public()
-	// convert the private key to big.Int for use inside circuits
-	privKeyBigInt := babyjub.SkToBigInt(&babyJubjubPrivKey)
-
-	return &User{
-		PrivateKey:       &babyJubjubPrivKey,
-		PublicKey:        babyJubjubPubKey,
-		PrivateKeyBigInt: privKeyBigInt,
-	}
-}
-
-func newSalt() *big.Int {
-	max := big.NewInt(1000000000000)
-	randInt, _ := rand.Int(rand.Reader, max)
-	return randInt
 }

@@ -14,34 +14,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utxo
+package storage
 
 import (
-	"math/big"
-
-	"github.com/hyperledger-labs/zeto/lib/smt"
-	"github.com/iden3/go-iden3-crypto/babyjub"
-	"github.com/iden3/go-iden3-crypto/poseidon"
+	"github.com/hyperledger-labs/zeto/internal/storage"
+	"github.com/hyperledger-labs/zeto/pkg/core"
 )
 
-type Fungible struct {
-	Amount *big.Int
-	Owner  *babyjub.PublicKey
-	Salt   *big.Int
-}
-
-func NewFungible(amount *big.Int, owner *babyjub.PublicKey, salt *big.Int) *Fungible {
-	return &Fungible{
-		Amount: amount,
-		Owner:  owner,
-		Salt:   salt,
-	}
-}
-
-func (f *Fungible) CalculateIndex() (smt.NodeIndex, error) {
-	hash, err := poseidon.Hash([]*big.Int{f.Amount, f.Salt, f.Owner.X, f.Owner.Y})
-	if err != nil {
-		return nil, err
-	}
-	return smt.NewNodeIndexFromBigInt(hash)
+func NewMemoryStorage() core.Storage {
+	return storage.NewMemoryStorage()
 }

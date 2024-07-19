@@ -14,22 +14,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utxo
+package core
 
-import (
-	"github.com/hyperledger-labs/zeto/lib/smt"
-)
-
-type IndexOnly struct {
-	Index smt.NodeIndex
-}
-
-func NewIndexOnly(index smt.NodeIndex) *IndexOnly {
-	return &IndexOnly{
-		Index: index,
-	}
-}
-
-func (f *IndexOnly) CalculateIndex() (smt.NodeIndex, error) {
-	return f.Index, nil
+type Storage interface {
+	// GetRootNodeIndex returns the root node index.
+	// Must return an ErrNotFound error if it does not exist.
+	GetRootNodeIndex() (NodeIndex, error)
+	// UpsertRootNodeIndex updates the root node index.
+	UpsertRootNodeIndex(NodeIndex) error
+	// GetNode returns the node with the given index
+	// Must return an ErrNotFound error if it does not exist.
+	GetNode(NodeIndex) (Node, error)
+	// InsertNode inserts a node into the storage. Where the private values of a node are stored
+	// is implementation-specific
+	InsertNode(Node) error
+	// Close closes the storage resource
+	Close()
 }
