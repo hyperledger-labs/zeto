@@ -16,6 +16,8 @@
 
 package core
 
+import "gorm.io/gorm"
+
 type Storage interface {
 	// GetRootNodeIndex returns the root node index.
 	// Must return an ErrNotFound error if it does not exist.
@@ -30,4 +32,32 @@ type Storage interface {
 	InsertNode(Node) error
 	// Close closes the storage resource
 	Close()
+}
+
+// SqlDBProvider is the interface for providing access to a SQL database to
+// the storage layer implementations that are backed by a SQL database.
+type SqlDBProvider interface {
+	DB() *gorm.DB
+	Close()
+}
+
+// SMTRoot is used to persist tree root in SQL databases via gorm
+type SMTRoot struct {
+	// the name of the merkle tree
+	Name string `gorm:"primaryKey"`
+	// this must be the hex bytes of the root index
+	// following the big-endian encoding
+	RootIndex string `gorm:"type:text"`
+}
+
+// SMTNode is the structure of a node in the merkle tree.
+// It only captures the reference key and the index of the node.
+// The value properties of a node are local states that are
+// handled outside of the merkle tree library.
+type SMTNode struct {
+	RefKey     string `gorm:"primaryKey"`
+	Type       byte
+	Index      *string // only leaf nodes have an index
+	LeftChild  *string // only branch nodes have children
+	RightChild *string
 }
