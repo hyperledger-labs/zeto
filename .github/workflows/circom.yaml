@@ -20,3 +20,11 @@ jobs:
         run: circom --help
       - name: install snarkjs
         run: npm install -g snarkjs@latest
+      - name: install zeto
+        run: |
+          git clone https://github.com/hyperledger-labs/zeto.git
+          cd zkp/circuits
+          npm install
+          cd ..
+          circom circuits/X.circom --output ./js/lib --sym --wasm
+
