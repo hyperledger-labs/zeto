@@ -41,9 +41,11 @@ jobs:
         run: ls -la
       - name: download ptau
         run: |
-          wget -qO- https://storage.googleapis.com/zkevm/ptau/powersOfTau28_hez_final_12.ptau  
+          cd proving-keys
+          wget https://storage.googleapis.com/zkevm/ptau/powersOfTau28_hez_final_12.ptau  
       - name: generate proving keys
         run: |
+          cd zkp/circuits
           circom circuits/anon_enc_nullifier.circom --output ./proving-keys --r1cs
           circom circuits/anon_enc.circom --output ./proving-keys --r1cs
           circom circuits/anon_nullifier.circom --output ./proving-keys --r1cs
