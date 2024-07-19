@@ -2,7 +2,7 @@ name: circom
 run-name: ${{ github.actor }} is building a circom circuit
 on: [push]
 jobs:
-  circom build circuit:
+  circom-build-circuit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
