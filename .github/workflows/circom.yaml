@@ -52,7 +52,6 @@ jobs:
           cd zkp/
           pwd
           ls -la
-          ls .. -la
           ls circuits -la
           circom circuits/anon_enc_nullifier.circom --output ../proving-keys --r1cs
           circom circuits/anon_enc.circom --output ../proving-keys --r1cs
@@ -66,5 +65,19 @@ jobs:
         run: |
           cd zkp/
           snarkjs groth16 setup ../proving-keys/anon.r1cs ../proving-keys/powersOfTau28_hez_final_12.ptau ../proving-keys/anon.zkey
+          snarkjs groth16 setup ../proving-keys/anon_enc.r1cs ../proving-keys/powersOfTau28_hez_final_13.ptau ../proving-keys/anon_enc.zkey
+          snarkjs groth16 setup ../proving-keys/anon_nullifier.r1cs ../proving-keys/powersOfTau28_hez_final_16.ptau ../proving-keys/anon_nullifier.zkey
+          snarkjs groth16 setup ../proving-keys/anon_enc_nullifier.r1cs ../proving-keys/powersOfTau28_hez_final_16.ptau ../proving-keys/anon_enc_nullifier.zkey
+          snarkjs groth16 setup ../proving-keys/nf_anon.r1cs ../proving-keys/powersOfTau28_hez_final_11.ptau ../proving-keys/nf_anon.zkey
+          snarkjs groth16 setup ../proving-keys/nf_anon_nullifier.r1cs ../proving-keys/powersOfTau28_hez_final_15.ptau ../proving-keys/nf_anon_nullifier.zkey
+      - name: generate verfication keys
+        run: |
+          cd zkp/
+          snarkjs zkey export verificationkey ../proving-keys/anon.zkey ../proving-keys/anon-vkey.json
+          snarkjs zkey export verificationkey ../proving-keys/anon_enc.zkey ../proving-keys/anon_enc-vkey.json
+          snarkjs zkey export verificationkey ../proving-keys/anon_nullifier.zkey ../proving-keys/anon_nullifier-vkey.json
+          snarkjs zkey export verificationkey ../proving-keys/anon_enc_nullifier.zkey ../proving-keys/anon_enc_nullifier-vkey.json
+          snarkjs zkey export verificationkey ../proving-keys/nf_anon.zkey ../proving-keys/nf_anon-vkey.json
+          snarkjs zkey export verificationkey ../proving-keys/nf_anon_nullifier.zkey ../proving-keys/nf_anon_nullifier-vkey.json
 
 
