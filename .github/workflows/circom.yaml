@@ -79,5 +79,14 @@ jobs:
           snarkjs zkey export verificationkey ../proving-keys/anon_enc_nullifier.zkey ../proving-keys/anon_enc_nullifier-vkey.json
           snarkjs zkey export verificationkey ../proving-keys/nf_anon.zkey ../proving-keys/nf_anon-vkey.json
           snarkjs zkey export verificationkey ../proving-keys/nf_anon_nullifier.zkey ../proving-keys/nf_anon_nullifier-vkey.json
-
+      - name: generate solidity verifier library
+        run: |
+          cd zkp/
+          snarkjs zkey export solidityverifier ../proving-keys/anon.zkey ../solidity/contracts/lib/verifier_anon.sol
+          snarkjs zkey export solidityverifier ../proving-keys/anon_enc.zkey ../solidity/contracts/lib/verifier_anon_enc.sol
+          snarkjs zkey export solidityverifier ../proving-keys/anon_nullifier.zkey ../solidity/contracts/lib/verifier_anon_nullifier.sol
+          snarkjs zkey export solidityverifier ../proving-keys/anon_enc_nullifier.zkey ../solidity/contracts/lib/verifier_anon_enc_nullifier.sol
+          snarkjs zkey export solidityverifier ../proving-keys/nf_anon.zkey ../solidity/contracts/lib/verifier_nf_anon.sol
+          snarkjs zkey export solidityverifier ../proving-keys/nf_anon_nullifier.zkey ../solidity/contracts/lib/verifier_nf_anon_nullifier.sol
+          ls ../proving-keys -la
 
