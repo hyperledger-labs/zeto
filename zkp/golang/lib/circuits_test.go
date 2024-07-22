@@ -23,10 +23,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hyperledger-labs/zeto/lib/smt"
+	"github.com/hyperledger-labs/zeto/lib/storage"
+	"github.com/hyperledger-labs/zeto/lib/utxo"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-iden3-crypto/poseidon"
-	"github.com/iden3/go-merkletree"
-	"github.com/iden3/go-merkletree/db/memory"
 	"github.com/iden3/go-rapidsnark/prover"
 	"github.com/stretchr/testify/assert"
 )
@@ -172,15 +173,25 @@ func TestZeto_3_SuccessfulProving(t *testing.T) {
 	nullifiers := []*big.Int{nullifier1, nullifier2}
 
 	MAX_HEIGHT := 64
-	smt, err := merkletree.NewMerkleTree(memory.NewMemoryStorage(), MAX_HEIGHT)
+	mt, err := NewMerkleTree(storage.NewMemoryStorage(), MAX_HEIGHT)
 	assert.NoError(t, err)
-	err = smt.Add(input1, input1)
+	utxo1 := utxo.NewFungible(inputValues[0], sender.PublicKey, salt1)
+	n1, err := smt.NewLeafNode(utxo1)
 	assert.NoError(t, err)
-	err = smt.Add(input2, input2)
+	err = mt.AddLeaf(n1)
 	assert.NoError(t, err)
-	proof1, err := smt.GenerateCircomVerifierProof(input1, nil)
+	utxo2 := utxo.NewFungible(inputValues[1], sender.PublicKey, salt2)
+	n2, err := smt.NewLeafNode(utxo2)
 	assert.NoError(t, err)
-	proof2, err := smt.GenerateCircomVerifierProof(input2, nil)
+	err = mt.AddLeaf(n2)
+	assert.NoError(t, err)
+	proof1, _, err := mt.GenerateProof(input1, nil)
+	assert.NoError(t, err)
+	circomProof1, err := proof1.ToCircomVerifierProof(input1, input1, mt.Root(), MAX_HEIGHT)
+	assert.NoError(t, err)
+	proof2, _, err := mt.GenerateProof(input2, nil)
+	assert.NoError(t, err)
+	circomProof2, err := proof2.ToCircomVerifierProof(input2, input2, mt.Root(), MAX_HEIGHT)
 	assert.NoError(t, err)
 
 	salt3 := newSalt()
@@ -191,12 +202,12 @@ func TestZeto_3_SuccessfulProving(t *testing.T) {
 
 	encryptionNonce := newSalt()
 
-	proof1Siblings := make([]*big.Int, len(proof1.Siblings)-1)
-	for i, s := range proof1.Siblings[0 : len(proof1.Siblings)-1] {
+	proof1Siblings := make([]*big.Int, len(circomProof1.Siblings)-1)
+	for i, s := range circomProof1.Siblings[0 : len(circomProof1.Siblings)-1] {
 		proof1Siblings[i] = s.BigInt()
 	}
-	proof2Siblings := make([]*big.Int, len(proof2.Siblings)-1)
-	for i, s := range proof2.Siblings[0 : len(proof2.Siblings)-1] {
+	proof2Siblings := make([]*big.Int, len(circomProof2.Siblings)-1)
+	for i, s := range circomProof2.Siblings[0 : len(circomProof2.Siblings)-1] {
 		proof2Siblings[i] = s.BigInt()
 	}
 	witnessInputs := map[string]interface{}{
@@ -205,7 +216,7 @@ func TestZeto_3_SuccessfulProving(t *testing.T) {
 		"inputValues":           inputValues,
 		"inputSalts":            []*big.Int{salt1, salt2},
 		"inputOwnerPrivateKey":  sender.PrivateKeyBigInt,
-		"root":                  proof2.Root.BigInt(),
+		"root":                  mt.Root().BigInt(),
 		"merkleProof":           [][]*big.Int{proof1Siblings, proof2Siblings},
 		"enabled":               []*big.Int{big.NewInt(1), big.NewInt(1)},
 		"outputCommitments":     outputCommitments,
@@ -230,15 +241,6 @@ func TestZeto_3_SuccessfulProving(t *testing.T) {
 	assert.Equal(t, 10, len(proof.PubSignals))
 }
 
-func TestHashTokenUri(t *testing.T) {
-	tokenUri := "https://example.com/token/1001"
-	hash, err := HashTokenUri(tokenUri)
-	assert.NoError(t, err)
-	check, ok := new(big.Int).SetString("13892450975113644983085716506756448401911601901613040705635669994423608913168", 10)
-	assert.True(t, ok)
-	assert.Equal(t, check, hash)
-}
-
 func TestZeto_4_SuccessfulProving(t *testing.T) {
 	calc, provingKey, err := LoadCircuit("nf_anon")
 	assert.NoError(t, err)
@@ -248,7 +250,7 @@ func TestZeto_4_SuccessfulProving(t *testing.T) {
 	receiver := newKeypair()
 
 	tokenId := big.NewInt(1001)
-	tokenUri, err := HashTokenUri("https://example.com/token/1001")
+	tokenUri, err := utxo.HashTokenUri("https://example.com/token/1001")
 	assert.NoError(t, err)
 
 	salt1 := newSalt()
@@ -307,7 +309,7 @@ func TestZeto_5_SuccessfulProving(t *testing.T) {
 	receiver := newKeypair()
 
 	tokenId := big.NewInt(1001)
-	tokenUri, err := HashTokenUri("https://example.com/token/1001")
+	tokenUri, err := utxo.HashTokenUri("https://example.com/token/1001")
 	assert.NoError(t, err)
 
 	salt1 := newSalt()
@@ -317,14 +319,19 @@ func TestZeto_5_SuccessfulProving(t *testing.T) {
 	nullifier1, _ := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt1, sender.PrivateKeyBigInt})
 
 	MAX_HEIGHT := 64
-	smt, err := merkletree.NewMerkleTree(memory.NewMemoryStorage(), MAX_HEIGHT)
+	mt, err := NewMerkleTree(storage.NewMemoryStorage(), MAX_HEIGHT)
 	assert.NoError(t, err)
-	err = smt.Add(input1, input1)
+	utxo1 := utxo.NewNonFungible(tokenId, tokenUri, sender.PublicKey, salt1)
+	n1, err := smt.NewLeafNode(utxo1)
 	assert.NoError(t, err)
-	proof1, err := smt.GenerateCircomVerifierProof(input1, nil)
+	err = mt.AddLeaf(n1)
 	assert.NoError(t, err)
-	proof1Siblings := make([]*big.Int, len(proof1.Siblings)-1)
-	for i, s := range proof1.Siblings[0 : len(proof1.Siblings)-1] {
+	proof1, _, err := mt.GenerateProof(input1, nil)
+	assert.NoError(t, err)
+	circomProof1, err := proof1.ToCircomVerifierProof(input1, input1, mt.Root(), MAX_HEIGHT)
+	assert.NoError(t, err)
+	proof1Siblings := make([]*big.Int, len(circomProof1.Siblings)-1)
+	for i, s := range circomProof1.Siblings[0 : len(circomProof1.Siblings)-1] {
 		proof1Siblings[i] = s.BigInt()
 	}
 
@@ -339,7 +346,7 @@ func TestZeto_5_SuccessfulProving(t *testing.T) {
 		"inputCommitment":      input1,
 		"inputSalt":            salt1,
 		"inputOwnerPrivateKey": sender.PrivateKeyBigInt,
-		"root":                 proof1.Root.BigInt(),
+		"root":                 mt.Root().BigInt(),
 		"merkleProof":          proof1Siblings,
 		"outputCommitment":     output1,
 		"outputSalt":           salt3,
