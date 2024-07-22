@@ -20,14 +20,13 @@ jobs:
       - name: Hello world action step
         uses: ./ # Uses an action in the root directory
         id: hello
-      # Use the output from the `hello` step
-      - name: Get the output files
-        run: ls -a ./.github/actions/
-      - name: Containerized Build
-        uses: ./.github/actions/my-container-action
-        with:
-          name: workspace_artifacts
-          path: ${{ github.workspace }}
+      jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --platform linux/amd64 --tag date:"$(date +%s)"
 
 
 
