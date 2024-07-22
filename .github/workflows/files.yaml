@@ -1,0 +1,16 @@
+name: files
+run-name: ${{ github.actor }} is copying files to container
+on: [push]
+jobs:
+  circom-build-circuit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: copy files
+        run: |
+          pwd
+          ls -a
+
