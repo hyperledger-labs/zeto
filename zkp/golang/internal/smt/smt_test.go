@@ -17,13 +17,16 @@
 package smt
 
 import (
+	"fmt"
 	"math/big"
+	"math/rand"
 	"testing"
 
 	"github.com/hyperledger-labs/zeto/internal/node"
 	"github.com/hyperledger-labs/zeto/internal/storage"
 	"github.com/hyperledger-labs/zeto/internal/testutils"
 	"github.com/hyperledger-labs/zeto/internal/utxo"
+	"github.com/hyperledger-labs/zeto/pkg/core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/stretchr/testify/assert"
 )
@@ -143,4 +146,49 @@ func TestGenerateProof(t *testing.T) {
 	proof3, err := proof1.ToCircomVerifierProof(target1, foundValue1, mt.Root(), levels)
 	assert.NoError(t, err)
 	assert.False(t, proof3.IsOld0)
+}
+
+func TestVerifyProof(t *testing.T) {
+	const levels = 10
+	db := storage.NewMemoryStorage()
+	mt, _ := NewMerkleTree(db, levels)
+
+	alice := testutils.NewKeypair()
+	values := []int{10, 20, 30, 40, 50}
+	done := make(chan bool, len(values))
+	startProving := make(chan core.Node, len(values))
+	for idx, value := range values {
+		go func(v int) {
+			salt := rand.Intn(100000)
+			utxo := utxo.NewFungible(big.NewInt(int64(v)), alice.PublicKey, big.NewInt(int64(salt)))
+			node, err := node.NewLeafNode(utxo)
+			assert.NoError(t, err)
+			err = mt.AddLeaf(node)
+			assert.NoError(t, err)
+			startProving <- node
+			done <- true
+			fmt.Printf("Added node %d\n", idx)
+		}(value)
+	}
+
+	go func() {
+		// trigger the proving process after 1 nodes are added
+		n := <-startProving
+		fmt.Println("Received node for proving")
+
+		target := n.Index().BigInt()
+		root := mt.Root()
+		p, _, err := mt.GenerateProof(target, root)
+		assert.NoError(t, err)
+		assert.True(t, p.(*proof).existence)
+
+		valid := VerifyProof(root, p, n)
+		assert.True(t, valid)
+	}()
+
+	for i := 0; i < len(values); i++ {
+		<-done
+	}
+
+	fmt.Println("All done")
 }

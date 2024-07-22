@@ -59,6 +59,8 @@ func NewMerkleTree(db core.Storage, maxLevels int) (core.SparseMerkleTree, error
 }
 
 func (mt *sparseMerkleTree) Root() core.NodeIndex {
+	mt.RLock()
+	defer mt.RUnlock()
 	return mt.rootKey
 }
 
@@ -103,6 +105,9 @@ func (mt *sparseMerkleTree) GetNode(key core.NodeIndex) (core.Node, error) {
 // for a Merkle Tree given the root. It uses the node's index to represent the node.
 // If the rootKey is nil, the current merkletree root is used
 func (mt *sparseMerkleTree) GenerateProof(k *big.Int, rootKey core.NodeIndex) (core.Proof, *big.Int, error) {
+	mt.RLock()
+	defer mt.RUnlock()
+
 	p := &proof{}
 	var siblingKey core.NodeIndex
 
@@ -112,11 +117,11 @@ func (mt *sparseMerkleTree) GenerateProof(k *big.Int, rootKey core.NodeIndex) (c
 	}
 	path := kHash.ToPath(mt.maxLevels)
 	if rootKey == nil {
-		rootKey = mt.Root()
+		rootKey = mt.rootKey
 	}
 	nextKey := rootKey
 	for p.depth = 0; p.depth < uint(mt.maxLevels); p.depth++ {
-		n, err := mt.GetNode(nextKey)
+		n, err := mt.getNode(nextKey)
 		if err != nil {
 			return nil, nil, err
 		}
