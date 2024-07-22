@@ -1,7 +1,7 @@
 name: circom
 run-name: ${{ github.actor }} is building a circom circuit
 on: 
-  push
+  push:
     paths:
       - '.github/workflows/circom.yaml'
 jobs:
