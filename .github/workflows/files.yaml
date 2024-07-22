@@ -21,8 +21,8 @@ jobs:
         uses: ./ # Uses an action in the root directory
         id: hello
       # Use the output from the `hello` step
-      - name: Get the output time
-        run: echo "The time was ${{ steps.hello.outputs.time }}"
+      - name: Get the output files
+        run: ls -a ./.github/actions/
       - name: Containerized Build
         uses: ./.github/actions/my-container-action
         with:
