@@ -48,7 +48,7 @@ type SparseMerkleTree interface {
 	Root() smt.NodeIndex
 	// AddLeaf adds a key-value pair to the tree
 	AddLeaf(smt.Node) error
-	// GetnerateProof generates a proof of existence (or non-existence) of a leaf node
+	// GenerateProof generates a proof of existence (or non-existence) of a leaf node
 	GenerateProof(*big.Int, smt.NodeIndex) (*smt.Proof, *big.Int, error)
 }
 
@@ -156,6 +156,7 @@ func (mt *sparseMerkleTree) GenerateProof(k *big.Int, rootKey smt.NodeIndex) (*s
 			if err != nil {
 				return nil, nil, err
 			}
+			// returning a non-inclusion proof
 			return p, value.BigInt(), nil
 		case smt.NodeTypeBranch:
 			if path[p.Depth] { // go right

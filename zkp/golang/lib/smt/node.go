@@ -79,7 +79,7 @@ type Node interface {
 	// key to the storage record for the node
 	Ref() NodeIndex
 	// returns the value object. only leaf nodes have a value object. If the
-	// client is the owner of a UTXO, the value object includes the secre values.
+	// client is the owner of a UTXO, the value object includes the secret values.
 	// otherwise the value object is simply the index of the node.
 	Value() Indexable
 	// returns the index of the left child. Only branch nodes have a left child.
