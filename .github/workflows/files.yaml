@@ -1,8 +1,11 @@
 name: files
 run-name: ${{ github.actor }} is copying files to container
-on: [push]
+on:
+  push:
+    paths:
+      - '.github/workflows/files.yaml'
 jobs:
-  circom-build-circuit:
+  build-container:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
