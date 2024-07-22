@@ -16,6 +16,7 @@ jobs:
         run: |
           pwd
           ls -a
+          echo ${GITHUB_WORKSPACE}
       - name: Hello world action step
         uses: ./ # Uses an action in the root directory
         id: hello
@@ -23,7 +24,10 @@ jobs:
       - name: Get the output time
         run: echo "The time was ${{ steps.hello.outputs.time }}"
       - name: Containerized Build
-        uses: ./.github/actions/
+        uses: ./.github/actions/my-container-action
+        with:
+          name: workspace_artifacts
+          path: ${{ github.workspace }}
 
 
 
