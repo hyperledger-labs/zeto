@@ -1,6 +1,9 @@
 name: circom
 run-name: ${{ github.actor }} is building a circom circuit
-on: [push]
+on: 
+  push
+    paths:
+      - '.github/workflows/circom.yaml'
 jobs:
   circom-build-circuit:
     runs-on: ubuntu-latest
