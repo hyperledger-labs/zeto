@@ -134,6 +134,7 @@ func (mt *sparseMerkleTree) GenerateProof(k *big.Int, rootKey core.NodeIndex) (c
 			if err != nil {
 				return nil, nil, err
 			}
+			// returning a non-inclusion proof
 			return p, value.BigInt(), nil
 		case core.NodeTypeBranch:
 			if path[p.depth] { // go right
