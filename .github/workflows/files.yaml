@@ -1,9 +1,9 @@
 name: files
 run-name: ${{ github.actor }} is copying files to container
 on:
-  push:
-    paths:
-      - '.github/workflows/files.yaml'    
+  [ push ]
+    #paths:
+    #  - '.github/workflows/files.yaml'    
 jobs:
   build-container:
     runs-on: ubuntu-latest
