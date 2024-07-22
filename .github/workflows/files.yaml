@@ -1,5 +1,4 @@
 name: files
-description: 'Package the smart contract files'
 run-name: ${{ github.actor }} is copying files to container
 on:
   push:
