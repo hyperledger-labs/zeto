@@ -1,9 +1,10 @@
 name: files
+description: 'Package the smart contract files'
 run-name: ${{ github.actor }} is copying files to container
 on:
   push:
     paths:
-      - '.github/workflows/files.yaml'
+      - '.github/workflows/files.yaml'    
 jobs:
   build-container:
     runs-on: ubuntu-latest
@@ -16,4 +17,14 @@ jobs:
         run: |
           pwd
           ls -a
+      - name: Hello world action step
+        uses: ./ # Uses an action in the root directory
+        id: hello
+        with:
+          who-to-greet: 'Mona the Octocat'
+      # Use the output from the `hello` step
+      - name: Get the output time
+        run: echo "The time was ${{ steps.hello.outputs.time }}"
+
+
 
