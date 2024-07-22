@@ -22,11 +22,11 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/hyperledger-labs/zeto/internal/node"
-	"github.com/hyperledger-labs/zeto/internal/storage"
+	"github.com/hyperledger-labs/zeto/internal/sparse-merkle-tree/node"
+	"github.com/hyperledger-labs/zeto/internal/sparse-merkle-tree/storage"
+	"github.com/hyperledger-labs/zeto/internal/sparse-merkle-tree/utxo"
 	"github.com/hyperledger-labs/zeto/internal/testutils"
-	"github.com/hyperledger-labs/zeto/internal/utxo"
-	"github.com/hyperledger-labs/zeto/pkg/core"
+	"github.com/hyperledger-labs/zeto/pkg/sparse-merkle-tree/core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/stretchr/testify/assert"
 )

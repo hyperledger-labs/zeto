@@ -16,7 +16,7 @@
 
 package storage
 
-import "github.com/hyperledger-labs/zeto/pkg/core"
+import "github.com/hyperledger-labs/zeto/pkg/sparse-merkle-tree/core"
 
 type memoryStorage struct {
 	root  core.NodeIndex

@@ -17,8 +17,8 @@
 package storage
 
 import (
-	"github.com/hyperledger-labs/zeto/internal/storage"
-	"github.com/hyperledger-labs/zeto/pkg/core"
+	"github.com/hyperledger-labs/zeto/internal/sparse-merkle-tree/storage"
+	"github.com/hyperledger-labs/zeto/pkg/sparse-merkle-tree/core"
 )
 
 func NewMemoryStorage() core.Storage {
