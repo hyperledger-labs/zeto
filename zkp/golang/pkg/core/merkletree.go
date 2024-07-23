@@ -25,13 +25,13 @@ import "math/big"
 //
 // The tree is built from the root node, at level 0, down to the leaf nodes.
 //
-//	      root           level 0
-//	    /     \
-//		 e       f  		   level 1
-//	  / \     / \
-//	 a   b   c   d 	     level 2
-//	 / \ / \ / \ / \
-//	 1 2 3 4 5 - - -     level 3
+//       root           level 0
+//      /     \
+//     e       f        level 1
+//    / \     / \
+//   a   b   c   d      level 2
+//  / \ / \ / \ / \
+//  1 2 3 4 5 - - -     level 3
 type SparseMerkleTree interface {
 	// Root returns the root hash of the tree
 	Root() NodeIndex
