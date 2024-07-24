@@ -191,6 +191,92 @@ func TestZeto_2_SuccessfulProving(t *testing.T) {
 }
 
 func TestZeto_3_SuccessfulProving(t *testing.T) {
+	calc, provingKey, err := LoadCircuit("anon_nullifier")
+	assert.NoError(t, err)
+	assert.NotNil(t, calc)
+
+	sender := testutils.NewKeypair()
+	receiver := testutils.NewKeypair()
+
+	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
+	outputValues := []*big.Int{big.NewInt(32), big.NewInt(38)}
+
+	salt1 := testutils.NewSalt()
+	input1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PublicKey.X, sender.PublicKey.Y})
+	salt2 := testutils.NewSalt()
+	input2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PublicKey.X, sender.PublicKey.Y})
+	inputCommitments := []*big.Int{input1, input2}
+
+	nullifier1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PrivateKeyBigInt})
+	nullifier2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PrivateKeyBigInt})
+	nullifiers := []*big.Int{nullifier1, nullifier2}
+
+	mt, err := smt.NewMerkleTree(storage.NewMemoryStorage(), MAX_HEIGHT)
+	assert.NoError(t, err)
+	utxo1 := utxo.NewFungible(inputValues[0], sender.PublicKey, salt1)
+	n1, err := node.NewLeafNode(utxo1)
+	assert.NoError(t, err)
+	err = mt.AddLeaf(n1)
+	assert.NoError(t, err)
+	utxo2 := utxo.NewFungible(inputValues[1], sender.PublicKey, salt2)
+	n2, err := node.NewLeafNode(utxo2)
+	assert.NoError(t, err)
+	err = mt.AddLeaf(n2)
+	assert.NoError(t, err)
+	proof1, _, err := mt.GenerateProof(input1, nil)
+	assert.NoError(t, err)
+	circomProof1, err := proof1.ToCircomVerifierProof(input1, input1, mt.Root(), MAX_HEIGHT)
+	assert.NoError(t, err)
+	proof2, _, err := mt.GenerateProof(input2, nil)
+	assert.NoError(t, err)
+	circomProof2, err := proof2.ToCircomVerifierProof(input2, input2, mt.Root(), MAX_HEIGHT)
+	assert.NoError(t, err)
+
+	salt3 := testutils.NewSalt()
+	output1, _ := poseidon.Hash([]*big.Int{outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
+	salt4 := testutils.NewSalt()
+	output2, _ := poseidon.Hash([]*big.Int{outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
+	outputCommitments := []*big.Int{output1, output2}
+
+	proof1Siblings := make([]*big.Int, len(circomProof1.Siblings)-1)
+	for i, s := range circomProof1.Siblings[0 : len(circomProof1.Siblings)-1] {
+		proof1Siblings[i] = s.BigInt()
+	}
+	proof2Siblings := make([]*big.Int, len(circomProof2.Siblings)-1)
+	for i, s := range circomProof2.Siblings[0 : len(circomProof2.Siblings)-1] {
+		proof2Siblings[i] = s.BigInt()
+	}
+	witnessInputs := map[string]interface{}{
+		"nullifiers":            nullifiers,
+		"inputCommitments":      inputCommitments,
+		"inputValues":           inputValues,
+		"inputSalts":            []*big.Int{salt1, salt2},
+		"inputOwnerPrivateKey":  sender.PrivateKeyBigInt,
+		"root":                  mt.Root().BigInt(),
+		"merkleProof":           [][]*big.Int{proof1Siblings, proof2Siblings},
+		"enabled":               []*big.Int{big.NewInt(1), big.NewInt(1)},
+		"outputCommitments":     outputCommitments,
+		"outputValues":          outputValues,
+		"outputSalts":           []*big.Int{salt3, salt4},
+		"outputOwnerPublicKeys": [][]*big.Int{{receiver.PublicKey.X, receiver.PublicKey.Y}, {sender.PublicKey.X, sender.PublicKey.Y}},
+	}
+
+	startTime := time.Now()
+	witnessBin, err := calc.CalculateWTNSBin(witnessInputs, true)
+	assert.NoError(t, err)
+	assert.NotNil(t, witnessBin)
+
+	proof, err := prover.Groth16Prover(provingKey, witnessBin)
+	elapsedTime := time.Since(startTime)
+	fmt.Printf("Proving time: %s\n", elapsedTime)
+	assert.NoError(t, err)
+	assert.Equal(t, 3, len(proof.Proof.A))
+	assert.Equal(t, 3, len(proof.Proof.B))
+	assert.Equal(t, 3, len(proof.Proof.C))
+	assert.Equal(t, 7, len(proof.PubSignals))
+}
+
+func TestZeto_4_SuccessfulProving(t *testing.T) {
 	calc, provingKey, err := LoadCircuit("anon_enc_nullifier")
 	assert.NoError(t, err)
 	assert.NotNil(t, calc)
@@ -279,7 +365,7 @@ func TestZeto_3_SuccessfulProving(t *testing.T) {
 	assert.Equal(t, 10, len(proof.PubSignals))
 }
 
-func TestZeto_4_SuccessfulProving(t *testing.T) {
+func TestZeto_5_SuccessfulProving(t *testing.T) {
 	calc, provingKey, err := LoadCircuit("nf_anon")
 	assert.NoError(t, err)
 	assert.NotNil(t, calc)
@@ -338,7 +424,7 @@ func TestZeto_4_SuccessfulProving(t *testing.T) {
 	assert.Equal(t, 2, len(proof.PubSignals))
 }
 
-func TestZeto_5_SuccessfulProving(t *testing.T) {
+func TestZeto_6_SuccessfulProving(t *testing.T) {
 	calc, provingKey, err := LoadCircuit("nf_anon_nullifier")
 	assert.NoError(t, err)
 	assert.NotNil(t, calc)
