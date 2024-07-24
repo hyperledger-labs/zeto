@@ -51,6 +51,33 @@ func (f *NonFungible) CalculateIndex() (core.NodeIndex, error) {
 	return node.NewNodeIndexFromBigInt(hash)
 }
 
+// the "Owner" is the private key that must be properly hashed and trimmed to be
+// compatible with the BabyJub curve.
+// Reference: https://github.com/iden3/circomlib/blob/master/test/babyjub.js#L103
+type NonFungibleNullifier struct {
+	TokenId  *big.Int
+	TokenUri *big.Int // hash of the token uri string
+	Owner    *big.Int
+	Salt     *big.Int
+}
+
+func NewNonFungibleNullifier(tokenId, tokenUri *big.Int, owner *big.Int, salt *big.Int) *NonFungibleNullifier {
+	return &NonFungibleNullifier{
+		TokenId:  tokenId,
+		TokenUri: tokenUri,
+		Owner:    owner,
+		Salt:     salt,
+	}
+}
+
+func (f *NonFungibleNullifier) CalculateIndex() (core.NodeIndex, error) {
+	hash, err := poseidon.Hash([]*big.Int{f.TokenId, f.TokenUri, f.Salt, f.Owner})
+	if err != nil {
+		return nil, err
+	}
+	return node.NewNodeIndexFromBigInt(hash)
+}
+
 func HashTokenUri(tokenUri string) (*big.Int, error) {
 	hash := sha256.New()
 	_, err := hash.Write([]byte(tokenUri))
