@@ -21,7 +21,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/hyperledger-labs/zeto/lib/smt"
+	"github.com/hyperledger-labs/zeto/internal/node"
+	"github.com/hyperledger-labs/zeto/pkg/core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-iden3-crypto/poseidon"
 )
@@ -42,12 +43,12 @@ func NewNonFungible(tokenId, tokenUri *big.Int, owner *babyjub.PublicKey, salt *
 	}
 }
 
-func (f *NonFungible) CalculateIndex() (smt.NodeIndex, error) {
+func (f *NonFungible) CalculateIndex() (core.NodeIndex, error) {
 	hash, err := poseidon.Hash([]*big.Int{f.TokenId, f.TokenUri, f.Salt, f.Owner.X, f.Owner.Y})
 	if err != nil {
 		return nil, err
 	}
-	return smt.NewNodeIndexFromBigInt(hash)
+	return node.NewNodeIndexFromBigInt(hash)
 }
 
 func HashTokenUri(tokenUri string) (*big.Int, error) {

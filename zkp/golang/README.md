@@ -1,8 +1,22 @@
 # Zeto toolkit golang library
 
+Golang implementation of Sparse Merkle Tree that is optimized for managing an append-only tree, and is able to generate proofs to be used as private inputs to a circom-based proof generator. The project also includes an end-to-end integration test that demonstrates how to use the go-rapidsnark library to generate zkSNARK proofs with WASM based circuit runtimes.
+
+## Running the unit tests for the Spark Merkle Tree implementation
+
+```console
+$ go test ./internal/node ./internal/smt ./internal/storage ./internal/utxo
+?   	github.com/hyperledger-labs/zeto/internal/storage	[no test files]
+ok  	github.com/hyperledger-labs/zeto/internal/node	0.828s
+ok  	github.com/hyperledger-labs/zeto/internal/smt	1.037s
+ok  	github.com/hyperledger-labs/zeto/internal/utxo	1.269s
+```
+
+## Running the integration test
+
 The project does NOT contain some of the cryptographic materials to perform proof generations and verifications, such as the proving keys and the verification keys. You must run the [build steps](/zkp/js/README.md#build) before you can run the tests.
 
-> You do NOT need to re-compile the circuits. Start with the step to[Generate the proving key](/zkp/js/README.md#generate-the-proving-key).
+> You do NOT need to re-compile the circuits. Start with the step to [Generate the proving key](/zkp/js/README.md#generate-the-proving-key).
 
 Once the proving keys and verification keys are generated, set the following environment variables
 
@@ -10,7 +24,7 @@ Once the proving keys and verification keys are generated, set the following env
 - `PROVING_KEYS_ROOT`: the folder that contains the proving keys and verification keys
 
 ```console
-$ go test -v ./lib
+$ go test -v ./integration-test/
 === RUN   TestZeto_1_SuccessfulProving
 Proving time: 201.09225ms
 --- PASS: TestZeto_1_SuccessfulProving (0.58s)
