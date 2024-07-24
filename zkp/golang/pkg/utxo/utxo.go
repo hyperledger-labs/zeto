@@ -32,6 +32,14 @@ func NewNonFungible(tokenId, tokenUri *big.Int, owner *babyjub.PublicKey, salt *
 	return utxo.NewNonFungible(tokenId, tokenUri, owner, salt)
 }
 
+func NewFungibleNullifier(amount *big.Int, owner *big.Int, salt *big.Int) core.Indexable {
+	return utxo.NewFungibleNullifier(amount, owner, salt)
+}
+
+func NewNonFungibleNullifier(tokenId *big.Int, tokenUri *big.Int, owner *big.Int, salt *big.Int) core.Indexable {
+	return utxo.NewNonFungibleNullifier(tokenId, tokenUri, owner, salt)
+}
+
 func NewIndexOnly(index core.NodeIndex) core.Indexable {
 	return utxo.NewIndexOnly(index)
 }
