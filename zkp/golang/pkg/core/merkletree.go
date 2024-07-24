@@ -25,18 +25,20 @@ import "math/big"
 //
 // The tree is built from the root node, at level 0, down to the leaf nodes.
 //
-//       root           level 0
-//      /     \
-//     e       f        level 1
-//    / \     / \
-//   a   b   c   d      level 2
-//  / \ / \ / \ / \
-//  1 2 3 4 5 - - -     level 3
+//	     root           level 0
+//	    /     \
+//	   e       f        level 1
+//	  / \     / \
+//	 a   b   c   d      level 2
+//	/ \ / \ / \ / \
+//	1 2 3 4 5 - - -     level 3
 type SparseMerkleTree interface {
 	// Root returns the root hash of the tree
 	Root() NodeIndex
 	// AddLeaf adds a key-value pair to the tree
 	AddLeaf(Node) error
+	// GetNode returns the node at the given reference hash
+	GetNode(NodeIndex) (Node, error)
 	// GetnerateProof generates a proof of existence (or non-existence) of a leaf node
 	GenerateProof(*big.Int, NodeIndex) (Proof, *big.Int, error)
 }
