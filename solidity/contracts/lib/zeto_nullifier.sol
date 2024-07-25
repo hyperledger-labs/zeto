@@ -41,8 +41,7 @@ abstract contract ZetoNullifier is ZetoCommon {
     function validateTransactionProposal(
         uint256[2] memory nullifiers,
         uint256[2] memory outputs,
-        uint256 root,
-        Commonlib.Proof calldata proof
+        uint256 root
     ) internal view returns (bool) {
         // sort the inputs and outputs to detect duplicates
         (
@@ -108,7 +107,7 @@ abstract contract ZetoNullifier is ZetoCommon {
 
     // This function is used to mint new UTXOs, as an example implementation,
     // which is only callable by the owner.
-    function mint(uint256[] memory utxos) public onlyOwner {
+    function _mint(uint256[] memory utxos) internal virtual {
         for (uint256 i = 0; i < utxos.length; ++i) {
             uint256 utxo = utxos[i];
             uint256 nodeHash = _getLeafNodeHash(utxo);

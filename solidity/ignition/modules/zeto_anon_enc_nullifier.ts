@@ -30,6 +30,16 @@ const SmtLibModule = buildModule("SmtLib", (m) => {
   return { smtLib, poseidon3 };
 });
 
+const DepositVerifierModule = buildModule("Groth16Verifier_CheckValue", (m) => {
+  const verifier = m.contract('Groth16Verifier_CheckValue', []);
+  return { verifier };
+});
+
+const WithdrawVerifierModule = buildModule("Groth16Verifier_CheckNullifierValue", (m) => {
+  const verifier = m.contract('Groth16Verifier_CheckNullifierValue', []);
+  return { verifier };
+});
+
 const VerifierModule = buildModule("Groth16Verifier_AnonEncNullifier", (m) => {
   const verifier = m.contract('Groth16Verifier_AnonEncNullifier', []);
   return { verifier };
@@ -38,11 +48,13 @@ const VerifierModule = buildModule("Groth16Verifier_AnonEncNullifier", (m) => {
 export default buildModule("Zeto_AnonEncNullifier", (m) => {
   const { smtLib, poseidon3 } = m.useModule(SmtLibModule);
   const { verifier } = m.useModule(VerifierModule);
+  const { verifier: depositVerifier } = m.useModule(DepositVerifierModule);
+  const { verifier: withdrawVerifier } = m.useModule(WithdrawVerifierModule);
   const commonlib = m.library('Commonlib');
   const registryAddress = m.getParameter("registry");
   const registry = m.contractAt('Registry', registryAddress);
 
-  const zeto = m.contract('Zeto_AnonEncNullifier', [verifier, registry], {
+  const zeto = m.contract('Zeto_AnonEncNullifier', [depositVerifier, withdrawVerifier, verifier, registry], {
     libraries: {
       SmtLib: smtLib,
       PoseidonUnit3L: poseidon3,
