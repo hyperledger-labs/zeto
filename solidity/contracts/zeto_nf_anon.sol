@@ -80,4 +80,8 @@ contract Zeto_NFAnon is ZetoBase {
         emit UTXOTransfer(inputArray, outputArray, msg.sender);
         return true;
     }
+
+    function mint(uint256[] memory utxos) public {
+        _mint(utxos);
+    }
 }

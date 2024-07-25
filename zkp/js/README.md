@@ -43,14 +43,18 @@ The different `ptau` files represent different levels of complexity with the cir
 
 The steps below use `X` for the name of the circuit, and `Y` for the sequence number of the ptau files:
 
-| X                           | Y                                 |
-| --------------------------- | --------------------------------- |
-| `anon.circom`               | `powersOfTau28_hez_final_12.ptau` |
-| `anon_enc.circom`           | `powersOfTau28_hez_final_13.ptau` |
-| `anon_nullifier.circom`     | `powersOfTau28_hez_final_16.ptau` |
-| `anon_enc_nullifier.circom` | `powersOfTau28_hez_final_16.ptau` |
-| `nf_anon.circom`            | `powersOfTau28_hez_final_11.ptau` |
-| `nf_anon_nullifier.circom`  | `powersOfTau28_hez_final_15.ptau` |
+| X                            | Y                                 |
+| ---------------------------- | --------------------------------- |
+| `anon.circom`                | `powersOfTau28_hez_final_12.ptau` |
+| `anon_enc.circom`            | `powersOfTau28_hez_final_13.ptau` |
+| `anon_nullifier.circom`      | `powersOfTau28_hez_final_16.ptau` |
+| `anon_enc_nullifier.circom`  | `powersOfTau28_hez_final_16.ptau` |
+| `nf_anon.circom`             | `powersOfTau28_hez_final_11.ptau` |
+| `nf_anon_nullifier.circom`   | `powersOfTau28_hez_final_15.ptau` |
+| `check_hashes_value.circom`  | `powersOfTau28_hez_final_09.ptau` |
+| `check_inputs_outputs_value` | `powersOfTau28_hez_final_11.ptau` |
+| `check_nullifier_value`      | `powersOfTau28_hez_final_16.ptau` |
+| `check_nullifiers.circom`    | `powersOfTau28_hez_final_11.ptau` |
 
 ### Generating the R1CS circuit format
 
