@@ -25,7 +25,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --platform linux/amd64 --tag date:"$(date +%s)"
+      run: docker build . --file Dockerfile1 --platform linux/amd64 --tag date:"$(date +%s)"
 
 
 
