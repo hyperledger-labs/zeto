@@ -15,20 +15,7 @@
 // limitations under the License.
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import { poseidonContract } from "circomlibjs";
-import { Artifact } from "hardhat/types";
-
-const SmtLibModule = buildModule("SmtLib", (m) => {
-  const poseidon2 = m.library('Poseidon2', PoseidonArtifact(2));
-  const poseidon3 = m.library('Poseidon3', PoseidonArtifact(3));
-  const smtLib = m.contract('SmtLib', [], {
-    libraries: {
-      PoseidonUnit2L: poseidon2,
-      PoseidonUnit3L: poseidon3,
-    },
-  });
-  return { smtLib, poseidon3 };
-});
+import { SmtLibModule } from "./lib/deps";
 
 const VerifierModule = buildModule("Groth16Verifier_NFAnonNullifier", (m) => {
   const verifier = m.contract('Groth16Verifier_NFAnonNullifier', []);
@@ -39,10 +26,8 @@ export default buildModule("Zeto_NFAnonNullifier", (m) => {
   const { smtLib, poseidon3 } = m.useModule(SmtLibModule);
   const { verifier } = m.useModule(VerifierModule);
   const commonlib = m.library('Commonlib');
-  const registryAddress = m.getParameter("registry");
-  const registry = m.contractAt('Registry', registryAddress);
 
-  const zeto = m.contract('Zeto_NFAnonNullifier', [verifier, registry], {
+  const zeto = m.contract('Zeto_NFAnonNullifier', [verifier], {
     libraries: {
       SmtLib: smtLib,
       PoseidonUnit3L: poseidon3,
@@ -50,21 +35,5 @@ export default buildModule("Zeto_NFAnonNullifier", (m) => {
     },
   });
 
-  return { zeto, registry };
+  return { zeto };
 });
-
-function PoseidonArtifact(param: number): Artifact {
-  const abi = poseidonContract.generateABI(param);
-  const bytecode = poseidonContract.createCode(param);
-  const artifact: Artifact = {
-    _format: "hh-sol-artifact-1",
-    contractName: `Poseidon${param}`,
-    sourceName: "",
-    abi: abi,
-    bytecode: bytecode,
-    deployedBytecode: "", // "0x"-prefixed hex string
-    linkReferences: {},
-    deployedLinkReferences: {}
-  };
-  return artifact;
-}

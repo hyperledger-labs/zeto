@@ -20,7 +20,6 @@ import { expect } from 'chai';
 import { loadCircuit, Poseidon, encodeProof } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
-import RegistryModule from '../ignition/modules/registry';
 import zetoModule from '../ignition/modules/zeto_anon_nullifier';
 import erc20Module from '../ignition/modules/erc20';
 import { UTXO, User, newUser, newUTXO, newNullifier, doMint, ZERO_UTXO, parseUTXOEvents } from './lib/utils';
@@ -49,16 +48,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
     Alice = await newUser(a);
     Bob = await newUser(b);
     Charlie = await newUser(c);
-    const { registry } = await ignition.deploy(RegistryModule);
-    ({ zeto } = await ignition.deploy(zetoModule, { parameters: { Zeto_AnonNullifier: { registry: registry.target } } }));
-
-    const tx1 = await registry.connect(deployer).register(Alice.ethAddress, Alice.babyJubPublicKey as [BigNumberish, BigNumberish]);
-    await tx1.wait();
-    const tx2 = await registry.connect(deployer).register(Bob.ethAddress, Bob.babyJubPublicKey as [BigNumberish, BigNumberish]);
-    await tx2.wait();
-    const tx3 = await registry.connect(deployer).register(Charlie.ethAddress, Charlie.babyJubPublicKey as [BigNumberish, BigNumberish]);
-    await tx3.wait();
-
+    ({ zeto } = await ignition.deploy(zetoModule));
     ({ erc20 } = await ignition.deploy(erc20Module));
     const tx4 = await zeto.connect(deployer).setERC20(erc20.target);
     await tx4.wait();

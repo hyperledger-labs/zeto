@@ -20,7 +20,6 @@ import { expect } from 'chai';
 import { loadCircuit, Poseidon, encodeProof, hashTokenUri } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
-import RegistryModule from '../ignition/modules/registry';
 import zetoModule from '../ignition/modules/zeto_nf_anon_nullifier';
 import { UTXO, User, newUser, newAssetUTXO, newAssetNullifier, doMint, parseUTXOEvents } from './lib/utils';
 import { loadProvingKeys } from './utils';
@@ -43,16 +42,7 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
     Alice = await newUser(a);
     Bob = await newUser(b);
     Charlie = await newUser(c);
-    const { registry } = await ignition.deploy(RegistryModule);
-    ({ zeto } = await ignition.deploy(zetoModule, { parameters: { Zeto_NFAnonNullifier: { registry: registry.target } } }));
-
-    const tx1 = await registry.connect(deployer).register(Alice.ethAddress, Alice.babyJubPublicKey as [BigNumberish, BigNumberish]);
-    await tx1.wait();
-    const tx2 = await registry.connect(deployer).register(Bob.ethAddress, Bob.babyJubPublicKey as [BigNumberish, BigNumberish]);
-    await tx2.wait();
-    const tx3 = await registry.connect(deployer).register(Charlie.ethAddress, Charlie.babyJubPublicKey as [BigNumberish, BigNumberish]);
-    await tx3.wait();
-
+    ({ zeto } = await ignition.deploy(zetoModule));
     circuit = await loadCircuit('nf_anon_nullifier');
     ({ provingKeyFile: provingKey } = loadProvingKeys('nf_anon_nullifier'));
 
