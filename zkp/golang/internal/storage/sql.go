@@ -18,7 +18,7 @@ package storage
 
 import (
 	"github.com/hyperledger-labs/zeto/internal/node"
-	"github.com/hyperledger-labs/zeto/internal/utxo"
+	"github.com/hyperledger-labs/zeto/internal/utils"
 	"github.com/hyperledger-labs/zeto/pkg/core"
 	"gorm.io/gorm"
 )
@@ -82,7 +82,7 @@ func (s *sqlStorage) GetNode(ref core.NodeIndex) (core.Node, error) {
 		if err1 != nil {
 			return nil, err1
 		}
-		v := utxo.NewIndexOnly(idx)
+		v := utils.NewIndexOnly(idx)
 		newNode, err = node.NewLeafNode(v)
 	case core.NodeTypeBranch:
 		leftChild, err1 := node.NewNodeIndexFromHex(*n.LeftChild)
