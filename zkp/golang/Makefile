@@ -3,7 +3,7 @@ GOFILES := $(shell find ./internal ./pkg -name '*.go' -print)
 GOBIN := $(shell $(VGO) env GOPATH)/bin
 LINT := $(GOBIN)/golangci-lint
 
-# Expect that FireFly compiles with CGO disabled
+# Expect that Zeto compiles with CGO disabled
 CGO_ENABLED=0
 GOGC=30
 
