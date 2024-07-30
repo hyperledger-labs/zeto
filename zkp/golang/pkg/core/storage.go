@@ -34,6 +34,16 @@ type Storage interface {
 	Close()
 }
 
+const (
+	// we use a table to store the root node indexes for
+	// all the merkle trees in the database
+	TreeRootsTable = "merkelTreeRoots"
+	// we use a separate table to store the nodes of each
+	// sparse merkle tree by using the following name as
+	// the prefix, followed by the name of the tree
+	NodesTablePrefix = "smtNodes_"
+)
+
 // SqlDBProvider is the interface for providing access to a SQL database to
 // the storage layer implementations that are backed by a SQL database.
 type SqlDBProvider interface {
