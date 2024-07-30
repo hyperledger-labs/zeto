@@ -82,8 +82,8 @@ contract Zeto_AnonNullifier is
         publicInputs[0] = nullifiers[0];
         publicInputs[1] = nullifiers[1];
         publicInputs[2] = root;
-        publicInputs[3] = (nullifiers[0] == 0) ? 0 : 1; // enable MT proof for the first nullifier
-        publicInputs[4] = (nullifiers[1] == 0) ? 0 : 1; // enable MT proof for the second nullifier
+        publicInputs[3] = (nullifiers[0] == 0) ? 0 : 1; // if the first nullifier is empty, disable its MT proof verification
+        publicInputs[4] = (nullifiers[1] == 0) ? 0 : 1; // if the second nullifier is empty, disable its MT proof verification
         publicInputs[5] = outputs[0];
         publicInputs[6] = outputs[1];
 

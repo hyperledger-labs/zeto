@@ -22,7 +22,7 @@ import "hardhat/console.sol";
 /// @title A sample implementation of a Zeto based fungible token with anonymity and no encryption
 /// @author Kaleido, Inc.
 /// @dev The proof has the following statements:
-///        - each value in the output commitments must be a positive number in the range 0 ~ (2\*\*40 - 1)
+///        - each value in the output commitments must be a positive number in the range 0 ~ (2^40 - 1)
 ///        - the sum of the input values match the sum of output values
 ///        - the hashes in the input and output match the `hash(value, salt, owner public key)` formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
