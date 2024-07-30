@@ -31,10 +31,7 @@ import "hardhat/console.sol";
 contract Zeto_NFAnon is ZetoBase {
     Groth16Verifier_NFAnon internal verifier;
 
-    constructor(
-        Groth16Verifier_NFAnon _verifier,
-        Registry _registry
-    ) ZetoBase(_registry) {
+    constructor(Groth16Verifier_NFAnon _verifier) ZetoBase() {
         verifier = _verifier;
     }
 

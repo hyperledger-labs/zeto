@@ -34,7 +34,7 @@ abstract contract ZetoNullifier is ZetoCommon {
 
     error UTXORootNotFound(uint256 root);
 
-    constructor(Registry _registry) ZetoCommon(_registry) {
+    constructor() ZetoCommon() {
         _commitmentsTree.initialize(MAX_SMT_DEPTH);
     }
 

@@ -35,7 +35,7 @@ abstract contract ZetoBase is ZetoCommon {
     // maintains all the UTXOs
     mapping(uint256 => UTXOStatus) internal _utxos;
 
-    constructor(Registry _registry) ZetoCommon(_registry) {}
+    constructor() ZetoCommon() {}
 
     /// @dev query whether a UTXO is currently spent
     /// @return bool whether the UTXO is spent
