@@ -571,8 +571,10 @@ func TestSqliteStorage(t *testing.T) {
 	}()
 	db, err := gorm.Open(sqlite.Open(dbfile.Name()), &gorm.Config{})
 	assert.NoError(t, err)
-	db.Table(core.TreeRootsTable).AutoMigrate(&core.SMTRoot{})
-	db.Table(core.NodesTablePrefix + "test_1").AutoMigrate(&core.SMTNode{})
+	err = db.Table(core.TreeRootsTable).AutoMigrate(&core.SMTRoot{})
+	assert.NoError(t, err)
+	err = db.Table(core.NodesTablePrefix + "test_1").AutoMigrate(&core.SMTNode{})
+	assert.NoError(t, err)
 
 	provider := &testSqlProvider{db: db}
 	s, err := storage.NewSqlStorage(provider, "test_1")
@@ -609,8 +611,10 @@ func TestPostgresStorage(t *testing.T) {
 	dsn := "host=localhost user=postgres password=my-secret dbname=postgres port=5432 sslmode=disable"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	assert.NoError(t, err)
-	db.Table(core.TreeRootsTable).AutoMigrate(&core.SMTRoot{})
-	db.Table(core.NodesTablePrefix + "test_1").AutoMigrate(&core.SMTNode{})
+	err = db.Table(core.TreeRootsTable).AutoMigrate(&core.SMTRoot{})
+	assert.NoError(t, err)
+	err = db.Table(core.NodesTablePrefix + "test_1").AutoMigrate(&core.SMTNode{})
+	assert.NoError(t, err)
 
 	defer func() {
 		db.Exec("DROP TABLE " + core.TreeRootsTable)

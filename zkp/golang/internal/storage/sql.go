@@ -78,20 +78,20 @@ func (s *sqlStorage) GetNode(ref core.NodeIndex) (core.Node, error) {
 	nodeType := core.NodeTypeFromByte(n.Type)
 	switch nodeType {
 	case core.NodeTypeLeaf:
-		idx, err := node.NewNodeIndexFromHex(*n.Index)
-		if err != nil {
-			return nil, err
+		idx, err1 := node.NewNodeIndexFromHex(*n.Index)
+		if err1 != nil {
+			return nil, err1
 		}
 		v := utxo.NewIndexOnly(idx)
 		newNode, err = node.NewLeafNode(v)
 	case core.NodeTypeBranch:
-		leftChild, err := node.NewNodeIndexFromHex(*n.LeftChild)
-		if err != nil {
-			return nil, err
+		leftChild, err1 := node.NewNodeIndexFromHex(*n.LeftChild)
+		if err1 != nil {
+			return nil, err1
 		}
-		rightChild, err := node.NewNodeIndexFromHex(*n.RightChild)
-		if err != nil {
-			return nil, err
+		rightChild, err2 := node.NewNodeIndexFromHex(*n.RightChild)
+		if err2 != nil {
+			return nil, err2
 		}
 		newNode, err = node.NewBranchNode(leftChild, rightChild)
 	}
