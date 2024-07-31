@@ -571,8 +571,10 @@ func TestSqliteStorage(t *testing.T) {
 	}()
 	db, err := gorm.Open(sqlite.Open(dbfile.Name()), &gorm.Config{})
 	assert.NoError(t, err)
-	db.Table("smtRoots").AutoMigrate(&core.SMTRoot{})
-	db.Table("smtNodes_test_1").AutoMigrate(&core.SMTNode{})
+	err = db.Table(core.TreeRootsTable).AutoMigrate(&core.SMTRoot{})
+	assert.NoError(t, err)
+	err = db.Table(core.NodesTablePrefix + "test_1").AutoMigrate(&core.SMTNode{})
+	assert.NoError(t, err)
 
 	provider := &testSqlProvider{db: db}
 	s, err := storage.NewSqlStorage(provider, "test_1")
@@ -595,12 +597,12 @@ func TestSqliteStorage(t *testing.T) {
 
 	root := mt.Root()
 	dbRoot := core.SMTRoot{Name: "test_1"}
-	err = db.Table("smtRoots").First(&dbRoot).Error
+	err = db.Table(core.TreeRootsTable).First(&dbRoot).Error
 	assert.NoError(t, err)
 	assert.Equal(t, root.Hex(), dbRoot.RootIndex)
 
 	dbNode := core.SMTNode{RefKey: n1.Ref().Hex()}
-	err = db.Table("smtNodes_test_1").First(&dbNode).Error
+	err = db.Table(core.NodesTablePrefix + "test_1").First(&dbNode).Error
 	assert.NoError(t, err)
 	assert.Equal(t, n1.Ref().Hex(), dbNode.RefKey)
 }
@@ -609,12 +611,14 @@ func TestPostgresStorage(t *testing.T) {
 	dsn := "host=localhost user=postgres password=my-secret dbname=postgres port=5432 sslmode=disable"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	assert.NoError(t, err)
-	db.Table("smtRoots").AutoMigrate(&core.SMTRoot{})
-	db.Table("smtNodes_test_1").AutoMigrate(&core.SMTNode{})
+	err = db.Table(core.TreeRootsTable).AutoMigrate(&core.SMTRoot{})
+	assert.NoError(t, err)
+	err = db.Table(core.NodesTablePrefix + "test_1").AutoMigrate(&core.SMTNode{})
+	assert.NoError(t, err)
 
 	defer func() {
-		db.Exec("DROP TABLE smtRoots")
-		db.Exec("DROP TABLE smtNodes_test_1")
+		db.Exec("DROP TABLE " + core.TreeRootsTable)
+		db.Exec("DROP TABLE " + core.NodesTablePrefix + "test_1")
 	}()
 
 	provider := &testSqlProvider{db: db}
@@ -638,12 +642,12 @@ func TestPostgresStorage(t *testing.T) {
 
 	root := mt.Root()
 	dbRoot := core.SMTRoot{Name: "test_1"}
-	err = db.Table("smtRoots").First(&dbRoot).Error
+	err = db.Table(core.TreeRootsTable).First(&dbRoot).Error
 	assert.NoError(t, err)
 	assert.Equal(t, root.Hex(), dbRoot.RootIndex)
 
 	dbNode := core.SMTNode{RefKey: n1.Ref().Hex()}
-	err = db.Table("smtNodes_test_1").First(&dbNode).Error
+	err = db.Table(core.NodesTablePrefix + "test_1").First(&dbNode).Error
 	assert.NoError(t, err)
 	assert.Equal(t, n1.Ref().Hex(), dbNode.RefKey)
 }

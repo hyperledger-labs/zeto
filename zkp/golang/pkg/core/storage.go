@@ -34,6 +34,16 @@ type Storage interface {
 	Close()
 }
 
+const (
+	// we use a table to store the root node indexes for
+	// all the merkle trees in the database
+	TreeRootsTable = "merkelTreeRoots"
+	// we use a separate table to store the nodes of each
+	// sparse merkle tree by using the following name as
+	// the prefix, followed by the name of the tree
+	NodesTablePrefix = "smtNodes_"
+)
+
 // SqlDBProvider is the interface for providing access to a SQL database to
 // the storage layer implementations that are backed by a SQL database.
 type SqlDBProvider interface {
@@ -47,7 +57,7 @@ type SMTRoot struct {
 	Name string `gorm:"primaryKey"`
 	// this must be the hex bytes of the root index
 	// following the big-endian encoding
-	RootIndex string `gorm:"type:text"`
+	RootIndex string `gorm:"size:64"`
 }
 
 // SMTNode is the structure of a node in the merkle tree.
@@ -55,9 +65,9 @@ type SMTRoot struct {
 // The value properties of a node are local states that are
 // handled outside of the merkle tree library.
 type SMTNode struct {
-	RefKey     string `gorm:"primaryKey"`
+	RefKey     string `gorm:"primaryKey;size:64"`
 	Type       byte
-	Index      *string // only leaf nodes have an index
-	LeftChild  *string // only branch nodes have children
-	RightChild *string
+	Index      *string `gorm:"size:64"` // only leaf nodes have an index
+	LeftChild  *string `gorm:"size:64"` // only branch nodes have children
+	RightChild *string `gorm:"size:64"`
 }

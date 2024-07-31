@@ -18,19 +18,9 @@ package storage
 
 import (
 	"github.com/hyperledger-labs/zeto/internal/node"
-	"github.com/hyperledger-labs/zeto/internal/utxo"
+	"github.com/hyperledger-labs/zeto/internal/utils"
 	"github.com/hyperledger-labs/zeto/pkg/core"
 	"gorm.io/gorm"
-)
-
-const (
-	// we use a table to store the root node indexes for
-	// all the merkle trees in the database
-	TreeRootsTable = "smtRoots"
-	// we use a separate table to store the nodes of each merkle tree
-	// by using the following name as the prefix, followed by the
-	// name of the tree
-	NodesTable_Prefix = "smtNodes_"
 )
 
 type sqlStorage struct {
@@ -46,7 +36,7 @@ func NewSqlStorage(p core.SqlDBProvider, smtName string) *sqlStorage {
 	return &sqlStorage{
 		p:              p,
 		smtName:        smtName,
-		nodesTableName: NodesTable_Prefix + smtName,
+		nodesTableName: core.NodesTablePrefix + smtName,
 	}
 }
 
@@ -54,7 +44,7 @@ func (s *sqlStorage) GetRootNodeIndex() (core.NodeIndex, error) {
 	root := core.SMTRoot{
 		Name: s.smtName,
 	}
-	err := s.p.DB().Table(TreeRootsTable).First(&root).Error
+	err := s.p.DB().Table(core.TreeRootsTable).First(&root).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, ErrNotFound
 	} else if err != nil {
@@ -64,21 +54,21 @@ func (s *sqlStorage) GetRootNodeIndex() (core.NodeIndex, error) {
 	return idx, err
 }
 
-func (m *sqlStorage) UpsertRootNodeIndex(root core.NodeIndex) error {
-	err := m.p.DB().Table(TreeRootsTable).Save(&core.SMTRoot{
+func (s *sqlStorage) UpsertRootNodeIndex(root core.NodeIndex) error {
+	err := s.p.DB().Table(core.TreeRootsTable).Save(&core.SMTRoot{
 		RootIndex: root.Hex(),
-		Name:      m.smtName,
+		Name:      s.smtName,
 	}).Error
 	return err
 }
 
-func (m *sqlStorage) GetNode(ref core.NodeIndex) (core.Node, error) {
+func (s *sqlStorage) GetNode(ref core.NodeIndex) (core.Node, error) {
 	// the node's reference key (not the index) is used as the key to
 	// store the node in the DB
 	n := core.SMTNode{
 		RefKey: ref.Hex(),
 	}
-	err := m.p.DB().Table(m.nodesTableName).First(&n).Error
+	err := s.p.DB().Table(s.nodesTableName).First(&n).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, ErrNotFound
 	} else if err != nil {
@@ -88,27 +78,27 @@ func (m *sqlStorage) GetNode(ref core.NodeIndex) (core.Node, error) {
 	nodeType := core.NodeTypeFromByte(n.Type)
 	switch nodeType {
 	case core.NodeTypeLeaf:
-		idx, err := node.NewNodeIndexFromHex(*n.Index)
-		if err != nil {
-			return nil, err
+		idx, err1 := node.NewNodeIndexFromHex(*n.Index)
+		if err1 != nil {
+			return nil, err1
 		}
-		v := utxo.NewIndexOnly(idx)
+		v := utils.NewIndexOnly(idx)
 		newNode, err = node.NewLeafNode(v)
 	case core.NodeTypeBranch:
-		leftChild, err := node.NewNodeIndexFromHex(*n.LeftChild)
-		if err != nil {
-			return nil, err
+		leftChild, err1 := node.NewNodeIndexFromHex(*n.LeftChild)
+		if err1 != nil {
+			return nil, err1
 		}
-		rightChild, err := node.NewNodeIndexFromHex(*n.RightChild)
-		if err != nil {
-			return nil, err
+		rightChild, err2 := node.NewNodeIndexFromHex(*n.RightChild)
+		if err2 != nil {
+			return nil, err2
 		}
 		newNode, err = node.NewBranchNode(leftChild, rightChild)
 	}
 	return newNode, err
 }
 
-func (m *sqlStorage) InsertNode(n core.Node) error {
+func (s *sqlStorage) InsertNode(n core.Node) error {
 	// we clone the node so that the value properties are not saved
 	dbNode := &core.SMTNode{
 		RefKey: n.Ref().Hex(),
@@ -124,7 +114,7 @@ func (m *sqlStorage) InsertNode(n core.Node) error {
 		dbNode.Index = &idx
 	}
 
-	err := m.p.DB().Table(m.nodesTableName).Create(dbNode).Error
+	err := s.p.DB().Table(s.nodesTableName).Create(dbNode).Error
 	return err
 }
 

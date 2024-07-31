@@ -19,6 +19,7 @@ package utxo
 import (
 	"math/big"
 
+	"github.com/hyperledger-labs/zeto/internal/utils"
 	"github.com/hyperledger-labs/zeto/internal/utxo"
 	"github.com/hyperledger-labs/zeto/pkg/core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
@@ -41,7 +42,7 @@ func NewNonFungibleNullifier(tokenId *big.Int, tokenUri *big.Int, owner *big.Int
 }
 
 func NewIndexOnly(index core.NodeIndex) core.Indexable {
-	return utxo.NewIndexOnly(index)
+	return utils.NewIndexOnly(index)
 }
 
 func HashTokenUri(tokenUri string) (*big.Int, error) {

@@ -22,7 +22,7 @@ import (
 
 	"github.com/hyperledger-labs/zeto/internal/node"
 	"github.com/hyperledger-labs/zeto/internal/storage"
-	"github.com/hyperledger-labs/zeto/internal/utxo"
+	"github.com/hyperledger-labs/zeto/internal/utils"
 	"github.com/hyperledger-labs/zeto/pkg/core"
 )
 
@@ -137,7 +137,7 @@ func (mt *sparseMerkleTree) GenerateProof(k *big.Int, rootKey core.NodeIndex) (c
 				return p, value.BigInt(), nil
 			}
 			// We found a leaf whose entry didn't match the node index
-			p.existingNode, err = node.NewLeafNode(utxo.NewIndexOnly(idx))
+			p.existingNode, err = node.NewLeafNode(utils.NewIndexOnly(idx))
 			if err != nil {
 				return nil, nil, err
 			}

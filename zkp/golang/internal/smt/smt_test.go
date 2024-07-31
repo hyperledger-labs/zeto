@@ -158,7 +158,7 @@ func TestVerifyProof(t *testing.T) {
 	done := make(chan bool, len(values))
 	startProving := make(chan core.Node, len(values))
 	for idx, value := range values {
-		go func(v int) {
+		go func(v int, idx int) {
 			salt := rand.Intn(100000)
 			utxo := utxo.NewFungible(big.NewInt(int64(v)), alice.PublicKey, big.NewInt(int64(salt)))
 			node, err := node.NewLeafNode(utxo)
@@ -168,7 +168,7 @@ func TestVerifyProof(t *testing.T) {
 			startProving <- node
 			done <- true
 			fmt.Printf("Added node %d\n", idx)
-		}(value)
+		}(value, idx)
 	}
 
 	go func() {
