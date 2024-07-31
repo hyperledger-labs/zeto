@@ -14,13 +14,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package storage
+package utils
 
 import (
-	"github.com/hyperledger-labs/zeto/internal/storage"
 	"github.com/hyperledger-labs/zeto/pkg/core"
 )
 
-func NewMemoryStorage() core.Storage {
-	return storage.NewMemoryStorage()
+type IndexOnly struct {
+	Index core.NodeIndex
+}
+
+func NewIndexOnly(index core.NodeIndex) *IndexOnly {
+	return &IndexOnly{
+		Index: index,
+	}
+}
+
+func (f *IndexOnly) CalculateIndex() (core.NodeIndex, error) {
+	return f.Index, nil
 }

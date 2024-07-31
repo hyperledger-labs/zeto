@@ -22,7 +22,7 @@ import (
 
 	"github.com/hyperledger-labs/zeto/internal/node"
 	"github.com/hyperledger-labs/zeto/internal/storage"
-	"github.com/hyperledger-labs/zeto/internal/utxo"
+	"github.com/hyperledger-labs/zeto/internal/utils"
 	"github.com/hyperledger-labs/zeto/pkg/core"
 )
 
@@ -59,6 +59,8 @@ func NewMerkleTree(db core.Storage, maxLevels int) (core.SparseMerkleTree, error
 }
 
 func (mt *sparseMerkleTree) Root() core.NodeIndex {
+	mt.RLock()
+	defer mt.RUnlock()
 	return mt.rootKey
 }
 
@@ -70,12 +72,19 @@ func (mt *sparseMerkleTree) AddLeaf(node core.Node) error {
 	idx := node.Index()
 	path := idx.ToPath(mt.maxLevels)
 
+	// find the lowest level of the tree that can accommodate this new leaf node
+	// by its unique index. This is done by traversing the tree from the root node
+	// down through the levels until a unique path is found. It doesn't necessarily
+	// use up all the bits in the index's path. As soon as a unique path is found,
+	// which may be only the first few bits of the index, the new leaf node is added.
+	// One or more branch nodes may be created to accommodate the new leaf node.
 	newRootKey, err := mt.addLeaf(node, mt.rootKey, 0, path)
 	if err != nil {
 		return err
 	}
 	mt.rootKey = newRootKey
 
+	// update the root node index in the storage
 	err = mt.db.UpsertRootNodeIndex(mt.rootKey)
 	if err != nil {
 		return err
@@ -87,20 +96,18 @@ func (mt *sparseMerkleTree) AddLeaf(node core.Node) error {
 // GetNode gets a node by key from the merkle tree. Empty nodes are not stored in the
 // tree: they are all the same and assumed to always exist.
 func (mt *sparseMerkleTree) GetNode(key core.NodeIndex) (core.Node, error) {
-	if key.IsZero() {
-		return node.NewEmptyNode(), nil
-	}
-	node, err := mt.db.GetNode(key)
-	if err != nil {
-		return nil, err
-	}
-	return node, nil
+	mt.RLock()
+	defer mt.RUnlock()
+	return mt.getNode(key)
 }
 
 // GenerateProof generates the proof of existence (or non-existence) of a leaf node
 // for a Merkle Tree given the root. It uses the node's index to represent the node.
 // If the rootKey is nil, the current merkletree root is used
 func (mt *sparseMerkleTree) GenerateProof(k *big.Int, rootKey core.NodeIndex) (core.Proof, *big.Int, error) {
+	mt.RLock()
+	defer mt.RUnlock()
+
 	p := &proof{}
 	var siblingKey core.NodeIndex
 
@@ -110,11 +117,11 @@ func (mt *sparseMerkleTree) GenerateProof(k *big.Int, rootKey core.NodeIndex) (c
 	}
 	path := kHash.ToPath(mt.maxLevels)
 	if rootKey == nil {
-		rootKey = mt.Root()
+		rootKey = mt.rootKey
 	}
 	nextKey := rootKey
 	for p.depth = 0; p.depth < uint(mt.maxLevels); p.depth++ {
-		n, err := mt.GetNode(nextKey)
+		n, err := mt.getNode(nextKey)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -130,7 +137,7 @@ func (mt *sparseMerkleTree) GenerateProof(k *big.Int, rootKey core.NodeIndex) (c
 				return p, value.BigInt(), nil
 			}
 			// We found a leaf whose entry didn't match the node index
-			p.existingNode, err = node.NewLeafNode(utxo.NewIndexOnly(idx))
+			p.existingNode, err = node.NewLeafNode(utils.NewIndexOnly(idx))
 			if err != nil {
 				return nil, nil, err
 			}
@@ -156,6 +163,19 @@ func (mt *sparseMerkleTree) GenerateProof(k *big.Int, rootKey core.NodeIndex) (c
 	return nil, nil, ErrKeyNotFound
 }
 
+// must be called from inside a read lock
+func (mt *sparseMerkleTree) getNode(key core.NodeIndex) (core.Node, error) {
+	if key.IsZero() {
+		return node.NewEmptyNode(), nil
+	}
+	node, err := mt.db.GetNode(key)
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
+// must be called from inside a write lock
 // addLeaf adds a new LeafNode to the MerkleTree. It starts with the current node.
 //   - if the current node is empty, it adds the new leaf node at that location.
 //   - if the current node is a leaf node, it means there's an existing node that shares
@@ -174,14 +194,15 @@ func (mt *sparseMerkleTree) addLeaf(newLeaf core.Node, currentNodeIndex core.Nod
 	}
 
 	var nextKey core.NodeIndex
-	currentNode, err := mt.GetNode(currentNodeIndex)
+	currentNode, err := mt.getNode(currentNodeIndex)
 	if err != nil {
 		return nil, err
 	}
 	switch currentNode.Type() {
 	case core.NodeTypeEmpty:
-		// We have searched to the bottom level and are ensured that
-		// the node doesn't exist yet. We can add the new leaf node
+		// We have searched to a level and have found a position in the
+		// index's path where the tree is empty. This means we have found
+		// the node that doesn't exist yet. We can add the new leaf node here
 		return mt.addNode(newLeaf)
 	case core.NodeTypeLeaf:
 		nIndex := currentNode.Index()
@@ -225,6 +246,7 @@ func (mt *sparseMerkleTree) addLeaf(newLeaf core.Node, currentNodeIndex core.Nod
 	}
 }
 
+// must be called from inside a write lock
 // addNode adds a node into the MT.  Empty nodes are not stored in the tree;
 // they are all the same and assumed to always exist.
 func (mt *sparseMerkleTree) addNode(n core.Node) (core.NodeIndex, error) {
@@ -240,6 +262,9 @@ func (mt *sparseMerkleTree) addNode(n core.Node) (core.NodeIndex, error) {
 	return k, err
 }
 
+// must be called from inside a write lock
+// extendPath extends the path of two leaf nodes, which share the same beginnging part of
+// their indexes, until their paths diverge, creating ancestor branch nodes as needed.
 func (mt *sparseMerkleTree) extendPath(newLeaf core.Node, oldLeaf core.Node, level int, pathNewLeaf []bool, pathOldLeaf []bool) (core.NodeIndex, error) {
 	if level > mt.maxLevels-2 {
 		return nil, ErrReachedMaxLevel
@@ -289,9 +314,8 @@ func (mt *sparseMerkleTree) extendPath(newLeaf core.Node, oldLeaf core.Node, lev
 	if err != nil {
 		return nil, err
 	}
-	// finally don't forget to add the new branch node that
-	// is the parent of the new leaf node to the DB. We also
-	// return this new branch node's key to allow the caller
-	// to create branch nodes as needed.
+	// finally don't forget to add the new branch node that is the parent of
+	// the new leaf node to the DB. We also return this new branch node's key
+	// to allow the caller to create branch nodes as needed.
 	return mt.addNode(newBranchNode)
 }

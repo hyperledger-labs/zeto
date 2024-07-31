@@ -19,22 +19,30 @@ package integration_test
 import (
 	"fmt"
 	"math/big"
+	"math/rand"
 	"os"
 	"path"
 	"testing"
 	"time"
 
 	"github.com/hyperledger-labs/zeto/internal/testutils"
+	"github.com/hyperledger-labs/zeto/pkg/core"
 	"github.com/hyperledger-labs/zeto/pkg/node"
 	"github.com/hyperledger-labs/zeto/pkg/smt"
 	"github.com/hyperledger-labs/zeto/pkg/storage"
 	"github.com/hyperledger-labs/zeto/pkg/utxo"
+	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-iden3-crypto/poseidon"
 	"github.com/iden3/go-rapidsnark/prover"
 	"github.com/iden3/go-rapidsnark/witness/v2"
 	"github.com/iden3/go-rapidsnark/witness/wasmer"
 	"github.com/stretchr/testify/assert"
+	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
+
+const MAX_HEIGHT = 64
 
 func LoadCircuit(circuitName string) (witness.Calculator, []byte, error) {
 	circuitRoot, exists := os.LookupEnv("CIRCUITS_ROOT")
@@ -183,6 +191,92 @@ func TestZeto_2_SuccessfulProving(t *testing.T) {
 }
 
 func TestZeto_3_SuccessfulProving(t *testing.T) {
+	calc, provingKey, err := LoadCircuit("anon_nullifier")
+	assert.NoError(t, err)
+	assert.NotNil(t, calc)
+
+	sender := testutils.NewKeypair()
+	receiver := testutils.NewKeypair()
+
+	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
+	outputValues := []*big.Int{big.NewInt(32), big.NewInt(38)}
+
+	salt1 := testutils.NewSalt()
+	input1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PublicKey.X, sender.PublicKey.Y})
+	salt2 := testutils.NewSalt()
+	input2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PublicKey.X, sender.PublicKey.Y})
+	inputCommitments := []*big.Int{input1, input2}
+
+	nullifier1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PrivateKeyBigInt})
+	nullifier2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PrivateKeyBigInt})
+	nullifiers := []*big.Int{nullifier1, nullifier2}
+
+	mt, err := smt.NewMerkleTree(storage.NewMemoryStorage(), MAX_HEIGHT)
+	assert.NoError(t, err)
+	utxo1 := utxo.NewFungible(inputValues[0], sender.PublicKey, salt1)
+	n1, err := node.NewLeafNode(utxo1)
+	assert.NoError(t, err)
+	err = mt.AddLeaf(n1)
+	assert.NoError(t, err)
+	utxo2 := utxo.NewFungible(inputValues[1], sender.PublicKey, salt2)
+	n2, err := node.NewLeafNode(utxo2)
+	assert.NoError(t, err)
+	err = mt.AddLeaf(n2)
+	assert.NoError(t, err)
+	proof1, _, err := mt.GenerateProof(input1, nil)
+	assert.NoError(t, err)
+	circomProof1, err := proof1.ToCircomVerifierProof(input1, input1, mt.Root(), MAX_HEIGHT)
+	assert.NoError(t, err)
+	proof2, _, err := mt.GenerateProof(input2, nil)
+	assert.NoError(t, err)
+	circomProof2, err := proof2.ToCircomVerifierProof(input2, input2, mt.Root(), MAX_HEIGHT)
+	assert.NoError(t, err)
+
+	salt3 := testutils.NewSalt()
+	output1, _ := poseidon.Hash([]*big.Int{outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
+	salt4 := testutils.NewSalt()
+	output2, _ := poseidon.Hash([]*big.Int{outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
+	outputCommitments := []*big.Int{output1, output2}
+
+	proof1Siblings := make([]*big.Int, len(circomProof1.Siblings)-1)
+	for i, s := range circomProof1.Siblings[0 : len(circomProof1.Siblings)-1] {
+		proof1Siblings[i] = s.BigInt()
+	}
+	proof2Siblings := make([]*big.Int, len(circomProof2.Siblings)-1)
+	for i, s := range circomProof2.Siblings[0 : len(circomProof2.Siblings)-1] {
+		proof2Siblings[i] = s.BigInt()
+	}
+	witnessInputs := map[string]interface{}{
+		"nullifiers":            nullifiers,
+		"inputCommitments":      inputCommitments,
+		"inputValues":           inputValues,
+		"inputSalts":            []*big.Int{salt1, salt2},
+		"inputOwnerPrivateKey":  sender.PrivateKeyBigInt,
+		"root":                  mt.Root().BigInt(),
+		"merkleProof":           [][]*big.Int{proof1Siblings, proof2Siblings},
+		"enabled":               []*big.Int{big.NewInt(1), big.NewInt(1)},
+		"outputCommitments":     outputCommitments,
+		"outputValues":          outputValues,
+		"outputSalts":           []*big.Int{salt3, salt4},
+		"outputOwnerPublicKeys": [][]*big.Int{{receiver.PublicKey.X, receiver.PublicKey.Y}, {sender.PublicKey.X, sender.PublicKey.Y}},
+	}
+
+	startTime := time.Now()
+	witnessBin, err := calc.CalculateWTNSBin(witnessInputs, true)
+	assert.NoError(t, err)
+	assert.NotNil(t, witnessBin)
+
+	proof, err := prover.Groth16Prover(provingKey, witnessBin)
+	elapsedTime := time.Since(startTime)
+	fmt.Printf("Proving time: %s\n", elapsedTime)
+	assert.NoError(t, err)
+	assert.Equal(t, 3, len(proof.Proof.A))
+	assert.Equal(t, 3, len(proof.Proof.B))
+	assert.Equal(t, 3, len(proof.Proof.C))
+	assert.Equal(t, 7, len(proof.PubSignals))
+}
+
+func TestZeto_4_SuccessfulProving(t *testing.T) {
 	calc, provingKey, err := LoadCircuit("anon_enc_nullifier")
 	assert.NoError(t, err)
 	assert.NotNil(t, calc)
@@ -203,7 +297,6 @@ func TestZeto_3_SuccessfulProving(t *testing.T) {
 	nullifier2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PrivateKeyBigInt})
 	nullifiers := []*big.Int{nullifier1, nullifier2}
 
-	MAX_HEIGHT := 64
 	mt, err := smt.NewMerkleTree(storage.NewMemoryStorage(), MAX_HEIGHT)
 	assert.NoError(t, err)
 	utxo1 := utxo.NewFungible(inputValues[0], sender.PublicKey, salt1)
@@ -272,7 +365,7 @@ func TestZeto_3_SuccessfulProving(t *testing.T) {
 	assert.Equal(t, 10, len(proof.PubSignals))
 }
 
-func TestZeto_4_SuccessfulProving(t *testing.T) {
+func TestZeto_5_SuccessfulProving(t *testing.T) {
 	calc, provingKey, err := LoadCircuit("nf_anon")
 	assert.NoError(t, err)
 	assert.NotNil(t, calc)
@@ -331,7 +424,7 @@ func TestZeto_4_SuccessfulProving(t *testing.T) {
 	assert.Equal(t, 2, len(proof.PubSignals))
 }
 
-func TestZeto_5_SuccessfulProving(t *testing.T) {
+func TestZeto_6_SuccessfulProving(t *testing.T) {
 	calc, provingKey, err := LoadCircuit("nf_anon_nullifier")
 	assert.NoError(t, err)
 	assert.NotNil(t, calc)
@@ -349,7 +442,6 @@ func TestZeto_5_SuccessfulProving(t *testing.T) {
 
 	nullifier1, _ := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt1, sender.PrivateKeyBigInt})
 
-	MAX_HEIGHT := 64
 	mt, err := smt.NewMerkleTree(storage.NewMemoryStorage(), MAX_HEIGHT)
 	assert.NoError(t, err)
 	utxo1 := utxo.NewNonFungible(tokenId, tokenUri, sender.PublicKey, salt1)
@@ -406,4 +498,156 @@ func TestZeto_5_SuccessfulProving(t *testing.T) {
 	assert.Equal(t, 3, len(proof.Proof.B))
 	assert.Equal(t, 3, len(proof.Proof.C))
 	assert.Equal(t, 3, len(proof.PubSignals))
+}
+
+func TestConcurrentLeafnodesInsertion(t *testing.T) {
+	x, _ := new(big.Int).SetString("9198063289874244593808956064764348354864043212453245695133881114917754098693", 10)
+	y, _ := new(big.Int).SetString("3600411115173311692823743444460566395943576560299970643507632418781961416843", 10)
+	alice := &babyjub.PublicKey{
+		X: x,
+		Y: y,
+	}
+
+	values := []int{10, 20, 30, 40}
+	salts := []string{
+		"43c49e8ba68a9b8a6bb5c230a734d8271a83d2f63722e7651272ebeef5446e",
+		"19b965f7629e4f0c4bd0b8f9c87f17580f18a32a31b4641550071ee4916bbbfc",
+		"9b0b93df975547e430eabff085a77831b8fcb6b5396e6bb815fda8d14125370",
+		"194ec10ec96a507c7c9b60df133d13679b874b0bd6ab89920135508f55b3f064",
+	}
+
+	// run the test 10 times
+	for i := 0; i < 100; i++ {
+		// shuffle the utxos for this run
+		for i := range values {
+			j := rand.Intn(i + 1)
+			values[i], values[j] = values[j], values[i]
+			salts[i], salts[j] = salts[j], salts[i]
+		}
+
+		testConcurrentInsertion(t, alice, values, salts)
+	}
+}
+
+func testConcurrentInsertion(t *testing.T, alice *babyjub.PublicKey, values []int, salts []string) {
+	mt, err := smt.NewMerkleTree(storage.NewMemoryStorage(), MAX_HEIGHT)
+	assert.NoError(t, err)
+	done := make(chan bool, len(values))
+
+	for i, v := range values {
+		go func(i, v int) {
+			salt, _ := new(big.Int).SetString(salts[i], 16)
+			utxo := utxo.NewFungible(big.NewInt(int64(v)), alice, salt)
+			n, err := node.NewLeafNode(utxo)
+			assert.NoError(t, err)
+			err = mt.AddLeaf(n)
+			assert.NoError(t, err)
+			done <- true
+		}(i, v)
+	}
+
+	for i := 0; i < len(values); i++ {
+		<-done
+	}
+
+	assert.Equal(t, "abacf46f5217552ee28fe50b8fd7ca6aa46daeb9acf9f60928654c3b1a472f23", mt.Root().Hex())
+}
+
+type testSqlProvider struct {
+	db *gorm.DB
+}
+
+func (s *testSqlProvider) DB() *gorm.DB {
+	return s.db
+}
+
+func (s *testSqlProvider) Close() {}
+
+func TestSqliteStorage(t *testing.T) {
+	dbfile, err := os.CreateTemp("", "gorm.db")
+	assert.NoError(t, err)
+	defer func() {
+		os.Remove(dbfile.Name())
+	}()
+	db, err := gorm.Open(sqlite.Open(dbfile.Name()), &gorm.Config{})
+	assert.NoError(t, err)
+	err = db.Table(core.TreeRootsTable).AutoMigrate(&core.SMTRoot{})
+	assert.NoError(t, err)
+	err = db.Table(core.NodesTablePrefix + "test_1").AutoMigrate(&core.SMTNode{})
+	assert.NoError(t, err)
+
+	provider := &testSqlProvider{db: db}
+	s, err := storage.NewSqlStorage(provider, "test_1")
+	assert.NoError(t, err)
+
+	mt, err := smt.NewMerkleTree(s, MAX_HEIGHT)
+	assert.NoError(t, err)
+
+	tokenId := big.NewInt(1001)
+	tokenUri, err := utxo.HashTokenUri("https://example.com/token/1001")
+	assert.NoError(t, err)
+	sender := testutils.NewKeypair()
+	salt1 := testutils.NewSalt()
+
+	utxo1 := utxo.NewNonFungible(tokenId, tokenUri, sender.PublicKey, salt1)
+	n1, err := node.NewLeafNode(utxo1)
+	assert.NoError(t, err)
+	err = mt.AddLeaf(n1)
+	assert.NoError(t, err)
+
+	root := mt.Root()
+	dbRoot := core.SMTRoot{Name: "test_1"}
+	err = db.Table(core.TreeRootsTable).First(&dbRoot).Error
+	assert.NoError(t, err)
+	assert.Equal(t, root.Hex(), dbRoot.RootIndex)
+
+	dbNode := core.SMTNode{RefKey: n1.Ref().Hex()}
+	err = db.Table(core.NodesTablePrefix + "test_1").First(&dbNode).Error
+	assert.NoError(t, err)
+	assert.Equal(t, n1.Ref().Hex(), dbNode.RefKey)
+}
+
+func TestPostgresStorage(t *testing.T) {
+	dsn := "host=localhost user=postgres password=my-secret dbname=postgres port=5432 sslmode=disable"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	assert.NoError(t, err)
+	err = db.Table(core.TreeRootsTable).AutoMigrate(&core.SMTRoot{})
+	assert.NoError(t, err)
+	err = db.Table(core.NodesTablePrefix + "test_1").AutoMigrate(&core.SMTNode{})
+	assert.NoError(t, err)
+
+	defer func() {
+		db.Exec("DROP TABLE " + core.TreeRootsTable)
+		db.Exec("DROP TABLE " + core.NodesTablePrefix + "test_1")
+	}()
+
+	provider := &testSqlProvider{db: db}
+	s, err := storage.NewSqlStorage(provider, "test_1")
+	assert.NoError(t, err)
+
+	mt, err := smt.NewMerkleTree(s, MAX_HEIGHT)
+	assert.NoError(t, err)
+
+	tokenId := big.NewInt(1001)
+	tokenUri, err := utxo.HashTokenUri("https://example.com/token/1001")
+	assert.NoError(t, err)
+	sender := testutils.NewKeypair()
+	salt1 := testutils.NewSalt()
+
+	utxo1 := utxo.NewNonFungible(tokenId, tokenUri, sender.PublicKey, salt1)
+	n1, err := node.NewLeafNode(utxo1)
+	assert.NoError(t, err)
+	err = mt.AddLeaf(n1)
+	assert.NoError(t, err)
+
+	root := mt.Root()
+	dbRoot := core.SMTRoot{Name: "test_1"}
+	err = db.Table(core.TreeRootsTable).First(&dbRoot).Error
+	assert.NoError(t, err)
+	assert.Equal(t, root.Hex(), dbRoot.RootIndex)
+
+	dbNode := core.SMTNode{RefKey: n1.Ref().Hex()}
+	err = db.Table(core.NodesTablePrefix + "test_1").First(&dbNode).Error
+	assert.NoError(t, err)
+	assert.Equal(t, n1.Ref().Hex(), dbNode.RefKey)
 }

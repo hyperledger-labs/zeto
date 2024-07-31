@@ -46,3 +46,28 @@ func (f *Fungible) CalculateIndex() (core.NodeIndex, error) {
 	}
 	return node.NewNodeIndexFromBigInt(hash)
 }
+
+// the "Owner" is the private key that must be properly hashed and trimmed to be
+// compatible with the BabyJub curve.
+// Reference: https://github.com/iden3/circomlib/blob/master/test/babyjub.js#L103
+type FungibleNullifier struct {
+	Amount *big.Int
+	Owner  *big.Int
+	Salt   *big.Int
+}
+
+func NewFungibleNullifier(amount *big.Int, owner *big.Int, salt *big.Int) *FungibleNullifier {
+	return &FungibleNullifier{
+		Amount: amount,
+		Owner:  owner,
+		Salt:   salt,
+	}
+}
+
+func (f *FungibleNullifier) CalculateIndex() (core.NodeIndex, error) {
+	hash, err := poseidon.Hash([]*big.Int{f.Amount, f.Salt, f.Owner})
+	if err != nil {
+		return nil, err
+	}
+	return node.NewNodeIndexFromBigInt(hash)
+}

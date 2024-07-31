@@ -14,22 +14,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utxo
+package storage
 
 import (
+	"github.com/hyperledger-labs/zeto/internal/storage"
 	"github.com/hyperledger-labs/zeto/pkg/core"
 )
 
-type IndexOnly struct {
-	Index core.NodeIndex
+func NewMemoryStorage() core.Storage {
+	return storage.NewMemoryStorage()
 }
 
-func NewIndexOnly(index core.NodeIndex) *IndexOnly {
-	return &IndexOnly{
-		Index: index,
-	}
-}
-
-func (f *IndexOnly) CalculateIndex() (core.NodeIndex, error) {
-	return f.Index, nil
+func NewSqlStorage(provider core.SqlDBProvider, smtName string) (core.Storage, error) {
+	return storage.NewSqlStorage(provider, smtName), nil
 }
