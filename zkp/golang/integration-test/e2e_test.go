@@ -430,7 +430,6 @@ func TestZeto_5_SuccessfulProving(t *testing.T) {
 		"tokenUris":             []*big.Int{tokenUri},
 		"inputCommitments":      []*big.Int{input1},
 		"inputSalts":            []*big.Int{salt1},
-		"inputOwnerPublicKey":   []*big.Int{sender.PublicKey.X, sender.PublicKey.Y},
 		"senderPrivateKey":      sender.PrivateKeyBigInt,
 		"outputCommitments":     []*big.Int{output1},
 		"outputSalts":           []*big.Int{salt3},

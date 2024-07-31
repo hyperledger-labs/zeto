@@ -76,13 +76,12 @@ describe('check-nullifiers circuit tests', () => {
     // console.log('owner private key', senderPrivateKey);
     // console.log(witness.slice(0, 15));
 
-    expect(witness[1]).to.equal(BigInt(1)); // index 1 is the output, value of 1 means valid proof
-    expect(witness[2]).to.equal(BigInt(nullifiers[0]));
-    expect(witness[3]).to.equal(BigInt(nullifiers[1]));
-    expect(witness[4]).to.equal(BigInt(inputCommitments[0]));
-    expect(witness[5]).to.equal(BigInt(inputCommitments[1]));
-    expect(witness[6]).to.equal(BigInt(inputValues[0]));
-    expect(witness[7]).to.equal(BigInt(inputValues[1]));
+    expect(witness[1]).to.equal(BigInt(nullifiers[0]));
+    expect(witness[2]).to.equal(BigInt(nullifiers[1]));
+    expect(witness[3]).to.equal(BigInt(inputCommitments[0]));
+    expect(witness[4]).to.equal(BigInt(inputCommitments[1]));
+    expect(witness[5]).to.equal(BigInt(inputValues[0]));
+    expect(witness[6]).to.equal(BigInt(inputValues[1]));
   });
 
   it('should fail to generate a witness because incorrect values are not used', async () => {
@@ -116,7 +115,7 @@ describe('check-nullifiers circuit tests', () => {
       err = e;
     }
     // console.log(err);
-    expect(err).to.match(/Error in template CheckNullifiers_155 line: 63/);
+    expect(err).to.match(/Error in template Zeto_157 line: 62/);
   });
 
   it('should generate a valid proof using groth16 that can be verified successfully', async () => {

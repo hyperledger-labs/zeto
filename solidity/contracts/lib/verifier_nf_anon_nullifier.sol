@@ -1,22 +1,18 @@
-// SPDX-License-Identifier: GPL-3.0
-/*
-    Copyright 2021 0KIMS association.
-
-    This file is generated with [snarkJS](https://github.com/iden3/snarkjs).
-
-    snarkJS is a free software: you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    snarkJS is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-    or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public
-    License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with snarkJS. If not, see <https://www.gnu.org/licenses/>.
-*/
+// Copyright © 2024 Kaleido, Inc.
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 pragma solidity >=0.7.0 <0.9.0;
 
@@ -43,14 +39,14 @@ contract Groth16Verifier_NFAnonNullifier {
     uint256 constant deltay2 = 8495653923123431417604973247489272438418190587263600148770280649306958101930;
 
     
-    uint256 constant IC0x = 16298217177298853136975263265087622535694857065890081137859588777856259450521;
-    uint256 constant IC0y = 16369221670251381878267929713507307612705301219879321756086546304423142981642;
+    uint256 constant IC0x = 17063916472897219906499013602609563773459699022961611964268189063314041965585;
+    uint256 constant IC0y = 7113914571678201962802800890880199872761004856366564528043813710380448639160;
     
     uint256 constant IC1x = 15394462220807272608052136227081282223595149712428374547831710534920733043919;
     uint256 constant IC1y = 19327226410606568245065707523771012300596341916719815049742062724996282552116;
     
-    uint256 constant IC2x = 7537065727208370519587176072529046541955614088903122341221970362151100973958;
-    uint256 constant IC2y = 3493434488408099877526106182878738719245353917107316371966229877467010284715;
+    uint256 constant IC2x = 2979059918714837991520229486044942728645953928301289793610170432062103873029;
+    uint256 constant IC2y = 6487742855150925877601255115745638440865210203580556432863401660227192993190;
     
     uint256 constant IC3x = 21134802089204916535108610615539521390582570772406201504265803749640245800209;
     uint256 constant IC3y = 5760026545779218525110347831373198179812011736302341060824625698975753169974;

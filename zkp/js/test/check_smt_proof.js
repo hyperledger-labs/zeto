@@ -75,7 +75,7 @@ describe('check_smt_proof circuit tests', () => {
       {
         root: senderProof.root.bigInt(),
         merkleProof: [senderProof.siblings.map((s) => s.bigInt()), receiverProof.siblings.map((s) => s.bigInt())],
-        keys: [Alice.keyHash, David.keyHash],
+        leafNodeIndexes: [Alice.keyHash, David.keyHash],
       },
       true
     );
@@ -99,7 +99,7 @@ describe('check_smt_proof circuit tests', () => {
       {
         root: senderProof.root.bigInt(),
         merkleProof: [senderProof.siblings.map((s) => s.bigInt()), receiverProof.siblings.map((s) => s.bigInt())],
-        keys: [Alice.keyHash, David.keyHash],
+        leafNodeIndexes: [Alice.keyHash, David.keyHash],
       },
       true
     );

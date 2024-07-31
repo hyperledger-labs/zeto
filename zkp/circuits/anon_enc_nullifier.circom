@@ -15,7 +15,11 @@
 // limitations under the License.
 pragma circom 2.1.4;
 
-include "./lib/check-nullifier-hashes-sum.circom";
+include "./lib/check-positive.circom";
+include "./lib/check-hashes.circom";
+include "./lib/check-sum.circom";
+include "./lib/check-nullifiers.circom";
+include "./lib/check-smt-proof.circom";
 include "./lib/ecdh.circom";
 include "./lib/encrypt.circom";
 include "./node_modules/circomlib/circuits/babyjub.circom";
@@ -46,21 +50,55 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
 
   signal output cipherText[2];
 
-  component checkHashesSum = CheckNullifierHashesAndSum(nInputs, nOutputs, nSMTLevels);
-  checkHashesSum.nullifiers <== nullifiers;
-  checkHashesSum.inputCommitments <== inputCommitments;
-  checkHashesSum.inputValues <== inputValues;
-  checkHashesSum.inputSalts <== inputSalts;
-  checkHashesSum.inputOwnerPrivateKey <== inputOwnerPrivateKey;
-  checkHashesSum.root <== root;
-  checkHashesSum.merkleProof <== merkleProof;
-  checkHashesSum.enabled <== enabled;
-  checkHashesSum.outputCommitments <== outputCommitments;
-  checkHashesSum.outputValues <== outputValues;
-  checkHashesSum.outputSalts <== outputSalts;
-  checkHashesSum.outputOwnerPublicKeys <== outputOwnerPublicKeys;
-  // assert successful output
-  checkHashesSum.out === 1;
+  // derive the sender's public key from the secret input
+  // for the sender's private key. This step demonstrates
+  // the sender really owns the private key for the input
+  // UTXOs
+  var inputOwnerPublicKey[2];
+  component pub = BabyPbk();
+  pub.in <== inputOwnerPrivateKey;
+  inputOwnerPublicKey[0] = pub.Ax;
+  inputOwnerPublicKey[1] = pub.Ay;
+  var inputOwnerPublicKeys[nInputs][2];
+  for (var i = 0; i < nInputs; i++) {
+    inputOwnerPublicKeys[i][0] = inputOwnerPublicKey[0];
+    inputOwnerPublicKeys[i][1] = inputOwnerPublicKey[1];
+  }
+
+  component checkPositives = CheckPositive(nOutputs);
+  checkPositives.outputValues <== outputValues;
+
+  component checkInputHashes = CheckHashes(nInputs);
+  checkInputHashes.commitments <== inputCommitments;
+  checkInputHashes.values <== inputValues;
+  checkInputHashes.salts <== inputSalts;
+  checkInputHashes.ownerPublicKeys <== inputOwnerPublicKeys;
+
+  component checkOutputHashes = CheckHashes(nOutputs);
+  checkOutputHashes.commitments <== outputCommitments;
+  checkOutputHashes.values <== outputValues;
+  checkOutputHashes.salts <== outputSalts;
+  checkOutputHashes.ownerPublicKeys <== outputOwnerPublicKeys;
+
+  component checkNullifiers = CheckNullifiers(nInputs);
+  checkNullifiers.nullifiers <== nullifiers;
+  checkNullifiers.values <== inputValues;
+  checkNullifiers.salts <== inputSalts;
+  checkNullifiers.ownerPrivateKey <== inputOwnerPrivateKey;
+
+  component checkSum = CheckSum(nInputs, nOutputs);
+  checkSum.inputValues <== inputValues;
+  checkSum.outputValues <== outputValues;
+
+  // With the above steps, we demonstrated that the nullifiers
+  // are securely bound to the input commitments. Now we need to
+  // demonstrate that the input commitments belong to the Sparse
+  // Merkle Tree with the root `root`.
+  component checkSMTProof = CheckSMTProof(nInputs, nSMTLevels);
+  checkSMTProof.root <== root;
+  checkSMTProof.merkleProof <== merkleProof;
+  checkSMTProof.enabled <== enabled;
+  checkSMTProof.leafNodeIndexes <== inputCommitments;
 
   // generate shared secret
   var sharedSecret[2];

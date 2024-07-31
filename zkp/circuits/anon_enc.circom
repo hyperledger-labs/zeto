@@ -15,7 +15,9 @@
 // limitations under the License.
 pragma circom 2.1.4;
 
-include "./lib/check-hashes-sum.circom";
+include "./lib/check-positive.circom";
+include "./lib/check-hashes.circom";
+include "./lib/check-sum.circom";
 include "./lib/ecdh.circom";
 include "./lib/encrypt.circom";
 include "./node_modules/circomlib/circuits/babyjub.circom";
@@ -44,23 +46,35 @@ template Zeto(nInputs, nOutputs) {
   // for the sender's private key. This step demonstrates
   // the sender really owns the private key for the input
   // UTXOs
-  var senderPublicKey[2];
+  var inputOwnerPublicKey[2];
   component pub = BabyPbk();
   pub.in <== senderPrivateKey;
-  senderPublicKey[0] = pub.Ax;
-  senderPublicKey[1] = pub.Ay;
+  inputOwnerPublicKey[0] = pub.Ax;
+  inputOwnerPublicKey[1] = pub.Ay;
+  var inputOwnerPublicKeys[nInputs][2];
+  for (var i = 0; i < nInputs; i++) {
+    inputOwnerPublicKeys[i][0] = inputOwnerPublicKey[0];
+    inputOwnerPublicKeys[i][1] = inputOwnerPublicKey[1];
+  }
 
-  component checkHashesSum = CheckHashesAndSum(nInputs, nOutputs);
-  checkHashesSum.inputCommitments <== inputCommitments;
-  checkHashesSum.inputValues <== inputValues;
-  checkHashesSum.inputSalts <== inputSalts;
-  checkHashesSum.inputOwnerPublicKey <== senderPublicKey;
-  checkHashesSum.outputCommitments <== outputCommitments;
-  checkHashesSum.outputValues <== outputValues;
-  checkHashesSum.outputSalts <== outputSalts;
-  checkHashesSum.outputOwnerPublicKeys <== outputOwnerPublicKeys;
-  // assert successful output
-  checkHashesSum.out === 1;
+  component checkPositives = CheckPositive(nOutputs);
+  checkPositives.outputValues <== outputValues;
+
+  component checkInputHashes = CheckHashes(nInputs);
+  checkInputHashes.commitments <== inputCommitments;
+  checkInputHashes.values <== inputValues;
+  checkInputHashes.salts <== inputSalts;
+  checkInputHashes.ownerPublicKeys <== inputOwnerPublicKeys;
+
+  component checkOutputHashes = CheckHashes(nOutputs);
+  checkOutputHashes.commitments <== outputCommitments;
+  checkOutputHashes.values <== outputValues;
+  checkOutputHashes.salts <== outputSalts;
+  checkOutputHashes.ownerPublicKeys <== outputOwnerPublicKeys;
+
+  component checkSum = CheckSum(nInputs, nOutputs);
+  checkSum.inputValues <== inputValues;
+  checkSum.outputValues <== outputValues;
 
   // generate shared secret
   var sharedSecret[2];

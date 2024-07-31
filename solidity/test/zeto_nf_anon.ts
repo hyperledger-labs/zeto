@@ -138,7 +138,6 @@ async function prepareProof(circuit: any, provingKey: any, signer: User, input: 
       tokenUris: [hashTokenUri(input.uri)],
       inputCommitments: [inputCommitment],
       inputSalts: [inputSalt],
-      inputOwnerPublicKey: signer.babyJubPublicKey as [BigNumberish, BigNumberish],
       outputCommitments: [outputCommitment],
       outputSalts: [output.salt],
       outputOwnerPublicKeys: [outputOwnerPublicKey],

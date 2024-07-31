@@ -129,7 +129,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity without enc
       err = e;
     }
     // console.log(err);
-    expect(err).to.match(/Error in template CheckHashesAndSum_89 line: 95/);
+    expect(err).to.match(/Error in template Zeto_92 line: 71/);
   });
 
   it('should generate a valid proof that can be verified successfully', async () => {

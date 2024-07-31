@@ -15,28 +15,23 @@
 // limitations under the License.
 pragma circom 2.1.4;
 
-include "./node_modules/circomlib/circuits/smt/smtverifier.circom";
+include "./lib/check-smt-proof.circom";
 
-template CheckSMTProof(numInputs, nSMTLevels) {
+template Zeto(numInputs, nSMTLevels) {
+  signal input leafNodeIndexes[numInputs];
   signal input root;
-  signal input keys[numInputs];
   signal input merkleProof[numInputs][nSMTLevels];
 
-  component smtVerifier[numInputs];
+  var enabled[numInputs];
   for (var i = 0; i < numInputs; i++) {
-    smtVerifier[i] = SMTVerifier(nSMTLevels);
-    smtVerifier[i].enabled <== 1;
-    smtVerifier[i].root <== root;
-    for (var j = 0; j < nSMTLevels; j++) {
-      smtVerifier[i].siblings[j] <== merkleProof[i][j];
-    }
-    smtVerifier[i].oldKey <== 0;
-    smtVerifier[i].oldValue <== 0;
-    smtVerifier[i].isOld0 <== 0;
-    smtVerifier[i].key <== keys[i];
-    smtVerifier[i].value <== keys[i];
-    smtVerifier[i].fnc <== 0;
+    enabled[i] = 1;
   }
+
+  component checkSMTProof = CheckSMTProof(numInputs, nSMTLevels);
+  checkSMTProof.leafNodeIndexes <== leafNodeIndexes;
+  checkSMTProof.root <== root;
+  checkSMTProof.merkleProof <== merkleProof;
+  checkSMTProof.enabled <== enabled;
 }
 
-component main { public [ root ] } = CheckSMTProof(2, 64);
+component main { public [ root ] } = Zeto(2, 64);

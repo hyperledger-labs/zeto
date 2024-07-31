@@ -131,7 +131,7 @@ describe('Registry tests', function () {
     const inputObj = {
       root,
       merkleProof,
-      keys: [senderKeyHash, receiverKeyHash],
+      leafNodeIndexes: [senderKeyHash, receiverKeyHash],
     };
     const witness = await circuit.calculateWTNSBin(
       inputObj,
