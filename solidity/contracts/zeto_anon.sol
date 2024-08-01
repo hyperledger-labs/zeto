@@ -15,10 +15,14 @@
 // limitations under the License.
 pragma solidity ^0.8.20;
 
+import {Groth16Verifier_CheckValue} from "./lib/verifier_check_hashes_value.sol";
+import {Groth16Verifier_CheckInputsOutputsValue} from "./lib/verifier_check_inputs_outputs_value.sol";
 import {Groth16Verifier_Anon} from "./lib/verifier_anon.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
+import {ZetoFungible} from "./lib/zeto_fungible.sol";
+import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import "hardhat/console.sol";
 
@@ -29,13 +33,18 @@ import "hardhat/console.sol";
 ///        - the sum of the input values match the sum of output values
 ///        - the hashes in the input and output match the `hash(value, salt, owner public key)` formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
-contract Zeto_Anon is ZetoBase {
+contract Zeto_Anon is ZetoBase, ZetoFungibleWithdraw {
     Groth16Verifier_Anon internal verifier;
 
     constructor(
+        Groth16Verifier_CheckValue _depositVerifier,
+        Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier,
         Groth16Verifier_Anon _verifier,
         Registry _registry
-    ) ZetoBase(_registry) {
+    )
+        ZetoBase(_registry)
+        ZetoFungibleWithdraw(_depositVerifier, _withdrawVerifier)
+    {
         verifier = _verifier;
     }
 
@@ -72,13 +81,7 @@ contract Zeto_Anon is ZetoBase {
             "Invalid proof"
         );
 
-        // accept the transaction to consume the input UTXOs and produce new UTXOs
-        for (uint256 i = 0; i < inputs.length; ++i) {
-            _utxos[inputs[i]] = UTXOStatus.SPENT;
-        }
-        for (uint256 i = 0; i < outputs.length; ++i) {
-            _utxos[outputs[i]] = UTXOStatus.UNSPENT;
-        }
+        processInputsAndOutputs(inputs, outputs);
 
         uint256[] memory inputArray = new uint256[](inputs.length);
         uint256[] memory outputArray = new uint256[](outputs.length);
@@ -89,5 +92,30 @@ contract Zeto_Anon is ZetoBase {
         emit UTXOTransfer(inputArray, outputArray, msg.sender);
 
         return true;
+    }
+
+    function deposit(
+        uint256 amount,
+        uint256 utxo,
+        Commonlib.Proof calldata proof
+    ) public {
+        _deposit(amount, utxo, proof);
+        uint256[] memory utxos = new uint256[](1);
+        utxos[0] = utxo;
+        _mint(utxos);
+    }
+
+    function withdraw(
+        uint256 amount,
+        uint256[2] memory inputs,
+        uint256 output,
+        Commonlib.Proof calldata proof
+    ) public {
+        _withdraw(amount, inputs, output, proof);
+        processInputsAndOutputs(inputs, [output, 0]);
+    }
+
+    function mint(uint256[] memory utxos) public onlyOwner {
+        _mint(utxos);
     }
 }

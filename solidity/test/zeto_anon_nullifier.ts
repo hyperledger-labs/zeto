@@ -22,15 +22,18 @@ import { groth16 } from 'snarkjs';
 import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
 import RegistryModule from '../ignition/modules/registry';
 import zetoModule from '../ignition/modules/zeto_anon_nullifier';
+import erc20Module from '../ignition/modules/erc20';
 import { UTXO, User, newUser, newUTXO, newNullifier, doMint, ZERO_UTXO, parseUTXOEvents } from './lib/utils';
-import { loadProvingKeys } from './utils';
+import { loadProvingKeys, prepareDepositProof, prepareNullifierWithdrawProof } from './utils';
 
 describe("Zeto based fungible token with anonymity using nullifiers without encryption", function () {
   let deployer: Signer;
   let Alice: User;
   let Bob: User;
   let Charlie: User;
+  let erc20: any;
   let zeto: any;
+  let utxo100: UTXO;
   let utxo1: UTXO;
   let utxo2: UTXO;
   let utxo3: UTXO;
@@ -56,6 +59,10 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
     const tx3 = await registry.connect(deployer).register(Charlie.ethAddress, Charlie.babyJubPublicKey as [BigNumberish, BigNumberish]);
     await tx3.wait();
 
+    ({ erc20 } = await ignition.deploy(erc20Module));
+    const tx4 = await zeto.connect(deployer).setERC20(erc20.target);
+    await tx4.wait();
+
     circuit = await loadCircuit('anon_nullifier');
     ({ provingKeyFile: provingKey } = loadProvingKeys('anon_nullifier'));
 
@@ -71,6 +78,24 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
     const onchainRoot = await zeto.getRoot();
     expect(onchainRoot).to.equal(0n);
     expect(root.string()).to.equal(onchainRoot.toString());
+  });
+
+  it("mint ERC20 tokens to Alice to deposit to Zeto should succeed", async function () {
+    const tx = await erc20.connect(deployer).mint(Alice.ethAddress, 100);
+    await tx.wait();
+    const balance = await erc20.balanceOf(Alice.ethAddress);
+    expect(balance).to.equal(100);
+
+    const tx1 = await erc20.connect(Alice.signer).approve(zeto.target, 100);
+    await tx1.wait();
+
+    utxo100 = newUTXO(100, Alice);
+    const { outputCommitments, encodedProof } = await prepareDepositProof(Alice, utxo100);
+    const tx2 = await zeto.connect(Alice.signer).deposit(100, outputCommitments[0], encodedProof);
+    await tx2.wait();
+
+    await smtAlice.add(utxo100.hash, utxo100.hash);
+    await smtBob.add(utxo100.hash, utxo100.hash);
   });
 
   it("mint to Alice and transfer UTXOs honestly to Bob should succeed", async function () {
@@ -162,6 +187,30 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
     await smtAlice.add(events[0].outputs[0], events[0].outputs[0]);
     await smtAlice.add(events[0].outputs[1], events[0].outputs[1]);
   }).timeout(600000);
+
+  it("Alice withdraws her UTXOs to ERC20 tokens should succeed", async function () {
+    // Alice generates the nullifiers for the UTXOs to be spent
+    const nullifier1 = newNullifier(utxo100, Alice);
+
+    // Alice generates inclusion proofs for the UTXOs to be spent
+    let root = await smtAlice.root();
+    const proof1 = await smtAlice.generateCircomVerifierProof(utxo100.hash, root);
+    const proof2 = await smtAlice.generateCircomVerifierProof(0n, root);
+    const merkleProofs = [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())];
+
+    // Alice proposes the output ERC20 tokens
+    const outputCommitment = newUTXO(20, Alice);
+
+    const { nullifiers, outputCommitments, encodedProof } = await prepareNullifierWithdrawProof(Alice, [utxo100, ZERO_UTXO], [nullifier1, ZERO_UTXO], outputCommitment, root.bigInt(), merkleProofs);
+
+    // Alice withdraws her UTXOs to ERC20 tokens
+    const tx = await zeto.connect(Alice.signer).withdraw(80, nullifiers, outputCommitments[0], root.bigInt(), encodedProof);
+    await tx.wait();
+
+    // Alice checks her ERC20 balance
+    const balance = await erc20.balanceOf(Alice.ethAddress);
+    expect(balance).to.equal(80);
+  });
 
   it("mint existing unspent UTXOs should fail", async function () {
     await expect(doMint(zeto, deployer, [utxo4])).rejectedWith("UTXOAlreadyOwned");

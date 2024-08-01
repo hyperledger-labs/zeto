@@ -15,8 +15,11 @@
 // limitations under the License.
 pragma solidity ^0.8.20;
 
+import {Groth16Verifier_CheckValue} from "./lib/verifier_check_hashes_value.sol";
+import {Groth16Verifier_CheckNullifierValue} from "./lib/verifier_check_nullifier_value.sol";
 import {Groth16Verifier_AnonNullifier} from "./lib/verifier_anon_nullifier.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
+import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -34,13 +37,21 @@ uint256 constant MAX_SMT_DEPTH = 64;
 ///        - the hashes in the input and output match the hash(value, salt, owner public key) formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
-contract Zeto_AnonNullifier is ZetoNullifier {
+contract Zeto_AnonNullifier is
+    ZetoNullifier,
+    ZetoFungibleWithdrawWithNullifiers
+{
     Groth16Verifier_AnonNullifier verifier;
 
     constructor(
+        Groth16Verifier_CheckValue _depositVerifier,
+        Groth16Verifier_CheckNullifierValue _withdrawVerifier,
         Groth16Verifier_AnonNullifier _verifier,
         Registry _registry
-    ) ZetoNullifier(_registry) {
+    )
+        ZetoNullifier(_registry)
+        ZetoFungibleWithdrawWithNullifiers(_depositVerifier, _withdrawVerifier)
+    {
         verifier = _verifier;
     }
 
@@ -62,7 +73,7 @@ contract Zeto_AnonNullifier is ZetoNullifier {
         Commonlib.Proof calldata proof
     ) public returns (bool) {
         require(
-            validateTransactionProposal(nullifiers, outputs, root, proof),
+            validateTransactionProposal(nullifiers, outputs, root),
             "Invalid transaction proposal"
         );
 
@@ -71,8 +82,8 @@ contract Zeto_AnonNullifier is ZetoNullifier {
         publicInputs[0] = nullifiers[0];
         publicInputs[1] = nullifiers[1];
         publicInputs[2] = root;
-        publicInputs[3] = (nullifiers[0] == 0) ? 0 : 1; // enable MT proof for the first nullifier
-        publicInputs[4] = (nullifiers[1] == 0) ? 0 : 1; // enable MT proof for the second nullifier
+        publicInputs[3] = (nullifiers[0] == 0) ? 0 : 1; // if the first nullifier is empty, disable its MT proof verification
+        publicInputs[4] = (nullifiers[1] == 0) ? 0 : 1; // if the second nullifier is empty, disable its MT proof verification
         publicInputs[5] = outputs[0];
         publicInputs[6] = outputs[1];
 
@@ -92,5 +103,31 @@ contract Zeto_AnonNullifier is ZetoNullifier {
         }
         emit UTXOTransfer(nullifierArray, outputArray, msg.sender);
         return true;
+    }
+
+    function deposit(
+        uint256 amount,
+        uint256 utxo,
+        Commonlib.Proof calldata proof
+    ) public {
+        _deposit(amount, utxo, proof);
+        uint256[] memory utxos = new uint256[](1);
+        utxos[0] = utxo;
+        _mint(utxos);
+    }
+
+    function withdraw(
+        uint256 amount,
+        uint256[2] memory nullifiers,
+        uint256 output,
+        uint256 root,
+        Commonlib.Proof calldata proof
+    ) public {
+        _withdrawWithNullifiers(amount, nullifiers, output, root, proof);
+        processInputsAndOutputs(nullifiers, [output, 0]);
+    }
+
+    function mint(uint256[] memory utxos) public onlyOwner {
+        _mint(utxos);
     }
 }

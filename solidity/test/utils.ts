@@ -16,6 +16,10 @@
 
 import { readFileSync } from "fs";
 import * as path from "path";
+import { BigNumberish } from 'ethers';
+import { groth16 } from 'snarkjs';
+import { loadCircuit, encodeProof } from "zeto-js";
+import { User, UTXO } from "./lib/utils";
 
 function provingKeysRoot() {
   const PROVING_KEYS_ROOT = process.env.PROVING_KEYS_ROOT;
@@ -35,5 +39,129 @@ export function loadProvingKeys(type: string) {
   return {
     provingKeyFile,
     verificationKey,
+  };
+}
+
+export async function prepareDepositProof(signer: User, output: UTXO) {
+  const outputCommitments: [BigNumberish] = [output.hash] as [BigNumberish];
+  const outputValues = [BigInt(output.value || 0n)];
+  const outputOwnerPublicKeys: [[BigNumberish, BigNumberish]] = [signer.babyJubPublicKey] as [[BigNumberish, BigNumberish]];
+
+  const inputObj = {
+    outputCommitments,
+    outputValues,
+    outputSalts: [output.salt],
+    outputOwnerPublicKeys
+  };
+
+  const circuit = await loadCircuit('check_hashes_value');
+  const { provingKeyFile } = loadProvingKeys('check_hashes_value');
+
+  const startWitnessCalculation = Date.now();
+  const witness = await circuit.calculateWTNSBin(
+    inputObj,
+    true
+  );
+  const timeWithnessCalculation = Date.now() - startWitnessCalculation;
+
+  const startProofGeneration = Date.now();
+  const { proof, publicSignals } = await groth16.prove(provingKeyFile, witness) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
+  const timeProofGeneration = Date.now() - startProofGeneration;
+
+  console.log(`Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`);
+
+  const encodedProof = encodeProof(proof);
+  return {
+    outputCommitments,
+    encodedProof
+  };
+}
+
+export async function prepareNullifierWithdrawProof(signer: User, inputs: UTXO[], _nullifiers: UTXO[], output: UTXO, root: BigInt, merkleProof: BigInt[][]) {
+  const nullifiers = _nullifiers.map((nullifier) => nullifier.hash) as [BigNumberish, BigNumberish];
+  const inputCommitments: [BigNumberish, BigNumberish] = inputs.map((input) => input.hash) as [BigNumberish, BigNumberish];
+  const inputValues = inputs.map((input) => BigInt(input.value || 0n));
+  const inputSalts = inputs.map((input) => input.salt || 0n);
+  const outputCommitments: [BigNumberish] = [output.hash] as [BigNumberish];
+  const outputValues = [BigInt(output.value || 0n)];
+  const outputOwnerPublicKeys: [[BigNumberish, BigNumberish]] = [signer.babyJubPublicKey] as [[BigNumberish, BigNumberish]];
+
+  const inputObj = {
+    nullifiers,
+    inputCommitments,
+    inputValues,
+    inputSalts,
+    inputOwnerPrivateKey: signer.formattedPrivateKey,
+    root,
+    enabled: [nullifiers[0] !== 0n ? 1 : 0, nullifiers[1] !== 0n ? 1 : 0],
+    merkleProof,
+    outputCommitments,
+    outputValues,
+    outputSalts: [output.salt],
+    outputOwnerPublicKeys
+  };
+  const circuit = await loadCircuit('check_nullifier_value');
+  const { provingKeyFile } = loadProvingKeys('check_nullifier_value');
+
+  const startWitnessCalculation = Date.now();
+  const witness = await circuit.calculateWTNSBin(
+    inputObj,
+    true
+  );
+  const timeWithnessCalculation = Date.now() - startWitnessCalculation;
+
+  const startProofGeneration = Date.now();
+  const { proof, publicSignals } = await groth16.prove(provingKeyFile, witness) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
+  const timeProofGeneration = Date.now() - startProofGeneration;
+
+  console.log(`Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`);
+
+  const encodedProof = encodeProof(proof);
+  return {
+    nullifiers,
+    outputCommitments,
+    encodedProof
+  };
+}
+
+export async function prepareWithdrawProof(signer: User, inputs: UTXO[], output: UTXO) {
+  const inputCommitments: [BigNumberish, BigNumberish] = inputs.map((input) => input.hash) as [BigNumberish, BigNumberish];
+  const inputValues = inputs.map((input) => BigInt(input.value || 0n));
+  const inputSalts = inputs.map((input) => input.salt || 0n);
+  const outputCommitments: [BigNumberish] = [output.hash] as [BigNumberish];
+  const outputValues = [BigInt(output.value || 0n)];
+  const outputOwnerPublicKeys: [[BigNumberish, BigNumberish]] = [signer.babyJubPublicKey] as [[BigNumberish, BigNumberish]];
+
+  const inputObj = {
+    inputCommitments,
+    inputValues,
+    inputSalts,
+    inputOwnerPrivateKey: signer.formattedPrivateKey,
+    outputCommitments,
+    outputValues,
+    outputSalts: [output.salt],
+    outputOwnerPublicKeys
+  };
+  const circuit = await loadCircuit('check_inputs_outputs_value');
+  const { provingKeyFile } = loadProvingKeys('check_inputs_outputs_value');
+
+  const startWitnessCalculation = Date.now();
+  const witness = await circuit.calculateWTNSBin(
+    inputObj,
+    true
+  );
+  const timeWithnessCalculation = Date.now() - startWitnessCalculation;
+
+  const startProofGeneration = Date.now();
+  const { proof, publicSignals } = await groth16.prove(provingKeyFile, witness) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
+  const timeProofGeneration = Date.now() - startProofGeneration;
+
+  console.log(`Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`);
+
+  const encodedProof = encodeProof(proof);
+  return {
+    inputCommitments,
+    outputCommitments,
+    encodedProof
   };
 }

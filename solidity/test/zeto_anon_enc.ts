@@ -22,8 +22,9 @@ import { groth16 } from 'snarkjs';
 import { genRandomSalt, formatPrivKeyForBabyJub, genEcdhSharedKey, stringifyBigInts } from 'maci-crypto';
 import RegistryModule from '../ignition/modules/registry';
 import zetoModule from '../ignition/modules/zeto_anon_enc';
+import erc20Module from '../ignition/modules/erc20';
 import { User, UTXO, newUser, newUTXO, doMint, ZERO_UTXO, parseUTXOEvents } from './lib/utils';
-import { loadProvingKeys } from './utils';
+import { loadProvingKeys, prepareDepositProof, prepareWithdrawProof } from './utils';
 
 const poseidonHash = Poseidon.poseidon4;
 
@@ -32,8 +33,10 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
   let Alice: User;
   let Bob: User;
   let Charlie: User;
+  let erc20: any;
   let zeto: any;
   let registry: any;
+  let utxo100: UTXO;
   let utxo1: UTXO;
   let utxo2: UTXO;
   let utxo3: UTXO;
@@ -57,8 +60,27 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     const tx3 = await registry.connect(deployer).register(Charlie.ethAddress, Charlie.babyJubPublicKey as [BigNumberish, BigNumberish]);
     await tx3.wait();
 
+    ({ erc20 } = await ignition.deploy(erc20Module));
+    const tx4 = await zeto.connect(deployer).setERC20(erc20.target);
+    await tx4.wait();
+
     circuit = await loadCircuit('anon_enc');
     ({ provingKeyFile: provingKey } = loadProvingKeys('anon_enc'));
+  });
+
+  it("mint ERC20 tokens to Alice to deposit to Zeto should succeed", async function () {
+    const tx = await erc20.connect(deployer).mint(Alice.ethAddress, 100);
+    await tx.wait();
+    const balance = await erc20.balanceOf(Alice.ethAddress);
+    expect(balance).to.equal(100);
+
+    const tx1 = await erc20.connect(Alice.signer).approve(zeto.target, 100);
+    await tx1.wait();
+
+    utxo100 = newUTXO(100, Alice);
+    const { outputCommitments, encodedProof } = await prepareDepositProof(Alice, utxo100);
+    const tx2 = await zeto.connect(Alice.signer).deposit(100, outputCommitments[0], encodedProof);
+    await tx2.wait();
   });
 
   it("mint to Alice and transfer UTXOs honestly to Bob should succeed", async function () {
@@ -100,6 +122,21 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     const _utxo1 = newUTXO(25, Charlie);
     // Bob should be able to spend the UTXO that was reconstructed from the previous transaction
     await doBranch(Bob, [utxo3, ZERO_UTXO], [_utxo1, ZERO_UTXO], [Charlie, Bob]);
+  });
+
+  it("Alice withdraws her UTXOs to ERC20 tokens should succeed", async function () {
+    // Alice proposes the output ERC20 tokens
+    const outputCommitment = newUTXO(20, Alice);
+
+    const { inputCommitments, outputCommitments, encodedProof } = await prepareWithdrawProof(Alice, [utxo100, ZERO_UTXO], outputCommitment);
+
+    // Alice withdraws her UTXOs to ERC20 tokens
+    const tx = await zeto.connect(Alice.signer).withdraw(80, inputCommitments, outputCommitments[0], encodedProof);
+    await tx.wait();
+
+    // Alice checks her ERC20 balance
+    const balance = await erc20.balanceOf(Alice.ethAddress);
+    expect(balance).to.equal(80);
   });
 
   it("mint existing unspent UTXOs should fail", async function () {
