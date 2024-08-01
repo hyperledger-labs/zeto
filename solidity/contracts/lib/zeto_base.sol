@@ -19,6 +19,7 @@ import {Commonlib} from "./common.sol";
 import {Registry} from "./registry.sol";
 import {ZetoCommon} from "./zeto_common.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title A sample base implementation of a Zeto based token contract
 ///        without using nullifiers. Each UTXO's spending status is explicitly tracked.
@@ -96,9 +97,22 @@ abstract contract ZetoBase is ZetoCommon {
         return true;
     }
 
+    function processInputsAndOutputs(
+        uint256[2] memory inputs,
+        uint256[2] memory outputs
+    ) internal {
+        // accept the transaction to consume the input UTXOs and produce new UTXOs
+        for (uint256 i = 0; i < inputs.length; ++i) {
+            _utxos[inputs[i]] = UTXOStatus.SPENT;
+        }
+        for (uint256 i = 0; i < outputs.length; ++i) {
+            _utxos[outputs[i]] = UTXOStatus.UNSPENT;
+        }
+    }
+
     // This function is used to mint new UTXOs, as an example implementation,
     // which is only callable by the owner.
-    function mint(uint256[] memory utxos) public virtual onlyOwner {
+    function _mint(uint256[] memory utxos) internal virtual {
         for (uint256 i = 0; i < utxos.length; ++i) {
             uint256 utxo = utxos[i];
             if (_utxos[utxo] == UTXOStatus.UNSPENT) {

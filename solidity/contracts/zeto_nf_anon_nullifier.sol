@@ -62,12 +62,7 @@ contract Zeto_NFAnonNullifier is ZetoNullifier {
         Commonlib.Proof calldata proof
     ) public returns (bool) {
         require(
-            validateTransactionProposal(
-                [nullifier, 0],
-                [output, 0],
-                root,
-                proof
-            ),
+            validateTransactionProposal([nullifier, 0], [output, 0], root),
             "Invalid transaction proposal"
         );
 
@@ -92,5 +87,9 @@ contract Zeto_NFAnonNullifier is ZetoNullifier {
 
         emit UTXOTransfer(nullifierArray, outputArray, msg.sender);
         return true;
+    }
+
+    function mint(uint256[] memory utxos) public {
+        _mint(utxos);
     }
 }
