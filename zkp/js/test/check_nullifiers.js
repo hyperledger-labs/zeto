@@ -116,7 +116,7 @@ describe('check-nullifiers circuit tests', () => {
       err = e;
     }
     // console.log(err);
-    expect(err).to.match(/Error in template CheckNullifiers_155 line: 63/);
+    expect(err).to.match(/Error in template CheckNullifiers_155 line: 78/);
   });
 
   it('should generate a valid proof using groth16 that can be verified successfully', async () => {
