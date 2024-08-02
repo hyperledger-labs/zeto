@@ -25,7 +25,7 @@ cd zkp/circuits
 npm i
 ```
 
-2. Use the `generate.sh` script under `zkp` folder to compile the circuits and generate verification keys and solidity files.
+2. Compile the circuits and generate verification keys and solidity files.
 
 - set where you want to store the generated verification keys and the downloaded PTAU files
   ```console
@@ -35,10 +35,10 @@ npm i
   ```
 - run the generation script for **ALL** circuits
   ```console
-  cd ..
-  ./generate.sh
+  npm run gen
   ```
-  **run `./generate.sh $circuit_name` for developing a single circuit**
+  **run `npm run gen $circuit` for developing a single circuit**
+  **use `GEN_CONCURRENCY` to control how many circuits to be processed in parallel, default to 10**
 
 > Refer to [generate.sh script explanation](#generatesh-script-explanation) for what the script does
 
