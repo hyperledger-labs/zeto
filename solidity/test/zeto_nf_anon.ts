@@ -43,7 +43,7 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
     Bob = await newUser(b);
     Charlie = await newUser(c);
     const { registry } = await ignition.deploy(RegistryModule);
-    ({ zeto } = await ignition.deploy(zetoModule, { parameters: { Zeto_NFAnon: { registry: registry.target } } }));
+    ({ zeto } = await ignition.deploy(zetoModule, { parameters: { Zeto_NfAnon: { registry: registry.target } } }));
 
     const tx1 = await registry.connect(deployer).register(Alice.ethAddress, Alice.babyJubPublicKey as [BigNumberish, BigNumberish]);
     await tx1.wait();

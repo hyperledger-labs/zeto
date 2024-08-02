@@ -56,7 +56,7 @@ describe("DvP flows between fungible and non-fungible tokens based on Zeto with 
     Charlie = await newUser(c);
 
     const { registry } = await ignition.deploy(RegistryModule);
-    ({ zeto: zkAsset } = await ignition.deploy(zetoNFAnonModule, { parameters: { Zeto_NFAnon: { registry: registry.target } } }));
+    ({ zeto: zkAsset } = await ignition.deploy(zetoNFAnonModule, { parameters: { Zeto_NfAnon: { registry: registry.target } } }));
     console.log(`ZK Asset contract deployed at ${zkAsset.target}`);
     ({ zeto: zkPayment } = await ignition.deploy(zetoAnonModule, { parameters: { Zeto_Anon: { registry: registry.target } } }));
     console.log(`ZK Payment contract deployed at ${zkPayment.target}`);

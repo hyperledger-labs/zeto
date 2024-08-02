@@ -41,19 +41,6 @@ npm i
 
 **Refer to [generate.sh script explanation](#generatesh-script-explanation) for what the script does**
 
-1. Rename contracts in the verifier solidity libraries
-
-After EACH verifier library is generated, you need to navigate to the solidity file for the verifier and modify the name of the contract, to match the naming convention used by the top-level token contract that references the verifier library. For instance, for the `anon_nullifier` circuit, you will have generated the following file:
-
-```
-/solidity/contracts/lib/verifier_anon_nullifier.sol
-```
-
-The file contains a contract called `Groth16Verifier`. That must be renamed to `Groth16Verifier_AnonEncNullifier` to match its name used by the contract:
-
-```
-/solidity/contracts/zeto_anon_nullifier.sol
-```
 
 # Run
 
@@ -217,3 +204,17 @@ The verifier library in Solidity are also derived from the proving key:
 snarkjs zkey export solidityverifier ~/proving-keys/X.zkey ../solidity/contracts/lib/verifier_X.sol
 ```
 
+
+### Rename contracts in the verifier solidity libraries
+
+After EACH verifier library is generated, you need to navigate to the solidity file for the verifier and modify the name of the contract, to match the naming convention used by the top-level token contract that references the verifier library. For instance, for the `anon_nullifier` circuit, you will have generated the following file:
+
+```
+/solidity/contracts/lib/verifier_anon_nullifier.sol
+```
+
+The file contains a contract called `Groth16Verifier`. That must be renamed to `Groth16Verifier_AnonEncNullifier` to match its name used by the contract:
+
+```
+/solidity/contracts/zeto_anon_nullifier.sol
+```

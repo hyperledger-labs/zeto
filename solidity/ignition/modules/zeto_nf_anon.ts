@@ -16,19 +16,19 @@
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-const VerifierModule = buildModule("Groth16Verifier_NFAnon", (m) => {
-  const verifier = m.contract('Groth16Verifier_NFAnon', []);
+const VerifierModule = buildModule("Groth16Verifier_NfAnon", (m) => {
+  const verifier = m.contract('Groth16Verifier_NfAnon', []);
   return { verifier };
 });
 
-export default buildModule("Zeto_NFAnon", (m) => {
+export default buildModule("Zeto_NfAnon", (m) => {
   const { verifier } = m.useModule(VerifierModule);
   const commonlib = m.library('Commonlib');
 
   const registryAddress = m.getParameter("registry");
   const registry = m.contractAt('Registry', registryAddress);
 
-  const zeto = m.contract('Zeto_NFAnon', [verifier, registry], {
+  const zeto = m.contract('Zeto_NfAnon', [verifier, registry], {
     libraries: {
       Commonlib: commonlib,
     },
