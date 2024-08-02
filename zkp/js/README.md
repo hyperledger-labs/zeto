@@ -33,13 +33,14 @@ npm i
   export PTAU_DOWNLOAD="$HOME/Downloads"
   mkdir -p $PROVING_KEYS_ROOT $PTAU_DOWNLOAD
   ```
-- run the generation script
+- run the generation script for **ALL** circuits
   ```console
   cd ..
   ./generate.sh
   ```
+  **run `./generate.sh $circuit_name` for developing a single circuit**
 
-**Refer to [generate.sh script explanation](#generatesh-script-explanation) for what the script does**
+> Refer to [generate.sh script explanation](#generatesh-script-explanation) for what the script does
 
 
 # Run
