@@ -16,85 +16,31 @@ Follow the instructions here to install `circom`, the circuit compiler, and `sna
 
 [https://docs.circom.io/getting-started/installation/](https://docs.circom.io/getting-started/installation/)
 
-## Compile the circuit
+## Compile the circuits and generate verification keys and solidity libraries
 
-First you must install the dependencies of the circuits, by going to the `/zkp/circuits` folder:
+1. Install the dependencies of the circuits, by going to the `/zkp/circuits` folder:
 
 ```console
 cd zkp/circuits
 npm i
 ```
 
-You can then compile the circuits:
+2. Use the `generate.sh` script under `zkp` folder to compile the circuits and generate verification keys and solidity files.
 
-```console
-circom circuits/X.circom --output ./js/lib --sym --wasm
-```
+- set where you want to store the generated verification keys
+  ```console
+  export PROVING_KEYS_ROOT="$HOME/proving-keys"
+  mkdir -p $PROVING_KEYS_ROOT
+  ```
+- run the generation script
+  ```console
+  cd ..
+  ./generate.sh
+  ```
 
-This generates the binary representations of the circuit, as a `.wasm` file. Only the top-level circuit, in our case `X.circom` needs to be compiled.
+**Refer to [generate.sh script explanation](#generatesh-script-explanation) for what the script does**
 
-## Generate the proving key
-
-The proving key is used by the prover code to generate the SNARK proof. This is accomplished with `snarkjs`. It supports 3 proving systems: `groth16`, `plonk` and `fflonk`. We use `groth16` as the default for its faster proof generation time and its support by the binary proof generator [rapidsnark](https://github.com/iden3/rapidsnark).
-
-The result of a trusted setup from a well-coordinated ceremony can be used here. Download one of them from [https://github.com/iden3/snarkjs](https://github.com/iden3/snarkjs?tab=readme-ov-file#7-prepare-phase-2), such as `powersOfTau28_hez_final_15.ptau`.
-
-The different `ptau` files represent different levels of complexity with the circuits. In general, you want to use the smallest file that can accommodate the size of your circuit.
-
-The steps below use `X` for the name of the circuit, and `Y` for the sequence number of the ptau files:
-
-| X                            | Y                                 |
-| ---------------------------- | --------------------------------- |
-| `anon.circom`                | `powersOfTau28_hez_final_12.ptau` |
-| `anon_enc.circom`            | `powersOfTau28_hez_final_13.ptau` |
-| `anon_nullifier.circom`      | `powersOfTau28_hez_final_16.ptau` |
-| `anon_enc_nullifier.circom`  | `powersOfTau28_hez_final_16.ptau` |
-| `nf_anon.circom`             | `powersOfTau28_hez_final_11.ptau` |
-| `nf_anon_nullifier.circom`   | `powersOfTau28_hez_final_15.ptau` |
-| `check_hashes_value.circom`  | `powersOfTau28_hez_final_09.ptau` |
-| `check_inputs_outputs_value` | `powersOfTau28_hez_final_11.ptau` |
-| `check_nullifier_value`      | `powersOfTau28_hez_final_16.ptau` |
-| `check_nullifiers.circom`    | `powersOfTau28_hez_final_11.ptau` |
-
-### Generating the R1CS circuit format
-
-The first step is compiling the `.circom` files into an R1CS format that will then be used as input to generating the proving keys.
-
-```console
-circom circuits/X.circom --output ~/proving-keys --r1cs
-```
-
-### Generating the proving keys for testing purposes
-
-```console
-snarkjs groth16 setup ~/proving-keys/X.r1cs ~/Downloads/powersOfTau28_hez_final_Y.ptau ~/proving-keys/X.zkey
-```
-
-Note that the above setup command generates **UNSAFE** proving keys that should NOT be used in production. Doing the above skips the phase 2 of a groth16 set up ceremony to contribute more randomness to the proving keys, which is a required step to make the proof generation safe. Doing this is useful for testing purposes only. It also allows us to check in the verification logic in the verifier solidity libraries, which is derived from the proving key generated this way without any randomness.
-
-### Generating the proving keys for production usage
-
-When using the groth16 proving system, per-circuit set up ceremony must be conducted to introduce the required randomness to make the proving keys secure. Follow the procedure described here https://github.com/iden3/snarkjs?tab=readme-ov-file#15-setup to conduct the ceremony. After obtaining the proving key, the verification key and the verifier Solidity libraries in the contracts folder must also be re-generated.
-
-## Export the verification key
-
-The verification key is used by verifier code (either offchain with a JS library or onchain with Solidity). This can be derived from the proving key above.
-
-```console
-snarkjs zkey export verificationkey ~/proving-keys/X.zkey ~/proving-keys/X-vkey.json
-```
-
-## Export the Solidity verifier library
-
-You can skip this step for running tests. Solidity verifiers have already been generated from the UNSAFE test proving keys as described above.
-
-However, if you have performed the per-circuit set up ceremonies to generate the proving keys, for instance in a production deployment, then you must re-generated the solidity verifiers.
-
-The verifier library in Solidity are also derived from the proving key:
-
-```console
-snarkjs zkey export solidityverifier ~/proving-keys/X.zkey ../solidity/contracts/lib/verifier_X.sol
-```
+1. Rename contracts in the verifier solidity libraries
 
 After EACH verifier library is generated, you need to navigate to the solidity file for the verifier and modify the name of the contract, to match the naming convention used by the top-level token contract that references the verifier library. For instance, for the `anon_nullifier` circuit, you will have generated the following file:
 
@@ -102,7 +48,7 @@ After EACH verifier library is generated, you need to navigate to the solidity f
 /solidity/contracts/lib/verifier_anon_nullifier.sol
 ```
 
-The file contains a contract called `Groth16Verifier`. That must be renamed to `Groth16Verifier_AnonEncNullifier` to match it's name used by the contract:
+The file contains a contract called `Groth16Verifier`. That must be renamed to `Groth16Verifier_AnonEncNullifier` to match its name used by the contract:
 
 ```
 /solidity/contracts/zeto_anon_nullifier.sol
@@ -205,3 +151,68 @@ Proving time:  1.08 s
   49 passing (9s)
 
 ```
+
+
+
+## generate.sh script explanation
+
+The `X` and `Y` referenced below refers to the values in `x_values` and `y_values` array in the [../generate.sh](../generate.sh) script.
+
+### Compile the circuit
+
+You can then compile the circuits:
+
+```console
+circom circuits/X.circom --output ./js/lib --sym --wasm
+```
+
+This generates the binary representations of the circuit, as a `.wasm` file. Only the top-level circuit, in our case `X.circom` needs to be compiled.
+
+### Generate the proving key
+
+The proving key is used by the prover code to generate the SNARK proof. This is accomplished with `snarkjs`. It supports 3 proving systems: `groth16`, `plonk` and `fflonk`. We use `groth16` as the default for its faster proof generation time and its support by the binary proof generator [rapidsnark](https://github.com/iden3/rapidsnark).
+
+The result of a trusted setup from a well-coordinated ceremony can be used here. Download one of them from [https://github.com/iden3/snarkjs](https://github.com/iden3/snarkjs?tab=readme-ov-file#7-prepare-phase-2), such as `powersOfTau28_hez_final_15.ptau`.
+
+The different `ptau` files represent different levels of complexity with the circuits. In general, you want to use the smallest file that can accommodate the size of your circuit.
+
+#### Generating the R1CS circuit format
+
+The first step is compiling the `.circom` files into an R1CS format that will then be used as input to generate the proving keys.
+
+```console
+circom circuits/X.circom --output ~/proving-keys --r1cs
+```
+
+#### Generating the proving keys for testing purposes
+
+```console
+snarkjs groth16 setup ~/proving-keys/X.r1cs ~/Downloads/Y.ptau ~/proving-keys/X.zkey
+```
+
+Note that the above setup command generates **UNSAFE** proving keys that should NOT be used in production. Doing the above skips the phase 2 of a groth16 set up ceremony to contribute more randomness to the proving keys, which is a required step to make the proof generation safe. Doing this is useful for testing purposes only. It also allows us to check in the verification logic in the verifier solidity libraries, which is derived from the proving key generated this way without any randomness.
+
+#### Generating the proving keys for production usage
+
+When using the groth16 proving system, per-circuit set up ceremony must be conducted to introduce the required randomness to make the proving keys secure. Follow the procedure described here https://github.com/iden3/snarkjs?tab=readme-ov-file#15-setup to conduct the ceremony. After obtaining the proving key, the verification key and the verifier Solidity libraries in the contracts folder must also be re-generated.
+
+### Export the verification key
+
+The verification key is used by verifier code (either offchain with a JS library or onchain with Solidity). This can be derived from the proving key above.
+
+```console
+snarkjs zkey export verificationkey ~/proving-keys/X.zkey ~/proving-keys/X-vkey.json
+```
+
+### Export the Solidity verifier library
+
+You can skip this step for running tests. Solidity verifiers have already been generated from the UNSAFE test proving keys as described above.
+
+However, if you have performed the per-circuit set up ceremonies to generate the proving keys, for instance in a production deployment, then you must re-generated the solidity verifiers.
+
+The verifier library in Solidity are also derived from the proving key:
+
+```console
+snarkjs zkey export solidityverifier ~/proving-keys/X.zkey ../solidity/contracts/lib/verifier_X.sol
+```
+
