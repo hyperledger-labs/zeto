@@ -27,10 +27,11 @@ npm i
 
 2. Use the `generate.sh` script under `zkp` folder to compile the circuits and generate verification keys and solidity files.
 
-- set where you want to store the generated verification keys
+- set where you want to store the generated verification keys and the downloaded PTAU files
   ```console
   export PROVING_KEYS_ROOT="$HOME/proving-keys"
-  mkdir -p $PROVING_KEYS_ROOT
+  export PTAU_DOWNLOAD="$HOME/Downloads"
+  mkdir -p $PROVING_KEYS_ROOT $PTAU_DOWNLOAD
   ```
 - run the generation script
   ```console
@@ -156,7 +157,7 @@ Proving time:  1.08 s
 
 ## generate.sh script explanation
 
-The `X` and `Y` referenced below refers to the values in `x_values` and `y_values` array in the [../generate.sh](../generate.sh) script.
+The `X` and `Y` referenced below refer to the values in `circuit_names` and `ptau_names` array in the [../generate.sh](../generate.sh) script.
 
 ### Compile the circuit
 
