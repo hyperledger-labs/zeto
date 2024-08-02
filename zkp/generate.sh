@@ -92,11 +92,11 @@ for i in "${!circuit_names[@]}"; do
     SOLIDITY_FILE="../solidity/contracts/lib/verifier_$circuit.sol"
     snarkjs zkey export solidityverifier "$PROVING_KEYS_ROOT/$circuit.zkey" "$SOLIDITY_FILE"
     
-    # echo "Modifying the contract name in the generated Solidity file for $circuit"
-    # CAMEL_CASE_CIRCUIT_NAME=$(to_camel_case "$circuit")
-    # SOLIDITY_FILE_TMP=$SOLIDITY_FILE.tmp
+    echo "Modifying the contract name in the generated Solidity file for $circuit"
+    CAMEL_CASE_CIRCUIT_NAME=$(to_camel_case "$circuit")
+    SOLIDITY_FILE_TMP=$SOLIDITY_FILE.tmp
 
-    # sed "s| Groth16Verifier | Groth16Verifier_$CAMEL_CASE_CIRCUIT_NAME |" "$SOLIDITY_FILE" > "$SOLIDITY_FILE_TMP"
-    # mv $SOLIDITY_FILE_TMP $SOLIDITY_FILE
+    sed "s| Groth16Verifier | Groth16Verifier_$CAMEL_CASE_CIRCUIT_NAME |" "$SOLIDITY_FILE" > "$SOLIDITY_FILE_TMP"
+    mv $SOLIDITY_FILE_TMP $SOLIDITY_FILE
 
 done
