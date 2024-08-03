@@ -19,7 +19,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit2L, PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
 import {Commonlib} from "./common.sol";
-import {Groth16Verifier_CheckSMTProof} from "./verifier_check_smt_proof.sol";
+import {Groth16Verifier_CheckSmtProof} from "./verifier_check_smt_proof.sol";
 import "hardhat/console.sol";
 
 uint256 constant MAX_SMT_DEPTH = 64;
@@ -34,11 +34,11 @@ abstract contract Registry is Ownable {
     SmtLib.Data internal _publicKeysTree;
     using SmtLib for SmtLib.Data;
 
-    Groth16Verifier_CheckSMTProof private verifier;
+    Groth16Verifier_CheckSmtProof private verifier;
 
     error AlreadyRegistered(uint256[2]);
 
-    constructor(Groth16Verifier_CheckSMTProof _verifier) Ownable(msg.sender) {
+    constructor(Groth16Verifier_CheckSmtProof _verifier) Ownable(msg.sender) {
         verifier = _verifier;
         _publicKeysTree.initialize(MAX_SMT_DEPTH);
     }

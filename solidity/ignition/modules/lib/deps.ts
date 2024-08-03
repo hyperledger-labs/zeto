@@ -30,8 +30,8 @@ export const SmtLibModule = buildModule("SmtLib", (m) => {
   return { smtLib, poseidon3 };
 });
 
-export const DepositVerifierModule = buildModule("Groth16Verifier_CheckValue", (m) => {
-  const verifier = m.contract('Groth16Verifier_CheckValue', []);
+export const DepositVerifierModule = buildModule("Groth16Verifier_CheckHashesValue", (m) => {
+  const verifier = m.contract('Groth16Verifier_CheckHashesValue', []);
   return { verifier };
 });
 

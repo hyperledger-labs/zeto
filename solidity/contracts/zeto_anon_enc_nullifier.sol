@@ -15,7 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.20;
 
-import {Groth16Verifier_CheckValue} from "./lib/verifier_check_hashes_value.sol";
+import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckNullifierValue} from "./lib/verifier_check_nullifier_value.sol";
 import {Groth16Verifier_AnonEncNullifier} from "./lib/verifier_anon_enc_nullifier.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
@@ -40,7 +40,7 @@ contract Zeto_AnonEncNullifier is
     Groth16Verifier_AnonEncNullifier verifier;
 
     constructor(
-        Groth16Verifier_CheckValue _depositVerifier,
+        Groth16Verifier_CheckHashesValue _depositVerifier,
         Groth16Verifier_CheckNullifierValue _withdrawVerifier,
         Groth16Verifier_AnonEncNullifier _verifier
     )

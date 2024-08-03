@@ -16,7 +16,6 @@
 pragma solidity ^0.8.20;
 
 import {Commonlib} from "./common.sol";
-import {Groth16Verifier_CheckValue} from "./verifier_check_hashes_value.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title A sample base implementation of a Zeto based token contract

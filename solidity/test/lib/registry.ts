@@ -48,7 +48,7 @@ describe('Registry tests', function () {
     });
     const smtLib = await SmtLib.deploy();
 
-    const Groth16Verifier_CheckSMTProof = await ethers.getContractFactory("Groth16Verifier_CheckSMTProof", owner);
+    const Groth16Verifier_CheckSMTProof = await ethers.getContractFactory("Groth16Verifier_CheckSmtProof", owner);
     const verifier = await Groth16Verifier_CheckSMTProof.deploy();
     const Registry = await ethers.getContractFactory("MyContract", {
       signer: owner,

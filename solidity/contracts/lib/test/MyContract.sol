@@ -18,10 +18,10 @@ pragma solidity ^0.8.20;
 
 import {Registry} from "../../lib/registry.sol";
 import {Commonlib} from "../common.sol";
-import {Groth16Verifier_CheckSMTProof} from "../verifier_check_smt_proof.sol";
+import {Groth16Verifier_CheckSmtProof} from "../verifier_check_smt_proof.sol";
 
 contract MyContract is Registry {
-    constructor(Groth16Verifier_CheckSMTProof _verifier) Registry(_verifier) {}
+    constructor(Groth16Verifier_CheckSmtProof _verifier) Registry(_verifier) {}
 
     function myMethod(
         Commonlib.Proof calldata kycProof

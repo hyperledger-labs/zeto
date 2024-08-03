@@ -15,7 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.20;
 
-import {Groth16Verifier_CheckValue} from "./verifier_check_hashes_value.sol";
+import {Groth16Verifier_CheckHashesValue} from "./verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValue} from "./verifier_check_inputs_outputs_value.sol";
 import {ZetoFungible} from "./zeto_fungible.sol";
 import {Commonlib} from "./common.sol";
@@ -32,7 +32,7 @@ abstract contract ZetoFungibleWithdraw is ZetoFungible {
     Groth16Verifier_CheckInputsOutputsValue internal withdrawVerifier;
 
     constructor(
-        Groth16Verifier_CheckValue _depositVerifier,
+        Groth16Verifier_CheckHashesValue _depositVerifier,
         Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier
     ) ZetoFungible(_depositVerifier) {
         withdrawVerifier = _withdrawVerifier;
