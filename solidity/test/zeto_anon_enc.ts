@@ -34,7 +34,6 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
   let Charlie: User;
   let erc20: any;
   let zeto: any;
-  let registry: any;
   let utxo100: UTXO;
   let utxo1: UTXO;
   let utxo2: UTXO;
