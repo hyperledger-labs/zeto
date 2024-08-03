@@ -44,7 +44,7 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
     Bob = await newUser(b);
     Charlie = await newUser(c);
     const { registry } = await ignition.deploy(RegistryModule);
-    ({ zeto } = await ignition.deploy(zetoModule, { parameters: { Zeto_NFAnonNullifier: { registry: registry.target } } }));
+    ({ zeto } = await ignition.deploy(zetoModule, { parameters: { Zeto_NfAnonNullifier: { registry: registry.target } } }));
 
     const tx1 = await registry.connect(deployer).register(Alice.ethAddress, Alice.babyJubPublicKey as [BigNumberish, BigNumberish]);
     await tx1.wait();

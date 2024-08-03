@@ -15,7 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.20;
 
-import {Groth16Verifier_NFAnonNullifier} from "./lib/verifier_nf_anon_nullifier.sol";
+import {Groth16Verifier_NfAnonNullifier} from "./lib/verifier_nf_anon_nullifier.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
@@ -34,11 +34,11 @@ uint256 constant MAX_SMT_DEPTH = 64;
 ///        - the hashes in the input and output match the hash(value, salt, owner public key) formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
-contract Zeto_NFAnonNullifier is ZetoNullifier {
-    Groth16Verifier_NFAnonNullifier verifier;
+contract Zeto_NfAnonNullifier is ZetoNullifier {
+    Groth16Verifier_NfAnonNullifier verifier;
 
     constructor(
-        Groth16Verifier_NFAnonNullifier _verifier,
+        Groth16Verifier_NfAnonNullifier _verifier,
         Registry _registry
     ) ZetoNullifier(_registry) {
         verifier = _verifier;

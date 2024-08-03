@@ -15,7 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.20;
 
-import {Groth16Verifier_CheckValue} from "./lib/verifier_check_hashes_value.sol";
+import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValue} from "./lib/verifier_check_inputs_outputs_value.sol";
 import {Groth16Verifier_Anon} from "./lib/verifier_anon.sol";
 import {Registry} from "./lib/registry.sol";
@@ -37,7 +37,7 @@ contract Zeto_Anon is ZetoBase, ZetoFungibleWithdraw {
     Groth16Verifier_Anon internal verifier;
 
     constructor(
-        Groth16Verifier_CheckValue _depositVerifier,
+        Groth16Verifier_CheckHashesValue _depositVerifier,
         Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier,
         Groth16Verifier_Anon _verifier,
         Registry _registry

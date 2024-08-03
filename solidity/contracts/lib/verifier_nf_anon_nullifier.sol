@@ -20,7 +20,7 @@
 
 pragma solidity >=0.7.0 <0.9.0;
 
-contract Groth16Verifier_NFAnonNullifier {
+contract Groth16Verifier_NfAnonNullifier {
     // Scalar field size
     uint256 constant r    = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
     // Base field size
@@ -65,7 +65,7 @@ contract Groth16Verifier_NFAnonNullifier {
     function verifyProof(uint[2] calldata _pA, uint[2][2] calldata _pB, uint[2] calldata _pC, uint[3] calldata _pubSignals) public view returns (bool) {
         assembly {
             function checkField(v) {
-                if iszero(lt(v, q)) {
+                if iszero(lt(v, r)) {
                     mstore(0, 0)
                     return(0, 0x20)
                 }
