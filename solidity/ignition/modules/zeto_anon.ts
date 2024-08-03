@@ -16,8 +16,8 @@
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-const DepositVerifierModule = buildModule("Groth16Verifier_CheckValue", (m) => {
-  const verifier = m.contract('Groth16Verifier_CheckValue', []);
+const DepositVerifierModule = buildModule("Groth16Verifier_CheckHashesValue", (m) => {
+  const verifier = m.contract('Groth16Verifier_CheckHashesValue', []);
   return { verifier };
 });
 

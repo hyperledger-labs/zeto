@@ -5,5 +5,12 @@
   "license": "Apache-2.0",
   "dependencies": {
     "circomlib": "^2.0.5"
+  },
+  "scripts": {
+    "gen": "node gen.js"
+  },
+  "devDependencies": {
+    "axios": "^1.7.3",
+    "p-limit": "^6.1.0"
   }
 }

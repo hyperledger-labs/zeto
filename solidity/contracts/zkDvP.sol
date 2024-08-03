@@ -17,7 +17,7 @@ pragma solidity ^0.8.20;
 
 import {Commonlib} from "./lib/common.sol";
 import {Zeto_Anon} from "./zeto_anon.sol";
-import {Zeto_NFAnon} from "./zeto_nf_anon.sol";
+import {Zeto_NfAnon} from "./zeto_nf_anon.sol";
 import "hardhat/console.sol";
 
 /// @title A sample on-chain implementation of a DvP escrow contract using ZKP based C-UTXO tokens
@@ -56,7 +56,7 @@ contract zkDvP {
     }
 
     Zeto_Anon paymentToken;
-    Zeto_NFAnon assetToken;
+    Zeto_NfAnon assetToken;
     mapping(uint256 => Trade) trades;
     uint256 tradeCount;
 
@@ -67,7 +67,7 @@ contract zkDvP {
     constructor(address paymentTokenAddress, address assetTokenAddress) {
         tradeCount = 0;
         paymentToken = Zeto_Anon(paymentTokenAddress);
-        assetToken = Zeto_NFAnon(assetTokenAddress);
+        assetToken = Zeto_NfAnon(assetTokenAddress);
     }
 
     function initiateTrade(
