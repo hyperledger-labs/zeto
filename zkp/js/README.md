@@ -30,8 +30,8 @@ npm i
 - set where you want to store the generated verification keys and the downloaded PTAU files
   ```console
   export PROVING_KEYS_ROOT="$HOME/proving-keys"
-  export PTAU_DOWNLOAD="$HOME/Downloads"
-  mkdir -p $PROVING_KEYS_ROOT $PTAU_DOWNLOAD
+  export PTAU_DOWNLOAD_PATH="$HOME/Downloads"
+  mkdir -p $PROVING_KEYS_ROOT $PTAU_DOWNLOAD_PATH
   ```
 - run the generation script for **ALL** circuits
   ```console
@@ -145,7 +145,7 @@ Proving time:  1.08 s
 
 ## generation script explanation
 
-The `CIRCUIT_FILE_NAME` and `PTAU_FILE_NAME` referenced below refer to the circuit name and their corresponding ptau in [../circuits/circuits.json](../circuits/circuits.json).
+The `CIRCUIT_FILE_NAME` and `PTAU_FILE_NAME` referenced below refer to the circuit name and their corresponding ptau in [../circuits/gen-config.json](../circuits/gen-config.json).
 
 ### Compile the circuit
 

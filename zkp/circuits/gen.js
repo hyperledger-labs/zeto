@@ -5,7 +5,7 @@ const { promisify } = require('util');
 const axios = require('axios');
 
 const provingKeysRoot = process.env.PROVING_KEYS_ROOT;
-const ptauDownload = process.env.PTAU_DOWNLOAD;
+const ptauDownload = process.env.PTAU_DOWNLOAD_PATH;
 const specificCircuit = process.argv[2];
 const parallelLimit = parseInt(process.env.GEN_CONCURRENCY, 10) || 10; // Default to compile 10 circuits in parallel
 
@@ -17,20 +17,13 @@ if (!provingKeysRoot) {
 }
 
 if (!ptauDownload) {
-  console.error('Error: PTAU_DOWNLOAD is not set.');
+  console.error('Error: PTAU_DOWNLOAD_PATH is not set.');
   process.exit(1);
 }
 
 // load circuits
 
-const circuits = require('./circuits.json');
-
-const validateCircuit = (circuit) => {
-  if (!circuits[circuit]) {
-    console.error(`Error: Unknown circuit: ${circuit}`);
-    process.exit(1);
-  }
-};
+const circuits = require('./gen-config.json');
 
 const toCamelCase = (str) => {
   return str
@@ -133,6 +126,14 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
 };
 
 const run = async () => {
+  if (specificCircuit) {
+    // if a specific circuit is provided, check it's in the map
+    if (!circuits[specificCircuit]) {
+      console.error(`Error: Unknown circuit: ${specificCircuit}`);
+      process.exit(1);
+    }
+  }
+
   const circuitsArray = Object.entries(circuits);
   const activePromises = new Set();
 
@@ -140,8 +141,6 @@ const run = async () => {
     if (specificCircuit && circuit !== specificCircuit) {
       continue;
     }
-
-    validateCircuit(circuit);
 
     const pcPromise = processCircuit(circuit, ptau, skipSolidityGenaration);
     activePromises.add(pcPromise);
