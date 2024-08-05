@@ -70,11 +70,16 @@ function getProofHash(encodedProof) {
   return hash;
 }
 
-function hashTokenUri(tokenUri) {
+function tokenUriHash(tokenUri) {
   const hash = createHash('sha256').update(tokenUri).digest('hex');
   // to fit the result within the range of the Finite Field used in the poseidon hash,
   // use 253 bit long numbers. we need to remove the most significant three bits.
   return BigInt.asUintN(253, '0x' + hash);
+}
+
+function kycHash(bjjPublicKey) {
+  const hash = Poseidon.poseidon2(bjjPublicKey);
+  return hash;
 }
 
 module.exports = {
@@ -82,5 +87,6 @@ module.exports = {
   poseidonDecrypt,
   encodeProof,
   getProofHash,
-  hashTokenUri,
+  tokenUriHash,
+  kycHash,
 };

@@ -15,11 +15,9 @@
 // limitations under the License.
 pragma solidity ^0.8.20;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit2L, PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
 import {Commonlib} from "./common.sol";
-import {Groth16Verifier_CheckSmtProof} from "./verifier_check_smt_proof.sol";
 import "hardhat/console.sol";
 
 uint256 constant MAX_SMT_DEPTH = 64;
@@ -30,36 +28,20 @@ uint256 constant MAX_SMT_DEPTH = 64;
 ///   submitters can generate proofs of membership for the
 ///   accounts in a privacy-preserving manner.
 /// @author Kaleido, Inc.
-abstract contract Registry is Ownable {
+abstract contract Registry {
     SmtLib.Data internal _publicKeysTree;
     using SmtLib for SmtLib.Data;
 
-    Groth16Verifier_CheckSmtProof private verifier;
-
     error AlreadyRegistered(uint256[2]);
 
-    constructor(Groth16Verifier_CheckSmtProof _verifier) Ownable(msg.sender) {
-        verifier = _verifier;
+    constructor() {
         _publicKeysTree.initialize(MAX_SMT_DEPTH);
-    }
-
-    modifier onlyRegistered(Commonlib.Proof calldata proof) {
-        uint256 root = _publicKeysTree.getRoot();
-        uint256[1] memory publicInputs;
-        publicInputs[0] = root;
-
-        // // Check the proof
-        require(
-            verifier.verifyProof(proof.pA, proof.pB, proof.pC, publicInputs),
-            "Identity not registered"
-        );
-        _;
     }
 
     /// @dev Register a new Zeto account
     /// @param publicKey The public Babyjubjub key to register
-    function register(uint256[2] memory publicKey) public onlyOwner {
-        uint256 nodeHash = _getLeafNodeHash(publicKey);
+    function _register(uint256[2] memory publicKey) internal {
+        uint256 nodeHash = _getIdentitiesLeafNodeHash(publicKey);
         SmtLib.Node memory node = _publicKeysTree.getNode(nodeHash);
         if (node.nodeType != SmtLib.NodeType.EMPTY) {
             revert AlreadyRegistered(publicKey);
@@ -73,22 +55,22 @@ abstract contract Registry is Ownable {
     function isRegistered(
         uint256[2] memory publicKey
     ) public view returns (bool) {
-        uint256 nodeKey = _getLeafNodeKey(publicKey);
+        uint256 nodeKey = _getIdentitiesLeafNodeKey(publicKey);
         SmtLib.Node memory node = _publicKeysTree.getNode(nodeKey);
         return node.nodeType != SmtLib.NodeType.EMPTY;
     }
 
-    function getRoot() public view returns (uint256) {
+    function getIdentitiesRoot() public view returns (uint256) {
         return _publicKeysTree.getRoot();
     }
 
-    function _getLeafNodeHash(
+    function _getIdentitiesLeafNodeHash(
         uint256[2] memory publicKey
     ) internal pure returns (uint256) {
         return PoseidonUnit2L.poseidon(publicKey);
     }
 
-    function _getLeafNodeKey(
+    function _getIdentitiesLeafNodeKey(
         uint256[2] memory publicKey
     ) internal pure returns (uint256) {
         uint256 nodeHash = PoseidonUnit2L.poseidon(publicKey);

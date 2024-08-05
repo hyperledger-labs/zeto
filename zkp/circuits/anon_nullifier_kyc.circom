@@ -38,8 +38,8 @@ template Zeto(nInputs, nOutputs, nUTXOSMTLevels, nIdentitiesSMTLevels) {
   // must be properly hashed and trimmed to be compatible with the BabyJub curve.
   // Reference: https://github.com/iden3/circomlib/blob/master/test/babyjub.js#L103
   signal input inputOwnerPrivateKey;
-  signal input utxoRoot;
-  signal input utxoMerkleProof[nInputs][nUTXOSMTLevels];
+  signal input utxosRoot;
+  signal input utxosMerkleProof[nInputs][nUTXOSMTLevels];
   // allows merkle proof verifications for empty input elements to be skipped
   signal input enabled[nInputs];
   signal input identitiesRoot;
@@ -94,8 +94,8 @@ template Zeto(nInputs, nOutputs, nUTXOSMTLevels, nIdentitiesSMTLevels) {
   // demonstrate that the input commitments belong to the Sparse
   // Merkle Tree with the root `root`.
   component checkUTXOSMTProof = CheckSMTProof(nInputs, nUTXOSMTLevels);
-  checkUTXOSMTProof.root <== utxoRoot;
-  checkUTXOSMTProof.merkleProof <== utxoMerkleProof;
+  checkUTXOSMTProof.root <== utxosRoot;
+  checkUTXOSMTProof.merkleProof <== utxosMerkleProof;
   checkUTXOSMTProof.enabled <== enabled;
   checkUTXOSMTProof.leafNodeIndexes <== inputCommitments;
 
@@ -110,12 +110,13 @@ template Zeto(nInputs, nOutputs, nUTXOSMTLevels, nIdentitiesSMTLevels) {
 
   component hashes[nOutputs];
   var identitiesMTPCheckEnabled[nOutputs + 1];
+  identitiesMTPCheckEnabled[0] = 1;
   for (var i = 0; i < nOutputs; i++) {
     hashes[i] = Poseidon(2);
     hashes[i].inputs[0] <== outputOwnerPublicKeys[i][0];
     hashes[i].inputs[1] <== outputOwnerPublicKeys[i][1];
     ownerPublicKeyHashes[i+1] = hashes[i].out;
-    identitiesMTPCheckEnabled[i] = 1;
+    identitiesMTPCheckEnabled[i+1] = 1;
   }
 
   component checkIdentitiesSMTProof = CheckSMTProof(nOutputs + 1, nIdentitiesSMTLevels);
@@ -125,4 +126,4 @@ template Zeto(nInputs, nOutputs, nUTXOSMTLevels, nIdentitiesSMTLevels) {
   checkIdentitiesSMTProof.leafNodeIndexes <== ownerPublicKeyHashes;
 }
 
-component main { public [ nullifiers, outputCommitments, utxoRoot, identitiesRoot, enabled ] } = Zeto(2, 2, 64, 10);
+component main { public [ nullifiers, outputCommitments, utxosRoot, identitiesRoot, enabled ] } = Zeto(2, 2, 64, 10);

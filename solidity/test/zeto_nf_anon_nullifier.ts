@@ -17,7 +17,7 @@
 import { ethers, ignition } from 'hardhat';
 import { ContractTransactionReceipt, Signer, BigNumberish, AddressLike } from 'ethers';
 import { expect } from 'chai';
-import { loadCircuit, Poseidon, encodeProof, hashTokenUri } from "zeto-js";
+import { loadCircuit, Poseidon, encodeProof, tokenUriHash } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
 import zetoModule from '../ignition/modules/zeto_nf_anon_nullifier';
@@ -89,7 +89,7 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
     const merkleProof = proof1.siblings.map((s) => s.bigInt());
 
     // Alice transfers her UTXOs to Bob
-    const result2 = await doBranch(Alice, utxo1, nullifier1, _utxo3, root.bigInt(), merkleProof, Bob);
+    const result2 = await doTransfer(Alice, utxo1, nullifier1, _utxo3, root.bigInt(), merkleProof, Bob);
 
     // Alice locally tracks the UTXOs inside the Sparse Merkle Tree
     await smtAlice.add(_utxo3.hash, _utxo3.hash);
@@ -111,7 +111,7 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
     const receivedUri = _utxo3.uri!;
     const receivedSalt = _utxo3.salt;
     const incomingUTXOs: any = events[0].outputs;
-    const hash = Poseidon.poseidon5([BigInt(receivedTokenId), hashTokenUri(receivedUri), receivedSalt, Bob.babyJubPublicKey[0], Bob.babyJubPublicKey[1]]);
+    const hash = Poseidon.poseidon5([BigInt(receivedTokenId), tokenUriHash(receivedUri), receivedSalt, Bob.babyJubPublicKey[0], Bob.babyJubPublicKey[1]]);
     expect(incomingUTXOs[0]).to.equal(hash);
 
     // Bob uses the decrypted values to construct the UTXO received from the transaction
@@ -131,7 +131,7 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
     const utxo6 = newAssetUTXO(utxo3.tokenId!, utxo3.uri!, Charlie);
 
     // Bob should be able to spend the UTXO that was reconstructed from the previous transaction
-    const result = await doBranch(Bob, utxo3, nullifier1, utxo6, root.bigInt(), merkleProof, Charlie);
+    const result = await doTransfer(Bob, utxo3, nullifier1, utxo6, root.bigInt(), merkleProof, Charlie);
 
     // Bob keeps the local SMT in sync
     await smtBob.add(utxo6.hash, utxo6.hash);
@@ -161,7 +161,7 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
     const proof1 = await smtAlice.generateCircomVerifierProof(utxo1.hash, root);
     const merkleProof = proof1.siblings.map((s) => s.bigInt());
 
-    await expect(doBranch(Alice, utxo1, nullifier1, _utxo1, root.bigInt(), merkleProof, Charlie)).rejectedWith("UTXOAlreadySpent")
+    await expect(doTransfer(Alice, utxo1, nullifier1, _utxo1, root.bigInt(), merkleProof, Charlie)).rejectedWith("UTXOAlreadySpent")
   }).timeout(600000);
 
   it("transfer non-existing UTXOs should fail", async function () {
@@ -181,13 +181,13 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
     // propose the output UTXOs
     const _utxo1 = newAssetUTXO(nonExisting1.tokenId!, nonExisting1.uri!, Charlie);
 
-    await expect(doBranch(Alice, nonExisting1, nullifier1, _utxo1, root.bigInt(), merkleProof, Charlie)).rejectedWith("UTXORootNotFound");
+    await expect(doTransfer(Alice, nonExisting1, nullifier1, _utxo1, root.bigInt(), merkleProof, Charlie)).rejectedWith("UTXORootNotFound");
 
     // clean up the fake UTXOs from the local SMT
     await smtAlice.delete(nonExisting1.hash);
   }).timeout(600000);
 
-  async function doBranch(signer: User, input: UTXO, _nullifier: UTXO, output: UTXO, root: BigInt, merkleProof: BigInt[], owner: User) {
+  async function doTransfer(signer: User, input: UTXO, _nullifier: UTXO, output: UTXO, root: BigInt, merkleProof: BigInt[], owner: User) {
     let nullifier: BigNumberish;
     let outputCommitment: BigNumberish;
     let encodedProof: any;
@@ -204,7 +204,7 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
     const nullifier = _nullifier.hash as BigNumberish;
     const inputCommitment: BigNumberish = input.hash as BigNumberish;
     const tokenId = BigInt(input.tokenId!);
-    const tokenUri = hashTokenUri(input.uri!);
+    const tokenUri = tokenUriHash(input.uri!);
     const inputSalt = input.salt!;
     const outputCommitment: BigNumberish = output.hash as BigNumberish;
     const outputSalt = output.salt!;

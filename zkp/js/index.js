@@ -14,25 +14,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const path = require("path");
-const { readFileSync } = require("fs");
-const Poseidon = require("poseidon-lite");
-const {
-  newSalt,
-  poseidonDecrypt,
-  encodeProof,
-  getProofHash,
-  hashTokenUri,
-} = require("./lib/util.js");
+const path = require('path');
+const { readFileSync } = require('fs');
+const Poseidon = require('poseidon-lite');
+const { newSalt, poseidonDecrypt, encodeProof, getProofHash, tokenUriHash, kycHash } = require('./lib/util.js');
 
 function loadCircuit(type) {
   if (!type) {
     throw new Error('The circuit name must be provided');
   }
   const WitnessCalculator = require(`./lib/${type}_js/witness_calculator.js`);
-  const buffer = readFileSync(
-    path.join(__dirname, `./lib/${type}_js/${type}.wasm`)
-  );
+  const buffer = readFileSync(path.join(__dirname, `./lib/${type}_js/${type}.wasm`));
   return WitnessCalculator(buffer);
 }
 
@@ -40,7 +32,8 @@ module.exports = {
   loadCircuit,
   Poseidon,
   newSalt,
-  hashTokenUri,
+  tokenUriHash,
+  kycHash,
   poseidonDecrypt,
   encodeProof,
   getProofHash,

@@ -27,7 +27,7 @@ export const SmtLibModule = buildModule("SmtLib", (m) => {
       PoseidonUnit3L: poseidon3,
     },
   });
-  return { smtLib, poseidon3 };
+  return { smtLib, poseidon2, poseidon3 };
 });
 
 export const DepositVerifierModule = buildModule("Groth16Verifier_CheckHashesValue", (m) => {
