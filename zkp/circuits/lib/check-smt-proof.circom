@@ -34,11 +34,15 @@ template CheckSMTProof(numInputs, nSMTLevels) {
     for (var j = 0; j < nSMTLevels; j++) {
       smtVerifier[i].siblings[j] <== merkleProof[i][j];
     }
+    smtVerifier[i].key <== leafNodeIndexes[i];
+    smtVerifier[i].value <== leafNodeIndexes[i];
+    // 0: inclusion proof, 1: exclusion proof
+    smtVerifier[i].fnc <== 0;
+    // these last values are only used in exclusion proofs. 
+    // As such they are always 0 for inclusion proofs.
+    // TODO: update when exclusion proofs are supported
     smtVerifier[i].oldKey <== 0;
     smtVerifier[i].oldValue <== 0;
     smtVerifier[i].isOld0 <== 0;
-    smtVerifier[i].key <== leafNodeIndexes[i];
-    smtVerifier[i].value <== leafNodeIndexes[i];
-    smtVerifier[i].fnc <== 0;
   }
 }
