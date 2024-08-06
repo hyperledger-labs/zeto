@@ -59,7 +59,7 @@ jobs:
       - name: Run golang e2e tests
         env:
           PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
-          CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts
+          CIRCUITS_ROOT: ../js/lib
         working-directory: zkp/golang
         run: |
           make e2e
