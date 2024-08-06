@@ -17,12 +17,10 @@ jobs:
           node-version: 20
 
       - name: Install circom
-        uses: jaxxstorm/action-install-gh-release@v1.10.0
-        with: # Grab a specific platform and architecture
-          repo: iden3/circom
-          tag: v2.1.9
-          platform: linux
-          arch: amd64
+        uses: supplypike/setup-bin@v4
+        with:
+          uri: https://github.com/iden3/circom/releases/download/v2.1.9/circom-linux-amd64
+          name: circom
 
       - name: Checkout circuits
         uses: actions/checkout@v4
