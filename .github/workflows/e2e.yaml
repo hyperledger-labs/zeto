@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  circuit-build:
+  circuit-build-test:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Rust
@@ -51,8 +51,15 @@ jobs:
         env:
           PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
           PTAU_DOWNLOAD_PATH: ${{ runner.temp }}/zeto-artifacts
-          CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts
+        working-directory: zkp/circuits
         run: |
-          cd zkp/circuits
           npm install
           npm run gen
+
+      - name: Run golang e2e tests
+        env:
+          PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
+          CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts
+        working-directory: zkp/golang
+        run: |
+          make e2e
