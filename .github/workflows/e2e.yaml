@@ -11,23 +11,12 @@ jobs:
   circuit-build-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Install circom
+        uses: supplypike/setup-bin@v4
         with:
-          profile: minimal
-          toolchain: stable
-
-      - name: Checkout circom repo
-        uses: actions/checkout@v4
-        with:
-          repository: 'iden3/circom'
-          ref: 'v2.1.9'
-
-      - name: Build circom
-        run: |
-          cd circom
-          RUSTFLAGS="$RUSTFLAGS -A dead_code" cargo build --release
-          RUSTFLAGS="$RUSTFLAGS -A dead_code" cargo install --path .
+          uri: https://github.com/iden3/circom/releases/download/v2.1.9/circom-linux-amd64
+          name: circom
+          version: 2.1.9
 
       - name: Setup node.js
         uses: actions/setup-node@v4
