@@ -15,19 +15,18 @@
 // limitations under the License.
 
 const { expect } = require('chai');
-const { readFileSync } = require('fs');
-const path = require('path');
-const { Poseidon, newSalt } = require('../../index.js');
+const { join } = require('path');
+const { wasm: wasm_tester } = require('circom_tester');
 
 const MAX_VALUE = 2n ** 40n - 1n;
-const poseidonHash = Poseidon.poseidon4;
 
 describe('check-positive circuit tests', () => {
   let circuit;
-  const sender = {};
-  const receiver = {};
-  before(async () => {
-    circuit = await loadCircuits();
+
+  before(async function () {
+    this.timeout(60000);
+
+    circuit = await wasm_tester(join(__dirname, '../circuits/check-positive.circom'));
   });
 
   it('should succeed to generate a witness using the MAX_VALUE for output', async () => {
@@ -35,7 +34,7 @@ describe('check-positive circuit tests', () => {
 
     let error;
     try {
-      await circuit.calculateWTNSBin(
+      await circuit.calculateWitness(
         {
           outputValues,
         },
@@ -55,7 +54,7 @@ describe('check-positive circuit tests', () => {
 
     let error;
     try {
-      await circuit.calculateWTNSBin(
+      await circuit.calculateWitness(
         {
           outputValues,
         },
@@ -76,7 +75,7 @@ describe('check-positive circuit tests', () => {
 
     let error;
     try {
-      await circuit.calculateWTNSBin(
+      await circuit.calculateWitness(
         {
           outputValues,
         },
@@ -94,7 +93,7 @@ describe('check-positive circuit tests', () => {
 
     let error;
     try {
-      await circuit.calculateWTNSBin(
+      await circuit.calculateWitness(
         {
           outputValues,
         },
@@ -107,12 +106,3 @@ describe('check-positive circuit tests', () => {
     expect(error).to.match(/Error in template CheckPositive_3 line: 39/); // positive range check failed
   });
 });
-
-// the circuit is a library, to test it we need a top-level circuit with "main"
-// which is placed in the test/circuits directory
-async function loadCircuits() {
-  const WitnessCalculator = require('../circuits/check-positive_js/witness_calculator.js');
-  const buffer = readFileSync(path.join(__dirname, '../circuits/check-positive_js/check-positive.wasm'));
-  const circuit = await WitnessCalculator(buffer);
-  return circuit;
-}

@@ -16,7 +16,8 @@
 
 const { expect } = require('chai');
 const { readFileSync } = require('fs');
-const path = require('path');
+const { join } = require('path');
+const { wasm: wasm_tester } = require('circom_tester');
 const { genKeypair } = require('maci-crypto');
 const { Poseidon, newSalt } = require('../../index.js');
 
@@ -28,8 +29,12 @@ describe('check-hashes circuit tests', () => {
   let circuit;
   const sender = {};
   const receiver = {};
-  before(async () => {
-    circuit = await loadCircuits();
+
+  before(async function () {
+    this.timeout(60000);
+
+    circuit = await wasm_tester(join(__dirname, '../circuits/check-hashes.circom'));
+
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;
     sender.pubKey = keypair.pubKey;
@@ -130,7 +135,7 @@ describe('check-hashes circuit tests', () => {
 
     let error;
     try {
-      await circuit.calculateWTNSBin(
+      await circuit.calculateWitness(
         {
           commitments: inputCommitments,
           values: inputValues,
@@ -146,12 +151,3 @@ describe('check-hashes circuit tests', () => {
     expect(error).to.match(/Error in template CheckHashes_74 line: 60/); // hash check failed
   });
 });
-
-// the circuit is a library, to test it we need a top-level circuit with "main"
-// which is placed in the test/circuits directory
-async function loadCircuits() {
-  const WitnessCalculator = require('../circuits/check-hashes_js/witness_calculator.js');
-  const buffer = readFileSync(path.join(__dirname, '../circuits/check-hashes_js/check-hashes.wasm'));
-  const circuit = await WitnessCalculator(buffer);
-  return circuit;
-}
