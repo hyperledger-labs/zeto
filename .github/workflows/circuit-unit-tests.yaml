@@ -16,12 +16,19 @@ jobs:
         with:
           node-version: 20
 
+      - name: Install circom
+        uses: jaxxstorm/action-install-gh-release@v1.10.0
+        with: # Grab a specific platform and architecture
+          repo: iden3/circom
+          platform: linux
+          arch: amd64
+
       - name: Checkout circuits
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Run golang e2e tests
+      - name: Run circuit unit tests
         working-directory: zkp/js
         run: |
           npm install
