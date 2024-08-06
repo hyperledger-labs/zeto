@@ -11,10 +11,6 @@ jobs:
   circuit-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
@@ -43,6 +39,9 @@ jobs:
           npm install -g snarkjs
 
       - name: Build circuits
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
         run: |
           cd zkp/circuits
           npm run gen
