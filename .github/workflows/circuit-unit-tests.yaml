@@ -28,6 +28,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install circuit dependencies
+        working-directory: zkp/circuits
+        run: |
+          npm install
+
       - name: Run circuit unit tests
         working-directory: zkp/js
         run: |
