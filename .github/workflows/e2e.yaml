@@ -31,7 +31,7 @@ jobs:
         run: |
           cd circom
           RUSTFLAGS="$RUSTFLAGS -A dead_code" cargo build --release
-          cargo install --path .
+          RUSTFLAGS="$RUSTFLAGS -A dead_code" cargo install --path .
 
       - name: Setup node.js
         uses: actions/setup-node@v4
