@@ -21,6 +21,7 @@ jobs:
         with:
           uri: https://github.com/iden3/circom/releases/download/v2.1.9/circom-linux-amd64
           name: circom
+          version: 2.1.9
 
       - name: Checkout circuits
         uses: actions/checkout@v4
