@@ -42,7 +42,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Setup temp dir for the artifacts
+        run: |
+          mkdir -p ${{ runner.temp }}/zeto-artifacts
+
       - name: Build circuits
+        env:
+          PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
+          PTAU_DOWNLOAD_PATH: ${{ runner.temp }}/zeto-artifacts
+          CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts
         run: |
           cd zkp/circuits
           npm install
