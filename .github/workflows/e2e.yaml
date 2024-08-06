@@ -30,7 +30,7 @@ jobs:
       - name: Build circom
         run: |
           cd circom
-          cargo build --release
+          RUSTFLAGS="$RUSTFLAGS -A dead_code" cargo build --release
           cargo install --path circom
 
       - name: Setup node.js
