@@ -20,7 +20,7 @@ jobs:
         uses: jaxxstorm/action-install-gh-release@v1.10.0
         with: # Grab a specific platform and architecture
           repo: iden3/circom
-          release: v2.1.9
+          tag: v2.1.9
           platform: linux
           arch: amd64
 
