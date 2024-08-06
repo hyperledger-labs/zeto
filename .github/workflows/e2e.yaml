@@ -38,10 +38,11 @@ jobs:
         run: |
           npm install -g snarkjs
 
-      - name: Build circuits
+      - name: Checkout circuits
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Build circuits
         run: |
           cd zkp/circuits
           npm run gen
