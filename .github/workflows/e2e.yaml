@@ -45,4 +45,5 @@ jobs:
       - name: Build circuits
         run: |
           cd zkp/circuits
+          npm install
           npm run gen
