@@ -14,13 +14,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package smt
+package utils
 
 import (
-	"github.com/hyperledger-labs/zeto/internal/smt"
-	"github.com/hyperledger-labs/zeto/pkg/core"
+	"github.com/hyperledger-labs/zeto/pkg/sparse-merkle-tree/core"
 )
 
-func NewMerkleTree(db core.Storage, maxLevels int) (core.SparseMerkleTree, error) {
-	return smt.NewMerkleTree(db, maxLevels)
+type IndexOnly struct {
+	Index core.NodeIndex
+}
+
+func NewIndexOnly(index core.NodeIndex) *IndexOnly {
+	return &IndexOnly{
+		Index: index,
+	}
+}
+
+func (f *IndexOnly) CalculateIndex() (core.NodeIndex, error) {
+	return f.Index, nil
 }

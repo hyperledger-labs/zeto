@@ -26,11 +26,15 @@ import (
 	"time"
 
 	"github.com/hyperledger-labs/zeto/internal/testutils"
-	"github.com/hyperledger-labs/zeto/pkg/core"
-	"github.com/hyperledger-labs/zeto/pkg/node"
-	"github.com/hyperledger-labs/zeto/pkg/smt"
-	"github.com/hyperledger-labs/zeto/pkg/storage"
-	"github.com/hyperledger-labs/zeto/pkg/utxo"
+	keyscore "github.com/hyperledger-labs/zeto/pkg/key-manager/core"
+	"github.com/hyperledger-labs/zeto/pkg/key-manager/key"
+	"github.com/hyperledger-labs/zeto/pkg/sparse-merkle-tree/core"
+	"github.com/hyperledger-labs/zeto/pkg/sparse-merkle-tree/node"
+	"github.com/hyperledger-labs/zeto/pkg/sparse-merkle-tree/smt"
+	"github.com/hyperledger-labs/zeto/pkg/sparse-merkle-tree/storage"
+	"github.com/hyperledger-labs/zeto/pkg/sparse-merkle-tree/utxo"
+	"github.com/hyperledger/firefly-signer/pkg/keystorev3"
+	"github.com/hyperledger/firefly-signer/pkg/secp256k1"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-iden3-crypto/poseidon"
 	"github.com/iden3/go-rapidsnark/prover"
@@ -44,7 +48,7 @@ import (
 
 const MAX_HEIGHT = 64
 
-func LoadCircuit(circuitName string) (witness.Calculator, []byte, error) {
+func loadCircuit(circuitName string) (witness.Calculator, []byte, error) {
 	circuitRoot, exists := os.LookupEnv("CIRCUITS_ROOT")
 	if !exists {
 		return nil, []byte{}, fmt.Errorf("CIRCUITS_ROOT not set")
@@ -77,12 +81,48 @@ func LoadCircuit(circuitName string) (witness.Calculator, []byte, error) {
 	return calc, zkeyBytes, err
 }
 
+func decryptKeyStorev3(t *testing.T) *secp256k1.KeyPair {
+	// this would be read from a keystore file. The same file is used to persist
+	// a private key for the secp256k1 curve
+	const sampleWallet = `{
+		"address": "5d093e9b41911be5f5c4cf91b108bac5d130fa83",
+		"crypto": {
+			"cipher": "aes-128-ctr",
+			"ciphertext": "a28e5f6fd3189ef220f658392af0e967f17931530ac5b79376ed5be7d8adfb5a",
+			"cipherparams": {
+			"iv": "7babf856e25f812d9dbc133e3122a1fc"
+			},
+			"kdf": "scrypt",
+			"kdfparams": {
+			"dklen": 32,
+			"n": 262144,
+			"p": 1,
+			"r": 8,
+			"salt": "2844947e39e03785cad3ccda776279dbf5a86a5df9cb6d0ab5773bfcb7cbe3b7"
+			},
+			"mac": "69ed15cbb03a29ec194bdbd2c2d8084c62be620d5b3b0f668ed9aa1f45dbaf99"
+		},
+		"id": "307cc063-2344-426a-b992-3b72d5d5be0b",
+		"version": 3
+	}`
+
+	w, err := keystorev3.ReadWalletFile([]byte(sampleWallet), []byte("correcthorsebatterystaple"))
+	assert.NoError(t, err)
+	keypair := w.KeyPair()
+	return keypair
+}
+
+func testKeyFromKeyStorev3(t *testing.T) *keyscore.KeyEntry {
+	keypair := decryptKeyStorev3(t)
+	return key.NewKeyEntryFromPrivateKeyBytes([32]byte(keypair.PrivateKeyBytes()))
+}
+
 func TestZeto_1_SuccessfulProving(t *testing.T) {
-	calc, provingKey, err := LoadCircuit("anon")
+	calc, provingKey, err := loadCircuit("anon")
 	assert.NoError(t, err)
 	assert.NotNil(t, calc)
 
-	sender := testutils.NewKeypair()
+	sender := testKeyFromKeyStorev3(t)
 	receiver := testutils.NewKeypair()
 
 	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
@@ -104,7 +144,7 @@ func TestZeto_1_SuccessfulProving(t *testing.T) {
 		"inputCommitments":      inputCommitments,
 		"inputValues":           inputValues,
 		"inputSalts":            []*big.Int{salt1, salt2},
-		"senderPrivateKey":      sender.PrivateKeyBigInt,
+		"senderPrivateKey":      sender.PrivateKeyForZkp,
 		"outputCommitments":     outputCommitments,
 		"outputValues":          outputValues,
 		"outputSalts":           []*big.Int{salt3, salt4},
@@ -139,11 +179,11 @@ func TestZeto_1_SuccessfulProving(t *testing.T) {
 }
 
 func TestZeto_2_SuccessfulProving(t *testing.T) {
-	calc, provingKey, err := LoadCircuit("anon_enc")
+	calc, provingKey, err := loadCircuit("anon_enc")
 	assert.NoError(t, err)
 	assert.NotNil(t, calc)
 
-	sender := testutils.NewKeypair()
+	sender := testKeyFromKeyStorev3(t)
 	receiver := testutils.NewKeypair()
 
 	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
@@ -167,7 +207,7 @@ func TestZeto_2_SuccessfulProving(t *testing.T) {
 		"inputCommitments":      inputCommitments,
 		"inputValues":           inputValues,
 		"inputSalts":            []*big.Int{salt1, salt2},
-		"senderPrivateKey":      sender.PrivateKeyBigInt,
+		"senderPrivateKey":      sender.PrivateKeyForZkp,
 		"outputCommitments":     outputCommitments,
 		"outputValues":          outputValues,
 		"outputSalts":           []*big.Int{salt3, salt4},
@@ -191,7 +231,7 @@ func TestZeto_2_SuccessfulProving(t *testing.T) {
 }
 
 func TestZeto_3_SuccessfulProving(t *testing.T) {
-	calc, provingKey, err := LoadCircuit("anon_nullifier")
+	calc, provingKey, err := loadCircuit("anon_nullifier")
 	assert.NoError(t, err)
 	assert.NotNil(t, calc)
 
@@ -277,7 +317,7 @@ func TestZeto_3_SuccessfulProving(t *testing.T) {
 }
 
 func TestZeto_4_SuccessfulProving(t *testing.T) {
-	calc, provingKey, err := LoadCircuit("anon_enc_nullifier")
+	calc, provingKey, err := loadCircuit("anon_enc_nullifier")
 	assert.NoError(t, err)
 	assert.NotNil(t, calc)
 
@@ -366,7 +406,7 @@ func TestZeto_4_SuccessfulProving(t *testing.T) {
 }
 
 func TestZeto_5_SuccessfulProving(t *testing.T) {
-	calc, provingKey, err := LoadCircuit("nf_anon")
+	calc, provingKey, err := loadCircuit("nf_anon")
 	assert.NoError(t, err)
 	assert.NotNil(t, calc)
 
@@ -425,7 +465,7 @@ func TestZeto_5_SuccessfulProving(t *testing.T) {
 }
 
 func TestZeto_6_SuccessfulProving(t *testing.T) {
-	calc, provingKey, err := LoadCircuit("nf_anon_nullifier")
+	calc, provingKey, err := loadCircuit("nf_anon_nullifier")
 	assert.NoError(t, err)
 	assert.NotNil(t, calc)
 
@@ -650,4 +690,15 @@ func TestPostgresStorage(t *testing.T) {
 	err = db.Table(core.NodesTablePrefix + "test_1").First(&dbNode).Error
 	assert.NoError(t, err)
 	assert.Equal(t, n1.Ref().Hex(), dbNode.RefKey)
+}
+
+func TestKeyManager(t *testing.T) {
+	keypair := decryptKeyStorev3(t)
+
+	keyEntry := key.NewKeyEntryFromPrivateKeyBytes([32]byte(keypair.PrivateKeyBytes()))
+	assert.NotNil(t, keyEntry)
+
+	assert.NotNil(t, keyEntry.PrivateKey)
+	assert.NotNil(t, keyEntry.PublicKey)
+	assert.NotNil(t, keyEntry.PrivateKeyForZkp)
 }

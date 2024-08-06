@@ -17,9 +17,9 @@
 package storage
 
 import (
-	"github.com/hyperledger-labs/zeto/internal/node"
-	"github.com/hyperledger-labs/zeto/internal/utils"
-	"github.com/hyperledger-labs/zeto/pkg/core"
+	"github.com/hyperledger-labs/zeto/internal/sparse-merkle-tree/node"
+	"github.com/hyperledger-labs/zeto/internal/sparse-merkle-tree/utils"
+	"github.com/hyperledger-labs/zeto/pkg/sparse-merkle-tree/core"
 	"gorm.io/gorm"
 )
 

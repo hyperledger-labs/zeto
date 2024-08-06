@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/hyperledger-labs/zeto/internal/node"
-	"github.com/hyperledger-labs/zeto/pkg/core"
+	"github.com/hyperledger-labs/zeto/internal/sparse-merkle-tree/node"
+	"github.com/hyperledger-labs/zeto/pkg/sparse-merkle-tree/core"
 )
 
 // Proof defines the required elements for a MT proof of existence or
