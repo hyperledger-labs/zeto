@@ -1,0 +1,49 @@
+name: e2e
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  circuit-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+
+      - name: Checkout circom repo
+        uses: actions/checkout@v4
+        with:
+          repository: 'iden3/circom'
+          ref: 'v2.1.9'
+
+      - name: Build circom
+        run: |
+          cd circom
+          cargo build --release
+          cargo install --path circom
+
+      - name: Setup node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: install snarkjs
+        run: |
+          npm install -g snarkjs
+
+      - name: Build circuits
+        run: |
+          cd zkp/circuits
+          npm run gen

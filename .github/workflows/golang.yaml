@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  golang-test:
     env:
       TEST_ARGS: -v
     runs-on: ubuntu-latest
