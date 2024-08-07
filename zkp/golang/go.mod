@@ -1,4 +1,4 @@
-module github.com/hyperledger-labs/zeto
+module github.com/hyperledger-labs/zeto/go-sdk
 
 go 1.22.0
 

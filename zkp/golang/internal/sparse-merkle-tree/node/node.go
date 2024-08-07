@@ -21,7 +21,7 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/hyperledger-labs/zeto/pkg/sparse-merkle-tree/core"
+	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/core"
 	"github.com/iden3/go-iden3-crypto/poseidon"
 	cryptoUtils "github.com/iden3/go-iden3-crypto/utils"
 )

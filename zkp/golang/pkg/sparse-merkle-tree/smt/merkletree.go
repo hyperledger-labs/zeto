@@ -17,8 +17,8 @@
 package smt
 
 import (
-	"github.com/hyperledger-labs/zeto/internal/sparse-merkle-tree/smt"
-	"github.com/hyperledger-labs/zeto/pkg/sparse-merkle-tree/core"
+	"github.com/hyperledger-labs/zeto/go-sdk/internal/sparse-merkle-tree/smt"
+	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/core"
 )
 
 func NewMerkleTree(db core.Storage, maxLevels int) (core.SparseMerkleTree, error) {

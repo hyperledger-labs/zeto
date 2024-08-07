@@ -17,7 +17,7 @@
 package utils
 
 import (
-	"github.com/hyperledger-labs/zeto/pkg/sparse-merkle-tree/core"
+	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/core"
 )
 
 type IndexOnly struct {
