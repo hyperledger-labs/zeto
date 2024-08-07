@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  circuit-build-test:
+  integration-test:
     runs-on: ubuntu-latest
     steps:
       - name: Install circom
@@ -52,3 +52,15 @@ jobs:
         working-directory: zkp/golang
         run: |
           make e2e
+
+      - name: Run js e2e tests
+        working-directory: zkp/js
+        run: |
+          npm install
+          npm run test:e2e
+
+      - name: Run Zeto Tokens hardhat tests
+        working-directory: solidity
+        run: |
+          npm install
+          npm t
