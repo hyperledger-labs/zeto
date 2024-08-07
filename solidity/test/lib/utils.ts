@@ -120,3 +120,13 @@ export function parseUTXOEvents(zetoTokenContract: any, result: ContractTransact
   }
   return returnValues;
 }
+
+export function parseRegistryEvents(registryContract: any, result: ContractTransactionReceipt) {
+  for (const log of result.logs || []) {
+    const event = registryContract.interface.parseLog(log as any);
+    if (event?.name === 'IdentityRegistered') {
+      return event?.args.publicKey;
+    }
+  }
+  return null;
+}

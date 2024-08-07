@@ -22,7 +22,7 @@ import { groth16 } from 'snarkjs';
 import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
 import zetoModule from '../ignition/modules/zeto_anon_nullifier_kyc';
 import erc20Module from '../ignition/modules/erc20';
-import { UTXO, User, newUser, newUTXO, newNullifier, doMint, ZERO_UTXO, parseUTXOEvents } from './lib/utils';
+import { UTXO, User, newUser, newUTXO, newNullifier, doMint, ZERO_UTXO, parseUTXOEvents, parseRegistryEvents } from './lib/utils';
 import { loadProvingKeys, prepareDepositProof, prepareNullifierWithdrawProof } from './utils';
 
 describe("Zeto based fungible token with anonymity, KYC, using nullifiers without encryption", function () {
@@ -30,9 +30,11 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
   let Alice: User;
   let Bob: User;
   let Charlie: User;
+  let unregistered: User;
   let erc20: any;
   let zeto: any;
   let utxo100: UTXO;
+  let unregisteredUtxo100: UTXO;
   let utxo1: UTXO;
   let utxo2: UTXO;
   let utxo3: UTXO;
@@ -44,22 +46,23 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
   let smtKyc: Merkletree;
 
   before(async function () {
-    let [d, a, b, c] = await ethers.getSigners();
+    let [d, a, b, c, e] = await ethers.getSigners();
     deployer = d;
     Alice = await newUser(a);
     Bob = await newUser(b);
     Charlie = await newUser(c);
+    unregistered = await newUser(e);
     ({ zeto } = await ignition.deploy(zetoModule));
     ({ erc20 } = await ignition.deploy(erc20Module));
     const tx1 = await zeto.connect(deployer).setERC20(erc20.target);
     await tx1.wait();
 
     const tx2 = await zeto.connect(deployer).register(Alice.babyJubPublicKey);
-    await tx2.wait();
+    const result1 = await tx2.wait();
     const tx3 = await zeto.connect(deployer).register(Bob.babyJubPublicKey);
-    await tx3.wait();
+    const result2 = await tx3.wait();
     const tx4 = await zeto.connect(deployer).register(Charlie.babyJubPublicKey);
-    await tx4.wait();
+    const result3 = await tx4.wait();
 
     circuit = await loadCircuit('anon_nullifier_kyc');
     ({ provingKeyFile: provingKey } = loadProvingKeys('anon_nullifier_kyc'));
@@ -72,9 +75,13 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
 
     const storage3 = new InMemoryDB(str2Bytes(""))
     smtKyc = new Merkletree(storage3, true, 10);
-    await smtKyc.add(kycHash(Alice.babyJubPublicKey), kycHash(Alice.babyJubPublicKey));
-    await smtKyc.add(kycHash(Bob.babyJubPublicKey), kycHash(Bob.babyJubPublicKey));
-    await smtKyc.add(kycHash(Charlie.babyJubPublicKey), kycHash(Charlie.babyJubPublicKey));
+
+    const publicKey1 = parseRegistryEvents(zeto, result1);
+    await smtKyc.add(kycHash(publicKey1), kycHash(publicKey1));
+    const publicKey2 = parseRegistryEvents(zeto, result2);
+    await smtKyc.add(kycHash(publicKey2), kycHash(publicKey2));
+    const publicKey3 = parseRegistryEvents(zeto, result3);
+    await smtKyc.add(kycHash(publicKey3), kycHash(publicKey3));
   });
 
   it("onchain SMT root should be equal to the offchain SMT root", async function () {
@@ -360,6 +367,61 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
     await smtAlice.delete(nonExisting2.hash);
   }).timeout(600000);
 
+  it("transfer from an unregistered user should fail", async function () {
+    const tx = await erc20.connect(deployer).mint(unregistered.ethAddress, 100);
+    await tx.wait();
+    const tx1 = await erc20.connect(unregistered.signer).approve(zeto.target, 100);
+    await tx1.wait();
+    unregisteredUtxo100 = newUTXO(100, unregistered);
+    const { outputCommitments, encodedProof } = await prepareDepositProof(unregistered, unregisteredUtxo100);
+    const tx2 = await zeto.connect(unregistered.signer).deposit(100, outputCommitments[0], encodedProof);
+    await tx2.wait();
+
+    // for convenience we use Alice's SMT to generate the UTXO proof
+    await smtAlice.add(unregisteredUtxo100.hash, unregisteredUtxo100.hash);
+    const nullifier = newNullifier(unregisteredUtxo100, unregistered);
+    const output1 = newUTXO(100, Bob);
+    const output2 = newUTXO(0, unregistered);
+    const proof = await smtAlice.generateCircomVerifierProof(unregisteredUtxo100.hash, await smtAlice.root());
+    const merkleProofs = [proof.siblings.map((s) => s.bigInt()), proof.siblings.map((s) => s.bigInt())];
+
+    // add the unregistered user to the local KYC SMT, but not to the onchain SMT
+    await smtKyc.add(kycHash(unregistered.babyJubPublicKey), kycHash(unregistered.babyJubPublicKey));
+    const identitiesRoot = await smtKyc.root();
+    const proof3 = await smtKyc.generateCircomVerifierProof(kycHash(unregistered.babyJubPublicKey), identitiesRoot);
+    const proof4 = await smtKyc.generateCircomVerifierProof(kycHash(Bob.babyJubPublicKey), identitiesRoot);
+    const identitiesMerkleProofs = [
+      proof3.siblings.map((s) => s.bigInt()), // identity proof for the sender (unregistered)
+      proof4.siblings.map((s) => s.bigInt()), // identity proof for the 1st owner of the output UTXO (Bob)
+      proof3.siblings.map((s) => s.bigInt())  // identity proof for the 2nd owner of the output UTXO (unregistered)
+    ];
+    await expect(doTransfer(unregistered, [unregisteredUtxo100, ZERO_UTXO], [nullifier, ZERO_UTXO], [output1, output2], (await smtAlice.root()).bigInt(), merkleProofs, identitiesRoot.bigInt(), identitiesMerkleProofs, [Bob, unregistered])).rejectedWith("UTXORootNotFound");
+  });
+
+  it("the unregistered user can still withdraw their UTXOs to ERC20 tokens", async function () {
+    // unregistered user generates the nullifiers for the UTXOs to be spent
+    const nullifier1 = newNullifier(unregisteredUtxo100, unregistered);
+
+    // unregistered user generates inclusion proofs for the UTXOs to be spent
+    let root = await smtAlice.root();
+    const proof1 = await smtAlice.generateCircomVerifierProof(unregisteredUtxo100.hash, root);
+    const proof2 = await smtAlice.generateCircomVerifierProof(0n, root);
+    const merkleProofs = [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())];
+
+    // unregistered user proposes the output ERC20 tokens
+    const outputCommitment = newUTXO(0, unregistered);
+
+    const { nullifiers, outputCommitments, encodedProof } = await prepareNullifierWithdrawProof(unregistered, [unregisteredUtxo100, ZERO_UTXO], [nullifier1, ZERO_UTXO], outputCommitment, root.bigInt(), merkleProofs);
+
+    // unregistered user withdraws her UTXOs to ERC20 tokens
+    const tx = await zeto.connect(unregistered.signer).withdraw(100, nullifiers, outputCommitments[0], root.bigInt(), encodedProof);
+    await tx.wait();
+
+    // unregistered user checks her ERC20 balance
+    const balance = await erc20.balanceOf(unregistered.ethAddress);
+    expect(balance).to.equal(100);
+  });
+
   async function doTransfer(signer: User, inputs: UTXO[], _nullifiers: UTXO[], outputs: UTXO[], utxosRoot: BigInt, utxosMerkleProofs: BigInt[][], identitiesRoot: BigInt, identitiesMerkleProof: BigInt[][], owners: User[]) {
     let nullifiers: [BigNumberish, BigNumberish];
     let outputCommitments: [BigNumberish, BigNumberish];
@@ -382,7 +444,6 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
     const outputCommitments: [BigNumberish, BigNumberish] = outputs.map((output) => output.hash) as [BigNumberish, BigNumberish];
     const outputValues = outputs.map((output) => BigInt(output.value || 0n));
     const outputOwnerPublicKeys: [[BigNumberish, BigNumberish], [BigNumberish, BigNumberish]] = owners.map(owner => owner.babyJubPublicKey) as [[BigNumberish, BigNumberish], [BigNumberish, BigNumberish]];
-
     const startWitnessCalculation = Date.now();
     const inputObj = {
       nullifiers,
@@ -397,7 +458,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
       identitiesMerkleProof,
       outputCommitments,
       outputValues,
-      outputSalts: outputs.map((output) => output.salt),
+      outputSalts: outputs.map((output) => output.salt || 0n),
       outputOwnerPublicKeys,
     };
     const witness = await circuit.calculateWTNSBin(

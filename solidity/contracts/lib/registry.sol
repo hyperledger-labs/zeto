@@ -32,6 +32,8 @@ abstract contract Registry {
     SmtLib.Data internal _publicKeysTree;
     using SmtLib for SmtLib.Data;
 
+    event IdentityRegistered(uint256[2] publicKey);
+
     error AlreadyRegistered(uint256[2]);
 
     constructor() {
@@ -47,6 +49,7 @@ abstract contract Registry {
             revert AlreadyRegistered(publicKey);
         }
         _publicKeysTree.addLeaf(nodeHash, nodeHash);
+        emit IdentityRegistered(publicKey);
     }
 
     /// @dev returns whether the given public key is registered
