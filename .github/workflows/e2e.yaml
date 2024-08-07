@@ -48,7 +48,7 @@ jobs:
       - name: Run golang e2e tests
         env:
           PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
-          CIRCUITS_ROOT: ${{ GITHUB_WORKSPACE }}/zkp/js/lib
+          CIRCUITS_ROOT: ${{ github.workspace }}/zkp/js/lib
         working-directory: zkp/golang
         run: |
           make e2e
@@ -56,7 +56,7 @@ jobs:
       - name: Run js e2e tests
         env:
           PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
-          CIRCUITS_ROOT: ${{ GITHUB_WORKSPACE }}/zkp/js/lib
+          CIRCUITS_ROOT: ${{ github.workspace }}/zkp/js/lib
         working-directory: zkp/js
         run: |
           npm install
@@ -65,7 +65,7 @@ jobs:
       - name: Run Zeto Tokens hardhat tests
         env:
           PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
-          CIRCUITS_ROOT: ${{ GITHUB_WORKSPACE }}/zkp/js/lib
+          CIRCUITS_ROOT: ${{ github.workspace }}/zkp/js/lib
         working-directory: solidity
         run: |
           npm install
