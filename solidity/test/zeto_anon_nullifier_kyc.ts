@@ -22,7 +22,7 @@ import { groth16 } from 'snarkjs';
 import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
 import zetoModule from '../ignition/modules/zeto_anon_nullifier_kyc';
 import erc20Module from '../ignition/modules/erc20';
-import { UTXO, User, newUser, newUTXO, newNullifier, doMint, ZERO_UTXO, parseUTXOEvents } from './lib/utils';
+import { UTXO, User, newUser, newUTXO, newNullifier, doMint, ZERO_UTXO, parseUTXOEvents, parseRegistryEvents } from './lib/utils';
 import { loadProvingKeys, prepareDepositProof, prepareNullifierWithdrawProof } from './utils';
 
 describe("Zeto based fungible token with anonymity, KYC, using nullifiers without encryption", function () {
@@ -58,11 +58,11 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
     await tx1.wait();
 
     const tx2 = await zeto.connect(deployer).register(Alice.babyJubPublicKey);
-    await tx2.wait();
+    const result1 = await tx2.wait();
     const tx3 = await zeto.connect(deployer).register(Bob.babyJubPublicKey);
-    await tx3.wait();
+    const result2 = await tx3.wait();
     const tx4 = await zeto.connect(deployer).register(Charlie.babyJubPublicKey);
-    await tx4.wait();
+    const result3 = await tx4.wait();
 
     circuit = await loadCircuit('anon_nullifier_kyc');
     ({ provingKeyFile: provingKey } = loadProvingKeys('anon_nullifier_kyc'));
@@ -75,9 +75,13 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
 
     const storage3 = new InMemoryDB(str2Bytes(""))
     smtKyc = new Merkletree(storage3, true, 10);
-    await smtKyc.add(kycHash(Alice.babyJubPublicKey), kycHash(Alice.babyJubPublicKey));
-    await smtKyc.add(kycHash(Bob.babyJubPublicKey), kycHash(Bob.babyJubPublicKey));
-    await smtKyc.add(kycHash(Charlie.babyJubPublicKey), kycHash(Charlie.babyJubPublicKey));
+
+    const publicKey1 = parseRegistryEvents(zeto, result1);
+    await smtKyc.add(kycHash(publicKey1), kycHash(publicKey1));
+    const publicKey2 = parseRegistryEvents(zeto, result2);
+    await smtKyc.add(kycHash(publicKey2), kycHash(publicKey2));
+    const publicKey3 = parseRegistryEvents(zeto, result3);
+    await smtKyc.add(kycHash(publicKey3), kycHash(publicKey3));
   });
 
   it("onchain SMT root should be equal to the offchain SMT root", async function () {
