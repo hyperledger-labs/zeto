@@ -21,7 +21,6 @@ import { loadCircuit, encodeProof, Poseidon } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { formatPrivKeyForBabyJub, stringifyBigInts } from 'maci-crypto';
 import { User, UTXO, newUser, newUTXO, doMint, parseUTXOEvents, ZERO_UTXO } from './lib/utils';
-import RegistryModule from '../ignition/modules/registry';
 import zetoModule from '../ignition/modules/zeto_anon';
 import erc20Module from '../ignition/modules/erc20';
 import { loadProvingKeys, prepareDepositProof, prepareWithdrawProof } from './utils';
@@ -50,16 +49,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     Alice = await newUser(a);
     Bob = await newUser(b);
     Charlie = await newUser(c);
-    const { registry } = await ignition.deploy(RegistryModule);
-    ({ zeto } = await ignition.deploy(zetoModule, { parameters: { Zeto_Anon: { registry: registry.target } } }));
-
-    const tx1 = await registry.connect(deployer).register(Alice.ethAddress, Alice.babyJubPublicKey as [BigNumberish, BigNumberish]);
-    await tx1.wait();
-    const tx2 = await registry.connect(deployer).register(Bob.ethAddress, Bob.babyJubPublicKey as [BigNumberish, BigNumberish]);
-    await tx2.wait();
-    const tx3 = await registry.connect(deployer).register(Charlie.ethAddress, Charlie.babyJubPublicKey as [BigNumberish, BigNumberish]);
-    await tx3.wait();
-
+    ({ zeto } = await ignition.deploy(zetoModule));
     ({ erc20 } = await ignition.deploy(erc20Module));
     const tx4 = await zeto.connect(deployer).setERC20(erc20.target);
     await tx4.wait();
@@ -94,7 +84,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     utxo4 = newUTXO(5, Alice, _txo3.salt);
 
     // Alice transfers UTXOs to Bob
-    const result = await doBranch(Alice, [utxo1, utxo2], [_txo3, utxo4], [Bob, Alice]);
+    const result = await doTransfer(Alice, [utxo1, utxo2], [_txo3, utxo4], [Bob, Alice]);
 
     // Bob reconstructs the UTXO from off-chain secure message channels with Alice
     // first obtain the UTXOs from the transaction event
@@ -121,7 +111,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     utxo7 = newUTXO(15, Bob);
 
     // Bob should be able to spend the UTXO that was reconstructed from the previous transaction
-    await doBranch(Bob, [utxo3, _utxo1], [_utxo2, utxo7], [Charlie, Bob]);
+    await doTransfer(Bob, [utxo3, _utxo1], [_utxo2, utxo7], [Charlie, Bob]);
   });
 
   it("Alice withdraws her UTXOs to ERC20 tokens should succeed", async function () {
@@ -150,23 +140,23 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
   it("transfer non-existing UTXOs should fail", async function () {
     const nonExisting1 = newUTXO(10, Alice);
     const nonExisting2 = newUTXO(20, Alice, nonExisting1.salt);
-    await expect(doBranch(Alice, [nonExisting1, nonExisting2], [nonExisting1, nonExisting2], [Alice, Alice])).rejectedWith("UTXONotMinted");
+    await expect(doTransfer(Alice, [nonExisting1, nonExisting2], [nonExisting1, nonExisting2], [Alice, Alice])).rejectedWith("UTXONotMinted");
   });
 
   it("transfer spent UTXOs should fail (double spend protection)", async function () {
     // create outputs
     const utxo5 = newUTXO(25, Bob);
     const utxo6 = newUTXO(5, Alice, utxo5.salt);
-    await expect(doBranch(Alice, [utxo1, utxo2], [utxo5, utxo6], [Bob, Alice])).rejectedWith("UTXOAlreadySpent")
+    await expect(doTransfer(Alice, [utxo1, utxo2], [utxo5, utxo6], [Bob, Alice])).rejectedWith("UTXOAlreadySpent")
   });
 
   it("spend by using the same UTXO as both inputs should fail", async function () {
     const utxo5 = newUTXO(20, Alice);
     const utxo6 = newUTXO(10, Bob, utxo5.salt);
-    await expect(doBranch(Bob, [utxo7, utxo7], [utxo5, utxo6], [Alice, Bob])).rejectedWith(`UTXODuplicate(${utxo7.hash.toString()}`);
+    await expect(doTransfer(Bob, [utxo7, utxo7], [utxo5, utxo6], [Alice, Bob])).rejectedWith(`UTXODuplicate(${utxo7.hash.toString()}`);
   });
 
-  async function doBranch(signer: User, inputs: UTXO[], outputs: UTXO[], owners: User[]) {
+  async function doTransfer(signer: User, inputs: UTXO[], outputs: UTXO[], owners: User[]) {
     let inputCommitments: [BigNumberish, BigNumberish];
     let outputCommitments: [BigNumberish, BigNumberish];
     let outputOwnerAddresses: [AddressLike, AddressLike];

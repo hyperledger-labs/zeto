@@ -18,7 +18,7 @@ const { expect } = require('chai');
 const { readFileSync } = require('fs');
 const path = require('path');
 const { genKeypair } = require('maci-crypto');
-const { Poseidon, newSalt, hashTokenUri } = require('../../index.js');
+const { Poseidon, newSalt, tokenUriHash } = require('../../index.js');
 
 const poseidonHash = Poseidon.poseidon5;
 
@@ -39,7 +39,7 @@ describe('check-hashes-tokenid-uri circuit tests', () => {
 
   it('should return true for valid witness', async () => {
     const tokenIds = [1001];
-    const tokenUris = [hashTokenUri('http://ipfs.io/some-file-hash')];
+    const tokenUris = [tokenUriHash('http://ipfs.io/some-file-hash')];
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
@@ -91,7 +91,7 @@ describe('check-hashes-tokenid-uri circuit tests', () => {
   it('should fail to generate a witness because token Id changed', async () => {
     const inputTokenIds = [1001];
     const outputTokenIds = [1002];
-    const tokenUris = [hashTokenUri('http://ipfs.io/some-file-hash')];
+    const tokenUris = [tokenUriHash('http://ipfs.io/some-file-hash')];
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
@@ -127,8 +127,8 @@ describe('check-hashes-tokenid-uri circuit tests', () => {
 
   it('should fail to generate a witness because token URI changed', async () => {
     const tokenIds = [1001];
-    const inputTokenUris = [hashTokenUri('http://ipfs.io/some-file-hash')];
-    const outputTokenUris = [hashTokenUri('http://ipfs.io/some-other-file-hash')];
+    const inputTokenUris = [tokenUriHash('http://ipfs.io/some-file-hash')];
+    const outputTokenUris = [tokenUriHash('http://ipfs.io/some-other-file-hash')];
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
@@ -164,7 +164,7 @@ describe('check-hashes-tokenid-uri circuit tests', () => {
 
   it('should fail to generate a witness because of invalid input commitments', async () => {
     const tokenIds = [1001];
-    const tokenUris = [hashTokenUri('http://ipfs.io/some-file-hash')];
+    const tokenUris = [tokenUriHash('http://ipfs.io/some-file-hash')];
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
@@ -200,7 +200,7 @@ describe('check-hashes-tokenid-uri circuit tests', () => {
 
   it('should fail to generate a witness because of invalid output commitments', async () => {
     const tokenIds = [1001];
-    const tokenUris = [hashTokenUri('http://ipfs.io/some-file-hash')];
+    const tokenUris = [tokenUriHash('http://ipfs.io/some-file-hash')];
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();

@@ -16,7 +16,6 @@
 pragma solidity ^0.8.20;
 
 import {Commonlib} from "./common.sol";
-import {Registry} from "./registry.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title A sample base implementation of a Zeto based token contract
@@ -45,10 +44,6 @@ abstract contract ZetoCommon is Ownable {
     error UTXODuplicate(uint256 utxo);
     error IdentityNotRegistered(address addr);
 
-    // Registry contract to lookup public keys of the token owners
-    // This is a sample onchain KYC solution
-    Registry internal registry;
-
     // used for multi-step transaction flows that require counterparties
     // to upload proofs. To protect the party that uploads their proof first,
     // and prevent the other party from utilizing the uploaded proof to execute
@@ -56,9 +51,7 @@ abstract contract ZetoCommon is Ownable {
     // that did the locking.
     mapping(bytes32 => address) internal lockedProofs;
 
-    constructor(Registry _registry) Ownable(msg.sender) {
-        registry = _registry;
-    }
+    constructor() Ownable(msg.sender) {}
 
     // should be called by escrow contracts that will use uploaded proofs
     // to execute transactions, in order to prevent the proof from being used
@@ -66,13 +59,6 @@ abstract contract ZetoCommon is Ownable {
     function lockProof(Commonlib.Proof calldata proof) public {
         bytes32 proofHash = Commonlib.getProofHash(proof);
         lockedProofs[proofHash] = msg.sender;
-    }
-
-    function validateIdentity(address receiver) internal view {
-        uint256[2] memory ownerPublicKey = registry.getPublicKey(receiver);
-        if (ownerPublicKey[0] == 0 || ownerPublicKey[1] == 0) {
-            revert IdentityNotRegistered(receiver);
-        }
     }
 
     function sortInputsAndOutputs(

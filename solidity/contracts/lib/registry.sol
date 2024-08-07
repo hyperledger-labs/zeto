@@ -15,36 +15,69 @@
 // limitations under the License.
 pragma solidity ^0.8.20;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
+import {PoseidonUnit2L, PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
+import {Commonlib} from "./common.sol";
+import "hardhat/console.sol";
 
-/// @title A sample on-chain implementation of an account mapping between Ethereum addresses and BabyJubjub public keys
+uint256 constant MAX_SMT_DEPTH = 64;
+
+/// @title A sample on-chain implementation of a KYC registry
+/// @dev The registry uses a Sparse Merkle Tree to store the
+///   Zeto accounts (Babyjubjub keys), so that transaction
+///   submitters can generate proofs of membership for the
+///   accounts in a privacy-preserving manner.
 /// @author Kaleido, Inc.
-contract Registry is Ownable {
-    mapping(address => uint256[2]) private publicKeys;
+abstract contract Registry {
+    SmtLib.Data internal _publicKeysTree;
+    using SmtLib for SmtLib.Data;
 
-    error AlreadyRegistered(address addr);
+    event IdentityRegistered(uint256[2] publicKey);
 
-    constructor() Ownable(msg.sender) {}
+    error AlreadyRegistered(uint256[2]);
 
-    /// @dev Register a new public key for the calling Ethereum address
-    /// @param ethAddress The Ethereum address to register
-    /// @param publicKey The public Babyjubjub key to register
-    function register(
-        address ethAddress,
-        uint256[2] memory publicKey
-    ) public onlyOwner {
-        if (publicKeys[ethAddress][0] != 0 || publicKeys[ethAddress][1] != 0) {
-            revert AlreadyRegistered(ethAddress);
-        }
-        publicKeys[ethAddress] = publicKey;
+    constructor() {
+        _publicKeysTree.initialize(MAX_SMT_DEPTH);
     }
 
-    /// @dev Query the public key for a given Ethereum address
-    /// @param addr The Ethereum address to query
-    /// @return publicKey The public key for the given address
-    function getPublicKey(
-        address addr
-    ) public view returns (uint256[2] memory publicKey) {
-        return publicKeys[addr];
+    /// @dev Register a new Zeto account
+    /// @param publicKey The public Babyjubjub key to register
+    function _register(uint256[2] memory publicKey) internal {
+        uint256 nodeHash = _getIdentitiesLeafNodeHash(publicKey);
+        SmtLib.Node memory node = _publicKeysTree.getNode(nodeHash);
+        if (node.nodeType != SmtLib.NodeType.EMPTY) {
+            revert AlreadyRegistered(publicKey);
+        }
+        _publicKeysTree.addLeaf(nodeHash, nodeHash);
+        emit IdentityRegistered(publicKey);
+    }
+
+    /// @dev returns whether the given public key is registered
+    /// @param publicKey The Babyjubjub public key to check
+    /// @return bool whether the given public key is included in the registry
+    function isRegistered(
+        uint256[2] memory publicKey
+    ) public view returns (bool) {
+        uint256 nodeKey = _getIdentitiesLeafNodeKey(publicKey);
+        SmtLib.Node memory node = _publicKeysTree.getNode(nodeKey);
+        return node.nodeType != SmtLib.NodeType.EMPTY;
+    }
+
+    function getIdentitiesRoot() public view returns (uint256) {
+        return _publicKeysTree.getRoot();
+    }
+
+    function _getIdentitiesLeafNodeHash(
+        uint256[2] memory publicKey
+    ) internal pure returns (uint256) {
+        return PoseidonUnit2L.poseidon(publicKey);
+    }
+
+    function _getIdentitiesLeafNodeKey(
+        uint256[2] memory publicKey
+    ) internal pure returns (uint256) {
+        uint256 nodeHash = PoseidonUnit2L.poseidon(publicKey);
+        uint256[3] memory params = [nodeHash, nodeHash, uint256(1)];
+        return PoseidonUnit3L.poseidon(params);
     }
 }

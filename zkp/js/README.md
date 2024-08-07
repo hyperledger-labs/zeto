@@ -42,7 +42,6 @@ npm i
 
 > Refer to [generation script explanation](#generation-script-explanation) for what the script does
 
-
 # Run
 
 Once the proving keys and verification keys are generated, set the environment variable `PROVING_KEYS_ROOT` to the folder that contains the proving keys and verification keys.
@@ -141,8 +140,6 @@ Proving time:  1.08 s
 
 ```
 
-
-
 ## generation script explanation
 
 The `CIRCUIT_FILE_NAME` and `PTAU_FILE_NAME` referenced below refer to the circuit name and their corresponding ptau in [../circuits/gen-config.json](../circuits/gen-config.json).
@@ -204,7 +201,6 @@ The verifier library in Solidity are also derived from the proving key:
 ```console
 snarkjs zkey export solidityverifier ~/proving-keys/CIRCUIT_FILE_NAME.zkey ../solidity/contracts/lib/verifier_CIRCUIT_FILE_NAME.sol
 ```
-
 
 ### Rename contracts in the verifier solidity libraries
 

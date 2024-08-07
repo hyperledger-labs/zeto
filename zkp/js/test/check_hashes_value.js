@@ -96,7 +96,7 @@ describe('check-hashes-value circuit tests', () => {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckHashesValue_77 line: 67/); // hash check failed
+    expect(error).to.match(/Error in template Zeto_79 line: 35/); // hash check failed
   });
 
   it('should fail to generate a witness because of negative values in output commitments', async () => {
@@ -124,7 +124,7 @@ describe('check-hashes-value circuit tests', () => {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckHashesValue_77 line: 46/); // positive range check failed
+    expect(error).to.match(/Error in template Zeto_79 line: 29/); // positive range check failed
   });
 
   it('should fail to generate a witness because of using the inverse of a negative value in output commitments', async () => {
@@ -153,7 +153,7 @@ describe('check-hashes-value circuit tests', () => {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckHashesValue_77 line: 46/); // positive range check failed
+    expect(error).to.match(/Error in template Zeto_79 line: 29/); // positive range check failed
   });
 
   it('should fail to generate a witness because a larger than MAX_VALUE is used in output', async () => {
@@ -179,6 +179,6 @@ describe('check-hashes-value circuit tests', () => {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckHashesValue_77 line: 46/); // positive range check failed
+    expect(error).to.match(/Error in template Zeto_79 line: 29/); // positive range check failed
   });
 });

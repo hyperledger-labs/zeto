@@ -20,7 +20,6 @@ import { expect } from 'chai';
 import { loadCircuit, poseidonDecrypt, encodeProof, Poseidon } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { genRandomSalt, formatPrivKeyForBabyJub, genEcdhSharedKey, stringifyBigInts } from 'maci-crypto';
-import RegistryModule from '../ignition/modules/registry';
 import zetoModule from '../ignition/modules/zeto_anon_enc';
 import erc20Module from '../ignition/modules/erc20';
 import { User, UTXO, newUser, newUTXO, doMint, ZERO_UTXO, parseUTXOEvents } from './lib/utils';
@@ -35,7 +34,6 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
   let Charlie: User;
   let erc20: any;
   let zeto: any;
-  let registry: any;
   let utxo100: UTXO;
   let utxo1: UTXO;
   let utxo2: UTXO;
@@ -49,17 +47,7 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     Alice = await newUser(a);
     Bob = await newUser(b);
     Charlie = await newUser(c);
-    const registryContract = await ignition.deploy(RegistryModule);
-    registry = registryContract.registry;
-    ({ zeto } = await ignition.deploy(zetoModule, { parameters: { Zeto_AnonEnc: { registry: registry.target } } }));
-
-    const tx1 = await registry.connect(deployer).register(Alice.ethAddress, Alice.babyJubPublicKey as [BigNumberish, BigNumberish]);
-    await tx1.wait();
-    const tx2 = await registry.connect(deployer).register(Bob.ethAddress, Bob.babyJubPublicKey as [BigNumberish, BigNumberish]);
-    await tx2.wait();
-    const tx3 = await registry.connect(deployer).register(Charlie.ethAddress, Charlie.babyJubPublicKey as [BigNumberish, BigNumberish]);
-    await tx3.wait();
-
+    ({ zeto } = await ignition.deploy(zetoModule));
     ({ erc20 } = await ignition.deploy(erc20Module));
     const tx4 = await zeto.connect(deployer).setERC20(erc20.target);
     await tx4.wait();
@@ -94,7 +82,7 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     utxo4 = newUTXO(5, Alice, _utxo1.salt);
 
     // Alice transfers UTXOs to Bob
-    const result = await doBranch(Alice, [utxo1, utxo2], [_utxo1, utxo4], [Bob, Alice]);
+    const result = await doTransfer(Alice, [utxo1, utxo2], [_utxo1, utxo4], [Bob, Alice]);
 
     // Bob uses the information in the event to recover the incoming UTXO
     // first obtain the UTXO from the transaction event
@@ -103,8 +91,8 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     expect(events[0].outputs).to.deep.equal([_utxo1.hash, utxo4.hash]);
     const incomingUTXOs: any = events[0].outputs;
 
-    // Bob reconstructs the shared key using his private key and Alice's public key (based on the 'from' field in the event)
-    const senderPublicKey = await registry.getPublicKey(events[0].submitter);
+    // Bob reconstructs the shared key using his private key and Alice's public key (obtained out of band)
+    const senderPublicKey = Alice.babyJubPublicKey;
 
     const sharedKey = genEcdhSharedKey(Bob.babyJubPrivateKey, senderPublicKey);
     const plainText = poseidonDecrypt(events[0].encryptedValues, sharedKey, events[0].encryptionNonce);
@@ -121,7 +109,7 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     // propose the output UTXOs
     const _utxo1 = newUTXO(25, Charlie);
     // Bob should be able to spend the UTXO that was reconstructed from the previous transaction
-    await doBranch(Bob, [utxo3, ZERO_UTXO], [_utxo1, ZERO_UTXO], [Charlie, Bob]);
+    await doTransfer(Bob, [utxo3, ZERO_UTXO], [_utxo1, ZERO_UTXO], [Charlie, Bob]);
   });
 
   it("Alice withdraws her UTXOs to ERC20 tokens should succeed", async function () {
@@ -150,14 +138,14 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
   it("transfer non-existing UTXOs should fail", async function () {
     const nonExisting1 = newUTXO(10, Alice);
     const nonExisting2 = newUTXO(20, Alice, nonExisting1.salt);
-    await expect(doBranch(Alice, [nonExisting1, nonExisting2], [nonExisting1, nonExisting2], [Alice, Alice])).rejectedWith("UTXONotMinted");
+    await expect(doTransfer(Alice, [nonExisting1, nonExisting2], [nonExisting1, nonExisting2], [Alice, Alice])).rejectedWith("UTXONotMinted");
   });
 
   it("transfer spent UTXOs should fail (double spend protection)", async function () {
     // create outputs
     const _utxo1 = newUTXO(25, Bob);
     const _utxo2 = newUTXO(5, Alice);
-    await expect(doBranch(Alice, [utxo1, utxo2], [_utxo1, _utxo2], [Bob, Alice])).rejectedWith("UTXOAlreadySpent")
+    await expect(doTransfer(Alice, [utxo1, utxo2], [_utxo1, _utxo2], [Bob, Alice])).rejectedWith("UTXOAlreadySpent")
   });
 
   it("spend by using the same UTXO as both inputs should fail", async function () {
@@ -167,10 +155,10 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
 
     const _utxo2 = newUTXO(25, Alice);
     const _utxo3 = newUTXO(15, Bob);
-    await expect(doBranch(Bob, [_utxo1, _utxo1], [_utxo2, _utxo3], [Alice, Bob])).rejectedWith(`UTXODuplicate(${_utxo1.hash.toString()}`);
+    await expect(doTransfer(Bob, [_utxo1, _utxo1], [_utxo2, _utxo3], [Alice, Bob])).rejectedWith(`UTXODuplicate(${_utxo1.hash.toString()}`);
   });
 
-  async function doBranch(signer: User, inputs: UTXO[], outputs: UTXO[], owners: User[]) {
+  async function doTransfer(signer: User, inputs: UTXO[], outputs: UTXO[], owners: User[]) {
     let inputCommitments: [BigNumberish, BigNumberish];
     let outputCommitments: [BigNumberish, BigNumberish];
     let encryptedValues: [BigNumberish, BigNumberish];

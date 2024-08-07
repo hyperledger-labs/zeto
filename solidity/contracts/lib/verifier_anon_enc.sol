@@ -77,7 +77,7 @@ contract Groth16Verifier_AnonEnc {
     function verifyProof(uint[2] calldata _pA, uint[2][2] calldata _pB, uint[2] calldata _pC, uint[7] calldata _pubSignals) public view returns (bool) {
         assembly {
             function checkField(v) {
-                if iszero(lt(v, r)) {
+                if iszero(lt(v, q)) {
                     mstore(0, 0)
                     return(0, 0x20)
                 }

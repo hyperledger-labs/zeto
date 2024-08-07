@@ -25,10 +25,7 @@ export default buildModule("Zeto_NfAnon", (m) => {
   const { verifier } = m.useModule(VerifierModule);
   const commonlib = m.library('Commonlib');
 
-  const registryAddress = m.getParameter("registry");
-  const registry = m.contractAt('Registry', registryAddress);
-
-  const zeto = m.contract('Zeto_NfAnon', [verifier, registry], {
+  const zeto = m.contract('Zeto_NfAnon', [verifier], {
     libraries: {
       Commonlib: commonlib,
     },

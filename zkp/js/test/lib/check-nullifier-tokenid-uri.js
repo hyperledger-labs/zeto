@@ -18,7 +18,7 @@ const { expect } = require('chai');
 const { readFileSync } = require('fs');
 const path = require('path');
 const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
-const { Poseidon, newSalt, hashTokenUri } = require('../../index.js');
+const { Poseidon, newSalt, tokenUriHash } = require('../../index.js');
 const { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } = require('@iden3/js-merkletree');
 
 const SMT_HEIGHT = 64;
@@ -48,7 +48,7 @@ describe('check-nullifier-tokenid-uri circuit tests', () => {
 
   it('should return true for valid witness', async () => {
     const tokenId = 1001;
-    const tokenUri = hashTokenUri('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
 
     // create two input UTXOs
     const salt1 = newSalt();
@@ -107,7 +107,7 @@ describe('check-nullifier-tokenid-uri circuit tests', () => {
 
   it('should fail to generate a witness because token ID changed', async () => {
     const tokenId = 1001;
-    const tokenUri = hashTokenUri('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
 
     // create two input UTXOs
     const salt1 = newSalt();
@@ -154,7 +154,7 @@ describe('check-nullifier-tokenid-uri circuit tests', () => {
 
   it('should fail to generate a witness because token URI changed', async () => {
     const tokenId = 1001;
-    const tokenUri = hashTokenUri('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
 
     // create two input UTXOs
     const salt1 = newSalt();
@@ -171,7 +171,7 @@ describe('check-nullifier-tokenid-uri circuit tests', () => {
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const tokenUriBad = hashTokenUri('http://ipfs.io/some-other-file-hash');
+    const tokenUriBad = tokenUriHash('http://ipfs.io/some-other-file-hash');
     const output1 = poseidonHash([BigInt(tokenId), tokenUriBad, salt3, ...receiver.pubKey]);
 
     let err;
@@ -202,7 +202,7 @@ describe('check-nullifier-tokenid-uri circuit tests', () => {
 
   it('should fail to generate a witness because of invalid input commitments', async () => {
     const tokenId = 1001;
-    const tokenUri = hashTokenUri('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
 
     // create two input UTXOs
     const salt1 = newSalt();
@@ -219,7 +219,7 @@ describe('check-nullifier-tokenid-uri circuit tests', () => {
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const tokenUriBad = hashTokenUri('http://ipfs.io/some-other-file-hash');
+    const tokenUriBad = tokenUriHash('http://ipfs.io/some-other-file-hash');
     const output1 = poseidonHash([BigInt(tokenId), tokenUriBad, salt3, ...receiver.pubKey]);
 
     let err;
@@ -250,7 +250,7 @@ describe('check-nullifier-tokenid-uri circuit tests', () => {
 
   it('should fail to generate a witness because of invalid output commitments', async () => {
     const tokenId = 1001;
-    const tokenUri = hashTokenUri('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
 
     // create two input UTXOs
     const salt1 = newSalt();
@@ -267,7 +267,7 @@ describe('check-nullifier-tokenid-uri circuit tests', () => {
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const tokenUriBad = hashTokenUri('http://ipfs.io/some-other-file-hash');
+    const tokenUriBad = tokenUriHash('http://ipfs.io/some-other-file-hash');
     const output1 = poseidonHash([BigInt(tokenId), tokenUriBad, salt3, ...receiver.pubKey]);
 
     let err;

@@ -17,7 +17,7 @@
 import { ethers, ignition } from 'hardhat';
 import { Signer, BigNumberish, AddressLike } from 'ethers';
 import { expect } from 'chai';
-import { loadCircuit, hashTokenUri, encodeProof } from "zeto-js";
+import { loadCircuit, tokenUriHash, encodeProof } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { formatPrivKeyForBabyJub, stringifyBigInts } from 'maci-crypto';
 import { User, UTXO, newUser, newAssetUTXO, doMint } from './lib/utils';
@@ -42,16 +42,7 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
     Alice = await newUser(a);
     Bob = await newUser(b);
     Charlie = await newUser(c);
-    const { registry } = await ignition.deploy(RegistryModule);
-    ({ zeto } = await ignition.deploy(zetoModule, { parameters: { Zeto_NfAnon: { registry: registry.target } } }));
-
-    const tx1 = await registry.connect(deployer).register(Alice.ethAddress, Alice.babyJubPublicKey as [BigNumberish, BigNumberish]);
-    await tx1.wait();
-    const tx2 = await registry.connect(deployer).register(Bob.ethAddress, Bob.babyJubPublicKey as [BigNumberish, BigNumberish]);
-    await tx2.wait();
-    const tx3 = await registry.connect(deployer).register(Charlie.ethAddress, Charlie.babyJubPublicKey as [BigNumberish, BigNumberish]);
-    await tx3.wait();
-
+    ({ zeto } = await ignition.deploy(zetoModule));
     circuit = await loadCircuit('nf_anon');
     ({ provingKeyFile: provingKey } = loadProvingKeys('nf_anon'));
   });
@@ -66,7 +57,7 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
     const _utxo3 = newAssetUTXO(tokenId, uri, Bob);
 
     // transfer my own UTXOs to the Bob honestly should succeed
-    await doBranch(Alice, utxo1, _utxo3, Bob);
+    await doTransfer(Alice, utxo1, _utxo3, Bob);
 
     // simulate Bob constructnig the UTXO from off-chain secure message channels with Alice
     utxo2 = newAssetUTXO(_utxo3.tokenId!, _utxo3.uri!, Bob, _utxo3.salt);
@@ -77,7 +68,7 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
     utxo3 = newAssetUTXO(utxo2.tokenId!, utxo2.uri!, Charlie);
 
     // Bob should be able to spend the UTXO that was reconstructed from the previous transaction
-    await doBranch(Bob, utxo2, utxo3, Charlie);
+    await doTransfer(Bob, utxo2, utxo3, Charlie);
   });
 
   it("mint existing unspent UTXOs should fail", async function () {
@@ -92,16 +83,16 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
     const nonExisting1 = newAssetUTXO(1002, 'http://ipfs.io/file-hash-2', Alice);
     const nonExisting2 = newAssetUTXO(1002, 'http://ipfs.io/file-hash-2', Bob);
 
-    await expect(doBranch(Alice, nonExisting1, nonExisting2, Bob)).rejectedWith("UTXONotMinted");
+    await expect(doTransfer(Alice, nonExisting1, nonExisting2, Bob)).rejectedWith("UTXONotMinted");
   });
 
   it("transfer spent UTXOs should fail (double spend protection)", async function () {
     // create outputs
     const _utxo4 = newAssetUTXO(utxo1.tokenId!, utxo1.uri!, Bob);
-    await expect(doBranch(Alice, utxo1, _utxo4, Bob)).rejectedWith("UTXOAlreadySpent")
+    await expect(doTransfer(Alice, utxo1, _utxo4, Bob)).rejectedWith("UTXOAlreadySpent")
   });
 
-  async function doBranch(signer: User, input: UTXO, output: UTXO, to: User) {
+  async function doTransfer(signer: User, input: UTXO, output: UTXO, to: User) {
     let inputCommitment: BigNumberish;
     let outputCommitment: BigNumberish;
     let outputOwnerAddress: AddressLike;
@@ -144,10 +135,9 @@ async function prepareProof(circuit: any, provingKey: any, signer: User, input: 
   const witness = await circuit.calculateWTNSBin(
     {
       tokenIds: [tokenId],
-      tokenUris: [hashTokenUri(input.uri)],
+      tokenUris: [tokenUriHash(input.uri)],
       inputCommitments: [inputCommitment],
       inputSalts: [inputSalt],
-      inputOwnerPublicKey: signer.babyJubPublicKey as [BigNumberish, BigNumberish],
       outputCommitments: [outputCommitment],
       outputSalts: [output.salt],
       outputOwnerPublicKeys: [outputOwnerPublicKey],

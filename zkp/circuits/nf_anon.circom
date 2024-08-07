@@ -29,7 +29,6 @@ template Zeto(nInputs, nOutputs) {
   signal input tokenUris[nInputs];
   signal input inputCommitments[nInputs];
   signal input inputSalts[nInputs];
-  signal input inputOwnerPublicKey[2];
   signal input outputCommitments[nOutputs];
   signal input outputSalts[nOutputs];
   signal input outputOwnerPublicKeys[nOutputs][2];
@@ -46,20 +45,25 @@ template Zeto(nInputs, nOutputs) {
   pub.in <== senderPrivateKey;
   senderPublicKey[0] = pub.Ax;
   senderPublicKey[1] = pub.Ay;
-  assert(senderPublicKey[0] == inputOwnerPublicKey[0]);
-  assert(senderPublicKey[1] == inputOwnerPublicKey[1]);
+  var inputOwnerPublicKeys[nInputs][2];
+  for (var i = 0; i < nInputs; i++) {
+    inputOwnerPublicKeys[i][0] = senderPublicKey[0];
+    inputOwnerPublicKeys[i][1] = senderPublicKey[1];
+  }
 
-  component CheckHashesForTokenIdAndUri = CheckHashesForTokenIdAndUri(nInputs, nOutputs);
-  CheckHashesForTokenIdAndUri.tokenIds <== tokenIds;
-  CheckHashesForTokenIdAndUri.tokenUris <== tokenUris;
-  CheckHashesForTokenIdAndUri.inputCommitments <== inputCommitments;
-  CheckHashesForTokenIdAndUri.inputSalts <== inputSalts;
-  CheckHashesForTokenIdAndUri.inputOwnerPublicKey <== senderPublicKey;
-  CheckHashesForTokenIdAndUri.outputCommitments <== outputCommitments;
-  CheckHashesForTokenIdAndUri.outputSalts <== outputSalts;
-  CheckHashesForTokenIdAndUri.outputOwnerPublicKeys <== outputOwnerPublicKeys;
-  // assert successful output
-  assert(CheckHashesForTokenIdAndUri.out == 1);
+  component checkInputHashes = CheckHashesForTokenIdAndUri(nInputs);
+  checkInputHashes.tokenIds <== tokenIds;
+  checkInputHashes.tokenUris <== tokenUris;
+  checkInputHashes.commitments <== inputCommitments;
+  checkInputHashes.salts <== inputSalts;
+  checkInputHashes.ownerPublicKeys <== inputOwnerPublicKeys;
+
+  component checkOutputHashes = CheckHashesForTokenIdAndUri(nOutputs);
+  checkOutputHashes.tokenIds <== tokenIds;
+  checkOutputHashes.tokenUris <== tokenUris;
+  checkOutputHashes.commitments <== outputCommitments;
+  checkOutputHashes.salts <== outputSalts;
+  checkOutputHashes.ownerPublicKeys <== outputOwnerPublicKeys;  
 }
 
 component main { public [ inputCommitments, outputCommitments ] } = Zeto(1, 1);

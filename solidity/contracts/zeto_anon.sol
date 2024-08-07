@@ -39,12 +39,8 @@ contract Zeto_Anon is ZetoBase, ZetoFungibleWithdraw {
     constructor(
         Groth16Verifier_CheckHashesValue _depositVerifier,
         Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier,
-        Groth16Verifier_Anon _verifier,
-        Registry _registry
-    )
-        ZetoBase(_registry)
-        ZetoFungibleWithdraw(_depositVerifier, _withdrawVerifier)
-    {
+        Groth16Verifier_Anon _verifier
+    ) ZetoBase() ZetoFungibleWithdraw(_depositVerifier, _withdrawVerifier) {
         verifier = _verifier;
     }
 

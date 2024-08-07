@@ -37,10 +37,7 @@ uint256 constant MAX_SMT_DEPTH = 64;
 contract Zeto_NfAnonNullifier is ZetoNullifier {
     Groth16Verifier_NfAnonNullifier verifier;
 
-    constructor(
-        Groth16Verifier_NfAnonNullifier _verifier,
-        Registry _registry
-    ) ZetoNullifier(_registry) {
+    constructor(Groth16Verifier_NfAnonNullifier _verifier) ZetoNullifier() {
         verifier = _verifier;
     }
 

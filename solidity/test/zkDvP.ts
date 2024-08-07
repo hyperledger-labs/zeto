@@ -18,7 +18,6 @@ import { ethers, ignition } from 'hardhat';
 import { Signer, BigNumberish, encodeBytes32String, ZeroHash } from 'ethers';
 import { expect } from 'chai';
 import { loadCircuit, getProofHash } from "zeto-js";
-import RegistryModule from '../ignition/modules/registry';
 import zetoAnonModule from '../ignition/modules/zeto_anon';
 import zetoNFAnonModule from '../ignition/modules/zeto_nf_anon';
 import zkDvPModule from '../ignition/modules/zkDvP';
@@ -55,19 +54,11 @@ describe("DvP flows between fungible and non-fungible tokens based on Zeto with 
     Bob = await newUser(b);
     Charlie = await newUser(c);
 
-    const { registry } = await ignition.deploy(RegistryModule);
-    ({ zeto: zkAsset } = await ignition.deploy(zetoNFAnonModule, { parameters: { Zeto_NfAnon: { registry: registry.target } } }));
+    ({ zeto: zkAsset } = await ignition.deploy(zetoNFAnonModule));
     console.log(`ZK Asset contract deployed at ${zkAsset.target}`);
-    ({ zeto: zkPayment } = await ignition.deploy(zetoAnonModule, { parameters: { Zeto_Anon: { registry: registry.target } } }));
+    ({ zeto: zkPayment } = await ignition.deploy(zetoAnonModule));
     console.log(`ZK Payment contract deployed at ${zkPayment.target}`);
     ({ zkDvP } = await ignition.deploy(zkDvPModule, { parameters: { zkDvP: { assetToken: zkAsset.target, paymentToken: zkPayment.target } } }));
-
-    const tx1 = await registry.connect(deployer).register(Alice.ethAddress, Alice.babyJubPublicKey as [BigNumberish, BigNumberish]);
-    await tx1.wait();
-    const tx2 = await registry.connect(deployer).register(Bob.ethAddress, Bob.babyJubPublicKey as [BigNumberish, BigNumberish]);
-    await tx2.wait();
-    const tx3 = await registry.connect(deployer).register(Charlie.ethAddress, Charlie.babyJubPublicKey as [BigNumberish, BigNumberish]);
-    await tx3.wait();
   });
 
   it("mint to Alice some payment tokens", async function () {

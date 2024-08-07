@@ -16,8 +16,8 @@
 pragma circom 2.1.4;
 
 include "./lib/check-nullifier-tokenid-uri.circom";
-include "./lib/ecdh.circom";
-include "./lib/encrypt.circom";
+include "./lib/check-hashes-tokenid-uri.circom";
+include "./lib/check-smt-proof.circom";
 include "./node_modules/circomlib/circuits/babyjub.circom";
 
 // This version of the circuit performs the following operations:
@@ -41,23 +41,52 @@ template Zeto(nSMTLevels) {
   signal input outputOwnerPublicKey[2];
   signal input outputSalt;
 
-  // var nullifiers = [nullifier];
+  var tokenIds[1] = [tokenId];
+  var tokenUris[1] = [tokenUri];
+  var inputCommitments[1] = [inputCommitment];
+  var inputSalts[1] = [inputSalt];
+  var nullifiers[1] = [nullifier];
+  var outputCommitments[1] = [outputCommitment];
+  var outputSalts[1] = [outputSalt];
+  var outputOwnerPublicKeys[1][2] = [outputOwnerPublicKey];
 
-  component checkHashesSum = CheckNullifierForTokenIdAndUri(1, 1, nSMTLevels);
-  checkHashesSum.nullifiers <== [nullifier];
-  checkHashesSum.inputCommitments <== [inputCommitment];
-  checkHashesSum.tokenIds <== [tokenId];
-  checkHashesSum.tokenUris <== [tokenUri];
-  checkHashesSum.inputSalts <== [inputSalt];
-  checkHashesSum.inputOwnerPrivateKey <== inputOwnerPrivateKey;
-  checkHashesSum.root <== root;
-  checkHashesSum.merkleProof <== [merkleProof];
-  checkHashesSum.enabled <== [1];
-  checkHashesSum.outputCommitments <== [outputCommitment];
-  checkHashesSum.outputSalts <== [outputSalt];
-  checkHashesSum.outputOwnerPublicKeys <== [outputOwnerPublicKey];
-  // assert successful output
-  checkHashesSum.out === 1;
+  // derive the sender's public key from the secret input
+  // for the sender's private key. This step demonstrates
+  // the sender really owns the private key for the input
+  // UTXOs
+  var senderPublicKey[2];
+  component pub = BabyPbk();
+  pub.in <== inputOwnerPrivateKey;
+  senderPublicKey[0] = pub.Ax;
+  senderPublicKey[1] = pub.Ay;
+  var inputOwnerPublicKeys[1][2] = [senderPublicKey];
+
+  component checkInputHashes = CheckHashesForTokenIdAndUri(1);
+  checkInputHashes.tokenIds <== tokenIds;
+  checkInputHashes.tokenUris <== tokenUris;
+  checkInputHashes.commitments <== inputCommitments;
+  checkInputHashes.salts <== inputSalts;
+  checkInputHashes.ownerPublicKeys <== inputOwnerPublicKeys;
+
+  component checkOutputHashes = CheckHashesForTokenIdAndUri(1);
+  checkOutputHashes.tokenIds <== tokenIds;
+  checkOutputHashes.tokenUris <== tokenUris;
+  checkOutputHashes.commitments <== outputCommitments;
+  checkOutputHashes.salts <== outputSalts;
+  checkOutputHashes.ownerPublicKeys <== outputOwnerPublicKeys;  
+
+  component checkHashesSum = CheckNullifierForTokenIdAndUri(1);
+  checkHashesSum.nullifiers <== nullifiers;
+  checkHashesSum.tokenIds <== tokenIds;
+  checkHashesSum.tokenUris <== tokenUris;
+  checkHashesSum.salts <== inputSalts;
+  checkHashesSum.ownerPrivateKey <== inputOwnerPrivateKey;
+
+  component checkSMTProof = CheckSMTProof(1, nSMTLevels);
+  checkSMTProof.root <== root;
+  checkSMTProof.merkleProof <== [merkleProof];
+  checkSMTProof.enabled <== [1];
+  checkSMTProof.leafNodeIndexes <== inputCommitments;
 }
 
 component main { public [ nullifier, outputCommitment, root ] } = Zeto(64);

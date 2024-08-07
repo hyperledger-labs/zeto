@@ -18,7 +18,7 @@ const { expect } = require('chai');
 const { groth16 } = require('snarkjs');
 const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
 const { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } = require('@iden3/js-merkletree');
-const { Poseidon, newSalt, hashTokenUri, loadCircuit } = require('../index.js');
+const { Poseidon, newSalt, tokenUriHash, loadCircuit } = require('../index.js');
 const { loadProvingKeys } = require('./utils.js');
 
 const SMT_HEIGHT = 64;
@@ -56,7 +56,7 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
 
   it('should succeed for valid witness', async () => {
     const tokenId = 1001;
-    const tokenUri = hashTokenUri('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
@@ -109,7 +109,7 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
 
   it('should generate a valid proof that can be verified successfully', async () => {
     const tokenId = 1001;
-    const tokenUri = hashTokenUri('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();

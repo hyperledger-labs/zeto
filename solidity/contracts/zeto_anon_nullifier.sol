@@ -46,10 +46,9 @@ contract Zeto_AnonNullifier is
     constructor(
         Groth16Verifier_CheckHashesValue _depositVerifier,
         Groth16Verifier_CheckNullifierValue _withdrawVerifier,
-        Groth16Verifier_AnonNullifier _verifier,
-        Registry _registry
+        Groth16Verifier_AnonNullifier _verifier
     )
-        ZetoNullifier(_registry)
+        ZetoNullifier()
         ZetoFungibleWithdrawWithNullifiers(_depositVerifier, _withdrawVerifier)
     {
         verifier = _verifier;

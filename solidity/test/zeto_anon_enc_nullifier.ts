@@ -21,7 +21,6 @@ import { loadCircuit, poseidonDecrypt, encodeProof } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { genRandomSalt, genEcdhSharedKey, stringifyBigInts } from 'maci-crypto';
 import { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } from '@iden3/js-merkletree';
-import RegistryModule from '../ignition/modules/registry';
 import zetoModule from '../ignition/modules/zeto_anon_enc_nullifier';
 import erc20Module from '../ignition/modules/erc20';
 import { UTXO, User, newUser, newUTXO, newNullifier, doMint, ZERO_UTXO, parseUTXOEvents } from './lib/utils';
@@ -50,16 +49,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     Alice = await newUser(a);
     Bob = await newUser(b);
     Charlie = await newUser(c);
-    const { registry } = await ignition.deploy(RegistryModule);
-    ({ zeto } = await ignition.deploy(zetoModule, { parameters: { Zeto_AnonEncNullifier: { registry: registry.target } } }));
-
-    const tx1 = await registry.connect(deployer).register(Alice.ethAddress, Alice.babyJubPublicKey as [BigNumberish, BigNumberish]);
-    await tx1.wait();
-    const tx2 = await registry.connect(deployer).register(Bob.ethAddress, Bob.babyJubPublicKey as [BigNumberish, BigNumberish]);
-    await tx2.wait();
-    const tx3 = await registry.connect(deployer).register(Charlie.ethAddress, Charlie.babyJubPublicKey as [BigNumberish, BigNumberish]);
-    await tx3.wait();
-
+    ({ zeto } = await ignition.deploy(zetoModule));
     ({ erc20 } = await ignition.deploy(erc20Module));
     const tx4 = await zeto.connect(deployer).setERC20(erc20.target);
     await tx4.wait();
@@ -132,7 +122,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     const merkleProofs = [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())];
 
     // Alice transfers her UTXOs to Bob
-    const result2 = await doBranch(Alice, [utxo1, utxo2], [nullifier1, nullifier2], [_utxo3, utxo4], root.bigInt(), merkleProofs, [Bob, Alice]);
+    const result2 = await doTransfer(Alice, [utxo1, utxo2], [nullifier1, nullifier2], [_utxo3, utxo4], root.bigInt(), merkleProofs, [Bob, Alice]);
 
     // Alice locally tracks the UTXOs inside the Sparse Merkle Tree
     await smtAlice.add(_utxo3.hash, _utxo3.hash);
@@ -175,7 +165,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     utxo7 = newUTXO(15, Bob);
 
     // Bob should be able to spend the UTXO that was reconstructed from the previous transaction
-    const result = await doBranch(Bob, [utxo3, ZERO_UTXO], [nullifier1, ZERO_UTXO], [utxo6, utxo7], root.bigInt(), merkleProofs, [Charlie, Bob]);
+    const result = await doTransfer(Bob, [utxo3, ZERO_UTXO], [nullifier1, ZERO_UTXO], [utxo6, utxo7], root.bigInt(), merkleProofs, [Charlie, Bob]);
 
     // Bob keeps the local SMT in sync
     await smtBob.add(utxo6.hash, utxo6.hash);
@@ -234,7 +224,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     const proof2 = await smtAlice.generateCircomVerifierProof(utxo2.hash, root);
     const merkleProofs = [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())];
 
-    await expect(doBranch(Alice, [utxo1, utxo2], [nullifier1, nullifier2], [_utxo1, _utxo2], root.bigInt(), merkleProofs, [Bob, Alice])).rejectedWith("UTXOAlreadySpent")
+    await expect(doTransfer(Alice, [utxo1, utxo2], [nullifier1, nullifier2], [_utxo1, _utxo2], root.bigInt(), merkleProofs, [Bob, Alice])).rejectedWith("UTXOAlreadySpent")
   }).timeout(600000);
 
   it("transfer with existing UTXOs in the output should fail (mass conservation protection)", async function () {
@@ -250,7 +240,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     const proof2 = await smtBob.generateCircomVerifierProof(_utxo1.hash, root);
     const merkleProofs = [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())];
 
-    await expect(doBranch(Bob, [utxo7, _utxo1], [nullifier1, nullifier2], [utxo1, utxo2], root.bigInt(), merkleProofs, [Alice, Alice])).rejectedWith("UTXOAlreadyOwned")
+    await expect(doTransfer(Bob, [utxo7, _utxo1], [nullifier1, nullifier2], [utxo1, utxo2], root.bigInt(), merkleProofs, [Alice, Alice])).rejectedWith("UTXOAlreadyOwned")
   }).timeout(600000);
 
   it("spend by using the same UTXO as both inputs should fail", async function () {
@@ -264,7 +254,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     const proof2 = await smtBob.generateCircomVerifierProof(utxo7.hash, root);
     const merkleProofs = [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())];
 
-    await expect(doBranch(Bob, [utxo7, utxo7], [nullifier1, nullifier2], [_utxo1, _utxo2], root.bigInt(), merkleProofs, [Alice, Bob])).rejectedWith(`UTXODuplicate`);
+    await expect(doTransfer(Bob, [utxo7, utxo7], [nullifier1, nullifier2], [_utxo1, _utxo2], root.bigInt(), merkleProofs, [Alice, Bob])).rejectedWith(`UTXODuplicate`);
   }).timeout(600000);
 
   it("transfer non-existing UTXOs should fail", async function () {
@@ -289,14 +279,14 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     const _utxo1 = newUTXO(30, Charlie);
     utxo7 = newUTXO(15, Bob);
 
-    await expect(doBranch(Alice, [nonExisting1, nonExisting2], [nullifier1, nullifier2], [utxo7, _utxo1], root.bigInt(), merkleProofs, [Bob, Charlie])).rejectedWith("UTXORootNotFound");
+    await expect(doTransfer(Alice, [nonExisting1, nonExisting2], [nullifier1, nullifier2], [utxo7, _utxo1], root.bigInt(), merkleProofs, [Bob, Charlie])).rejectedWith("UTXORootNotFound");
 
     // clean up the fake UTXOs from the local SMT
     await smtAlice.delete(nonExisting1.hash);
     await smtAlice.delete(nonExisting2.hash);
   }).timeout(600000);
 
-  async function doBranch(signer: User, inputs: UTXO[], _nullifiers: UTXO[], outputs: UTXO[], root: BigInt, merkleProofs: BigInt[][], owners: User[]) {
+  async function doTransfer(signer: User, inputs: UTXO[], _nullifiers: UTXO[], outputs: UTXO[], root: BigInt, merkleProofs: BigInt[][], owners: User[]) {
     let nullifiers: [BigNumberish, BigNumberish];
     let outputCommitments: [BigNumberish, BigNumberish];
     let encryptedValues: [BigNumberish, BigNumberish];
