@@ -15,14 +15,11 @@
 // limitations under the License.
 
 const { expect } = require('chai');
-const { readFileSync } = require('fs');
-const path = require('path');
+const { join } = require('path');
+const { wasm: wasm_tester } = require('circom_tester');
 const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
 const { Poseidon, newSalt } = require('../../index.js');
-const { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } = require('@iden3/js-merkletree');
 
-const SMT_HEIGHT = 64;
-const poseidonHash = Poseidon.poseidon4;
 const poseidonHash3 = Poseidon.poseidon3;
 
 describe('check-nullifiers circuit tests', () => {
@@ -30,8 +27,11 @@ describe('check-nullifiers circuit tests', () => {
   const sender = {};
   let senderPrivateKey;
 
-  before(async () => {
-    circuit = await loadCircuits();
+  before(async function () {
+    this.timeout(60000);
+
+    circuit = await wasm_tester(join(__dirname, '../circuits/check-nullifiers.circom'));
+
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;
     sender.pubKey = keypair.pubKey;
@@ -92,12 +92,3 @@ describe('check-nullifiers circuit tests', () => {
     expect(witness[2]).to.equal(BigInt(nullifiers[1]));
   });
 });
-
-// the circuit is a library, to test it we need a top-level circuit with "main"
-// which is placed in the test/circuits directory
-async function loadCircuits() {
-  const WitnessCalculator = require('../circuits/check-nullifiers_js/witness_calculator.js');
-  const buffer = readFileSync(path.join(__dirname, '../circuits/check-nullifiers_js/check-nullifiers.wasm'));
-  const circuit = await WitnessCalculator(buffer);
-  return circuit;
-}

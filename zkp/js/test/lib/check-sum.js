@@ -15,15 +15,16 @@
 // limitations under the License.
 
 const { expect } = require('chai');
-const { readFileSync } = require('fs');
-const path = require('path');
+const { join } = require('path');
+const { wasm: wasm_tester } = require('circom_tester');
 
 describe('check-sum circuit tests', () => {
   let circuit;
-  const sender = {};
-  const receiver = {};
-  before(async () => {
-    circuit = await loadCircuits();
+
+  before(async function () {
+    this.timeout(60000);
+
+    circuit = await wasm_tester(join(__dirname, '../circuits/check-sum.circom'));
   });
 
   it('should return true for valid witness', async () => {
@@ -38,6 +39,7 @@ describe('check-sum circuit tests', () => {
       true
     );
     // console.log(witness.slice(0, 5));
+    expect(witness[0]).to.equal(BigInt(1));
   });
 
   it('should fail if sums are not equal', async () => {
@@ -60,12 +62,3 @@ describe('check-sum circuit tests', () => {
     expect(error).to.match(/Error in template CheckSum_0 line: 44/);
   });
 });
-
-// the circuit is a library, to test it we need a top-level circuit with "main"
-// which is placed in the test/circuits directory
-async function loadCircuits() {
-  const WitnessCalculator = require('../circuits/check-sum_js/witness_calculator.js');
-  const buffer = readFileSync(path.join(__dirname, '../circuits/check-sum_js/check-sum.wasm'));
-  const circuit = await WitnessCalculator(buffer);
-  return circuit;
-}

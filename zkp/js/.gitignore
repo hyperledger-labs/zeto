@@ -2,3 +2,5 @@ node_modules
 package-lock.json
 lib/*.sym
 lib/*_js
+test/circuits/*.sym
+test/circuits/*_js

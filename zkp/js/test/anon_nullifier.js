@@ -15,26 +15,27 @@
 // limitations under the License.
 
 const { expect } = require('chai');
-const { groth16 } = require('snarkjs');
+const { join } = require('path');
+const { wasm: wasm_tester } = require('circom_tester');
 const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
 const { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } = require('@iden3/js-merkletree');
-const { Poseidon, newSalt, loadCircuit } = require('../index.js');
-const { loadProvingKeys } = require('./utils.js');
+const { Poseidon, newSalt } = require('../index.js');
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
 const poseidonHash3 = Poseidon.poseidon3;
 
 describe('main circuit tests for Zeto fungible tokens with anonymity using nullifiers and without encryption', () => {
-  let circuit, provingKeyFile, verificationKey, smtAlice, smtBob;
+  let circuit, smtAlice, smtBob;
 
   const Alice = {};
   const Bob = {};
   let senderPrivateKey;
 
-  before(async () => {
-    circuit = await loadCircuit('anon_nullifier');
-    ({ provingKeyFile, verificationKey } = loadProvingKeys('anon_nullifier'));
+  before(async function () {
+    this.timeout(60000);
+
+    circuit = await wasm_tester(join(__dirname, '../../circuits/anon_nullifier.circom'));
 
     let keypair = genKeypair();
     Alice.privKey = keypair.privKey;
@@ -201,7 +202,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
 
     let err;
     try {
-      await circuit.calculateWTNSBin(
+      await circuit.calculateWitness(
         {
           nullifiers,
           inputCommitments,
@@ -225,65 +226,4 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
     expect(err).to.match(/Error in template CheckSum_161 line: 44/);
     expect(err).to.match(/Error in template Zeto_251 line: 86/);
   });
-
-  it('should generate a valid proof that can be verified successfully', async () => {
-    const inputValues = [15, 100];
-    const outputValues = [80, 35];
-    // create two input UTXOs, each has their own salt, but same owner
-    const senderPrivateKey = formatPrivKeyForBabyJub(Alice.privKey);
-    const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(inputValues[0]), salt1, ...Alice.pubKey]);
-    const salt2 = newSalt();
-    const input2 = poseidonHash([BigInt(inputValues[1]), salt2, ...Alice.pubKey]);
-    const inputCommitments = [input1, input2];
-
-    // create the nullifiers for the input UTXOs
-    const nullifier1 = poseidonHash3([BigInt(inputValues[0]), salt1, senderPrivateKey]);
-    const nullifier2 = poseidonHash3([BigInt(inputValues[1]), salt2, senderPrivateKey]);
-    const nullifiers = [nullifier1, nullifier2];
-
-    // calculate the root of the SMT
-    await smtAlice.add(input1, input1);
-    await smtAlice.add(input2, input2);
-
-    // generate the merkle proof for the inputs
-    const proof1 = await smtAlice.generateCircomVerifierProof(input1, ZERO_HASH);
-    const proof2 = await smtAlice.generateCircomVerifierProof(input2, ZERO_HASH);
-
-    // create two output UTXOs, they share the same salt, and different owner
-    const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(outputValues[0]), salt3, ...Bob.pubKey]);
-    const output2 = poseidonHash([BigInt(outputValues[1]), salt3, ...Alice.pubKey]);
-    const outputCommitments = [output1, output2];
-
-    const startTime = Date.now();
-    const witness = await circuit.calculateWTNSBin(
-      {
-        nullifiers,
-        inputCommitments,
-        inputValues,
-        inputSalts: [salt1, salt2],
-        inputOwnerPrivateKey: senderPrivateKey,
-        root: proof1.root.bigInt(),
-        merkleProof: [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())],
-        enabled: [1, 1],
-        outputCommitments,
-        outputValues,
-        outputSalts: [salt3, salt3],
-        outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
-      },
-      true
-    );
-
-    const { proof, publicSignals } = await groth16.prove(provingKeyFile, witness);
-    console.log('Proving time: ', (Date.now() - startTime) / 1000, 's');
-
-    const success = await groth16.verify(verificationKey, publicSignals, proof);
-    // console.log('nullifiers', nullifiers);
-    // console.log('inputCommitments', inputCommitments);
-    // console.log('outputCommitments', outputCommitments);
-    // console.log('root', proof1.root.bigInt());
-    // console.log('publicSignals', publicSignals);
-    expect(success, true);
-  }).timeout(600000);
 });

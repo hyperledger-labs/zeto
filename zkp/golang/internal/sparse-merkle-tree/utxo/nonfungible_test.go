@@ -49,3 +49,40 @@ func TestNonFungibleUTXOs(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "14387265223978393188138799516680159264477343701050531343910120918831961837958", idx1.BigInt().String())
 }
+
+func TestNonFungibleUTXOsWithNullifiers(t *testing.T) {
+	privateKey, _ := new(big.Int).SetString("df7ff8191db562f4ed9404e91f184502fe67f880cd1fe67c0f84d224a53ee55", 16)
+	salt, _ := new(big.Int).SetString("14366367216420666010683918465570547601749064763665615379119566396413295472937", 10)
+	uri, err := HashTokenUri("http://ipfs.io/file-hash-1")
+	assert.NoError(t, err)
+	utxo1 := NewNonFungibleNullifier(big.NewInt(1001), uri, privateKey, salt)
+
+	idx1, err := utxo1.CalculateIndex()
+	assert.NoError(t, err)
+	assert.Equal(t, "187a5bbc943a0fab725eaacf81872c4e023bb0deec1858ab2a43867f6646c0d8", idx1.BigInt().Text(16))
+}
+
+func TestNonFungibleUTXOsFail(t *testing.T) {
+	x, _ := new(big.Int).SetString("14071052441699386420964762094868612757480677741190253249248703784837194954083", 10)
+	y, _ := new(big.Int).SetString("10144222387217718469257170015212761087909907436961262709512987264580109747792", 10)
+	alice := &babyjub.PublicKey{
+		X: x,
+		Y: y,
+	}
+	salt, _ := new(big.Int).SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
+	uri, err := HashTokenUri("http://ipfs.io/file-hash-1")
+	assert.NoError(t, err)
+	utxo1 := NewNonFungible(big.NewInt(1001), uri, alice, salt)
+	_, err = utxo1.CalculateIndex()
+	assert.EqualError(t, err, "inputs values not inside Finite Field")
+}
+
+func TestNonFungibleUTXOsWithNullifiersFail(t *testing.T) {
+	privateKey, _ := new(big.Int).SetString("df7ff8191db562f4ed9404e91f184502fe67f880cd1fe67c0f84d224a53ee55", 16)
+	salt, _ := new(big.Int).SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
+	uri, err := HashTokenUri("http://ipfs.io/file-hash-1")
+	assert.NoError(t, err)
+	utxo1 := NewNonFungibleNullifier(big.NewInt(1001), uri, privateKey, salt)
+	_, err = utxo1.CalculateIndex()
+	assert.EqualError(t, err, "inputs values not inside Finite Field")
+}

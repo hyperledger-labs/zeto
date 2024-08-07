@@ -15,8 +15,8 @@
 // limitations under the License.
 
 const { expect } = require('chai');
-const { readFileSync } = require('fs');
-const path = require('path');
+const { join } = require('path');
+const { wasm: wasm_tester } = require('circom_tester');
 const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
 const { Poseidon, newSalt, tokenUriHash } = require('../../index.js');
 const { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } = require('@iden3/js-merkletree');
@@ -31,8 +31,11 @@ describe('check-nullifier-tokenid-uri circuit tests', () => {
   const receiver = {};
   let senderPrivateKey;
 
-  before(async () => {
-    circuit = await loadCircuits();
+  before(async function () {
+    this.timeout(60000);
+
+    circuit = await wasm_tester(join(__dirname, '../circuits/check-nullifier-tokenid-uri.circom'));
+
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;
     sender.pubKey = keypair.pubKey;
@@ -50,258 +53,54 @@ describe('check-nullifier-tokenid-uri circuit tests', () => {
     const tokenId = 1001;
     const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
 
-    // create two input UTXOs
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(tokenId), tokenUri, salt1, ...sender.pubKey]);
-
-    // create two input nullifiers, corresponding to the input UTXOs
     const nullifier1 = poseidonHash4([BigInt(tokenId), tokenUri, salt1, senderPrivateKey]);
-
-    // calculate the root of the SMT
-    await smt.add(input1, input1);
-
-    // generate the merkle proof for the inputs
-    const proof1 = await smt.generateCircomVerifierProof(input1, ZERO_HASH);
-
-    // create two output UTXOs, they share the same salt, and different owner
-    const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(tokenId), tokenUri, salt3, ...receiver.pubKey]);
 
     const witness = await circuit.calculateWitness(
       {
         tokenIds: [tokenId],
         tokenUris: [tokenUri],
         nullifiers: [nullifier1],
-        inputCommitments: [input1],
-        inputSalts: [salt1],
-        inputOwnerPrivateKey: senderPrivateKey,
-        root: proof1.root.bigInt(),
-        merkleProof: [proof1.siblings.map((s) => s.bigInt())],
-        enabled: [1],
-        outputCommitments: [output1],
-        outputSalts: [salt3],
-        outputOwnerPublicKeys: [receiver.pubKey],
+        salts: [salt1],
+        ownerPrivateKey: senderPrivateKey,
       },
       true
     );
 
     // console.log('tokenUri', tokenUri);
     // console.log('nullifier1', nullifier1);
-    // console.log('inputCommitment', input1);
-    // console.log('inputSalt', salt1);
-    // console.log('owner private key', sender.privKey);
-    // console.log('outputCommitment', output1);
-    // console.log('outputSalt', salt3);
-    // console.log('outputOwnerPublicKeys', [receiver.pubKey]);
-    // console.log(witness);
+    // console.log('salt', salt1);
+    // console.log(witness.slice(0, 10));
 
-    expect(witness[1]).to.equal(BigInt(1)); // index 1 is the output, value of 1 means valid proof
-    expect(witness[2]).to.equal(BigInt(nullifier1));
-    expect(witness[3]).to.equal(BigInt(1)); // enabled
-    expect(witness[4]).to.equal(BigInt(output1));
-    expect(witness[5]).to.equal(BigInt(receiver.pubKey[0]));
-    expect(witness[6]).to.equal(BigInt(receiver.pubKey[1]));
-    expect(witness[7]).to.equal(BigInt(tokenId));
-    expect(witness[8]).to.equal(tokenUri);
+    expect(witness[1]).to.equal(BigInt(nullifier1));
+    expect(witness[2]).to.equal(BigInt(tokenId));
+    expect(witness[3]).to.equal(tokenUri);
+    expect(witness[4]).to.equal(salt1);
   });
 
-  it('should fail to generate a witness because token ID changed', async () => {
+  it('should fail to calculate witness due to invalid nullifier', async () => {
     const tokenId = 1001;
     const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
 
-    // create two input UTXOs
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(tokenId), tokenUri, salt1, ...sender.pubKey]);
-
-    // create two input nullifiers, corresponding to the input UTXOs
     const nullifier1 = poseidonHash4([BigInt(tokenId), tokenUri, salt1, senderPrivateKey]);
 
-    // calculate the root of the SMT
-    await smt.add(input1, input1);
-
-    // generate the merkle proof for the inputs
-    const proof1 = await smt.generateCircomVerifierProof(input1, ZERO_HASH);
-
-    // create two output UTXOs, they share the same salt, and different owner
-    const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(tokenId + 1), tokenUri, salt3, ...receiver.pubKey]);
-
-    let err;
+    let error;
     try {
-      await circuit.calculateWTNSBin(
+      const witness = await circuit.calculateWitness(
         {
           tokenIds: [tokenId],
           tokenUris: [tokenUri],
-          nullifiers: [nullifier1],
-          inputCommitments: [input1],
-          inputSalts: [salt1],
-          inputOwnerPrivateKey: senderPrivateKey,
-          root: proof1.root.bigInt(),
-          merkleProof: [proof1.siblings.map((s) => s.bigInt())],
-          enabled: [1],
-          outputCommitments: [output1],
-          outputSalts: [salt3],
-          outputOwnerPublicKeys: [receiver.pubKey],
+          nullifiers: [nullifier1 + BigInt(1)],
+          salts: [salt1],
+          ownerPrivateKey: senderPrivateKey,
         },
         true
       );
     } catch (e) {
-      err = e;
+      error = e;
     }
-    // console.log(err);
-    expect(err).to.match(/Error in template CheckNullifierForTokenIdAndUri_316 line: 130/);
-  });
-
-  it('should fail to generate a witness because token URI changed', async () => {
-    const tokenId = 1001;
-    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
-
-    // create two input UTXOs
-    const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(tokenId), tokenUri, salt1, ...sender.pubKey]);
-
-    // create two input nullifiers, corresponding to the input UTXOs
-    const nullifier1 = poseidonHash4([BigInt(tokenId), tokenUri, salt1, senderPrivateKey]);
-
-    // calculate the root of the SMT
-    await smt.add(input1, input1);
-
-    // generate the merkle proof for the inputs
-    const proof1 = await smt.generateCircomVerifierProof(input1, ZERO_HASH);
-
-    // create two output UTXOs, they share the same salt, and different owner
-    const salt3 = newSalt();
-    const tokenUriBad = tokenUriHash('http://ipfs.io/some-other-file-hash');
-    const output1 = poseidonHash([BigInt(tokenId), tokenUriBad, salt3, ...receiver.pubKey]);
-
-    let err;
-    try {
-      await circuit.calculateWTNSBin(
-        {
-          tokenIds: [tokenId],
-          tokenUris: [tokenUri],
-          nullifiers: [nullifier1],
-          inputCommitments: [input1],
-          inputSalts: [salt1],
-          inputOwnerPrivateKey: senderPrivateKey,
-          root: proof1.root.bigInt(),
-          merkleProof: [proof1.siblings.map((s) => s.bigInt())],
-          enabled: [1],
-          outputCommitments: [output1],
-          outputSalts: [salt3],
-          outputOwnerPublicKeys: [receiver.pubKey],
-        },
-        true
-      );
-    } catch (e) {
-      err = e;
-    }
-    // console.log(err);
-    expect(err).to.match(/Error in template CheckNullifierForTokenIdAndUri_316 line: 130/);
-  });
-
-  it('should fail to generate a witness because of invalid input commitments', async () => {
-    const tokenId = 1001;
-    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
-
-    // create two input UTXOs
-    const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(tokenId), tokenUri, salt1, ...sender.pubKey]);
-
-    // create two input nullifiers, corresponding to the input UTXOs
-    const nullifier1 = poseidonHash4([BigInt(tokenId), tokenUri, salt1, senderPrivateKey]);
-
-    // calculate the root of the SMT
-    await smt.add(input1, input1);
-
-    // generate the merkle proof for the inputs
-    const proof1 = await smt.generateCircomVerifierProof(input1, ZERO_HASH);
-
-    // create two output UTXOs, they share the same salt, and different owner
-    const salt3 = newSalt();
-    const tokenUriBad = tokenUriHash('http://ipfs.io/some-other-file-hash');
-    const output1 = poseidonHash([BigInt(tokenId), tokenUriBad, salt3, ...receiver.pubKey]);
-
-    let err;
-    try {
-      await circuit.calculateWTNSBin(
-        {
-          tokenIds: [tokenId],
-          tokenUris: [tokenUri],
-          nullifiers: [nullifier1],
-          inputCommitments: [input1 + BigInt(1)],
-          inputSalts: [salt1],
-          inputOwnerPrivateKey: senderPrivateKey,
-          root: proof1.root.bigInt(),
-          merkleProof: [proof1.siblings.map((s) => s.bigInt())],
-          enabled: [1],
-          outputCommitments: [output1],
-          outputSalts: [salt3],
-          outputOwnerPublicKeys: [receiver.pubKey],
-        },
-        true
-      );
-    } catch (e) {
-      err = e;
-    }
-    // console.log(err);
-    expect(err).to.match(/Error in template CheckNullifierForTokenIdAndUri_316 line: 130/);
-  });
-
-  it('should fail to generate a witness because of invalid output commitments', async () => {
-    const tokenId = 1001;
-    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
-
-    // create two input UTXOs
-    const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(tokenId), tokenUri, salt1, ...sender.pubKey]);
-
-    // create two input nullifiers, corresponding to the input UTXOs
-    const nullifier1 = poseidonHash4([BigInt(tokenId), tokenUri, salt1, senderPrivateKey]);
-
-    // calculate the root of the SMT
-    await smt.add(input1, input1);
-
-    // generate the merkle proof for the inputs
-    const proof1 = await smt.generateCircomVerifierProof(input1, ZERO_HASH);
-
-    // create two output UTXOs, they share the same salt, and different owner
-    const salt3 = newSalt();
-    const tokenUriBad = tokenUriHash('http://ipfs.io/some-other-file-hash');
-    const output1 = poseidonHash([BigInt(tokenId), tokenUriBad, salt3, ...receiver.pubKey]);
-
-    let err;
-    try {
-      await circuit.calculateWTNSBin(
-        {
-          tokenIds: [tokenId],
-          tokenUris: [tokenUri],
-          nullifiers: [nullifier1],
-          inputCommitments: [input1 + BigInt(1)],
-          inputSalts: [salt1],
-          inputOwnerPrivateKey: senderPrivateKey,
-          root: proof1.root.bigInt(),
-          merkleProof: [proof1.siblings.map((s) => s.bigInt())],
-          enabled: [1],
-          outputCommitments: [output1 + BigInt(1)],
-          outputSalts: [salt3],
-          outputOwnerPublicKeys: [receiver.pubKey],
-        },
-        true
-      );
-    } catch (e) {
-      err = e;
-    }
-    // console.log(err);
-    expect(err).to.match(/Error in template CheckNullifierForTokenIdAndUri_316 line: 130/);
+    // console.log(error);
+    expect(error).to.match(/Error in template CheckNullifierForTokenIdAndUri_74 line: 58/);
   });
 });
-
-// the circuit is a library, to test it we need a top-level circuit with "main"
-// which is placed in the test/circuits directory
-async function loadCircuits() {
-  const WitnessCalculator = require('../circuits/check-nullifier-tokenid-uri_js/witness_calculator.js');
-  const buffer = readFileSync(path.join(__dirname, '../circuits/check-nullifier-tokenid-uri_js/check-nullifier-tokenid-uri.wasm'));
-  const circuit = await WitnessCalculator(buffer);
-  return circuit;
-}

@@ -5,7 +5,8 @@
   "license": "Apache-2.0",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --exit --recursive test/*.js test/lib"
+    "test": "mocha --exit test/*.js test/lib/*.js",
+    "test:e2e": "mocha --exit integration-test/*.js"
   },
   "dependencies": {
     "maci-crypto": "^1.1.1",
@@ -15,6 +16,7 @@
   "devDependencies": {
     "@iden3/js-merkletree": "^1.2.0",
     "chai": "^4.4.1",
+    "circom_tester": "^0.0.20",
     "mocha": "^10.2.0"
   }
 }

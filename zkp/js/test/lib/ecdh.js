@@ -15,15 +15,17 @@
 // limitations under the License.
 
 const { expect } = require('chai');
-const path = require('path');
-const { readFileSync } = require('fs');
+const { join } = require('path');
+const { wasm: wasm_tester } = require('circom_tester');
 const { genKeypair, genEcdhSharedKey, formatPrivKeyForBabyJub, stringifyBigInts } = require('maci-crypto');
 
 describe('Ecdh circuit tests', () => {
   let circuit;
   let senderPrivKey, senderPubKey, receiverPrivKey, receiverPubKey;
-  before(async () => {
-    circuit = await loadCircuits();
+  before(async function () {
+    this.timeout(60000);
+
+    circuit = await wasm_tester(join(__dirname, '../circuits/ecdh.circom'));
 
     let keypair = genKeypair();
     senderPrivKey = keypair.privKey;
@@ -48,12 +50,3 @@ describe('Ecdh circuit tests', () => {
     expect(sharedSecret).to.deep.equal(recoveredKey);
   });
 });
-
-// the circuit is a library, to test it we need a top-level circuit with "main"
-// which is placed in the test/circuits directory
-async function loadCircuits() {
-  const WitnessCalculator = require('../circuits/ecdh_js/witness_calculator.js');
-  const buffer = readFileSync(path.join(__dirname, '../circuits/ecdh_js/ecdh.wasm'));
-  const circuit = await WitnessCalculator(buffer);
-  return circuit;
-}

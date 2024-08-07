@@ -16,7 +16,8 @@
 
 const { expect } = require('chai');
 const { readFileSync } = require('fs');
-const path = require('path');
+const { join } = require('path');
+const { wasm: wasm_tester } = require('circom_tester');
 const { genKeypair } = require('maci-crypto');
 const { Poseidon, newSalt, tokenUriHash } = require('../../index.js');
 
@@ -26,8 +27,12 @@ describe('check-hashes-tokenid-uri circuit tests', () => {
   let circuit;
   const sender = {};
   const receiver = {};
-  before(async () => {
-    circuit = await loadCircuits();
+
+  before(async function () {
+    this.timeout(60000);
+
+    circuit = await wasm_tester(join(__dirname, '../circuits/check-hashes-tokenid-uri.circom'));
+
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;
     sender.pubKey = keypair.pubKey;
@@ -44,23 +49,15 @@ describe('check-hashes-tokenid-uri circuit tests', () => {
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
     const input1 = poseidonHash([BigInt(tokenIds[0]), tokenUris[0], salt1, ...sender.pubKey]);
-    const inputCommitments = [input1];
-
-    // create two output UTXOs, they share the same salt, and different owner
-    const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(tokenIds[0]), tokenUris[0], salt3, ...receiver.pubKey]);
-    const outputCommitments = [output1];
+    const commitments = [input1];
 
     const witness = await circuit.calculateWitness(
       {
         tokenIds,
         tokenUris,
-        inputCommitments,
-        inputSalts: [salt1],
-        inputOwnerPublicKey: sender.pubKey,
-        outputCommitments,
-        outputSalts: [salt3],
-        outputOwnerPublicKeys: [receiver.pubKey],
+        commitments,
+        salts: [salt1],
+        ownerPublicKeys: [sender.pubKey],
       },
       true
     );
@@ -75,119 +72,32 @@ describe('check-hashes-tokenid-uri circuit tests', () => {
     // console.log(salt3);
     // console.log(receiver.pubKey);
 
-    expect(witness[1]).to.equal(BigInt(1)); // index 1 is the output, value of 1 means valid proof
-    expect(witness[2]).to.equal(BigInt(inputCommitments[0]));
-    expect(witness[3]).to.equal(BigInt(sender.pubKey[0]));
-    expect(witness[4]).to.equal(BigInt(sender.pubKey[1]));
-    expect(witness[5]).to.equal(BigInt(outputCommitments[0]));
-    expect(witness[6]).to.equal(BigInt(receiver.pubKey[0]));
-    expect(witness[7]).to.equal(BigInt(receiver.pubKey[1]));
-    expect(witness[8]).to.equal(BigInt(tokenIds[0]));
-    expect(witness[9]).to.equal(BigInt(tokenUris[0]));
-    expect(witness[10]).to.equal(salt1);
-    expect(witness[11]).to.equal(salt3);
+    expect(witness[1]).to.equal(BigInt(commitments[0]));
+    expect(witness[2]).to.equal(BigInt(sender.pubKey[0]));
+    expect(witness[3]).to.equal(BigInt(sender.pubKey[1]));
+    expect(witness[4]).to.equal(BigInt(tokenIds[0]));
+    expect(witness[5]).to.equal(BigInt(tokenUris[0]));
+    expect(witness[6]).to.equal(salt1);
   });
 
-  it('should fail to generate a witness because token Id changed', async () => {
-    const inputTokenIds = [1001];
-    const outputTokenIds = [1002];
-    const tokenUris = [tokenUriHash('http://ipfs.io/some-file-hash')];
-
-    // create two input UTXOs, each has their own salt, but same owner
-    const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(inputTokenIds[0]), tokenUris, salt1, ...sender.pubKey]);
-    const inputCommitments = [input1];
-
-    // create two output UTXOs, they share the same salt, and different owner
-    const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(outputTokenIds[0]), tokenUris, salt3, ...receiver.pubKey]);
-    const outputCommitments = [output1];
-
-    let error;
-    try {
-      await circuit.calculateWTNSBin(
-        {
-          tokenIds: inputTokenIds,
-          tokenUris,
-          inputCommitments,
-          inputSalts: [salt1],
-          inputOwnerPublicKey: sender.pubKey,
-          outputCommitments,
-          outputSalts: [salt3],
-          outputOwnerPublicKeys: [receiver.pubKey],
-        },
-        true
-      );
-    } catch (e) {
-      error = e;
-    }
-    // console.log(error);
-    expect(error).to.match(/Error in template CheckHashesForTokenIdAndUri_74 line: 73/);
-  });
-
-  it('should fail to generate a witness because token URI changed', async () => {
-    const tokenIds = [1001];
-    const inputTokenUris = [tokenUriHash('http://ipfs.io/some-file-hash')];
-    const outputTokenUris = [tokenUriHash('http://ipfs.io/some-other-file-hash')];
-
-    // create two input UTXOs, each has their own salt, but same owner
-    const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(tokenIds[0]), inputTokenUris, salt1, ...sender.pubKey]);
-    const inputCommitments = [input1];
-
-    // create two output UTXOs, they share the same salt, and different owner
-    const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(tokenIds[0]), outputTokenUris, salt3, ...receiver.pubKey]);
-    const outputCommitments = [output1];
-
-    let error;
-    try {
-      await circuit.calculateWTNSBin(
-        {
-          tokenIds,
-          tokenUris: inputTokenUris,
-          inputCommitments,
-          inputSalts: [salt1],
-          inputOwnerPublicKey: sender.pubKey,
-          outputCommitments,
-          outputSalts: [salt3],
-          outputOwnerPublicKeys: [receiver.pubKey],
-        },
-        true
-      );
-    } catch (e) {
-      error = e;
-    }
-    // console.log(error);
-    expect(error).to.match(/Error in template CheckHashesForTokenIdAndUri_74 line: 73/);
-  });
-
-  it('should fail to generate a witness because of invalid input commitments', async () => {
+  it('should fail to generate a witness because of invalid commitments', async () => {
     const tokenIds = [1001];
     const tokenUris = [tokenUriHash('http://ipfs.io/some-file-hash')];
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
     const input1 = poseidonHash([BigInt(tokenIds[0]), tokenUris, salt1, ...sender.pubKey]);
-    const inputCommitments = [input1 + BigInt(1)];
-
-    // create two output UTXOs, they share the same salt, and different owner
-    const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(tokenIds[0]), tokenUris, salt3, ...receiver.pubKey]);
-    const outputCommitments = [output1];
+    const commitments = [input1 + BigInt(1)];
 
     let error;
     try {
-      await circuit.calculateWTNSBin(
+      await circuit.calculateWitness(
         {
           tokenIds,
           tokenUris,
-          inputCommitments,
-          inputSalts: [salt1],
-          inputOwnerPublicKey: sender.pubKey,
-          outputCommitments,
-          outputSalts: [salt3],
-          outputOwnerPublicKeys: [receiver.pubKey],
+          commitments,
+          salts: [salt1],
+          ownerPublicKeys: [sender.pubKey],
         },
         true
       );
@@ -195,51 +105,6 @@ describe('check-hashes-tokenid-uri circuit tests', () => {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckHashesForTokenIdAndUri_74 line: 51/);
-  });
-
-  it('should fail to generate a witness because of invalid output commitments', async () => {
-    const tokenIds = [1001];
-    const tokenUris = [tokenUriHash('http://ipfs.io/some-file-hash')];
-
-    // create two input UTXOs, each has their own salt, but same owner
-    const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(tokenIds[0]), tokenUris, salt1, ...sender.pubKey]);
-    const inputCommitments = [input1];
-
-    // create two output UTXOs, they share the same salt, and different owner
-    const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(tokenIds[0]), tokenUris, salt3, ...receiver.pubKey]);
-    const outputCommitments = [output1 + BigInt(1)];
-
-    let error;
-    try {
-      await circuit.calculateWTNSBin(
-        {
-          tokenIds,
-          tokenUris,
-          inputCommitments,
-          inputSalts: [salt1],
-          inputOwnerPublicKey: sender.pubKey,
-          outputCommitments,
-          outputSalts: [salt3],
-          outputOwnerPublicKeys: [receiver.pubKey],
-        },
-        true
-      );
-    } catch (e) {
-      error = e;
-    }
-    // console.log(error);
-    expect(error).to.match(/Error in template CheckHashesForTokenIdAndUri_74 line: 51/);
+    expect(error).to.match(/Error in template CheckHashesForTokenIdAndUri_74 line: 58/);
   });
 });
-
-// the circuit is a library, to test it we need a top-level circuit with "main"
-// which is placed in the test/circuits directory
-async function loadCircuits() {
-  const WitnessCalculator = require('../circuits/check-hashes-tokenid-uri_js/witness_calculator.js');
-  const buffer = readFileSync(path.join(__dirname, '../circuits/check-hashes-tokenid-uri_js/check-hashes-tokenid-uri.wasm'));
-  const circuit = await WitnessCalculator(buffer);
-  return circuit;
-}
