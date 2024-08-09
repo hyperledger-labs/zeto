@@ -20,11 +20,10 @@ const { wasm: wasm_tester } = require('circom_tester');
 const { genRandomSalt, genKeypair, genEcdhSharedKey, formatPrivKeyForBabyJub, stringifyBigInts } = require('maci-crypto');
 const { Poseidon, newSalt, poseidonDecrypt } = require('../index.js');
 
-const ZERO_PUBKEY = [0, 0];
 const poseidonHash = Poseidon.poseidon4;
 
 describe('main circuit tests for Zeto fungible tokens with anonymity with encryption', () => {
-  let circuit, provingKeyFile, verificationKey;
+  let circuit;
 
   const sender = {};
   const receiver = {};
@@ -64,7 +63,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     const encryptionNonce = genRandomSalt();
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
-      senderPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
+      inputOwnerPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
     });
 
     const witness = await circuit.calculateWitness(
@@ -119,11 +118,10 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     const output2 = poseidonHash([BigInt(outputValues[1]), salt3, ...sender.pubKey]);
     const outputCommitments = [output1, output2];
 
-    const sharedSecret = genEcdhSharedKey(sender.privKey, receiver.pubKey);
     const encryptionNonce = genRandomSalt();
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
-      senderPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
+      inputOwnerPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
     });
 
     let err;

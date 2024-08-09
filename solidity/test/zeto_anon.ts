@@ -203,7 +203,7 @@ async function prepareProof(circuit: any, provingKey: any, signer: User, inputs:
   const outputSalts = outputs.map(o => o.salt || 0n);
   const outputOwnerPublicKeys: [[BigNumberish, BigNumberish], [BigNumberish, BigNumberish]] = owners.map(owner => owner.babyJubPublicKey || ZERO_PUBKEY) as [[BigNumberish, BigNumberish], [BigNumberish, BigNumberish]];
   const otherInputs = stringifyBigInts({
-    senderPrivateKey: formatPrivKeyForBabyJub(signer.babyJubPrivateKey),
+    inputOwnerPrivateKey: formatPrivKeyForBabyJub(signer.babyJubPrivateKey),
   });
 
   const startWitnessCalculation = Date.now();

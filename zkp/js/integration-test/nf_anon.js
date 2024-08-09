@@ -56,7 +56,7 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity without
     const outputCommitments = [output1];
 
     const otherInputs = stringifyBigInts({
-      senderPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
+      inputOwnerPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
     });
 
     const startTime = Date.now();
