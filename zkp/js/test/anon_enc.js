@@ -98,7 +98,9 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     const cipherText = [witness[1], witness[2]]; // index 1 is the encrypted value, index 2 is the encrypted salt
     const recoveredKey = genEcdhSharedKey(receiver.privKey, sender.pubKey);
     const plainText = poseidonDecrypt(cipherText, recoveredKey, encryptionNonce);
-    expect(plainText).to.deep.equal([20n, salt3]);
+    // use the recovered value (plainText[0]) and salt (plainText[1]) to verify the output commitment
+    const calculatedHash = poseidonHash([BigInt(plainText[0]), BigInt(plainText[1]), ...receiver.pubKey]);
+    expect(calculatedHash).to.equal(outputCommitments[0]);
   });
 
   it('should fail to generate a witness because mass conservation is not obeyed', async () => {
@@ -144,5 +146,54 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     }
     // console.log(err);
     expect(err).to.match(/Error in template Zeto_100 line: 77/);
+  });
+
+  it('should failed to match output UTXO after decrypting the cipher texts from the events if using the wrong sender public keys', async () => {
+    const inputValues = [32, 40];
+    const outputValues = [20, 52];
+
+    // create two input UTXOs, each has their own salt, but same owner
+    const salt1 = newSalt();
+    const input1 = poseidonHash([BigInt(inputValues[0]), salt1, ...sender.pubKey]);
+    const salt2 = newSalt();
+    const input2 = poseidonHash([BigInt(inputValues[1]), salt2, ...sender.pubKey]);
+    const inputCommitments = [input1, input2];
+
+    // create two output UTXOs, they share the same salt, and different owner
+    const salt3 = newSalt();
+    const output1 = poseidonHash([BigInt(outputValues[0]), salt3, ...receiver.pubKey]);
+    const salt4 = newSalt();
+    const output2 = poseidonHash([BigInt(outputValues[1]), salt4, ...sender.pubKey]);
+    const outputCommitments = [output1, output2];
+
+    const encryptionNonce = genRandomSalt();
+    const encryptInputs = stringifyBigInts({
+      encryptionNonce,
+      senderPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
+    });
+
+    const witness = await circuit.calculateWitness(
+      {
+        inputCommitments,
+        inputValues,
+        inputSalts: [salt1, salt2],
+        outputCommitments,
+        outputValues,
+        outputSalts: [salt3, salt4],
+        outputOwnerPublicKeys: [receiver.pubKey, sender.pubKey],
+        ...encryptInputs,
+      },
+      true
+    );
+
+    // take the output from the proof circuit and attempt to decrypt
+    // as the receiver, but without using the correct sender public key
+    const wrongSender = genKeypair();
+    const cipherText = [witness[1], witness[2]]; // index 1 is the encrypted value, index 2 is the encrypted salt
+    const recoveredKey = genEcdhSharedKey(receiver.privKey, wrongSender.pubKey);
+    const plainText = poseidonDecrypt(cipherText, recoveredKey, encryptionNonce);
+    // use the recovered value (plainText[0]) and salt (plainText[1]) to verify the output commitment
+    const calculatedHash = poseidonHash([BigInt(plainText[0]), BigInt(plainText[1]), ...receiver.pubKey]);
+    expect(calculatedHash).to.not.equal(outputCommitments[0]);
   });
 });
