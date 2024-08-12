@@ -15,22 +15,23 @@
 // limitations under the License.
 
 const { expect } = require('chai');
-const { groth16 } = require('snarkjs');
+const { join } = require('path');
+const { wasm: wasm_tester } = require('circom_tester');
 const { genKeypair, formatPrivKeyForBabyJub, stringifyBigInts } = require('maci-crypto');
-const { Poseidon, newSalt, loadCircuit, tokenUriHash } = require('../index.js');
-const { loadProvingKeys } = require('./utils.js');
+const { Poseidon, newSalt, tokenUriHash } = require('../index.js');
 
 const poseidonHash = Poseidon.poseidon5;
 
 describe('main circuit tests for Zeto non-fungible tokens with anonymity without encryption', () => {
-  let circuit, provingKeyFile, verificationKey;
+  let circuit;
 
   const sender = {};
   const receiver = {};
 
-  before(async () => {
-    circuit = await loadCircuit('nf_anon');
-    ({ provingKeyFile, verificationKey } = loadProvingKeys('nf_anon'));
+  before(async function () {
+    this.timeout(60000);
+
+    circuit = await wasm_tester(join(__dirname, '../../circuits/nf_anon.circom'));
 
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;
@@ -89,48 +90,87 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity without
     expect(witness[4]).to.equal(tokenUris[0]);
   });
 
-  it('should generate a valid proof that can be verified successfully', async () => {
-    const tokenIds = [1001];
+  it('should fail to generate a witness because token Id changed', async () => {
+    const inputTokenIds = [1001];
+    const outputTokenIds = [1002];
     const tokenUris = [tokenUriHash('http://ipfs.io/some-file-hash')];
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(tokenIds[0]), tokenUris[0], salt1, ...sender.pubKey]);
+    const input1 = poseidonHash([BigInt(inputTokenIds[0]), tokenUris, salt1, ...sender.pubKey]);
     const inputCommitments = [input1];
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(tokenIds[0]), tokenUris[0], salt3, ...receiver.pubKey]);
+    const output1 = poseidonHash([BigInt(outputTokenIds[0]), tokenUris, salt3, ...receiver.pubKey]);
     const outputCommitments = [output1];
 
     const otherInputs = stringifyBigInts({
       senderPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
     });
 
-    const startTime = Date.now();
-    const witness = await circuit.calculateWTNSBin(
-      {
-        tokenIds,
-        tokenUris,
-        inputCommitments,
-        inputSalts: [salt1],
-        outputCommitments,
-        outputSalts: [salt3],
-        outputOwnerPublicKeys: [receiver.pubKey],
-        ...otherInputs,
-      },
-      true
-    );
+    let error;
+    try {
+      await circuit.calculateWitness(
+        {
+          tokenIds: inputTokenIds,
+          tokenUris,
+          inputCommitments,
+          inputSalts: [salt1],
+          outputCommitments,
+          outputSalts: [salt3],
+          outputOwnerPublicKeys: [receiver.pubKey],
+          ...otherInputs,
+        },
+        true
+      );
+    } catch (e) {
+      error = e;
+    }
+    // console.log(error);
+    expect(error).to.match(/Error in template Zeto_87 line: 66/);
+    expect(error).to.match(/Error in template CheckHashesForTokenIdAndUri_86 line: 58/);
+  });
 
-    const { proof, publicSignals } = await groth16.prove(provingKeyFile, witness);
-    console.log('Proving time: ', (Date.now() - startTime) / 1000, 's');
+  it('should fail to generate a witness because token URI changed', async () => {
+    const tokenIds = [1001];
+    const inputTokenUris = [tokenUriHash('http://ipfs.io/some-file-hash')];
+    const outputTokenUris = [tokenUriHash('http://ipfs.io/some-other-file-hash')];
 
-    const success = await groth16.verify(verificationKey, publicSignals, proof);
-    // console.log('inputCommitments', inputCommitments);
-    // console.log('outputCommitments', outputCommitments);
-    // console.log('senderPublicKey', sender.pubKey);
-    // console.log('receiverPublicKey', receiver.pubKey);
-    // console.log('publicSignals', publicSignals);
-    expect(success, true);
-  }).timeout(60000);
+    // create two input UTXOs, each has their own salt, but same owner
+    const salt1 = newSalt();
+    const input1 = poseidonHash([BigInt(tokenIds[0]), inputTokenUris, salt1, ...sender.pubKey]);
+    const inputCommitments = [input1];
+
+    // create two output UTXOs, they share the same salt, and different owner
+    const salt3 = newSalt();
+    const output1 = poseidonHash([BigInt(tokenIds[0]), outputTokenUris, salt3, ...receiver.pubKey]);
+    const outputCommitments = [output1];
+
+    const otherInputs = stringifyBigInts({
+      senderPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
+    });
+
+    let error;
+    try {
+      await circuit.calculateWitness(
+        {
+          tokenIds,
+          tokenUris: inputTokenUris,
+          inputCommitments,
+          inputSalts: [salt1],
+          outputCommitments,
+          outputSalts: [salt3],
+          outputOwnerPublicKeys: [receiver.pubKey],
+          ...otherInputs,
+        },
+        true
+      );
+    } catch (e) {
+      error = e;
+    }
+    // console.log(error);
+    expect(error).to.match(/Error in template Zeto_87 line: 66/);
+    expect(error).to.match(/Error in template CheckHashesForTokenIdAndUri_86 line: 58/);
+  });
 });

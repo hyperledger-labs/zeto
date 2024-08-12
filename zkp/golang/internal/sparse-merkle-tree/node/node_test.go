@@ -17,9 +17,13 @@
 package node
 
 import (
+	"errors"
 	"math/big"
 	"testing"
 
+	"github.com/hyperledger-labs/zeto/internal/sparse-merkle-tree/utils"
+	"github.com/hyperledger-labs/zeto/pkg/sparse-merkle-tree/core"
+	"github.com/iden3/go-iden3-crypto/poseidon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -44,4 +48,54 @@ func TestNodeIndex(t *testing.T) {
 	idx5, err := NewNodeIndexFromHex("265baaf161e875c372d08e50f52abddc01d32efc93e90290bb8b3d9ceb94e70a")
 	assert.NoError(t, err)
 	assert.Equal(t, 0, v4.Cmp(idx5.BigInt()))
+}
+
+func TestNewEmptyNode(t *testing.T) {
+	node := NewEmptyNode()
+	assert.Equal(t, node.Type(), core.NodeTypeEmpty)
+	assert.Nil(t, node.Index())
+	assert.Nil(t, node.Ref())
+	assert.Nil(t, node.LeftChild())
+	assert.Nil(t, node.RightChild())
+}
+
+func TestNewLeafNode(t *testing.T) {
+	idx, _ := NewNodeIndexFromBigInt(big.NewInt(10))
+	i := utils.NewIndexOnly(idx)
+	node, err := NewLeafNode(i)
+	assert.NoError(t, err)
+	assert.Equal(t, node.Type(), core.NodeTypeLeaf)
+	assert.Equal(t, node.Index(), idx)
+	elements := []*big.Int{idx.BigInt(), idx.BigInt(), big.NewInt(1)}
+	hash, err := poseidon.Hash(elements)
+	assert.NoError(t, err)
+	assert.Equal(t, node.Ref().BigInt(), hash)
+	assert.Nil(t, node.LeftChild())
+	assert.Nil(t, node.RightChild())
+}
+
+func TestNewBranchNode(t *testing.T) {
+	idx0, _ := NewNodeIndexFromBigInt(big.NewInt(0))
+	idx1, _ := NewNodeIndexFromBigInt(big.NewInt(1))
+	node, err := NewBranchNode(idx0, idx1)
+	assert.NoError(t, err)
+	assert.Equal(t, node.Type(), core.NodeTypeBranch)
+	assert.Nil(t, node.Index())
+	elements := []*big.Int{idx0.BigInt(), idx1.BigInt()}
+	hash, err := poseidon.Hash(elements)
+	assert.NoError(t, err)
+	assert.Equal(t, node.Ref().BigInt(), hash)
+	assert.Equal(t, node.LeftChild(), idx0)
+	assert.Equal(t, node.RightChild(), idx1)
+}
+
+type badIndex struct{}
+
+func (f *badIndex) CalculateIndex() (core.NodeIndex, error) {
+	return nil, errors.New("Bang!")
+}
+
+func TestNewLeafNodeFail(t *testing.T) {
+	_, err := NewLeafNode(&badIndex{})
+	assert.EqualError(t, err, "Bang!")
 }
