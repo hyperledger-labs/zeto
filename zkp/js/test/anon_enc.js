@@ -167,7 +167,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     const encryptionNonce = genRandomSalt();
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
-      senderPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
+      inputOwnerPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
     });
 
     const witness = await circuit.calculateWitness(
