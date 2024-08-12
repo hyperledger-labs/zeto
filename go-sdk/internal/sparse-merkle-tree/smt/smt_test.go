@@ -24,7 +24,6 @@ import (
 
 	"github.com/hyperledger-labs/zeto/go-sdk/internal/sparse-merkle-tree/node"
 	"github.com/hyperledger-labs/zeto/go-sdk/internal/sparse-merkle-tree/storage"
-	"github.com/hyperledger-labs/zeto/go-sdk/internal/sparse-merkle-tree/utxo"
 	"github.com/hyperledger-labs/zeto/go-sdk/internal/testutils"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
@@ -50,7 +49,7 @@ func TestAddNode(t *testing.T) {
 		Y: y,
 	}
 	salt1, _ := new(big.Int).SetString("43c49e8ba68a9b8a6bb5c230a734d8271a83d2f63722e7651272ebeef5446e", 16)
-	utxo1 := utxo.NewFungible(big.NewInt(10), alice, salt1)
+	utxo1 := node.NewFungible(big.NewInt(10), alice, salt1)
 	idx1, err := utxo1.CalculateIndex()
 	assert.NoError(t, err)
 	assert.Equal(t, "11a22e32f5010d3658d1da9c93f26b77afe7a84346f49eae3d1d4fc6cd0a36fd", idx1.BigInt().Text(16))
@@ -63,7 +62,7 @@ func TestAddNode(t *testing.T) {
 
 	// adding a 2nd node to test the tree update and branch nodes
 	salt2, _ := new(big.Int).SetString("19b965f7629e4f0c4bd0b8f9c87f17580f18a32a31b4641550071ee4916bbbfc", 16)
-	utxo2 := utxo.NewFungible(big.NewInt(20), alice, salt2)
+	utxo2 := node.NewFungible(big.NewInt(20), alice, salt2)
 	idx2, err := utxo2.CalculateIndex()
 	assert.NoError(t, err)
 	assert.Equal(t, "197b0dc3f167041e03d3eafacec1aa3ab12a0d7a606581af01447c269935e521", idx2.BigInt().Text(16))
@@ -75,7 +74,7 @@ func TestAddNode(t *testing.T) {
 
 	// adding a 3rd node to test the tree update and branch nodes with a left/right child node
 	salt3, _ := new(big.Int).SetString("9b0b93df975547e430eabff085a77831b8fcb6b5396e6bb815fda8d14125370", 16)
-	utxo3 := utxo.NewFungible(big.NewInt(30), alice, salt3)
+	utxo3 := node.NewFungible(big.NewInt(30), alice, salt3)
 	idx3, err := utxo3.CalculateIndex()
 	assert.NoError(t, err)
 	assert.Equal(t, "2d46e23e813abf1fdabffe3ff22a38ebf6bb92d7c381463bee666eb010289fd5", idx3.BigInt().Text(16))
@@ -87,7 +86,7 @@ func TestAddNode(t *testing.T) {
 
 	// adding a 4th node to test the tree update and branch nodes with the other left/right child node
 	salt4, _ := new(big.Int).SetString("194ec10ec96a507c7c9b60df133d13679b874b0bd6ab89920135508f55b3f064", 16)
-	utxo4 := utxo.NewFungible(big.NewInt(40), alice, salt4)
+	utxo4 := node.NewFungible(big.NewInt(40), alice, salt4)
 	idx4, err := utxo4.CalculateIndex()
 	assert.NoError(t, err)
 	assert.Equal(t, "887884c3421b72f8f1991c64808262da78732abf961118d02b0792bd421521f", idx4.BigInt().Text(16))
@@ -115,13 +114,13 @@ func TestGenerateProof(t *testing.T) {
 	mt, _ := NewMerkleTree(db, levels)
 
 	alice := testutils.NewKeypair()
-	utxo1 := utxo.NewFungible(big.NewInt(10), alice.PublicKey, big.NewInt(12345))
+	utxo1 := node.NewFungible(big.NewInt(10), alice.PublicKey, big.NewInt(12345))
 	node1, err := node.NewLeafNode(utxo1)
 	assert.NoError(t, err)
 	err = mt.AddLeaf(node1)
 	assert.NoError(t, err)
 
-	utxo2 := utxo.NewFungible(big.NewInt(10), alice.PublicKey, big.NewInt(12346))
+	utxo2 := node.NewFungible(big.NewInt(10), alice.PublicKey, big.NewInt(12346))
 	node2, err := node.NewLeafNode(utxo2)
 	assert.NoError(t, err)
 	err = mt.AddLeaf(node2)
@@ -135,7 +134,7 @@ func TestGenerateProof(t *testing.T) {
 	valid := VerifyProof(mt.Root(), proof1, node1)
 	assert.True(t, valid)
 
-	utxo3 := utxo.NewFungible(big.NewInt(10), alice.PublicKey, big.NewInt(12347))
+	utxo3 := node.NewFungible(big.NewInt(10), alice.PublicKey, big.NewInt(12347))
 	node3, err := node.NewLeafNode(utxo3)
 	assert.NoError(t, err)
 	target2 := node3.Index().BigInt()
@@ -160,7 +159,7 @@ func TestVerifyProof(t *testing.T) {
 	for idx, value := range values {
 		go func(v int, idx int) {
 			salt := rand.Intn(100000)
-			utxo := utxo.NewFungible(big.NewInt(int64(v)), alice.PublicKey, big.NewInt(int64(salt)))
+			utxo := node.NewFungible(big.NewInt(int64(v)), alice.PublicKey, big.NewInt(int64(salt)))
 			node, err := node.NewLeafNode(utxo)
 			assert.NoError(t, err)
 			err = mt.AddLeaf(node)

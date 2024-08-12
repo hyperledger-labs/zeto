@@ -17,7 +17,6 @@
 package testutils
 
 import (
-	"crypto/rand"
 	"math/big"
 
 	"github.com/iden3/go-iden3-crypto/babyjub"
@@ -43,10 +42,4 @@ func NewKeypair() *User {
 		PublicKey:        babyJubjubPubKey,
 		PrivateKeyBigInt: privKeyBigInt,
 	}
-}
-
-func NewSalt() *big.Int {
-	max := big.NewInt(1000000000000)
-	randInt, _ := rand.Int(rand.Reader, max)
-	return randInt
 }

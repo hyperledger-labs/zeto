@@ -20,7 +20,9 @@ import (
 	"math/big"
 
 	"github.com/hyperledger-labs/zeto/go-sdk/internal/sparse-merkle-tree/node"
+	"github.com/hyperledger-labs/zeto/go-sdk/internal/sparse-merkle-tree/utils"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/core"
+	"github.com/iden3/go-iden3-crypto/babyjub"
 )
 
 func NewEmptyNode() core.Node {
@@ -43,4 +45,24 @@ func NewNodeIndexFromBigInt(i *big.Int) (core.NodeIndex, error) {
 // represents the index in big-endian format.
 func NewNodeIndexFromHex(h string) (core.NodeIndex, error) {
 	return node.NewNodeIndexFromHex(h)
+}
+
+func NewFungible(amount *big.Int, owner *babyjub.PublicKey, salt *big.Int) core.Indexable {
+	return node.NewFungible(amount, owner, salt)
+}
+
+func NewNonFungible(tokenId *big.Int, tokenUri string, owner *babyjub.PublicKey, salt *big.Int) core.Indexable {
+	return node.NewNonFungible(tokenId, tokenUri, owner, salt)
+}
+
+func NewFungibleNullifier(amount *big.Int, owner *big.Int, salt *big.Int) core.Indexable {
+	return node.NewFungibleNullifier(amount, owner, salt)
+}
+
+func NewNonFungibleNullifier(tokenId *big.Int, tokenUri string, owner *big.Int, salt *big.Int) core.Indexable {
+	return node.NewNonFungibleNullifier(tokenId, tokenUri, owner, salt)
+}
+
+func NewIndexOnly(index core.NodeIndex) core.Indexable {
+	return utils.NewIndexOnly(index)
 }

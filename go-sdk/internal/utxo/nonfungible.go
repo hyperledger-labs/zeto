@@ -21,21 +21,20 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/hyperledger-labs/zeto/go-sdk/internal/sparse-merkle-tree/node"
-	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/core"
+	"github.com/hyperledger-labs/zeto/go-sdk/pkg/utxo/core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-iden3-crypto/poseidon"
 )
 
-type NonFungible struct {
+type nonFungible struct {
 	TokenId  *big.Int
-	TokenUri *big.Int // hash of the token uri string
+	TokenUri string
 	Owner    *babyjub.PublicKey
 	Salt     *big.Int
 }
 
-func NewNonFungible(tokenId, tokenUri *big.Int, owner *babyjub.PublicKey, salt *big.Int) *NonFungible {
-	return &NonFungible{
+func NewNonFungible(tokenId *big.Int, tokenUri string, owner *babyjub.PublicKey, salt *big.Int) core.UTXO {
+	return &nonFungible{
 		TokenId:  tokenId,
 		TokenUri: tokenUri,
 		Owner:    owner,
@@ -43,26 +42,30 @@ func NewNonFungible(tokenId, tokenUri *big.Int, owner *babyjub.PublicKey, salt *
 	}
 }
 
-func (f *NonFungible) CalculateIndex() (core.NodeIndex, error) {
-	hash, err := poseidon.Hash([]*big.Int{f.TokenId, f.TokenUri, f.Salt, f.Owner.X, f.Owner.Y})
+func (f *nonFungible) GetHash() (*big.Int, error) {
+	tokenUriHash, err := HashTokenUri(f.TokenUri)
 	if err != nil {
 		return nil, err
 	}
-	return node.NewNodeIndexFromBigInt(hash)
+	hash, err := poseidon.Hash([]*big.Int{f.TokenId, tokenUriHash, f.Salt, f.Owner.X, f.Owner.Y})
+	if err != nil {
+		return nil, err
+	}
+	return hash, nil
 }
 
 // the "Owner" is the private key that must be properly hashed and trimmed to be
 // compatible with the BabyJub curve.
 // Reference: https://github.com/iden3/circomlib/blob/master/test/babyjub.js#L103
-type NonFungibleNullifier struct {
+type nonFungibleNullifier struct {
 	TokenId  *big.Int
-	TokenUri *big.Int // hash of the token uri string
+	TokenUri string
 	Owner    *big.Int
 	Salt     *big.Int
 }
 
-func NewNonFungibleNullifier(tokenId, tokenUri *big.Int, owner *big.Int, salt *big.Int) *NonFungibleNullifier {
-	return &NonFungibleNullifier{
+func NewNonFungibleNullifier(tokenId *big.Int, tokenUri string, owner *big.Int, salt *big.Int) core.UTXO {
+	return &nonFungibleNullifier{
 		TokenId:  tokenId,
 		TokenUri: tokenUri,
 		Owner:    owner,
@@ -70,12 +73,16 @@ func NewNonFungibleNullifier(tokenId, tokenUri *big.Int, owner *big.Int, salt *b
 	}
 }
 
-func (f *NonFungibleNullifier) CalculateIndex() (core.NodeIndex, error) {
-	hash, err := poseidon.Hash([]*big.Int{f.TokenId, f.TokenUri, f.Salt, f.Owner})
+func (f *nonFungibleNullifier) GetHash() (*big.Int, error) {
+	tokenUriHash, err := HashTokenUri(f.TokenUri)
 	if err != nil {
 		return nil, err
 	}
-	return node.NewNodeIndexFromBigInt(hash)
+	hash, err := poseidon.Hash([]*big.Int{f.TokenId, tokenUriHash, f.Salt, f.Owner})
+	if err != nil {
+		return nil, err
+	}
+	return hash, nil
 }
 
 func HashTokenUri(tokenUri string) (*big.Int, error) {

@@ -34,9 +34,9 @@ func TestFungibleUTXOs(t *testing.T) {
 	salt, _ := new(big.Int).SetString("13de02d64a5736a56b2d35d2a83dd60397ba70aae6f8347629f0960d4fee5d58", 16)
 	utxo1 := NewFungible(big.NewInt(10), alice, salt)
 
-	idx1, err := utxo1.CalculateIndex()
+	idx1, err := utxo1.GetHash()
 	assert.NoError(t, err)
-	assert.Equal(t, "26e3879b46b15a4ddbaca5d96af1bd2743f67f13f0bb85c40782950a2a700138", idx1.BigInt().Text(16))
+	assert.Equal(t, "26e3879b46b15a4ddbaca5d96af1bd2743f67f13f0bb85c40782950a2a700138", idx1.Text(16))
 }
 
 func TestFungibleUTXOsWithNullifiers(t *testing.T) {
@@ -44,9 +44,9 @@ func TestFungibleUTXOsWithNullifiers(t *testing.T) {
 	salt, _ := new(big.Int).SetString("13de02d64a5736a56b2d35d2a83dd60397ba70aae6f8347629f0960d4fee5d58", 16)
 	utxo1 := NewFungibleNullifier(big.NewInt(10), privateKey, salt)
 
-	idx1, err := utxo1.CalculateIndex()
+	idx1, err := utxo1.GetHash()
 	assert.NoError(t, err)
-	assert.Equal(t, "2e9d5efff5d38753195e9a0097a475c90e6bce0fe40b0408470fd81e53d145e6", idx1.BigInt().Text(16))
+	assert.Equal(t, "2e9d5efff5d38753195e9a0097a475c90e6bce0fe40b0408470fd81e53d145e6", idx1.Text(16))
 }
 
 func TestFungibleUTXOsFail(t *testing.T) {
@@ -59,7 +59,7 @@ func TestFungibleUTXOsFail(t *testing.T) {
 	salt, _ := new(big.Int).SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
 	utxo1 := NewFungible(big.NewInt(10), alice, salt)
 
-	_, err := utxo1.CalculateIndex()
+	_, err := utxo1.GetHash()
 	assert.EqualError(t, err, "inputs values not inside Finite Field")
 }
 
@@ -68,6 +68,6 @@ func TestFungibleUTXOsWithNullifiersFail(t *testing.T) {
 	salt, _ := new(big.Int).SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
 	utxo1 := NewFungibleNullifier(big.NewInt(10), privateKey, salt)
 
-	_, err := utxo1.CalculateIndex()
+	_, err := utxo1.GetHash()
 	assert.EqualError(t, err, "inputs values not inside Finite Field")
 }

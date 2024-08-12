@@ -32,7 +32,7 @@ import (
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/node"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/smt"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/storage"
-	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/utxo"
+	"github.com/hyperledger-labs/zeto/go-sdk/pkg/utxo"
 	"github.com/hyperledger/firefly-signer/pkg/keystorev3"
 	"github.com/hyperledger/firefly-signer/pkg/secp256k1"
 	"github.com/iden3/go-iden3-crypto/babyjub"
@@ -128,15 +128,15 @@ func TestZeto_1_SuccessfulProving(t *testing.T) {
 	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
 	outputValues := []*big.Int{big.NewInt(32), big.NewInt(38)}
 
-	salt1 := testutils.NewSalt()
+	salt1 := utxo.NewSalt()
 	input1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PublicKey.X, sender.PublicKey.Y})
-	salt2 := testutils.NewSalt()
+	salt2 := utxo.NewSalt()
 	input2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PublicKey.X, sender.PublicKey.Y})
 	inputCommitments := []*big.Int{input1, input2}
 
-	salt3 := testutils.NewSalt()
+	salt3 := utxo.NewSalt()
 	output1, _ := poseidon.Hash([]*big.Int{outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-	salt4 := testutils.NewSalt()
+	salt4 := utxo.NewSalt()
 	output2, _ := poseidon.Hash([]*big.Int{outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
 	outputCommitments := []*big.Int{output1, output2}
 
@@ -189,19 +189,19 @@ func TestZeto_2_SuccessfulProving(t *testing.T) {
 	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
 	outputValues := []*big.Int{big.NewInt(32), big.NewInt(38)}
 
-	salt1 := testutils.NewSalt()
+	salt1 := utxo.NewSalt()
 	input1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PublicKey.X, sender.PublicKey.Y})
-	salt2 := testutils.NewSalt()
+	salt2 := utxo.NewSalt()
 	input2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PublicKey.X, sender.PublicKey.Y})
 	inputCommitments := []*big.Int{input1, input2}
 
-	salt3 := testutils.NewSalt()
+	salt3 := utxo.NewSalt()
 	output1, _ := poseidon.Hash([]*big.Int{outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-	salt4 := testutils.NewSalt()
+	salt4 := utxo.NewSalt()
 	output2, _ := poseidon.Hash([]*big.Int{outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
 	outputCommitments := []*big.Int{output1, output2}
 
-	encryptionNonce := testutils.NewSalt()
+	encryptionNonce := utxo.NewSalt()
 
 	witnessInputs := map[string]interface{}{
 		"inputCommitments":      inputCommitments,
@@ -241,9 +241,9 @@ func TestZeto_3_SuccessfulProving(t *testing.T) {
 	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
 	outputValues := []*big.Int{big.NewInt(32), big.NewInt(38)}
 
-	salt1 := testutils.NewSalt()
+	salt1 := utxo.NewSalt()
 	input1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PublicKey.X, sender.PublicKey.Y})
-	salt2 := testutils.NewSalt()
+	salt2 := utxo.NewSalt()
 	input2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PublicKey.X, sender.PublicKey.Y})
 	inputCommitments := []*big.Int{input1, input2}
 
@@ -253,12 +253,12 @@ func TestZeto_3_SuccessfulProving(t *testing.T) {
 
 	mt, err := smt.NewMerkleTree(storage.NewMemoryStorage(), MAX_HEIGHT)
 	assert.NoError(t, err)
-	utxo1 := utxo.NewFungible(inputValues[0], sender.PublicKey, salt1)
+	utxo1 := node.NewFungible(inputValues[0], sender.PublicKey, salt1)
 	n1, err := node.NewLeafNode(utxo1)
 	assert.NoError(t, err)
 	err = mt.AddLeaf(n1)
 	assert.NoError(t, err)
-	utxo2 := utxo.NewFungible(inputValues[1], sender.PublicKey, salt2)
+	utxo2 := node.NewFungible(inputValues[1], sender.PublicKey, salt2)
 	n2, err := node.NewLeafNode(utxo2)
 	assert.NoError(t, err)
 	err = mt.AddLeaf(n2)
@@ -272,9 +272,9 @@ func TestZeto_3_SuccessfulProving(t *testing.T) {
 	circomProof2, err := proof2.ToCircomVerifierProof(input2, input2, mt.Root(), MAX_HEIGHT)
 	assert.NoError(t, err)
 
-	salt3 := testutils.NewSalt()
+	salt3 := utxo.NewSalt()
 	output1, _ := poseidon.Hash([]*big.Int{outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-	salt4 := testutils.NewSalt()
+	salt4 := utxo.NewSalt()
 	output2, _ := poseidon.Hash([]*big.Int{outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
 	outputCommitments := []*big.Int{output1, output2}
 
@@ -327,9 +327,9 @@ func TestZeto_4_SuccessfulProving(t *testing.T) {
 	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
 	outputValues := []*big.Int{big.NewInt(32), big.NewInt(38)}
 
-	salt1 := testutils.NewSalt()
+	salt1 := utxo.NewSalt()
 	input1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PublicKey.X, sender.PublicKey.Y})
-	salt2 := testutils.NewSalt()
+	salt2 := utxo.NewSalt()
 	input2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PublicKey.X, sender.PublicKey.Y})
 	inputCommitments := []*big.Int{input1, input2}
 
@@ -339,12 +339,12 @@ func TestZeto_4_SuccessfulProving(t *testing.T) {
 
 	mt, err := smt.NewMerkleTree(storage.NewMemoryStorage(), MAX_HEIGHT)
 	assert.NoError(t, err)
-	utxo1 := utxo.NewFungible(inputValues[0], sender.PublicKey, salt1)
+	utxo1 := node.NewFungible(inputValues[0], sender.PublicKey, salt1)
 	n1, err := node.NewLeafNode(utxo1)
 	assert.NoError(t, err)
 	err = mt.AddLeaf(n1)
 	assert.NoError(t, err)
-	utxo2 := utxo.NewFungible(inputValues[1], sender.PublicKey, salt2)
+	utxo2 := node.NewFungible(inputValues[1], sender.PublicKey, salt2)
 	n2, err := node.NewLeafNode(utxo2)
 	assert.NoError(t, err)
 	err = mt.AddLeaf(n2)
@@ -358,13 +358,13 @@ func TestZeto_4_SuccessfulProving(t *testing.T) {
 	circomProof2, err := proof2.ToCircomVerifierProof(input2, input2, mt.Root(), MAX_HEIGHT)
 	assert.NoError(t, err)
 
-	salt3 := testutils.NewSalt()
+	salt3 := utxo.NewSalt()
 	output1, _ := poseidon.Hash([]*big.Int{outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-	salt4 := testutils.NewSalt()
+	salt4 := utxo.NewSalt()
 	output2, _ := poseidon.Hash([]*big.Int{outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
 	outputCommitments := []*big.Int{output1, output2}
 
-	encryptionNonce := testutils.NewSalt()
+	encryptionNonce := utxo.NewSalt()
 
 	proof1Siblings := make([]*big.Int, len(circomProof1.Siblings)-1)
 	for i, s := range circomProof1.Siblings[0 : len(circomProof1.Siblings)-1] {
@@ -417,11 +417,11 @@ func TestZeto_5_SuccessfulProving(t *testing.T) {
 	tokenUri, err := utxo.HashTokenUri("https://example.com/token/1001")
 	assert.NoError(t, err)
 
-	salt1 := testutils.NewSalt()
+	salt1 := utxo.NewSalt()
 	input1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt1, sender.PublicKey.X, sender.PublicKey.Y})
 	assert.NoError(t, err)
 
-	salt3 := testutils.NewSalt()
+	salt3 := utxo.NewSalt()
 	output1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
 	assert.NoError(t, err)
 
@@ -472,10 +472,11 @@ func TestZeto_6_SuccessfulProving(t *testing.T) {
 	receiver := testutils.NewKeypair()
 
 	tokenId := big.NewInt(1001)
-	tokenUri, err := utxo.HashTokenUri("https://example.com/token/1001")
+	uriString := "https://example.com/token/1001"
+	tokenUri, err := utxo.HashTokenUri(uriString)
 	assert.NoError(t, err)
 
-	salt1 := testutils.NewSalt()
+	salt1 := utxo.NewSalt()
 	input1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt1, sender.PublicKey.X, sender.PublicKey.Y})
 	assert.NoError(t, err)
 
@@ -483,7 +484,7 @@ func TestZeto_6_SuccessfulProving(t *testing.T) {
 
 	mt, err := smt.NewMerkleTree(storage.NewMemoryStorage(), MAX_HEIGHT)
 	assert.NoError(t, err)
-	utxo1 := utxo.NewNonFungible(tokenId, tokenUri, sender.PublicKey, salt1)
+	utxo1 := node.NewNonFungible(tokenId, uriString, sender.PublicKey, salt1)
 	n1, err := node.NewLeafNode(utxo1)
 	assert.NoError(t, err)
 	err = mt.AddLeaf(n1)
@@ -497,7 +498,7 @@ func TestZeto_6_SuccessfulProving(t *testing.T) {
 		proof1Siblings[i] = s.BigInt()
 	}
 
-	salt3 := testutils.NewSalt()
+	salt3 := utxo.NewSalt()
 	output1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
 	assert.NoError(t, err)
 
@@ -576,7 +577,7 @@ func testConcurrentInsertion(t *testing.T, alice *babyjub.PublicKey, values []in
 	for i, v := range values {
 		go func(i, v int) {
 			salt, _ := new(big.Int).SetString(salts[i], 16)
-			utxo := utxo.NewFungible(big.NewInt(int64(v)), alice, salt)
+			utxo := node.NewFungible(big.NewInt(int64(v)), alice, salt)
 			n, err := node.NewLeafNode(utxo)
 			assert.NoError(t, err)
 			err = mt.AddLeaf(n)
@@ -623,12 +624,12 @@ func TestSqliteStorage(t *testing.T) {
 	assert.NoError(t, err)
 
 	tokenId := big.NewInt(1001)
-	tokenUri, err := utxo.HashTokenUri("https://example.com/token/1001")
+	uriString := "https://example.com/token/1001"
 	assert.NoError(t, err)
 	sender := testutils.NewKeypair()
-	salt1 := testutils.NewSalt()
+	salt1 := utxo.NewSalt()
 
-	utxo1 := utxo.NewNonFungible(tokenId, tokenUri, sender.PublicKey, salt1)
+	utxo1 := node.NewNonFungible(tokenId, uriString, sender.PublicKey, salt1)
 	n1, err := node.NewLeafNode(utxo1)
 	assert.NoError(t, err)
 	err = mt.AddLeaf(n1)
@@ -668,12 +669,12 @@ func TestPostgresStorage(t *testing.T) {
 	assert.NoError(t, err)
 
 	tokenId := big.NewInt(1001)
-	tokenUri, err := utxo.HashTokenUri("https://example.com/token/1001")
+	tokenUri := "https://example.com/token/1001"
 	assert.NoError(t, err)
 	sender := testutils.NewKeypair()
-	salt1 := testutils.NewSalt()
+	salt1 := utxo.NewSalt()
 
-	utxo1 := utxo.NewNonFungible(tokenId, tokenUri, sender.PublicKey, salt1)
+	utxo1 := node.NewNonFungible(tokenId, tokenUri, sender.PublicKey, salt1)
 	n1, err := node.NewLeafNode(utxo1)
 	assert.NoError(t, err)
 	err = mt.AddLeaf(n1)

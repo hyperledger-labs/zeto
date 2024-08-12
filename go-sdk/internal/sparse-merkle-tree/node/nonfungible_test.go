@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utxo
+package node
 
 import (
 	"math/big"
@@ -24,15 +24,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestHashTokenUri(t *testing.T) {
-	tokenUri := "https://example.com/token/1001"
-	hash, err := HashTokenUri(tokenUri)
-	assert.NoError(t, err)
-	check, ok := new(big.Int).SetString("13892450975113644983085716506756448401911601901613040705635669994423608913168", 10)
-	assert.True(t, ok)
-	assert.Equal(t, check, hash)
-}
-
 func TestNonFungibleUTXOs(t *testing.T) {
 	x, _ := new(big.Int).SetString("14071052441699386420964762094868612757480677741190253249248703784837194954083", 10)
 	y, _ := new(big.Int).SetString("10144222387217718469257170015212761087909907436961262709512987264580109747792", 10)
@@ -41,8 +32,7 @@ func TestNonFungibleUTXOs(t *testing.T) {
 		Y: y,
 	}
 	salt, _ := new(big.Int).SetString("14366367216420666010683918465570547601749064763665615379119566396413295472937", 10)
-	uri, err := HashTokenUri("http://ipfs.io/file-hash-1")
-	assert.NoError(t, err)
+	uri := "http://ipfs.io/file-hash-1"
 	utxo1 := NewNonFungible(big.NewInt(1001), uri, alice, salt)
 
 	idx1, err := utxo1.CalculateIndex()
@@ -53,8 +43,7 @@ func TestNonFungibleUTXOs(t *testing.T) {
 func TestNonFungibleUTXOsWithNullifiers(t *testing.T) {
 	privateKey, _ := new(big.Int).SetString("df7ff8191db562f4ed9404e91f184502fe67f880cd1fe67c0f84d224a53ee55", 16)
 	salt, _ := new(big.Int).SetString("14366367216420666010683918465570547601749064763665615379119566396413295472937", 10)
-	uri, err := HashTokenUri("http://ipfs.io/file-hash-1")
-	assert.NoError(t, err)
+	uri := "http://ipfs.io/file-hash-1"
 	utxo1 := NewNonFungibleNullifier(big.NewInt(1001), uri, privateKey, salt)
 
 	idx1, err := utxo1.CalculateIndex()
@@ -70,19 +59,17 @@ func TestNonFungibleUTXOsFail(t *testing.T) {
 		Y: y,
 	}
 	salt, _ := new(big.Int).SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
-	uri, err := HashTokenUri("http://ipfs.io/file-hash-1")
-	assert.NoError(t, err)
+	uri := "http://ipfs.io/file-hash-1"
 	utxo1 := NewNonFungible(big.NewInt(1001), uri, alice, salt)
-	_, err = utxo1.CalculateIndex()
+	_, err := utxo1.CalculateIndex()
 	assert.EqualError(t, err, "inputs values not inside Finite Field")
 }
 
 func TestNonFungibleUTXOsWithNullifiersFail(t *testing.T) {
 	privateKey, _ := new(big.Int).SetString("df7ff8191db562f4ed9404e91f184502fe67f880cd1fe67c0f84d224a53ee55", 16)
 	salt, _ := new(big.Int).SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
-	uri, err := HashTokenUri("http://ipfs.io/file-hash-1")
-	assert.NoError(t, err)
+	uri := "http://ipfs.io/file-hash-1"
 	utxo1 := NewNonFungibleNullifier(big.NewInt(1001), uri, privateKey, salt)
-	_, err = utxo1.CalculateIndex()
+	_, err := utxo1.CalculateIndex()
 	assert.EqualError(t, err, "inputs values not inside Finite Field")
 }
