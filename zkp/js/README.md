@@ -29,6 +29,7 @@ npm i
 
 - set where you want to store the generated verification keys and the downloaded PTAU files
   ```console
+  export CIRCUITS_ROOT="$HOME/circuits"
   export PROVING_KEYS_ROOT="$HOME/proving-keys"
   export PTAU_DOWNLOAD_PATH="$HOME/Downloads"
   mkdir -p $PROVING_KEYS_ROOT $PTAU_DOWNLOAD_PATH
