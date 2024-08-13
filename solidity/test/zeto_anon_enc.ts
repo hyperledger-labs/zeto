@@ -186,7 +186,7 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     const encryptionNonce: BigNumberish = genRandomSalt() as BigNumberish;
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
-      senderPrivateKey: formatPrivKeyForBabyJub(signer.babyJubPrivateKey),
+      inputOwnerPrivateKey: formatPrivKeyForBabyJub(signer.babyJubPrivateKey),
     });
 
     const startWitnessCalculation = Date.now();

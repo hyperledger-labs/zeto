@@ -60,7 +60,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity without enc
     const outputCommitments = [output1, output2];
 
     const otherInputs = stringifyBigInts({
-      senderPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
+      inputOwnerPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
     });
 
     const witness = await circuit.calculateWitness(
@@ -107,7 +107,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity without enc
     const outputCommitments = [output1, output2];
 
     const otherInputs = stringifyBigInts({
-      senderPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
+      inputOwnerPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
     });
 
     let err;

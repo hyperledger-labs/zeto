@@ -34,7 +34,7 @@ template Zeto(nInputs, nOutputs) {
   signal input outputOwnerPublicKeys[nOutputs][2];
   // must be properly hashed and trimmed to be compatible with the BabyJub curve.
   // Reference: https://github.com/iden3/circomlib/blob/master/test/babyjub.js#L103
-  signal input senderPrivateKey;
+  signal input inputOwnerPrivateKey;
 
   // derive the sender's public key from the secret input
   // for the sender's private key. This step demonstrates
@@ -42,7 +42,7 @@ template Zeto(nInputs, nOutputs) {
   // UTXOs
   var senderPublicKey[2];
   component pub = BabyPbk();
-  pub.in <== senderPrivateKey;
+  pub.in <== inputOwnerPrivateKey;
   senderPublicKey[0] = pub.Ax;
   senderPublicKey[1] = pub.Ay;
   var inputOwnerPublicKeys[nInputs][2];

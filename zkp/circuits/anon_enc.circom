@@ -31,13 +31,13 @@ template Zeto(nInputs, nOutputs) {
   signal input inputCommitments[nInputs];
   signal input inputValues[nInputs];
   signal input inputSalts[nInputs];
+  // must be properly hashed and trimmed to be compatible with the BabyJub curve.
+  // Reference: https://github.com/iden3/circomlib/blob/master/test/babyjub.js#L103
+  signal input inputOwnerPrivateKey;
   signal input outputCommitments[nOutputs];
   signal input outputValues[nOutputs];
   signal input outputSalts[nOutputs];
   signal input outputOwnerPublicKeys[nOutputs][2];
-  // must be properly hashed and trimmed to be compatible with the BabyJub curve.
-  // Reference: https://github.com/iden3/circomlib/blob/master/test/babyjub.js#L103
-  signal input senderPrivateKey;
   signal input encryptionNonce;
 
   signal output cipherText[2];
@@ -48,7 +48,7 @@ template Zeto(nInputs, nOutputs) {
   // UTXOs
   var inputOwnerPublicKey[2];
   component pub = BabyPbk();
-  pub.in <== senderPrivateKey;
+  pub.in <== inputOwnerPrivateKey;
   inputOwnerPublicKey[0] = pub.Ax;
   inputOwnerPublicKey[1] = pub.Ay;
   var inputOwnerPublicKeys[nInputs][2];
@@ -79,7 +79,7 @@ template Zeto(nInputs, nOutputs) {
   // generate shared secret
   var sharedSecret[2];
   component ecdh = Ecdh();
-  ecdh.privKey <== senderPrivateKey;
+  ecdh.privKey <== inputOwnerPrivateKey;
   ecdh.pubKey[0] <== outputOwnerPublicKeys[0][0];
   ecdh.pubKey[1] <== outputOwnerPublicKeys[0][1];
   sharedSecret[0] = ecdh.sharedKey[0];

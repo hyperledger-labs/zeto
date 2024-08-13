@@ -23,7 +23,8 @@ jobs:
           go-version: 1.22
 
       - name: Build and Test
-        run: cd zkp/golang && make
+        working-directory: go-sdk
+        run: make
 
       - uses: codecov/codecov-action@v4
         with:

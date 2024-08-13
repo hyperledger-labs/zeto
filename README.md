@@ -79,6 +79,6 @@ The project does not include an implementation of a notary based token transfer 
 There are 4 sub-projects. Navigate to each sub-project to run the tests and learn how to use each library:
 
 - [ZKP circuits](./zkp/circuits/): ZKP circuits written in circom to support the Zeto privacy patterns
-- [golang library for proof generation](./zkp/golang/): test cases written in golang
+- [golang library for proof generation](./go-sdk/): test cases written in golang
 - [javascript library for proof generation](./zkp/js/): test cases written in javascript
 - [Solidity library for onchain proof verification](./solidity/): Sample Solidity contracts for all the ZKP based Zeto privacy patterns

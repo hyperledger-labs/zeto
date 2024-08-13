@@ -128,7 +128,7 @@ async function prepareProof(circuit: any, provingKey: any, signer: User, input: 
   const outputCommitment: BigNumberish = output.hash as BigNumberish;
   const outputOwnerPublicKey: [BigNumberish, BigNumberish] = to.babyJubPublicKey as [BigNumberish, BigNumberish];
   const otherInputs = stringifyBigInts({
-    senderPrivateKey: formatPrivKeyForBabyJub(signer.babyJubPrivateKey),
+    inputOwnerPrivateKey: formatPrivKeyForBabyJub(signer.babyJubPrivateKey),
   });
 
   const startWitnessCalculation = Date.now();
