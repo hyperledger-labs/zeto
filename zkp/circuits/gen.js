@@ -3,20 +3,29 @@ const path = require('path');
 const { exec } = require('child_process');
 const { promisify } = require('util');
 const axios = require('axios');
+const yargs = require('yargs/yargs');
+const { hideBin } = require('yargs/helpers');
+const argv = yargs(hideBin(process.argv)).argv;
 
+const circuitsRoot = process.env.CIRCUITS_ROOT;
 const provingKeysRoot = process.env.PROVING_KEYS_ROOT;
 const ptauDownload = process.env.PTAU_DOWNLOAD_PATH;
-const specificCircuit = process.argv[2];
+const specificCircuits = argv.c;
+const compileOnly = argv.compileOnly;
 const parallelLimit = parseInt(process.env.GEN_CONCURRENCY, 10) || 10; // Default to compile 10 circuits in parallel
 
 // check env vars
+if (!circuitsRoot) {
+  console.error('Error: CIRCUITS_ROOT is not set.');
+  process.exit(1);
+}
 
-if (!provingKeysRoot) {
+if (!compileOnly && !provingKeysRoot) {
   console.error('Error: PROVING_KEYS_ROOT is not set.');
   process.exit(1);
 }
 
-if (!ptauDownload) {
+if (!compileOnly && !ptauDownload) {
   console.error('Error: PTAU_DOWNLOAD_PATH is not set.');
   process.exit(1);
 }
@@ -54,15 +63,12 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
     return;
   }
 
-  if (!fs.existsSync(ptauFile)) {
+  if (!compileOnly && !fs.existsSync(ptauFile)) {
     log(circuit, `PTAU file does not exist, downloading: ${ptauFile}`);
     try {
-      const response = await axios.get(
-        `https://storage.googleapis.com/zkevm/ptau/${ptau}.ptau`,
-        {
-          responseType: 'stream',
-        }
-      );
+      const response = await axios.get(`https://storage.googleapis.com/zkevm/ptau/${ptau}.ptau`, {
+        responseType: 'stream',
+      });
       response.data.pipe(fs.createWriteStream(ptauFile));
       await new Promise((resolve, reject) => {
         response.data.on('end', resolve);
@@ -75,24 +81,18 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
   }
 
   log(circuit, `Compiling circuit`);
-  await execAsync(`circom ${circomInput} --output ../js/lib --sym --wasm`);
+  await execAsync(`circom ${circomInput} --output ${circuitsRoot} --sym --wasm`);
+  if (compileOnly) {
+    return;
+  }
+
   await execAsync(`circom ${circomInput} --output ${provingKeysRoot} --r1cs`);
 
   log(circuit, `Generating test proving key with ${ptau}`);
-  await execAsync(
-    `snarkjs groth16 setup ${path.join(
-      provingKeysRoot,
-      `${circuit}.r1cs`
-    )} ${ptauFile} ${zkeyOutput}`
-  );
+  await execAsync(`snarkjs groth16 setup ${path.join(provingKeysRoot, `${circuit}.r1cs`)} ${ptauFile} ${zkeyOutput}`);
 
   log(circuit, `Generating verification key`);
-  await execAsync(
-    `snarkjs zkey export verificationkey ${zkeyOutput} ${path.join(
-      provingKeysRoot,
-      `${circuit}-vkey.json`
-    )}`
-  );
+  await execAsync(`snarkjs zkey export verificationkey ${zkeyOutput} ${path.join(provingKeysRoot, `${circuit}-vkey.json`)}`);
 
   if (skipSolidityGenaration) {
     log(circuit, `Skipping solidity verifier generation`);
@@ -100,37 +100,27 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
   }
 
   log(circuit, `Generating solidity verifier`);
-  const solidityFile = path.join(
-    '..',
-    '..',
-    'solidity',
-    'contracts',
-    'lib',
-    `verifier_${circuit}.sol`
-  );
-  await execAsync(
-    `snarkjs zkey export solidityverifier ${zkeyOutput} ${solidityFile}`
-  );
+  const solidityFile = path.join('..', '..', 'solidity', 'contracts', 'lib', `verifier_${circuit}.sol`);
+  await execAsync(`snarkjs zkey export solidityverifier ${zkeyOutput} ${solidityFile}`);
 
   log(circuit, `Modifying the contract name in the Solidity file`);
   const camelCaseCircuitName = toCamelCase(circuit);
   const solidityFileTmp = `${solidityFile}.tmp`;
 
   const fileContent = fs.readFileSync(solidityFile, 'utf8');
-  const updatedContent = fileContent.replace(
-    ' Groth16Verifier ',
-    ` Groth16Verifier_${camelCaseCircuitName} `
-  );
+  const updatedContent = fileContent.replace(' Groth16Verifier ', ` Groth16Verifier_${camelCaseCircuitName} `);
   fs.writeFileSync(solidityFileTmp, updatedContent);
   fs.renameSync(solidityFileTmp, solidityFile);
 };
 
 const run = async () => {
-  if (specificCircuit) {
-    // if a specific circuit is provided, check it's in the map
-    if (!circuits[specificCircuit]) {
-      console.error(`Error: Unknown circuit: ${specificCircuit}`);
-      process.exit(1);
+  if (specificCircuits) {
+    // if specific circuits are provided, check it's in the map
+    for (const circuit of specificCircuits) {
+      if (!circuits[circuit]) {
+        console.error(`Error: Unknown circuit: ${circuit}`);
+        process.exit(1);
+      }
     }
   }
 
@@ -138,7 +128,7 @@ const run = async () => {
   const activePromises = new Set();
 
   for (const [circuit, { ptau, skipSolidityGenaration }] of circuitsArray) {
-    if (specificCircuit && circuit !== specificCircuit) {
+    if (specificCircuits && !specificCircuits.includes(circuit)) {
       continue;
     }
 
