@@ -107,6 +107,8 @@ contract Zeto_AnonEncNullifier is
         for (uint256 i = 0; i < nullifiers.length; ++i) {
             nullifierArray[i] = nullifiers[i];
             outputArray[i] = outputs[i];
+        }
+        for (uint256 i = 0; i < encryptedValues.length; ++i) {
             encryptedValuesArray[i] = encryptedValues[i];
         }
 

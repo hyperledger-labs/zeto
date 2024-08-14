@@ -17,7 +17,7 @@
 import { ethers, ignition } from 'hardhat';
 import { ContractTransactionReceipt, Signer, BigNumberish } from 'ethers';
 import { expect } from 'chai';
-import { loadCircuit, poseidonDecrypt, encodeProof } from "zeto-js";
+import { loadCircuit, poseidonDecrypt, encodeProof, Poseidon } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { genRandomSalt, genEcdhSharedKey, stringifyBigInts } from 'maci-crypto';
 import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
@@ -173,6 +173,15 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
       utxo4.value,
       utxo4.salt
     ]);
+    // the regulator verifies that the decrypted values are correct, against the UTXO hashes
+    const checkInputUTXO1 = Poseidon.poseidon4([plainText2[2], plainText2[3], plainText2[0], plainText2[1]]);
+    expect(checkInputUTXO1).to.equal(utxo1.hash); // "utxo1" hash is available in the event
+    const checkInputUTXO2 = Poseidon.poseidon4([plainText2[4], plainText2[5], plainText2[0], plainText2[1]]);
+    expect(checkInputUTXO2).to.equal(utxo2.hash); // "utxo2" hash is available in the event
+    const checkOutputUTXO1 = Poseidon.poseidon4([plainText2[10], plainText2[11], plainText2[6], plainText2[7]]);
+    expect(checkOutputUTXO1).to.equal(_utxo3.hash); // "_utxo3" hash is available in the event
+    const checkOutputUTXO2 = Poseidon.poseidon4([plainText2[12], plainText2[13], plainText2[8], plainText2[9]]);
+    expect(checkOutputUTXO2).to.equal(utxo4.hash); // "utxo4" hash is available in the event
 
     // Bob uses the decrypted values to construct the UTXO received from the transaction
     utxo3 = newUTXO(Number(plainText1[0]), Bob, plainText1[1]);
@@ -371,8 +380,6 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     console.log(`Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`);
 
     const encodedProof = encodeProof(proof);
-    const encryptedValue = publicSignals[0];
-    const encryptedSalt = publicSignals[1];
     return {
       inputCommitments,
       outputCommitments,
