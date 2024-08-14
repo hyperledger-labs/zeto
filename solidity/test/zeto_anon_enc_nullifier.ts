@@ -280,10 +280,6 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     utxo7 = newUTXO(15, Bob);
 
     await expect(doTransfer(Alice, [nonExisting1, nonExisting2], [nullifier1, nullifier2], [utxo7, _utxo1], root.bigInt(), merkleProofs, [Bob, Charlie])).rejectedWith("UTXORootNotFound");
-
-    // clean up the fake UTXOs from the local SMT
-    await smtAlice.delete(nonExisting1.hash);
-    await smtAlice.delete(nonExisting2.hash);
   }).timeout(600000);
 
   async function doTransfer(signer: User, inputs: UTXO[], _nullifiers: UTXO[], outputs: UTXO[], root: BigInt, merkleProofs: BigInt[][], owners: User[]) {

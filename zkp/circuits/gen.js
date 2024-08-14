@@ -3,23 +3,49 @@ const path = require('path');
 const { exec } = require('child_process');
 const { promisify } = require('util');
 const axios = require('axios');
+const yargs = require('yargs/yargs');
+const { hideBin } = require('yargs/helpers');
+const argv = yargs(hideBin(process.argv)).argv;
 
-const provingKeysRoot = process.env.PROVING_KEYS_ROOT;
-const ptauDownload = process.env.PTAU_DOWNLOAD_PATH;
-const specificCircuit = process.argv[2];
+const circuitsRoot = process.env.CIRCUITS_ROOT || argv.circuitsRoot;
+const provingKeysRoot = process.env.PROVING_KEYS_ROOT || argv.provingKeysRoot;
+const ptauDownload = process.env.PTAU_DOWNLOAD_PATH || argv.ptauDownloadPath;
+const specificCircuits = argv.c;
+const compileOnly = argv.compileOnly;
 const parallelLimit = parseInt(process.env.GEN_CONCURRENCY, 10) || 10; // Default to compile 10 circuits in parallel
 
 // check env vars
+if (!circuitsRoot) {
+  console.error('Error: CIRCUITS_ROOT is not set.');
+  process.exit(1);
+}
 
-if (!provingKeysRoot) {
+if (!compileOnly && !provingKeysRoot) {
   console.error('Error: PROVING_KEYS_ROOT is not set.');
   process.exit(1);
 }
 
-if (!ptauDownload) {
+if (!compileOnly && !ptauDownload) {
   console.error('Error: PTAU_DOWNLOAD_PATH is not set.');
   process.exit(1);
 }
+
+console.log(
+  'Generating circuits with the following settings:\n' +
+    JSON.stringify(
+      {
+        specificCircuits,
+        compileOnly,
+        parallelLimit,
+        circuitsRoot,
+        provingKeysRoot,
+        ptauDownload,
+      },
+      null,
+      2
+    ) +
+    '\n'
+);
 
 // load circuits
 
@@ -54,7 +80,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
     return;
   }
 
-  if (!fs.existsSync(ptauFile)) {
+  if (!compileOnly && !fs.existsSync(ptauFile)) {
     log(circuit, `PTAU file does not exist, downloading: ${ptauFile}`);
     try {
       const response = await axios.get(
@@ -75,7 +101,13 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
   }
 
   log(circuit, `Compiling circuit`);
-  await execAsync(`circom ${circomInput} --output ../js/lib --sym --wasm`);
+  await execAsync(
+    `circom ${circomInput} --output ${circuitsRoot} --sym --wasm`
+  );
+  if (compileOnly) {
+    return;
+  }
+
   await execAsync(`circom ${circomInput} --output ${provingKeysRoot} --r1cs`);
 
   log(circuit, `Generating test proving key with ${ptau}`);
@@ -126,11 +158,18 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
 };
 
 const run = async () => {
-  if (specificCircuit) {
-    // if a specific circuit is provided, check it's in the map
-    if (!circuits[specificCircuit]) {
-      console.error(`Error: Unknown circuit: ${specificCircuit}`);
-      process.exit(1);
+  let onlyCircuits = specificCircuits;
+  if (specificCircuits) {
+    if (!Array.isArray(specificCircuits)) {
+      onlyCircuits = [specificCircuits];
+    }
+
+    // if specific circuits are provided, check it's in the map
+    for (const circuit of onlyCircuits) {
+      if (!circuits[circuit]) {
+        console.error(`Error: Unknown circuit: ${circuit}`);
+        process.exit(1);
+      }
     }
   }
 
@@ -138,7 +177,7 @@ const run = async () => {
   const activePromises = new Set();
 
   for (const [circuit, { ptau, skipSolidityGenaration }] of circuitsArray) {
-    if (specificCircuit && circuit !== specificCircuit) {
+    if (onlyCircuits && !onlyCircuits.includes(circuit)) {
       continue;
     }
 

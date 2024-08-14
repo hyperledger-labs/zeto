@@ -23,8 +23,12 @@ function loadCircuit(type) {
   if (!type) {
     throw new Error('The circuit name must be provided');
   }
-  const WitnessCalculator = require(`./lib/${type}_js/witness_calculator.js`);
-  const buffer = readFileSync(path.join(__dirname, `./lib/${type}_js/${type}.wasm`));
+  const circuitsRoot = process.env.CIRCUITS_ROOT;
+  if (!circuitsRoot) {
+    throw new Error('CIRCUITS_ROOT is not set');
+  }
+  const WitnessCalculator = require(path.join(circuitsRoot, `${type}_js/witness_calculator.js`));
+  const buffer = readFileSync(path.join(circuitsRoot, `${type}_js/${type}.wasm`));
   return WitnessCalculator(buffer);
 }
 

@@ -29,15 +29,16 @@ npm i
 
 - set where you want to store the generated verification keys and the downloaded PTAU files
   ```console
+  export CIRCUITS_ROOT="$HOME/circuits"
   export PROVING_KEYS_ROOT="$HOME/proving-keys"
   export PTAU_DOWNLOAD_PATH="$HOME/Downloads"
-  mkdir -p $PROVING_KEYS_ROOT $PTAU_DOWNLOAD_PATH
+  mkdir -p $PROVING_KEYS_ROOT $PTAU_DOWNLOAD_PATH $CIRCUITS_ROOT
   ```
 - run the generation script for **ALL** circuits
   ```console
   npm run gen
   ```
-  **run `npm run gen $circuit` for developing a single circuit**
+  **run `npm run gen -- -c $circuit` for developing a single circuit**
   **use `GEN_CONCURRENCY` to control how many circuits to be processed in parallel, default to 10**
 
 > Refer to [generation script explanation](#generation-script-explanation) for what the script does

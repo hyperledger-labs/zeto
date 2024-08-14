@@ -327,46 +327,6 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
 
     await expect(doTransfer(Bob, [utxo7, utxo7], [nullifier1, nullifier2], [_utxo1, _utxo2], root.bigInt(), merkleProofs, identitiesRoot.bigInt(), identitiesMerkleProofs, [Alice, Bob])).rejectedWith(`UTXODuplicate`);
   }).timeout(600000);
-
-  it("transfer non-existing UTXOs should fail", async function () {
-    const nonExisting1 = newUTXO(25, Alice);
-    const nonExisting2 = newUTXO(20, Alice, nonExisting1.salt);
-
-    // add to our local SMT (but they don't exist on the chain)
-    await smtAlice.add(nonExisting1.hash, nonExisting1.hash);
-    await smtAlice.add(nonExisting2.hash, nonExisting2.hash);
-
-    // generate the nullifiers for the UTXOs to be spent
-    const nullifier1 = newNullifier(nonExisting1, Alice);
-    const nullifier2 = newNullifier(nonExisting2, Alice);
-
-    // generate inclusion proofs for the UTXOs to be spent
-    let root = await smtAlice.root();
-    const proof1 = await smtAlice.generateCircomVerifierProof(nonExisting1.hash, root);
-    const proof2 = await smtAlice.generateCircomVerifierProof(nonExisting2.hash, root);
-    const merkleProofs = [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())];
-
-    // propose the output UTXOs
-    const _utxo1 = newUTXO(30, Charlie);
-    utxo7 = newUTXO(15, Bob);
-
-    const identitiesRoot = await smtKyc.root();
-    const proof3 = await smtKyc.generateCircomVerifierProof(kycHash(Alice.babyJubPublicKey), identitiesRoot);
-    const proof4 = await smtKyc.generateCircomVerifierProof(kycHash(Bob.babyJubPublicKey), identitiesRoot);
-    const proof5 = await smtKyc.generateCircomVerifierProof(kycHash(Charlie.babyJubPublicKey), identitiesRoot);
-    const identitiesMerkleProofs = [
-      proof3.siblings.map((s) => s.bigInt()), // identity proof for the sender (Alice)
-      proof4.siblings.map((s) => s.bigInt()), // identity proof for the 1st owner of the output UTXO (Bob)
-      proof5.siblings.map((s) => s.bigInt())  // identity proof for the 2nd owner of the output UTXO (Charlie)
-    ];
-
-    await expect(doTransfer(Alice, [nonExisting1, nonExisting2], [nullifier1, nullifier2], [utxo7, _utxo1], root.bigInt(), merkleProofs, identitiesRoot.bigInt(), identitiesMerkleProofs, [Bob, Charlie])).rejectedWith("UTXORootNotFound");
-
-    // clean up the fake UTXOs from the local SMT
-    await smtAlice.delete(nonExisting1.hash);
-    await smtAlice.delete(nonExisting2.hash);
-  }).timeout(600000);
-
   it("transfer from an unregistered user should fail", async function () {
     const tx = await erc20.connect(deployer).mint(unregistered.ethAddress, 100);
     await tx.wait();
@@ -421,6 +381,41 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
     const balance = await erc20.balanceOf(unregistered.ethAddress);
     expect(balance).to.equal(100);
   });
+
+  it("transfer non-existing UTXOs should fail", async function () {
+    const nonExisting1 = newUTXO(25, Alice);
+    const nonExisting2 = newUTXO(20, Alice, nonExisting1.salt);
+
+    // add to our local SMT (but they don't exist on the chain)
+    await smtAlice.add(nonExisting1.hash, nonExisting1.hash);
+    await smtAlice.add(nonExisting2.hash, nonExisting2.hash);
+
+    // generate the nullifiers for the UTXOs to be spent
+    const nullifier1 = newNullifier(nonExisting1, Alice);
+    const nullifier2 = newNullifier(nonExisting2, Alice);
+
+    // generate inclusion proofs for the UTXOs to be spent
+    let root = await smtAlice.root();
+    const proof1 = await smtAlice.generateCircomVerifierProof(nonExisting1.hash, root);
+    const proof2 = await smtAlice.generateCircomVerifierProof(nonExisting2.hash, root);
+    const merkleProofs = [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())];
+
+    // propose the output UTXOs
+    const _utxo1 = newUTXO(30, Charlie);
+    utxo7 = newUTXO(15, Bob);
+
+    const identitiesRoot = await smtKyc.root();
+    const proof3 = await smtKyc.generateCircomVerifierProof(kycHash(Alice.babyJubPublicKey), identitiesRoot);
+    const proof4 = await smtKyc.generateCircomVerifierProof(kycHash(Bob.babyJubPublicKey), identitiesRoot);
+    const proof5 = await smtKyc.generateCircomVerifierProof(kycHash(Charlie.babyJubPublicKey), identitiesRoot);
+    const identitiesMerkleProofs = [
+      proof3.siblings.map((s) => s.bigInt()), // identity proof for the sender (Alice)
+      proof4.siblings.map((s) => s.bigInt()), // identity proof for the 1st owner of the output UTXO (Bob)
+      proof5.siblings.map((s) => s.bigInt())  // identity proof for the 2nd owner of the output UTXO (Charlie)
+    ];
+
+    await expect(doTransfer(Alice, [nonExisting1, nonExisting2], [nullifier1, nullifier2], [utxo7, _utxo1], root.bigInt(), merkleProofs, identitiesRoot.bigInt(), identitiesMerkleProofs, [Bob, Charlie])).rejectedWith("UTXORootNotFound");
+  }).timeout(600000);
 
   async function doTransfer(signer: User, inputs: UTXO[], _nullifiers: UTXO[], outputs: UTXO[], utxosRoot: BigInt, utxosMerkleProofs: BigInt[][], identitiesRoot: BigInt, identitiesMerkleProof: BigInt[][], owners: User[]) {
     let nullifiers: [BigNumberish, BigNumberish];

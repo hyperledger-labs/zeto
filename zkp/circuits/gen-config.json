@@ -39,10 +39,6 @@
     "ptau": "powersOfTau28_hez_final_16",
     "skipSolidityGenaration": false
   },
-  "check_smt_proof": {
-    "ptau": "powersOfTau28_hez_final_16",
-    "skipSolidityGenaration": false
-  },
   "check_nullifiers": {
     "ptau": "powersOfTau28_hez_final_11",
     "skipSolidityGenaration": true

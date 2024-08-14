@@ -52,6 +52,7 @@ jobs:
 
       - name: Build circuits
         env:
+          CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts
           PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
           PTAU_DOWNLOAD_PATH: ${{ runner.temp }}/zeto-artifacts
         working-directory: zkp/circuits
@@ -62,7 +63,7 @@ jobs:
       - name: Run golang e2e tests
         env:
           PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
-          CIRCUITS_ROOT: ${{ github.workspace }}/zkp/js/lib
+          CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts
         working-directory: go-sdk
         run: |
           make e2e
@@ -70,7 +71,7 @@ jobs:
       - name: Run js e2e tests
         env:
           PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
-          CIRCUITS_ROOT: ${{ github.workspace }}/zkp/js/lib
+          CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts
         working-directory: zkp/js
         run: |
           npm install
@@ -79,7 +80,7 @@ jobs:
       - name: Run Zeto Tokens hardhat tests
         env:
           PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
-          CIRCUITS_ROOT: ${{ github.workspace }}/zkp/js/lib
+          CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts
         working-directory: solidity
         run: |
           npm install
