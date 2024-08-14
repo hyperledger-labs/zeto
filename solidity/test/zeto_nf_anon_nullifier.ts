@@ -182,9 +182,6 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
     const _utxo1 = newAssetUTXO(nonExisting1.tokenId!, nonExisting1.uri!, Charlie);
 
     await expect(doTransfer(Alice, nonExisting1, nullifier1, _utxo1, root.bigInt(), merkleProof, Charlie)).rejectedWith("UTXORootNotFound");
-
-    // clean up the fake UTXOs from the local SMT
-    await smtAlice.delete(nonExisting1.hash);
   }).timeout(600000);
 
   async function doTransfer(signer: User, input: UTXO, _nullifier: UTXO, output: UTXO, root: BigInt, merkleProof: BigInt[], owner: User) {
