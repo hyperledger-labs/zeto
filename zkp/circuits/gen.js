@@ -7,9 +7,9 @@ const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
 const argv = yargs(hideBin(process.argv)).argv;
 
-const circuitsRoot = process.env.CIRCUITS_ROOT;
-const provingKeysRoot = process.env.PROVING_KEYS_ROOT;
-const ptauDownload = process.env.PTAU_DOWNLOAD_PATH;
+const circuitsRoot = process.env.CIRCUITS_ROOT || argv.circuitsRoot;
+const provingKeysRoot = process.env.PROVING_KEYS_ROOT || argv.provingKeysRoot;
+const ptauDownload = process.env.PTAU_DOWNLOAD_PATH || argv.ptauDownloadPath;
 const specificCircuits = argv.c;
 const compileOnly = argv.compileOnly;
 const parallelLimit = parseInt(process.env.GEN_CONCURRENCY, 10) || 10; // Default to compile 10 circuits in parallel
@@ -115,8 +115,13 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
 
 const run = async () => {
   if (specificCircuits) {
+    let onlyCircuits = specificCircuits;
+    if (!Array.isArray(specificCircuits)) {
+      onlyCircuits = [specificCircuits];
+    }
+
     // if specific circuits are provided, check it's in the map
-    for (const circuit of specificCircuits) {
+    for (const circuit of onlyCircuits) {
       if (!circuits[circuit]) {
         console.error(`Error: Unknown circuit: ${circuit}`);
         process.exit(1);
