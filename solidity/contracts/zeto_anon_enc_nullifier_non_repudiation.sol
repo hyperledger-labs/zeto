@@ -17,7 +17,7 @@ pragma solidity ^0.8.20;
 
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckNullifierValue} from "./lib/verifier_check_nullifier_value.sol";
-import {Groth16Verifier_AnonEncNullifier} from "./lib/verifier_anon_enc_nullifier.sol";
+import {Groth16Verifier_AnonEncNullifierNonRepudiation} from "./lib/verifier_anon_enc_nullifier_non_repudiation.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Registry} from "./lib/registry.sol";
@@ -53,6 +53,14 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         verifier = _verifier;
     }
 
+    function setAuthority(uint256[2] memory _authority) public onlyOwner {
+        authority = _authority;
+    }
+
+    function getAuthority() public view returns (uint256[2] memory) {
+        return authority;
+    }
+
     /**
      * @dev the main function of the contract, which transfers values from one account (represented by Babyjubjub public keys)
      *      to one or more receiver accounts (also represented by Babyjubjub public keys). One of the two nullifiers may be zero
@@ -72,7 +80,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         uint256[2] memory outputs,
         uint256 root,
         uint256 encryptionNonce,
-        uint256[2] memory encryptedValues,
+        uint256[16] memory encryptedValues,
         Commonlib.Proof calldata proof
     ) public returns (bool) {
         require(
@@ -81,17 +89,33 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         );
 
         // construct the public inputs
-        uint256[10] memory publicInputs;
+        uint256[26] memory publicInputs;
         publicInputs[0] = encryptedValues[0]; // encrypted value for the receiver UTXO
         publicInputs[1] = encryptedValues[1]; // encrypted salt for the receiver UTXO
-        publicInputs[2] = nullifiers[0];
-        publicInputs[3] = nullifiers[1];
-        publicInputs[4] = root;
-        publicInputs[5] = (nullifiers[0] == 0) ? 0 : 1; // if the first nullifier is empty, disable its MT proof verification
-        publicInputs[6] = (nullifiers[1] == 0) ? 0 : 1; // if the second nullifier is empty, disable its MT proof verification
-        publicInputs[7] = outputs[0];
-        publicInputs[8] = outputs[1];
-        publicInputs[9] = encryptionNonce;
+        publicInputs[2] = encryptedValues[2]; // encrypted input owner public key[0]
+        publicInputs[3] = encryptedValues[3]; // encrypted input owner public key[1]
+        publicInputs[4] = encryptedValues[4]; // encrypted input value[0]
+        publicInputs[5] = encryptedValues[5]; // encrypted input salt[0]
+        publicInputs[6] = encryptedValues[6]; // encrypted input value[1]
+        publicInputs[7] = encryptedValues[7]; // encrypted input salt[1]
+        publicInputs[8] = encryptedValues[8]; // encrypted first output owner public key[0]
+        publicInputs[9] = encryptedValues[9]; // encrypted first output owner public key[1]
+        publicInputs[10] = encryptedValues[10]; // encrypted second output owner public key[0]
+        publicInputs[11] = encryptedValues[11]; // encrypted second output owner public key[1]
+        publicInputs[12] = encryptedValues[12]; // encrypted output value[0]
+        publicInputs[13] = encryptedValues[13]; // encrypted output salt[0]
+        publicInputs[14] = encryptedValues[14]; // encrypted output value[1]
+        publicInputs[15] = encryptedValues[15]; // encrypted output salt[1]
+        publicInputs[16] = nullifiers[0];
+        publicInputs[17] = nullifiers[1];
+        publicInputs[18] = root;
+        publicInputs[19] = (nullifiers[0] == 0) ? 0 : 1; // if the first nullifier is empty, disable its MT proof verification
+        publicInputs[20] = (nullifiers[1] == 0) ? 0 : 1; // if the second nullifier is empty, disable its MT proof verification
+        publicInputs[21] = outputs[0];
+        publicInputs[22] = outputs[1];
+        publicInputs[23] = encryptionNonce;
+        publicInputs[24] = authority[0];
+        publicInputs[25] = authority[1];
 
         // // Check the proof
         require(
@@ -110,6 +134,8 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         for (uint256 i = 0; i < nullifiers.length; ++i) {
             nullifierArray[i] = nullifiers[i];
             outputArray[i] = outputs[i];
+        }
+        for (uint256 i = 0; i < encryptedValues.length; ++i) {
             encryptedValuesArray[i] = encryptedValues[i];
         }
 
