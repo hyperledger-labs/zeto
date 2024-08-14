@@ -20,14 +20,18 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"os"
 	"testing"
 
 	"github.com/hyperledger-labs/zeto/go-sdk/internal/sparse-merkle-tree/node"
 	"github.com/hyperledger-labs/zeto/go-sdk/internal/sparse-merkle-tree/storage"
 	"github.com/hyperledger-labs/zeto/go-sdk/internal/testutils"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/core"
+	"github.com/hyperledger-labs/zeto/go-sdk/pkg/utxo"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/stretchr/testify/assert"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 func TestNewMerkleTree(t *testing.T) {
@@ -190,4 +194,58 @@ func TestVerifyProof(t *testing.T) {
 	}
 
 	fmt.Println("All done")
+}
+
+type testSqlProvider struct {
+	db *gorm.DB
+}
+
+func (s *testSqlProvider) DB() *gorm.DB {
+	return s.db
+}
+
+func (s *testSqlProvider) Close() {}
+
+func TestSqliteStorage(t *testing.T) {
+	dbfile, err := os.CreateTemp("", "gorm.db")
+	assert.NoError(t, err)
+	defer func() {
+		os.Remove(dbfile.Name())
+	}()
+	db, err := gorm.Open(sqlite.Open(dbfile.Name()), &gorm.Config{})
+	assert.NoError(t, err)
+	err = db.Table(core.TreeRootsTable).AutoMigrate(&core.SMTRoot{})
+	assert.NoError(t, err)
+	err = db.Table(core.NodesTablePrefix + "test_1").AutoMigrate(&core.SMTNode{})
+	assert.NoError(t, err)
+
+	provider := &testSqlProvider{db: db}
+	s := storage.NewSqlStorage(provider, "test_1")
+	assert.NoError(t, err)
+
+	mt, err := NewMerkleTree(s, 10)
+	assert.NoError(t, err)
+
+	tokenId := big.NewInt(1001)
+	uriString := "https://example.com/token/1001"
+	assert.NoError(t, err)
+	sender := testutils.NewKeypair()
+	salt1 := utxo.NewSalt()
+
+	utxo1 := node.NewNonFungible(tokenId, uriString, sender.PublicKey, salt1)
+	n1, err := node.NewLeafNode(utxo1)
+	assert.NoError(t, err)
+	err = mt.AddLeaf(n1)
+	assert.NoError(t, err)
+
+	root := mt.Root()
+	dbRoot := core.SMTRoot{Name: "test_1"}
+	err = db.Table(core.TreeRootsTable).First(&dbRoot).Error
+	assert.NoError(t, err)
+	assert.Equal(t, root.Hex(), dbRoot.RootIndex)
+
+	dbNode := core.SMTNode{RefKey: n1.Ref().Hex()}
+	err = db.Table(core.NodesTablePrefix + "test_1").First(&dbNode).Error
+	assert.NoError(t, err)
+	assert.Equal(t, n1.Ref().Hex(), dbNode.RefKey)
 }
