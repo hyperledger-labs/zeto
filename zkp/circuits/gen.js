@@ -14,6 +14,8 @@ const specificCircuits = argv.c;
 const compileOnly = argv.compileOnly;
 const parallelLimit = parseInt(process.env.GEN_CONCURRENCY, 10) || 10; // Default to compile 10 circuits in parallel
 
+console.log(argv);
+
 // check env vars
 if (!circuitsRoot) {
   console.error('Error: CIRCUITS_ROOT is not set.');
@@ -114,8 +116,8 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
 };
 
 const run = async () => {
+  let onlyCircuits = specificCircuits;
   if (specificCircuits) {
-    let onlyCircuits = specificCircuits;
     if (!Array.isArray(specificCircuits)) {
       onlyCircuits = [specificCircuits];
     }
@@ -133,7 +135,7 @@ const run = async () => {
   const activePromises = new Set();
 
   for (const [circuit, { ptau, skipSolidityGenaration }] of circuitsArray) {
-    if (specificCircuits && !specificCircuits.includes(circuit)) {
+    if (onlyCircuits && !onlyCircuits.includes(circuit)) {
       continue;
     }
 
