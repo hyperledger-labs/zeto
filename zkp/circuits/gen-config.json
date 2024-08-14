@@ -15,6 +15,10 @@
     "ptau": "powersOfTau28_hez_final_16",
     "skipSolidityGenaration": false
   },
+  "anon_enc_nullifier_non_repudiation": {
+    "ptau": "powersOfTau28_hez_final_16",
+    "skipSolidityGenaration": false
+  },
   "anon_enc_nullifier": {
     "ptau": "powersOfTau28_hez_final_16",
     "skipSolidityGenaration": false
