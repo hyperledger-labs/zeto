@@ -30,6 +30,23 @@ if (!compileOnly && !ptauDownload) {
   process.exit(1);
 }
 
+console.log(
+  'Generating circuits with the following settings:\n' +
+    JSON.stringify(
+      {
+        specificCircuits,
+        compileOnly,
+        parallelLimit,
+        circuitsRoot,
+        provingKeysRoot,
+        ptauDownload,
+      },
+      null,
+      2
+    ) +
+    '\n'
+);
+
 // load circuits
 
 const circuits = require('./gen-config.json');
@@ -66,9 +83,12 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
   if (!compileOnly && !fs.existsSync(ptauFile)) {
     log(circuit, `PTAU file does not exist, downloading: ${ptauFile}`);
     try {
-      const response = await axios.get(`https://storage.googleapis.com/zkevm/ptau/${ptau}.ptau`, {
-        responseType: 'stream',
-      });
+      const response = await axios.get(
+        `https://storage.googleapis.com/zkevm/ptau/${ptau}.ptau`,
+        {
+          responseType: 'stream',
+        }
+      );
       response.data.pipe(fs.createWriteStream(ptauFile));
       await new Promise((resolve, reject) => {
         response.data.on('end', resolve);
@@ -81,7 +101,9 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
   }
 
   log(circuit, `Compiling circuit`);
-  await execAsync(`circom ${circomInput} --output ${circuitsRoot} --sym --wasm`);
+  await execAsync(
+    `circom ${circomInput} --output ${circuitsRoot} --sym --wasm`
+  );
   if (compileOnly) {
     return;
   }
@@ -89,10 +111,20 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
   await execAsync(`circom ${circomInput} --output ${provingKeysRoot} --r1cs`);
 
   log(circuit, `Generating test proving key with ${ptau}`);
-  await execAsync(`snarkjs groth16 setup ${path.join(provingKeysRoot, `${circuit}.r1cs`)} ${ptauFile} ${zkeyOutput}`);
+  await execAsync(
+    `snarkjs groth16 setup ${path.join(
+      provingKeysRoot,
+      `${circuit}.r1cs`
+    )} ${ptauFile} ${zkeyOutput}`
+  );
 
   log(circuit, `Generating verification key`);
-  await execAsync(`snarkjs zkey export verificationkey ${zkeyOutput} ${path.join(provingKeysRoot, `${circuit}-vkey.json`)}`);
+  await execAsync(
+    `snarkjs zkey export verificationkey ${zkeyOutput} ${path.join(
+      provingKeysRoot,
+      `${circuit}-vkey.json`
+    )}`
+  );
 
   if (skipSolidityGenaration) {
     log(circuit, `Skipping solidity verifier generation`);
@@ -100,15 +132,27 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
   }
 
   log(circuit, `Generating solidity verifier`);
-  const solidityFile = path.join('..', '..', 'solidity', 'contracts', 'lib', `verifier_${circuit}.sol`);
-  await execAsync(`snarkjs zkey export solidityverifier ${zkeyOutput} ${solidityFile}`);
+  const solidityFile = path.join(
+    '..',
+    '..',
+    'solidity',
+    'contracts',
+    'lib',
+    `verifier_${circuit}.sol`
+  );
+  await execAsync(
+    `snarkjs zkey export solidityverifier ${zkeyOutput} ${solidityFile}`
+  );
 
   log(circuit, `Modifying the contract name in the Solidity file`);
   const camelCaseCircuitName = toCamelCase(circuit);
   const solidityFileTmp = `${solidityFile}.tmp`;
 
   const fileContent = fs.readFileSync(solidityFile, 'utf8');
-  const updatedContent = fileContent.replace(' Groth16Verifier ', ` Groth16Verifier_${camelCaseCircuitName} `);
+  const updatedContent = fileContent.replace(
+    ' Groth16Verifier ',
+    ` Groth16Verifier_${camelCaseCircuitName} `
+  );
   fs.writeFileSync(solidityFileTmp, updatedContent);
   fs.renameSync(solidityFileTmp, solidityFile);
 };
