@@ -94,7 +94,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     await smtBob.add(utxo100.hash, utxo100.hash);
   });
 
-  it("mint to Alice and transfer UTXOs honestly to Bob should succeed", async function () {
+  it("mint to Alice and transfer UTXOs honestly to Bob should succeed and verifiable by the regulator", async function () {
     // The authority mints a new UTXO and assigns it to Alice
     utxo1 = newUTXO(10, Alice);
     utxo2 = newUTXO(20, Alice);
