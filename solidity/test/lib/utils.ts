@@ -103,6 +103,16 @@ export function parseUTXOEvents(zetoTokenContract: any, result: ContractTransact
         submitter: event?.args.submitter
       };
       returnValues.push(transfer);
+    } else if (event?.name === 'UTXOTransferNonRepudiation') {
+      const transfer = {
+        inputs: event?.args.inputs,
+        outputs: event?.args.outputs,
+        encryptedValuesForReceiver: event?.args.encryptedValuesForReceiver,
+        encryptedValuesForAuthority: event?.args.encryptedValuesForAuthority,
+        encryptionNonce: event?.args.encryptionNonce,
+        submitter: event?.args.submitter
+      };
+      returnValues.push(transfer);
     } else if (event?.name === 'UTXOMint') {
       const mint = {
         outputs: event?.args.outputs,

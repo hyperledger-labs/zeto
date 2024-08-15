@@ -17,7 +17,7 @@ pragma solidity ^0.8.20;
 
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckNullifierValue} from "./lib/verifier_check_nullifier_value.sol";
-import {Groth16Verifier_AnonEncNullifier} from "./lib/verifier_anon_enc_nullifier.sol";
+import {Groth16Verifier_AnonEncNullifierNonRepudiation} from "./lib/verifier_anon_enc_nullifier_non_repudiation.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Registry} from "./lib/registry.sol";
@@ -33,21 +33,41 @@ import "hardhat/console.sol";
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers
 ///        - the encrypted value in the input is derived from the receiver's UTXO value and encrypted with a shared secret using the ECDH protocol between the sender and receiver (this guarantees data availability for the receiver)
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
-contract Zeto_AnonEncNullifier is
+contract Zeto_AnonEncNullifierNonRepudiation is
     ZetoNullifier,
     ZetoFungibleWithdrawWithNullifiers
 {
-    Groth16Verifier_AnonEncNullifier verifier;
+    event UTXOTransferNonRepudiation(
+        uint256[] inputs,
+        uint256[] outputs,
+        uint256 encryptionNonce,
+        uint256[] encryptedValuesForReceiver,
+        uint256[] encryptedValuesForAuthority,
+        address indexed submitter
+    );
+
+    Groth16Verifier_AnonEncNullifierNonRepudiation verifier;
+    // the authority public key that must be used to
+    // encrypt the secrets of every transaction
+    uint256[2] private authority;
 
     constructor(
         Groth16Verifier_CheckHashesValue _depositVerifier,
         Groth16Verifier_CheckNullifierValue _withdrawVerifier,
-        Groth16Verifier_AnonEncNullifier _verifier
+        Groth16Verifier_AnonEncNullifierNonRepudiation _verifier
     )
         ZetoNullifier()
         ZetoFungibleWithdrawWithNullifiers(_depositVerifier, _withdrawVerifier)
     {
         verifier = _verifier;
+    }
+
+    function setAuthority(uint256[2] memory _authority) public onlyOwner {
+        authority = _authority;
+    }
+
+    function getAuthority() public view returns (uint256[2] memory) {
+        return authority;
     }
 
     /**
@@ -59,17 +79,21 @@ contract Zeto_AnonEncNullifier is
      * @param nullifiers Array of nullifiers that are secretly bound to UTXOs to be spent by the transaction.
      * @param outputs Array of new UTXOs to generate, for future transactions to spend.
      * @param root The root hash of the Sparse Merkle Tree that contains the nullifiers.
+     * @param encryptionNonce The nonce used to derive the shared secret for encryption by the receiver.
+     * @param encryptedValuesForReceiver Array of encrypted values, salts and public keys for the receiver UTXO
+     * @param encryptedValuesForAuthority Array of encrypted values, salts and public keys for the input UTXOs and output UTXOs.
      * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
      *      that the outputs are valid in terms of obeying mass conservation rules.
      *
-     * Emits a {UTXOTransferWithEncryptedValues} event.
+     * Emits a {UTXOTransferNonRepudiation} event.
      */
     function transfer(
         uint256[2] memory nullifiers,
         uint256[2] memory outputs,
         uint256 root,
         uint256 encryptionNonce,
-        uint256[2] memory encryptedValues,
+        uint256[2] memory encryptedValuesForReceiver,
+        uint256[14] memory encryptedValuesForAuthority,
         Commonlib.Proof calldata proof
     ) public returns (bool) {
         require(
@@ -78,17 +102,33 @@ contract Zeto_AnonEncNullifier is
         );
 
         // construct the public inputs
-        uint256[10] memory publicInputs;
-        publicInputs[0] = encryptedValues[0]; // encrypted value for the receiver UTXO
-        publicInputs[1] = encryptedValues[1]; // encrypted salt for the receiver UTXO
-        publicInputs[2] = nullifiers[0];
-        publicInputs[3] = nullifiers[1];
-        publicInputs[4] = root;
-        publicInputs[5] = (nullifiers[0] == 0) ? 0 : 1; // if the first nullifier is empty, disable its MT proof verification
-        publicInputs[6] = (nullifiers[1] == 0) ? 0 : 1; // if the second nullifier is empty, disable its MT proof verification
-        publicInputs[7] = outputs[0];
-        publicInputs[8] = outputs[1];
-        publicInputs[9] = encryptionNonce;
+        uint256[26] memory publicInputs;
+        publicInputs[0] = encryptedValuesForReceiver[0]; // encrypted value for the receiver UTXO
+        publicInputs[1] = encryptedValuesForReceiver[1]; // encrypted salt for the receiver UTXO
+        publicInputs[2] = encryptedValuesForAuthority[0]; // encrypted input owner public key[0]
+        publicInputs[3] = encryptedValuesForAuthority[1]; // encrypted input owner public key[1]
+        publicInputs[4] = encryptedValuesForAuthority[2]; // encrypted input value[0]
+        publicInputs[5] = encryptedValuesForAuthority[3]; // encrypted input salt[0]
+        publicInputs[6] = encryptedValuesForAuthority[4]; // encrypted input value[1]
+        publicInputs[7] = encryptedValuesForAuthority[5]; // encrypted input salt[1]
+        publicInputs[8] = encryptedValuesForAuthority[6]; // encrypted first output owner public key[0]
+        publicInputs[9] = encryptedValuesForAuthority[7]; // encrypted first output owner public key[1]
+        publicInputs[10] = encryptedValuesForAuthority[8]; // encrypted second output owner public key[0]
+        publicInputs[11] = encryptedValuesForAuthority[9]; // encrypted second output owner public key[1]
+        publicInputs[12] = encryptedValuesForAuthority[10]; // encrypted output value[0]
+        publicInputs[13] = encryptedValuesForAuthority[11]; // encrypted output salt[0]
+        publicInputs[14] = encryptedValuesForAuthority[12]; // encrypted output value[1]
+        publicInputs[15] = encryptedValuesForAuthority[13]; // encrypted output salt[1]
+        publicInputs[16] = nullifiers[0];
+        publicInputs[17] = nullifiers[1];
+        publicInputs[18] = root;
+        publicInputs[19] = (nullifiers[0] == 0) ? 0 : 1; // if the first nullifier is empty, disable its MT proof verification
+        publicInputs[20] = (nullifiers[1] == 0) ? 0 : 1; // if the second nullifier is empty, disable its MT proof verification
+        publicInputs[21] = outputs[0];
+        publicInputs[22] = outputs[1];
+        publicInputs[23] = encryptionNonce;
+        publicInputs[24] = authority[0];
+        publicInputs[25] = authority[1];
 
         // // Check the proof
         require(
@@ -101,22 +141,29 @@ contract Zeto_AnonEncNullifier is
 
         uint256[] memory nullifierArray = new uint256[](nullifiers.length);
         uint256[] memory outputArray = new uint256[](outputs.length);
-        uint256[] memory encryptedValuesArray = new uint256[](
-            encryptedValues.length
+        uint256[] memory encryptedValuesReceiverArray = new uint256[](
+            encryptedValuesForReceiver.length
+        );
+        uint256[] memory encryptedValuesAuthorityArray = new uint256[](
+            encryptedValuesForAuthority.length
         );
         for (uint256 i = 0; i < nullifiers.length; ++i) {
             nullifierArray[i] = nullifiers[i];
             outputArray[i] = outputs[i];
         }
-        for (uint256 i = 0; i < encryptedValues.length; ++i) {
-            encryptedValuesArray[i] = encryptedValues[i];
+        for (uint256 i = 0; i < encryptedValuesForReceiver.length; ++i) {
+            encryptedValuesReceiverArray[i] = encryptedValuesForReceiver[i];
+        }
+        for (uint256 i = 0; i < encryptedValuesForAuthority.length; ++i) {
+            encryptedValuesAuthorityArray[i] = encryptedValuesForAuthority[i];
         }
 
-        emit UTXOTransferWithEncryptedValues(
+        emit UTXOTransferNonRepudiation(
             nullifierArray,
             outputArray,
             encryptionNonce,
-            encryptedValuesArray,
+            encryptedValuesReceiverArray,
+            encryptedValuesAuthorityArray,
             msg.sender
         );
         return true;
