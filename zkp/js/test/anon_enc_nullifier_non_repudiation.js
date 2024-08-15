@@ -60,7 +60,7 @@ describe('main circuit tests for Zeto fungible tokens with encryption for non-re
     smtBob = new Merkletree(storage2, true, SMT_HEIGHT);
   });
 
-  it('should succeed for valid witness and produce an encypted value', async () => {
+  it('should succeed for valid witness, produce an encypted value and regulator is able to decrypt', async () => {
     const inputValues = [32, 40];
     const outputValues = [20, 52];
 
