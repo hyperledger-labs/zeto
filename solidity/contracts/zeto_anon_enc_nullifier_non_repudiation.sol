@@ -37,6 +37,15 @@ contract Zeto_AnonEncNullifierNonRepudiation is
     ZetoNullifier,
     ZetoFungibleWithdrawWithNullifiers
 {
+    event UTXOTransferNonRepudiation(
+        uint256[] inputs,
+        uint256[] outputs,
+        uint256 encryptionNonce,
+        uint256[] encryptedValuesForReceiver,
+        uint256[] encryptedValuesForAuthority,
+        address indexed submitter
+    );
+
     Groth16Verifier_AnonEncNullifierNonRepudiation verifier;
     // the authority public key that must be used to
     // encrypt the secrets of every transaction
@@ -70,17 +79,21 @@ contract Zeto_AnonEncNullifierNonRepudiation is
      * @param nullifiers Array of nullifiers that are secretly bound to UTXOs to be spent by the transaction.
      * @param outputs Array of new UTXOs to generate, for future transactions to spend.
      * @param root The root hash of the Sparse Merkle Tree that contains the nullifiers.
+     * @param encryptionNonce The nonce used to derive the shared secret for encryption by the receiver.
+     * @param encryptedValuesForReceiver Array of encrypted values, salts and public keys for the receiver UTXO
+     * @param encryptedValuesForAuthority Array of encrypted values, salts and public keys for the input UTXOs and output UTXOs.
      * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
      *      that the outputs are valid in terms of obeying mass conservation rules.
      *
-     * Emits a {UTXOTransferWithEncryptedValues} event.
+     * Emits a {UTXOTransferNonRepudiation} event.
      */
     function transfer(
         uint256[2] memory nullifiers,
         uint256[2] memory outputs,
         uint256 root,
         uint256 encryptionNonce,
-        uint256[16] memory encryptedValues,
+        uint256[2] memory encryptedValuesForReceiver,
+        uint256[14] memory encryptedValuesForAuthority,
         Commonlib.Proof calldata proof
     ) public returns (bool) {
         require(
@@ -90,22 +103,22 @@ contract Zeto_AnonEncNullifierNonRepudiation is
 
         // construct the public inputs
         uint256[26] memory publicInputs;
-        publicInputs[0] = encryptedValues[0]; // encrypted value for the receiver UTXO
-        publicInputs[1] = encryptedValues[1]; // encrypted salt for the receiver UTXO
-        publicInputs[2] = encryptedValues[2]; // encrypted input owner public key[0]
-        publicInputs[3] = encryptedValues[3]; // encrypted input owner public key[1]
-        publicInputs[4] = encryptedValues[4]; // encrypted input value[0]
-        publicInputs[5] = encryptedValues[5]; // encrypted input salt[0]
-        publicInputs[6] = encryptedValues[6]; // encrypted input value[1]
-        publicInputs[7] = encryptedValues[7]; // encrypted input salt[1]
-        publicInputs[8] = encryptedValues[8]; // encrypted first output owner public key[0]
-        publicInputs[9] = encryptedValues[9]; // encrypted first output owner public key[1]
-        publicInputs[10] = encryptedValues[10]; // encrypted second output owner public key[0]
-        publicInputs[11] = encryptedValues[11]; // encrypted second output owner public key[1]
-        publicInputs[12] = encryptedValues[12]; // encrypted output value[0]
-        publicInputs[13] = encryptedValues[13]; // encrypted output salt[0]
-        publicInputs[14] = encryptedValues[14]; // encrypted output value[1]
-        publicInputs[15] = encryptedValues[15]; // encrypted output salt[1]
+        publicInputs[0] = encryptedValuesForReceiver[0]; // encrypted value for the receiver UTXO
+        publicInputs[1] = encryptedValuesForReceiver[1]; // encrypted salt for the receiver UTXO
+        publicInputs[2] = encryptedValuesForAuthority[0]; // encrypted input owner public key[0]
+        publicInputs[3] = encryptedValuesForAuthority[1]; // encrypted input owner public key[1]
+        publicInputs[4] = encryptedValuesForAuthority[2]; // encrypted input value[0]
+        publicInputs[5] = encryptedValuesForAuthority[3]; // encrypted input salt[0]
+        publicInputs[6] = encryptedValuesForAuthority[4]; // encrypted input value[1]
+        publicInputs[7] = encryptedValuesForAuthority[5]; // encrypted input salt[1]
+        publicInputs[8] = encryptedValuesForAuthority[6]; // encrypted first output owner public key[0]
+        publicInputs[9] = encryptedValuesForAuthority[7]; // encrypted first output owner public key[1]
+        publicInputs[10] = encryptedValuesForAuthority[8]; // encrypted second output owner public key[0]
+        publicInputs[11] = encryptedValuesForAuthority[9]; // encrypted second output owner public key[1]
+        publicInputs[12] = encryptedValuesForAuthority[10]; // encrypted output value[0]
+        publicInputs[13] = encryptedValuesForAuthority[11]; // encrypted output salt[0]
+        publicInputs[14] = encryptedValuesForAuthority[12]; // encrypted output value[1]
+        publicInputs[15] = encryptedValuesForAuthority[13]; // encrypted output salt[1]
         publicInputs[16] = nullifiers[0];
         publicInputs[17] = nullifiers[1];
         publicInputs[18] = root;
@@ -128,22 +141,29 @@ contract Zeto_AnonEncNullifierNonRepudiation is
 
         uint256[] memory nullifierArray = new uint256[](nullifiers.length);
         uint256[] memory outputArray = new uint256[](outputs.length);
-        uint256[] memory encryptedValuesArray = new uint256[](
-            encryptedValues.length
+        uint256[] memory encryptedValuesReceiverArray = new uint256[](
+            encryptedValuesForReceiver.length
+        );
+        uint256[] memory encryptedValuesAuthorityArray = new uint256[](
+            encryptedValuesForAuthority.length
         );
         for (uint256 i = 0; i < nullifiers.length; ++i) {
             nullifierArray[i] = nullifiers[i];
             outputArray[i] = outputs[i];
         }
-        for (uint256 i = 0; i < encryptedValues.length; ++i) {
-            encryptedValuesArray[i] = encryptedValues[i];
+        for (uint256 i = 0; i < encryptedValuesForReceiver.length; ++i) {
+            encryptedValuesReceiverArray[i] = encryptedValuesForReceiver[i];
+        }
+        for (uint256 i = 0; i < encryptedValuesForAuthority.length; ++i) {
+            encryptedValuesAuthorityArray[i] = encryptedValuesForAuthority[i];
         }
 
-        emit UTXOTransferWithEncryptedValues(
+        emit UTXOTransferNonRepudiation(
             nullifierArray,
             outputArray,
             encryptionNonce,
-            encryptedValuesArray,
+            encryptedValuesReceiverArray,
+            encryptedValuesAuthorityArray,
             msg.sender
         );
         return true;

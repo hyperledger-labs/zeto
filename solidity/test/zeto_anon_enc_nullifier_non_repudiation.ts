@@ -148,7 +148,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
 
     // Bob uses the encrypted values in the event to decrypt and recover the UTXO value and salt
     const sharedKey1 = genEcdhSharedKey(Bob.babyJubPrivateKey, Alice.babyJubPublicKey);
-    const plainText1 = poseidonDecrypt(events[0].encryptedValues.slice(0, 2), sharedKey1, events[0].encryptionNonce);
+    const plainText1 = poseidonDecrypt(events[0].encryptedValuesForReceiver, sharedKey1, events[0].encryptionNonce);
     expect(plainText1).to.deep.equal([
       25n,
       result2.plainTextSalt,
@@ -156,7 +156,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
 
     // The regulator uses the encrypted values in the event to decrypt and recover the UTXO value and salt
     const sharedKey2 = genEcdhSharedKey(Authority.babyJubPrivateKey, Alice.babyJubPublicKey);
-    const plainText2 = poseidonDecrypt(events[0].encryptedValues.slice(2, 16), sharedKey2, events[0].encryptionNonce);
+    const plainText2 = poseidonDecrypt(events[0].encryptedValuesForAuthority, sharedKey2, events[0].encryptionNonce);
     expect(plainText2).to.deep.equal([
       Alice.babyJubPublicKey[0],
       Alice.babyJubPublicKey[1],
@@ -399,7 +399,9 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     encodedProof: any
   ) {
     const startTx = Date.now();
-    const tx = await zeto.connect(signer.signer).transfer(nullifiers, outputCommitments, root, encryptionNonce, encryptedValues, encodedProof);
+    const encryptedValuesForReceiver = encryptedValues.slice(0, 2);
+    const encryptedValuesForRegulator = encryptedValues.slice(2, 16);
+    const tx = await zeto.connect(signer.signer).transfer(nullifiers, outputCommitments, root, encryptionNonce, encryptedValuesForReceiver, encryptedValuesForRegulator, encodedProof);
     const results: ContractTransactionReceipt | null = await tx.wait();
     console.log(`Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${results?.gasUsed}`);
     return results;
