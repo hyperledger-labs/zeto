@@ -657,8 +657,9 @@ func TestPostgresStorage(t *testing.T) {
 	assert.NoError(t, err)
 
 	defer func() {
-		db.Exec("DROP TABLE " + core.TreeRootsTable)
-		db.Exec("DROP TABLE " + core.NodesTablePrefix + "test_1")
+		// Table name needs to be wrapped in quotes if not it will be lowercased
+		db.Exec("DROP TABLE " + "\"" + core.TreeRootsTable + "\"")
+		db.Exec("DROP TABLE " + "\"" + core.NodesTablePrefix + "test_1\"")
 	}()
 
 	provider := &testSqlProvider{db: db}
