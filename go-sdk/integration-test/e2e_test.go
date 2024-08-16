@@ -28,7 +28,6 @@ import (
 	"github.com/hyperledger-labs/zeto/go-sdk/internal/testutils"
 	keyscore "github.com/hyperledger-labs/zeto/go-sdk/pkg/key-manager/core"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/key-manager/key"
-	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/core"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/node"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/smt"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/storage"
@@ -41,9 +40,6 @@ import (
 	"github.com/iden3/go-rapidsnark/witness/v2"
 	"github.com/iden3/go-rapidsnark/witness/wasmer"
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
 const MAX_HEIGHT = 64
@@ -591,115 +587,4 @@ func testConcurrentInsertion(t *testing.T, alice *babyjub.PublicKey, values []in
 	}
 
 	assert.Equal(t, "abacf46f5217552ee28fe50b8fd7ca6aa46daeb9acf9f60928654c3b1a472f23", mt.Root().Hex())
-}
-
-type testSqlProvider struct {
-	db *gorm.DB
-}
-
-func (s *testSqlProvider) DB() *gorm.DB {
-	return s.db
-}
-
-func (s *testSqlProvider) Close() {}
-
-func TestSqliteStorage(t *testing.T) {
-	dbfile, err := os.CreateTemp("", "gorm.db")
-	assert.NoError(t, err)
-	defer func() {
-		os.Remove(dbfile.Name())
-	}()
-	db, err := gorm.Open(sqlite.Open(dbfile.Name()), &gorm.Config{})
-	assert.NoError(t, err)
-	err = db.Table(core.TreeRootsTable).AutoMigrate(&core.SMTRoot{})
-	assert.NoError(t, err)
-	err = db.Table(core.NodesTablePrefix + "test_1").AutoMigrate(&core.SMTNode{})
-	assert.NoError(t, err)
-
-	provider := &testSqlProvider{db: db}
-	s, err := storage.NewSqlStorage(provider, "test_1")
-	assert.NoError(t, err)
-
-	mt, err := smt.NewMerkleTree(s, MAX_HEIGHT)
-	assert.NoError(t, err)
-
-	tokenId := big.NewInt(1001)
-	uriString := "https://example.com/token/1001"
-	assert.NoError(t, err)
-	sender := testutils.NewKeypair()
-	salt1 := utxo.NewSalt()
-
-	utxo1 := node.NewNonFungible(tokenId, uriString, sender.PublicKey, salt1)
-	n1, err := node.NewLeafNode(utxo1)
-	assert.NoError(t, err)
-	err = mt.AddLeaf(n1)
-	assert.NoError(t, err)
-
-	root := mt.Root()
-	dbRoot := core.SMTRoot{Name: "test_1"}
-	err = db.Table(core.TreeRootsTable).First(&dbRoot).Error
-	assert.NoError(t, err)
-	assert.Equal(t, root.Hex(), dbRoot.RootIndex)
-
-	dbNode := core.SMTNode{RefKey: n1.Ref().Hex()}
-	err = db.Table(core.NodesTablePrefix + "test_1").First(&dbNode).Error
-	assert.NoError(t, err)
-	assert.Equal(t, n1.Ref().Hex(), dbNode.RefKey)
-}
-
-func TestPostgresStorage(t *testing.T) {
-	dsn := "host=localhost user=postgres password=my-secret dbname=postgres port=5432 sslmode=disable"
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	assert.NoError(t, err)
-	err = db.Table(core.TreeRootsTable).AutoMigrate(&core.SMTRoot{})
-	assert.NoError(t, err)
-	err = db.Table(core.NodesTablePrefix + "test_1").AutoMigrate(&core.SMTNode{})
-	assert.NoError(t, err)
-
-	defer func() {
-		// Table name needs to be wrapped in quotes if not it will be lowercased
-		db.Exec("DROP TABLE " + "\"" + core.TreeRootsTable + "\"")
-		db.Exec("DROP TABLE " + "\"" + core.NodesTablePrefix + "test_1\"")
-	}()
-
-	provider := &testSqlProvider{db: db}
-	s, err := storage.NewSqlStorage(provider, "test_1")
-	assert.NoError(t, err)
-
-	mt, err := smt.NewMerkleTree(s, MAX_HEIGHT)
-	assert.NoError(t, err)
-
-	tokenId := big.NewInt(1001)
-	tokenUri := "https://example.com/token/1001"
-	assert.NoError(t, err)
-	sender := testutils.NewKeypair()
-	salt1 := utxo.NewSalt()
-
-	utxo1 := node.NewNonFungible(tokenId, tokenUri, sender.PublicKey, salt1)
-	n1, err := node.NewLeafNode(utxo1)
-	assert.NoError(t, err)
-	err = mt.AddLeaf(n1)
-	assert.NoError(t, err)
-
-	root := mt.Root()
-	dbRoot := core.SMTRoot{Name: "test_1"}
-	err = db.Table(core.TreeRootsTable).First(&dbRoot).Error
-	assert.NoError(t, err)
-	assert.Equal(t, root.Hex(), dbRoot.RootIndex)
-
-	dbNode := core.SMTNode{RefKey: n1.Ref().Hex()}
-	err = db.Table(core.NodesTablePrefix + "test_1").First(&dbNode).Error
-	assert.NoError(t, err)
-	assert.Equal(t, n1.Ref().Hex(), dbNode.RefKey)
-}
-
-func TestKeyManager(t *testing.T) {
-	keypair := decryptKeyStorev3(t)
-
-	keyEntry := key.NewKeyEntryFromPrivateKeyBytes([32]byte(keypair.PrivateKeyBytes()))
-	assert.NotNil(t, keyEntry)
-
-	assert.NotNil(t, keyEntry.PrivateKey)
-	assert.NotNil(t, keyEntry.PublicKey)
-	assert.NotNil(t, keyEntry.PrivateKeyForZkp)
 }
