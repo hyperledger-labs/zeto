@@ -23,13 +23,8 @@ const VerifierModule = buildModule("Groth16Verifier_NfAnon", (m) => {
 
 export default buildModule("Zeto_NfAnon", (m) => {
   const { verifier } = m.useModule(VerifierModule);
-  const commonlib = m.library('Commonlib');
 
-  const zeto = m.contract('Zeto_NfAnon', [verifier], {
-    libraries: {
-      Commonlib: commonlib,
-    },
-  });
+  const zeto = m.contract('Zeto_NfAnon', [verifier]);
 
   return { zeto };
 });

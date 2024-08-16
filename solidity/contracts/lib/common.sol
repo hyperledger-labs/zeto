@@ -25,7 +25,9 @@ library Commonlib {
         uint[2] pC;
     }
 
-    function getProofHash(Proof calldata proof) public pure returns (bytes32) {
+    function getProofHash(
+        Proof calldata proof
+    ) internal pure returns (bytes32) {
         uint[8] memory inputs = [
             proof.pA[0],
             proof.pA[1],
@@ -44,7 +46,7 @@ library Commonlib {
     // until it's available in a new release
     function sort(
         uint256[] memory array
-    ) public pure returns (uint256[] memory) {
+    ) internal pure returns (uint256[] memory) {
         bytes32[] memory bytes32Array = _castToBytes32Array(array);
         _quickSort(_begin(bytes32Array), _end(bytes32Array), _defaultComp);
         return array;

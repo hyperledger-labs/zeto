@@ -26,13 +26,8 @@ export default buildModule("Zeto_AnonEnc", (m) => {
   const { verifier } = m.useModule(VerifierModule);
   const { verifier: depositVerifier } = m.useModule(DepositVerifierModule);
   const { verifier: withdrawVerifier } = m.useModule(WithdrawVerifierModule);
-  const commonlib = m.library('Commonlib');
 
-  const zeto = m.contract('Zeto_AnonEnc', [depositVerifier, withdrawVerifier, verifier], {
-    libraries: {
-      Commonlib: commonlib,
-    },
-  });
+  const zeto = m.contract('Zeto_AnonEnc', [depositVerifier, withdrawVerifier, verifier]);
 
   return { zeto };
 });
