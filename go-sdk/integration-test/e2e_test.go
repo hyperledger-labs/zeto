@@ -588,3 +588,14 @@ func testConcurrentInsertion(t *testing.T, alice *babyjub.PublicKey, values []in
 
 	assert.Equal(t, "abacf46f5217552ee28fe50b8fd7ca6aa46daeb9acf9f60928654c3b1a472f23", mt.Root().Hex())
 }
+
+func TestKeyManager(t *testing.T) {
+	keypair := decryptKeyStorev3(t)
+
+	keyEntry := key.NewKeyEntryFromPrivateKeyBytes([32]byte(keypair.PrivateKeyBytes()))
+	assert.NotNil(t, keyEntry)
+
+	assert.NotNil(t, keyEntry.PrivateKey)
+	assert.NotNil(t, keyEntry.PublicKey)
+	assert.NotNil(t, keyEntry.PrivateKeyForZkp)
+}
