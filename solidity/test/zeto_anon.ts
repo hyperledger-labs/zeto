@@ -129,6 +129,15 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     expect(balance).to.equal(80);
   });
 
+  it("Alice attempting to withdraw spent UTXOs should fail", async function () {
+    // Alice proposes the output ERC20 tokens
+    const outputCommitment = newUTXO(20, Alice);
+
+    const { inputCommitments, outputCommitments, encodedProof } = await prepareWithdrawProof(Alice, [utxo100, ZERO_UTXO], outputCommitment);
+
+    await expect(zeto.connect(Alice.signer).withdraw(10, inputCommitments, outputCommitments[0], encodedProof)).rejectedWith("UTXOAlreadySpent");
+  });
+
   it("mint existing unspent UTXOs should fail", async function () {
     await expect(doMint(zeto, deployer, [utxo4])).rejectedWith("UTXOAlreadyOwned");
   });
