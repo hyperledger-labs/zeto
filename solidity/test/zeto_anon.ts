@@ -131,7 +131,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
 
   it("Alice attempting to withdraw spent UTXOs should fail", async function () {
     // Alice proposes the output ERC20 tokens
-    const outputCommitment = newUTXO(20, Alice);
+    const outputCommitment = newUTXO(90, Alice);
 
     const { inputCommitments, outputCommitments, encodedProof } = await prepareWithdrawProof(Alice, [utxo100, ZERO_UTXO], outputCommitment);
 
