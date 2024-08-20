@@ -14,16 +14,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ethers, ignition } from 'hardhat';
-import { ContractTransactionReceipt, Signer, BigNumberish, AddressLike } from 'ethers';
+import { ethers } from 'hardhat';
+import { ContractTransactionReceipt, Signer, BigNumberish } from 'ethers';
 import { expect } from 'chai';
 import { loadCircuit, poseidonDecrypt, encodeProof, Poseidon } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { genRandomSalt, formatPrivKeyForBabyJub, genEcdhSharedKey, stringifyBigInts } from 'maci-crypto';
-import zetoModule from '../ignition/modules/zeto_anon_enc';
-import erc20Module from '../ignition/modules/erc20';
 import { User, UTXO, newUser, newUTXO, doMint, ZERO_UTXO, parseUTXOEvents } from './lib/utils';
 import { loadProvingKeys, prepareDepositProof, prepareWithdrawProof } from './utils';
+import { deployZeto } from './lib/deploy';
 
 const poseidonHash = Poseidon.poseidon4;
 
@@ -47,8 +46,9 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     Alice = await newUser(a);
     Bob = await newUser(b);
     Charlie = await newUser(c);
-    ({ zeto } = await ignition.deploy(zetoModule));
-    ({ erc20 } = await ignition.deploy(erc20Module));
+
+    ({ deployer, zeto, erc20 } = await deployZeto('Zeto_AnonEnc'));
+
     const tx4 = await zeto.connect(deployer).setERC20(erc20.target);
     await tx4.wait();
 

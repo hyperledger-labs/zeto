@@ -28,12 +28,5 @@ export default buildModule("Zeto_AnonEncNullifierNonRepudiation", (m) => {
   const { verifier: depositVerifier } = m.useModule(DepositVerifierModule);
   const { verifier: withdrawVerifier } = m.useModule(WithdrawNullifierVerifierModule);
 
-  const zeto = m.contract('Zeto_AnonEncNullifierNonRepudiation', [depositVerifier, withdrawVerifier, verifier], {
-    libraries: {
-      SmtLib: smtLib,
-      PoseidonUnit3L: poseidon3,
-    },
-  });
-
-  return { zeto };
+  return { depositVerifier, withdrawVerifier, verifier, smtLib, poseidon3 };
 });

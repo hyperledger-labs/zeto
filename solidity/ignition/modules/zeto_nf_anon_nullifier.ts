@@ -26,12 +26,5 @@ export default buildModule("Zeto_NfAnonNullifier", (m) => {
   const { smtLib, poseidon3 } = m.useModule(SmtLibModule);
   const { verifier } = m.useModule(VerifierModule);
 
-  const zeto = m.contract('Zeto_NfAnonNullifier', [verifier], {
-    libraries: {
-      SmtLib: smtLib,
-      PoseidonUnit3L: poseidon3,
-    },
-  });
-
-  return { zeto };
+  return { verifier, smtLib, poseidon3 };
 });

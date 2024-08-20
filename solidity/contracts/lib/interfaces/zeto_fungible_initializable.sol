@@ -13,16 +13,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+pragma solidity ^0.8.20;
 
-import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-
-const VerifierModule = buildModule("Groth16Verifier_NfAnon", (m) => {
-  const verifier = m.contract('Groth16Verifier_NfAnon', []);
-  return { verifier };
-});
-
-export default buildModule("Zeto_NfAnon", (m) => {
-  const { verifier } = m.useModule(VerifierModule);
-
-  return { verifier };
-});
+interface IZetoFungibleInitializable {
+    function initialize(
+        address authority,
+        address _depositVerifier,
+        address _withdrawVerifier,
+        address _verifier
+    ) external;
+}

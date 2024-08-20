@@ -22,6 +22,8 @@
   },
   "dependencies": {
     "@iden3/contracts": "^2.0.5",
-    "@openzeppelin/contracts": "^5.0.1"
+    "@openzeppelin/contracts": "^5.0.1",
+    "@openzeppelin/contracts-upgradeable": "^5.0.2",
+    "@openzeppelin/hardhat-upgrades": "^3.2.1"
   }
 }

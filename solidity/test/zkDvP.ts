@@ -25,6 +25,7 @@ import zetoAnonTests from './zeto_anon';
 import zetoNFAnonTests from './zeto_nf_anon';
 import { UTXO, User, newUser, newUTXO, doMint, newAssetUTXO, ZERO_UTXO, parseUTXOEvents } from './lib/utils';
 import { loadProvingKeys } from './utils';
+import { deployZeto } from './lib/deploy';
 
 describe("DvP flows between fungible and non-fungible tokens based on Zeto with anonymity without encryption or nullifiers", function () {
   // users interacting with each other in the DvP transactions
@@ -54,9 +55,9 @@ describe("DvP flows between fungible and non-fungible tokens based on Zeto with 
     Bob = await newUser(b);
     Charlie = await newUser(c);
 
-    ({ zeto: zkAsset } = await ignition.deploy(zetoNFAnonModule));
+    ({ deployer, zeto: zkAsset } = await deployZeto('Zeto_NfAnon'));
     console.log(`ZK Asset contract deployed at ${zkAsset.target}`);
-    ({ zeto: zkPayment } = await ignition.deploy(zetoAnonModule));
+    ({ deployer, zeto: zkPayment } = await deployZeto('Zeto_Anon'));
     console.log(`ZK Payment contract deployed at ${zkPayment.target}`);
     ({ zkDvP } = await ignition.deploy(zkDvPModule, { parameters: { zkDvP: { assetToken: zkAsset.target, paymentToken: zkPayment.target } } }));
   });

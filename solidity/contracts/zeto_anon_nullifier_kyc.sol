@@ -23,6 +23,7 @@ import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_n
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
 import "hardhat/console.sol";
@@ -40,20 +41,27 @@ uint256 constant MAX_SMT_DEPTH = 64;
 contract Zeto_AnonNullifierKyc is
     ZetoNullifier,
     ZetoFungibleWithdrawWithNullifiers,
-    Registry
+    Registry,
+    UUPSUpgradeable
 {
     Groth16Verifier_AnonNullifierKyc verifier;
 
-    constructor(
+    function initialize(
+        address authority,
         Groth16Verifier_CheckHashesValue _depositVerifier,
         Groth16Verifier_CheckNullifierValue _withdrawVerifier,
         Groth16Verifier_AnonNullifierKyc _verifier
-    )
-        ZetoNullifier()
-        ZetoFungibleWithdrawWithNullifiers(_depositVerifier, _withdrawVerifier)
-    {
+    ) public initializer {
+        __Registry_init();
+        __ZetoNullifier_init(authority);
+        __ZetoFungibleWithdrawWithNullifiers_init(
+            _depositVerifier,
+            _withdrawVerifier
+        );
         verifier = _verifier;
     }
+
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     function register(uint256[2] memory publicKey) public onlyOwner {
         _register(publicKey);

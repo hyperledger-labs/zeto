@@ -17,6 +17,7 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
 export default buildModule("SampleERC20", (m) => {
-  const erc20 = m.contract('SampleERC20', []);
+  const owner = m.getAccount(0);
+  const erc20 = m.contract('SampleERC20', [owner], { from: owner });
   return { erc20 };
 });

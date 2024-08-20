@@ -14,16 +14,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ethers, ignition } from 'hardhat';
-import { Signer, BigNumberish, AddressLike, ContractTransactionReceipt, ZeroAddress } from 'ethers';
+import hre from 'hardhat';
+const { ethers } = hre;
+import { Signer, BigNumberish, AddressLike, ZeroAddress } from 'ethers';
 import { expect } from 'chai';
 import { loadCircuit, encodeProof, Poseidon } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { formatPrivKeyForBabyJub, stringifyBigInts } from 'maci-crypto';
 import { User, UTXO, newUser, newUTXO, doMint, parseUTXOEvents, ZERO_UTXO } from './lib/utils';
-import zetoModule from '../ignition/modules/zeto_anon';
-import erc20Module from '../ignition/modules/erc20';
 import { loadProvingKeys, prepareDepositProof, prepareWithdrawProof } from './utils';
+import { Zeto_Anon } from '../typechain-types';
+import { deployZeto } from './lib/deploy';
 
 const ZERO_PUBKEY = [0, 0];
 const poseidonHash = Poseidon.poseidon4;
@@ -34,7 +35,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
   let Bob: User;
   let Charlie: User;
   let erc20: any;
-  let zeto: any;
+  let zeto: Zeto_Anon;
   let utxo100: UTXO;
   let utxo1: UTXO;
   let utxo2: UTXO;
@@ -49,10 +50,11 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     Alice = await newUser(a);
     Bob = await newUser(b);
     Charlie = await newUser(c);
-    ({ zeto } = await ignition.deploy(zetoModule));
-    ({ erc20 } = await ignition.deploy(erc20Module));
-    const tx4 = await zeto.connect(deployer).setERC20(erc20.target);
-    await tx4.wait();
+
+    ({ deployer, zeto, erc20 } = await deployZeto('Zeto_Anon'));
+
+    const tx3 = await zeto.connect(deployer).setERC20(erc20.target);
+    await tx3.wait();
 
     circuit = await loadCircuit('anon');
     ({ provingKeyFile: provingKey } = loadProvingKeys('anon'));

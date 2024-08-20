@@ -20,6 +20,7 @@ import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
 import "hardhat/console.sol";
@@ -34,12 +35,18 @@ uint256 constant MAX_SMT_DEPTH = 64;
 ///        - the hashes in the input and output match the hash(value, salt, owner public key) formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
-contract Zeto_NfAnonNullifier is ZetoNullifier {
+contract Zeto_NfAnonNullifier is ZetoNullifier, UUPSUpgradeable {
     Groth16Verifier_NfAnonNullifier verifier;
 
-    constructor(Groth16Verifier_NfAnonNullifier _verifier) ZetoNullifier() {
+    function initialize(
+        address authority,
+        Groth16Verifier_NfAnonNullifier _verifier
+    ) public initializer {
+        __ZetoNullifier_init(authority);
         verifier = _verifier;
     }
+
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     /**
      * @dev the main function of the contract.

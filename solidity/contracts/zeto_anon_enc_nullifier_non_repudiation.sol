@@ -15,6 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.20;
 
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckNullifierValue} from "./lib/verifier_check_nullifier_value.sol";
 import {Groth16Verifier_AnonEncNullifierNonRepudiation} from "./lib/verifier_anon_enc_nullifier_non_repudiation.sol";
@@ -35,7 +36,8 @@ import "hardhat/console.sol";
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 contract Zeto_AnonEncNullifierNonRepudiation is
     ZetoNullifier,
-    ZetoFungibleWithdrawWithNullifiers
+    ZetoFungibleWithdrawWithNullifiers,
+    UUPSUpgradeable
 {
     event UTXOTransferNonRepudiation(
         uint256[] inputs,
@@ -47,27 +49,32 @@ contract Zeto_AnonEncNullifierNonRepudiation is
     );
 
     Groth16Verifier_AnonEncNullifierNonRepudiation verifier;
-    // the authority public key that must be used to
+    // the arbiter public key that must be used to
     // encrypt the secrets of every transaction
-    uint256[2] private authority;
+    uint256[2] private arbiter;
 
-    constructor(
+    function initialize(
+        address authority,
         Groth16Verifier_CheckHashesValue _depositVerifier,
         Groth16Verifier_CheckNullifierValue _withdrawVerifier,
         Groth16Verifier_AnonEncNullifierNonRepudiation _verifier
-    )
-        ZetoNullifier()
-        ZetoFungibleWithdrawWithNullifiers(_depositVerifier, _withdrawVerifier)
-    {
+    ) public initializer {
+        __ZetoNullifier_init(authority);
+        __ZetoFungibleWithdrawWithNullifiers_init(
+            _depositVerifier,
+            _withdrawVerifier
+        );
         verifier = _verifier;
     }
 
-    function setAuthority(uint256[2] memory _authority) public onlyOwner {
-        authority = _authority;
+    function _authorizeUpgrade(address) internal override onlyOwner {}
+
+    function setArbiter(uint256[2] memory _arbiter) public onlyOwner {
+        arbiter = _arbiter;
     }
 
-    function getAuthority() public view returns (uint256[2] memory) {
-        return authority;
+    function getArbiter() public view returns (uint256[2] memory) {
+        return arbiter;
     }
 
     /**
@@ -127,8 +134,8 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         publicInputs[21] = outputs[0];
         publicInputs[22] = outputs[1];
         publicInputs[23] = encryptionNonce;
-        publicInputs[24] = authority[0];
-        publicInputs[25] = authority[1];
+        publicInputs[24] = arbiter[0];
+        publicInputs[25] = arbiter[1];
 
         // // Check the proof
         require(

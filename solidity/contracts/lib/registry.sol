@@ -15,6 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.20;
 
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit2L, PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
 import {Commonlib} from "./common.sol";
@@ -28,7 +29,7 @@ uint256 constant MAX_SMT_DEPTH = 64;
 ///   submitters can generate proofs of membership for the
 ///   accounts in a privacy-preserving manner.
 /// @author Kaleido, Inc.
-abstract contract Registry {
+abstract contract Registry is OwnableUpgradeable {
     SmtLib.Data internal _publicKeysTree;
     using SmtLib for SmtLib.Data;
 
@@ -36,7 +37,7 @@ abstract contract Registry {
 
     error AlreadyRegistered(uint256[2]);
 
-    constructor() {
+    function __Registry_init() internal onlyInitializing {
         _publicKeysTree.initialize(MAX_SMT_DEPTH);
     }
 

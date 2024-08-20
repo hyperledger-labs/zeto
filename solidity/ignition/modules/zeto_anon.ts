@@ -27,7 +27,5 @@ export default buildModule("Zeto_Anon", (m) => {
   const { verifier: depositVerifier } = m.useModule(DepositVerifierModule);
   const { verifier: withdrawVerifier } = m.useModule(WithdrawVerifierModule);
 
-  const zeto = m.contract('Zeto_Anon', [depositVerifier, withdrawVerifier, verifier]);
-
-  return { zeto };
+  return { depositVerifier, withdrawVerifier, verifier };
 });

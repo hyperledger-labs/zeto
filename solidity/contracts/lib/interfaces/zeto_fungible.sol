@@ -13,16 +13,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+pragma solidity ^0.8.20;
 
-import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-const VerifierModule = buildModule("Groth16Verifier_NfAnon", (m) => {
-  const verifier = m.contract('Groth16Verifier_NfAnon', []);
-  return { verifier };
-});
-
-export default buildModule("Zeto_NfAnon", (m) => {
-  const { verifier } = m.useModule(VerifierModule);
-
-  return { verifier };
-});
+interface IZetoFungible {
+    function setERC20(IERC20 _erc20) external;
+}

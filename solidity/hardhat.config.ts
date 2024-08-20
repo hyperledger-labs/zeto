@@ -16,11 +16,25 @@
 
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+import "@openzeppelin/hardhat-upgrades";
 
 const config: HardhatUserConfig = {
   solidity: "0.8.20",
   paths: {
     sources: "contracts"
+  },
+  networks: {
+    besu: {
+      url: "http://localhost:8545",
+      accounts: [
+        "7bc522e9ba27f118ad4157771bec290f59ffffe45ee66bb81f137043150bd001",
+        "7bc522e9ba27f118ad4157771bec290f59ffffe45ee66bb81f137043150bd002",
+        "7bc522e9ba27f118ad4157771bec290f59ffffe45ee66bb81f137043150bd003",
+        "7bc522e9ba27f118ad4157771bec290f59ffffe45ee66bb81f137043150bd004",
+        "7bc522e9ba27f118ad4157771bec290f59ffffe45ee66bb81f137043150bd005",
+      ],
+      gasPrice: 0,
+    }
   }
 };
 
