@@ -140,6 +140,7 @@ contract Zeto_AnonEncNullifier is
         uint256 root,
         Commonlib.Proof calldata proof
     ) public {
+        validateTransactionProposal(nullifiers, [output, 0], root);
         _withdrawWithNullifiers(amount, nullifiers, output, root, proof);
         processInputsAndOutputs(nullifiers, [output, 0]);
     }
