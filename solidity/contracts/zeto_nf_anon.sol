@@ -33,10 +33,10 @@ contract Zeto_NfAnon is ZetoBase, UUPSUpgradeable {
     Groth16Verifier_NfAnon internal verifier;
 
     function initialize(
-        address authority,
+        address initialOwner,
         Groth16Verifier_NfAnon _verifier
     ) public initializer {
-        __ZetoBase_init(authority);
+        __ZetoBase_init(initialOwner);
         verifier = _verifier;
     }
 

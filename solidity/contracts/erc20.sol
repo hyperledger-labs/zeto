@@ -28,8 +28,8 @@ import "hardhat/console.sol";
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
 contract SampleERC20 is ERC20, Ownable {
     constructor(
-        address authority
-    ) ERC20("Sample ERC20 token", "SampleERC20") Ownable(authority) {
+        address initialOwner
+    ) ERC20("Sample ERC20 token", "SampleERC20") Ownable(initialOwner) {
         _mint(msg.sender, 1000000 * 10 ** 18);
     }
 

@@ -35,8 +35,8 @@ abstract contract ZetoBase is ZetoCommon {
     // maintains all the UTXOs
     mapping(uint256 => UTXOStatus) internal _utxos;
 
-    function __ZetoBase_init(address authority) internal onlyInitializing {
-        __ZetoCommon_init(authority);
+    function __ZetoBase_init(address initialOwner) internal onlyInitializing {
+        __ZetoCommon_init(initialOwner);
     }
 
     /// @dev query whether a UTXO is currently spent

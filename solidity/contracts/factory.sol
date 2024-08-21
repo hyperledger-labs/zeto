@@ -35,7 +35,7 @@ contract ZetoTokenFactory {
 
     function deployZetoFungibleToken(
         string memory name,
-        address authority,
+        address initialOwner,
         address _depositVerifier,
         address _withdrawVerifier,
         address _verifier
@@ -46,7 +46,7 @@ contract ZetoTokenFactory {
             "Factory: failed to find implementation"
         );
         (IZetoFungibleInitializable(instance)).initialize(
-            authority,
+            initialOwner,
             _depositVerifier,
             _withdrawVerifier,
             _verifier
@@ -57,7 +57,7 @@ contract ZetoTokenFactory {
 
     function deployZetoNonFungibleToken(
         string memory name,
-        address authority,
+        address initialOwner,
         address _verifier
     ) public returns (address) {
         address instance = Clones.clone(implementations[name]);
@@ -66,7 +66,7 @@ contract ZetoTokenFactory {
             "Factory: failed to find implementation"
         );
         (IZetoNonFungibleInitializable(instance)).initialize(
-            authority,
+            initialOwner,
             _verifier
         );
         emit ZetoTokenDeployed(instance);

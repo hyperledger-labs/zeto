@@ -39,10 +39,10 @@ contract Zeto_NfAnonNullifier is ZetoNullifier, UUPSUpgradeable {
     Groth16Verifier_NfAnonNullifier verifier;
 
     function initialize(
-        address authority,
+        address initialOwner,
         Groth16Verifier_NfAnonNullifier _verifier
     ) public initializer {
-        __ZetoNullifier_init(authority);
+        __ZetoNullifier_init(initialOwner);
         verifier = _verifier;
     }
 

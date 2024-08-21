@@ -42,12 +42,12 @@ contract Zeto_AnonEncNullifier is
     Groth16Verifier_AnonEncNullifier verifier;
 
     function initialize(
-        address authority,
+        address initialOwner,
         Groth16Verifier_CheckHashesValue _depositVerifier,
         Groth16Verifier_CheckNullifierValue _withdrawVerifier,
         Groth16Verifier_AnonEncNullifier _verifier
     ) public initializer {
-        __ZetoNullifier_init(authority);
+        __ZetoNullifier_init(initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(
             _depositVerifier,
             _withdrawVerifier

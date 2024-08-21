@@ -52,8 +52,8 @@ abstract contract ZetoCommon is OwnableUpgradeable {
     // that did the locking.
     mapping(bytes32 => address) internal lockedProofs;
 
-    function __ZetoCommon_init(address authority) internal onlyInitializing {
-        __Ownable_init(authority);
+    function __ZetoCommon_init(address initialOwner) internal onlyInitializing {
+        __Ownable_init(initialOwner);
     }
 
     // should be called by escrow contracts that will use uploaded proofs
