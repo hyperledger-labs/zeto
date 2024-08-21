@@ -17,6 +17,15 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@openzeppelin/hardhat-upgrades";
+import crypto from "crypto";
+
+const keys = [
+  crypto.randomBytes(32).toString("hex"),
+  crypto.randomBytes(32).toString("hex"),
+  crypto.randomBytes(32).toString("hex"),
+  crypto.randomBytes(32).toString("hex"),
+  crypto.randomBytes(32).toString("hex"),
+];
 
 const config: HardhatUserConfig = {
   solidity: "0.8.20",
@@ -26,13 +35,7 @@ const config: HardhatUserConfig = {
   networks: {
     besu: {
       url: "http://localhost:8545",
-      accounts: [
-        "7bc522e9ba27f118ad4157771bec290f59ffffe45ee66bb81f137043150bd001",
-        "7bc522e9ba27f118ad4157771bec290f59ffffe45ee66bb81f137043150bd002",
-        "7bc522e9ba27f118ad4157771bec290f59ffffe45ee66bb81f137043150bd003",
-        "7bc522e9ba27f118ad4157771bec290f59ffffe45ee66bb81f137043150bd004",
-        "7bc522e9ba27f118ad4157771bec290f59ffffe45ee66bb81f137043150bd005",
-      ],
+      accounts: keys,
       gasPrice: 0,
     }
   }

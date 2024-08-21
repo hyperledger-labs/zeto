@@ -18,14 +18,13 @@ pragma solidity ^0.8.20;
 import {Groth16Verifier_CheckHashesValue} from "./verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckNullifierValue} from "./verifier_check_nullifier_value.sol";
 import {Commonlib} from "./common.sol";
-import {IZetoFungible} from "./interfaces/zeto_fungible.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 /// @title A sample implementation of a base Zeto fungible token contract
 /// @author Kaleido, Inc.
 /// @dev Defines the verifier library for checking UTXOs against a claimed value.
-abstract contract ZetoFungible is IZetoFungible, OwnableUpgradeable {
+abstract contract ZetoFungible is OwnableUpgradeable {
     // depositVerifier library for checking UTXOs against a claimed value.
     // this can be used in the optional deposit calls to verify that
     // the UTXOs match the deposited value

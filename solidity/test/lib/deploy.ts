@@ -16,11 +16,13 @@ export async function deployZeto(tokenName: string) {
   }
 
   if (process.env.USE_FACTORY !== 'true') {
+    console.log('Deploying as upgradeable contracts');
     // setup via the deployment scripts
     const deployFunc = isFungible ? deployFungibleUpgradeable : deployNonFungibleUpgradeable;
     const result = await deployFunc(tokenName);
     ({ deployer, zeto, erc20 } = result as any);
   } else {
+    console.log('Deploying as cloneable contracts using "ZetoTokenFactory"');
     let args, zetoImpl;
     const deployFunc = isFungible ? deployFungibleCloneable : deployNonFungibleCloneable;
     const result = await deployFunc(tokenName);
