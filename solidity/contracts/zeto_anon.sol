@@ -113,6 +113,7 @@ contract Zeto_Anon is ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         uint256 output,
         Commonlib.Proof calldata proof
     ) public {
+        validateTransactionProposal(inputs, [output, 0], proof);
         _withdraw(amount, inputs, output, proof);
         processInputsAndOutputs(inputs, [output, 0]);
     }

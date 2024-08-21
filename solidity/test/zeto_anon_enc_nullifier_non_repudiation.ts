@@ -237,6 +237,25 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     expect(balance).to.equal(80);
   });
 
+  it("Alice attempting to withdraw spent UTXOs should fail", async function () {
+    // Alice generates the nullifiers for the UTXOs to be spent
+    const nullifier1 = newNullifier(utxo100, Alice);
+
+    // Alice generates inclusion proofs for the UTXOs to be spent
+    let root = await smtAlice.root();
+    const proof1 = await smtAlice.generateCircomVerifierProof(utxo100.hash, root);
+    const proof2 = await smtAlice.generateCircomVerifierProof(0n, root);
+    const merkleProofs = [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())];
+
+    // Alice proposes the output ERC20 tokens
+    const outputCommitment = newUTXO(20, Alice);
+
+    const { nullifiers, outputCommitments, encodedProof } = await prepareNullifierWithdrawProof(Alice, [utxo100, ZERO_UTXO], [nullifier1, ZERO_UTXO], outputCommitment, root.bigInt(), merkleProofs);
+
+    // Alice withdraws her UTXOs to ERC20 tokens
+    await expect(zeto.connect(Alice.signer).withdraw(80, nullifiers, outputCommitments[0], root.bigInt(), encodedProof)).rejectedWith("UTXOAlreadySpent");
+  });
+
   it("mint existing unspent UTXOs should fail", async function () {
     await expect(doMint(zeto, deployer, [utxo4])).rejectedWith("UTXOAlreadyOwned");
   });
