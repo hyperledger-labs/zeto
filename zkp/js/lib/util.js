@@ -15,7 +15,7 @@
 // limitations under the License.
 
 const { genRandomSalt } = require('maci-crypto');
-const { poseidon4: poseidon } = require('poseidon-lite/build');
+const { poseidon4: poseidon, poseidon2 } = require('poseidon-lite/build');
 const { solidityPackedKeccak256 } = require('ethers');
 const { createHash, randomBytes } = require('crypto');
 
@@ -201,7 +201,7 @@ function tokenUriHash(tokenUri) {
 }
 
 function kycHash(bjjPublicKey) {
-  const hash = Poseidon.poseidon2(bjjPublicKey);
+  const hash = poseidon2(bjjPublicKey);
   return hash;
 }
 

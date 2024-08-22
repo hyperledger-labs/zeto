@@ -18,7 +18,7 @@ const { expect } = require('chai');
 const { groth16 } = require('snarkjs');
 const { genRandomSalt, genKeypair, formatPrivKeyForBabyJub, stringifyBigInts } = require('maci-crypto');
 const { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } = require('@iden3/js-merkletree');
-const { Poseidon, newSalt, loadCircuit } = require('../index.js');
+const { Poseidon, newSalt, loadCircuit, newEncryptionNonce } = require('../index.js');
 const { loadProvingKeys } = require('./utils.js');
 
 const SMT_HEIGHT = 64;
@@ -84,7 +84,7 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     const output2 = poseidonHash([BigInt(outputValues[1]), salt3, ...Alice.pubKey]);
     const outputCommitments = [output1, output2];
 
-    const encryptionNonce = genRandomSalt();
+    const encryptionNonce = newEncryptionNonce();
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
     });
