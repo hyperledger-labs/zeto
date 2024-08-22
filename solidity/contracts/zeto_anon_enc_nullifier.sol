@@ -22,6 +22,7 @@ import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "hardhat/console.sol";
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity, encryption and history masking
@@ -35,20 +36,26 @@ import "hardhat/console.sol";
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 contract Zeto_AnonEncNullifier is
     ZetoNullifier,
-    ZetoFungibleWithdrawWithNullifiers
+    ZetoFungibleWithdrawWithNullifiers,
+    UUPSUpgradeable
 {
     Groth16Verifier_AnonEncNullifier verifier;
 
-    constructor(
+    function initialize(
+        address initialOwner,
         Groth16Verifier_CheckHashesValue _depositVerifier,
         Groth16Verifier_CheckNullifierValue _withdrawVerifier,
         Groth16Verifier_AnonEncNullifier _verifier
-    )
-        ZetoNullifier()
-        ZetoFungibleWithdrawWithNullifiers(_depositVerifier, _withdrawVerifier)
-    {
+    ) public initializer {
+        __ZetoNullifier_init(initialOwner);
+        __ZetoFungibleWithdrawWithNullifiers_init(
+            _depositVerifier,
+            _withdrawVerifier
+        );
         verifier = _verifier;
     }
+
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     /**
      * @dev the main function of the contract, which transfers values from one account (represented by Babyjubjub public keys)

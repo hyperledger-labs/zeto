@@ -17,11 +17,12 @@ pragma solidity ^0.8.20;
 
 import {Commonlib} from "./common.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 /// @title A sample base implementation of a Zeto based token contract
 /// @author Kaleido, Inc.
 /// @dev Implements common functionalities of Zeto based tokens
-abstract contract ZetoCommon is Ownable {
+abstract contract ZetoCommon is OwnableUpgradeable {
     event UTXOMint(uint256[] outputs, address indexed submitter);
 
     event UTXOTransfer(
@@ -51,7 +52,9 @@ abstract contract ZetoCommon is Ownable {
     // that did the locking.
     mapping(bytes32 => address) internal lockedProofs;
 
-    constructor() Ownable(msg.sender) {}
+    function __ZetoCommon_init(address initialOwner) internal onlyInitializing {
+        __Ownable_init(initialOwner);
+    }
 
     // should be called by escrow contracts that will use uploaded proofs
     // to execute transactions, in order to prevent the proof from being used

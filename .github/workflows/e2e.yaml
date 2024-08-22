@@ -77,8 +77,18 @@ jobs:
           npm install
           npm run test:e2e
 
-      - name: Run Zeto Tokens hardhat tests
+      - name: Run Zeto Tokens hardhat tests as upgradeable contracts
         env:
+          PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
+          CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts
+        working-directory: solidity
+        run: |
+          npm install
+          npm t
+
+      - name: Run Zeto Tokens hardhat tests as cloned contracts
+        env:
+          USE_FACTORY: true
           PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
           CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts
         working-directory: solidity

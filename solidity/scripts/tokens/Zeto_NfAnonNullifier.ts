@@ -14,15 +14,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+import { ethers, ignition } from "hardhat";
+import zetoModule from '../../ignition/modules/zeto_nf_anon_nullifier';
 
-const VerifierModule = buildModule("Groth16Verifier_NfAnon", (m) => {
-  const verifier = m.contract('Groth16Verifier_NfAnon', []);
-  return { verifier };
-});
+export async function deployDependencies() {
+  const [deployer] = await ethers.getSigners();
 
-export default buildModule("Zeto_NfAnon", (m) => {
-  const { verifier } = m.useModule(VerifierModule);
-
-  return { verifier };
-});
+  const { verifier, smtLib, poseidon3 } = await ignition.deploy(zetoModule);
+  return {
+    deployer,
+    args: [
+      await deployer.getAddress(),
+      verifier.target
+    ],
+    libraries: {
+      SmtLib: smtLib.target,
+      PoseidonUnit3L: poseidon3.target
+    }
+  };
+}

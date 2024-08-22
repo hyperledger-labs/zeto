@@ -27,10 +27,9 @@ import "hardhat/console.sol";
 ///        - the hashes in the input and output match the `hash(value, salt, owner public key)` formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
 contract SampleERC20 is ERC20, Ownable {
-    constructor()
-        ERC20("Sample ERC20 token", "SampleERC20")
-        Ownable(msg.sender)
-    {
+    constructor(
+        address initialOwner
+    ) ERC20("Sample ERC20 token", "SampleERC20") Ownable(initialOwner) {
         _mint(msg.sender, 1000000 * 10 ** 18);
     }
 

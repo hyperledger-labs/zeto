@@ -24,6 +24,7 @@ import {ZetoBase} from "./lib/zeto_base.sol";
 import {ZetoFungible} from "./lib/zeto_fungible.sol";
 import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "hardhat/console.sol";
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and no encryption
@@ -33,16 +34,21 @@ import "hardhat/console.sol";
 ///        - the sum of the input values match the sum of output values
 ///        - the hashes in the input and output match the `hash(value, salt, owner public key)` formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
-contract Zeto_Anon is ZetoBase, ZetoFungibleWithdraw {
+contract Zeto_Anon is ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
     Groth16Verifier_Anon internal verifier;
 
-    constructor(
+    function initialize(
+        address initialOwner,
         Groth16Verifier_CheckHashesValue _depositVerifier,
         Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier,
         Groth16Verifier_Anon _verifier
-    ) ZetoBase() ZetoFungibleWithdraw(_depositVerifier, _withdrawVerifier) {
+    ) public initializer {
+        __ZetoBase_init(initialOwner);
+        __ZetoFungibleWithdraw_init(_depositVerifier, _withdrawVerifier);
         verifier = _verifier;
     }
+
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     /**
      * @dev the main function of the contract.

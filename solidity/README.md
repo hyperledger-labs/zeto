@@ -6,6 +6,24 @@ This project contains sample implementations of privacy preserving tokens for bo
 
 The Hardhat test cases make use of the `zeto-js` library, which must be built first. Refer to the steps in [the library's README](/zkp/js/README.md#build) to build the proving keys, and verification keys. Make sure you can successfully run the unit tests for the zeto-js library, before returning back here to continue with the hardhat tests for the Solidity implementation.
 
+# Deploy Zeto Token Contracts
+
+Zeto token contracts are all upgradeable contracts. They can be deployed with one of the two hardhat scripts:
+
+- [deploy_upgradeable](/solidity/scripts/deploy_upgradeable.ts): Deploys the target contract, designated by the `ZETO_NAME` environment variable, as a [UUPSUpgradeable contract](https://docs.openzeppelin.com/contracts/4.x/api/proxy#transparent-vs-uups).
+
+```console
+export ZETO_NAME=Zeto_AnonEncNullifier
+npx hardhat run scripts/deploy_upgradeable.js
+```
+
+- [deploy_cloneable](/solidity/scripts/deploy_cloneable.ts): Deploys the target contract, designated by the `ZETO_NAME` environment variable, as a [cloneable contract](https://blog.openzeppelin.com/workshop-recap-cheap-contract-deployment-through-clones).
+
+```console
+export ZETO_NAME=Zeto_AnonEncNullifier
+npx hardhat run scripts/deploy_cloneable.js
+```
+
 # Run The Hardhat Tests
 
 Once the above pre-reqs are complete, you can proceed to run the hardhat tests in this project.

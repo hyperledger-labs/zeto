@@ -14,16 +14,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ethers, ignition } from 'hardhat';
+import { ethers } from 'hardhat';
 import { Signer, BigNumberish, AddressLike } from 'ethers';
 import { expect } from 'chai';
 import { loadCircuit, tokenUriHash, encodeProof } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { formatPrivKeyForBabyJub, stringifyBigInts } from 'maci-crypto';
 import { User, UTXO, newUser, newAssetUTXO, doMint } from './lib/utils';
-import RegistryModule from '../ignition/modules/registry';
-import zetoModule from '../ignition/modules/zeto_nf_anon';
 import { loadProvingKeys } from './utils';
+import { deployZeto } from './lib/deploy';
 
 describe("Zeto based non-fungible token with anonymity without encryption or nullifiers", function () {
   let deployer: Signer;
@@ -42,7 +41,9 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
     Alice = await newUser(a);
     Bob = await newUser(b);
     Charlie = await newUser(c);
-    ({ zeto } = await ignition.deploy(zetoModule));
+
+    ({ deployer, zeto } = await deployZeto('Zeto_NfAnon'));
+
     circuit = await loadCircuit('nf_anon');
     ({ provingKeyFile: provingKey } = loadProvingKeys('nf_anon'));
   });

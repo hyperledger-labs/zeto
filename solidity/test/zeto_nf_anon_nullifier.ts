@@ -14,15 +14,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ethers, ignition } from 'hardhat';
-import { ContractTransactionReceipt, Signer, BigNumberish, AddressLike } from 'ethers';
+import { ethers } from 'hardhat';
+import { ContractTransactionReceipt, Signer, BigNumberish } from 'ethers';
 import { expect } from 'chai';
 import { loadCircuit, Poseidon, encodeProof, tokenUriHash } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
-import zetoModule from '../ignition/modules/zeto_nf_anon_nullifier';
 import { UTXO, User, newUser, newAssetUTXO, newAssetNullifier, doMint, parseUTXOEvents } from './lib/utils';
 import { loadProvingKeys } from './utils';
+import { deployZeto } from './lib/deploy';
 
 describe("Zeto based non-fungible token with anonymity using nullifiers without encryption", function () {
   let deployer: Signer;
@@ -42,7 +42,9 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
     Alice = await newUser(a);
     Bob = await newUser(b);
     Charlie = await newUser(c);
-    ({ zeto } = await ignition.deploy(zetoModule));
+
+    ({ deployer, zeto } = await deployZeto('Zeto_NfAnonNullifier'));
+
     circuit = await loadCircuit('nf_anon_nullifier');
     ({ provingKeyFile: provingKey } = loadProvingKeys('nf_anon_nullifier'));
 

@@ -20,7 +20,6 @@ import {Groth16Verifier_CheckInputsOutputsValue} from "./verifier_check_inputs_o
 import {ZetoFungible} from "./zeto_fungible.sol";
 import {Commonlib} from "./common.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title A sample implementation of a base Zeto fungible token contract
 /// @author Kaleido, Inc.
@@ -31,10 +30,11 @@ abstract contract ZetoFungibleWithdraw is ZetoFungible {
     // match the withdrawn value
     Groth16Verifier_CheckInputsOutputsValue internal withdrawVerifier;
 
-    constructor(
+    function __ZetoFungibleWithdraw_init(
         Groth16Verifier_CheckHashesValue _depositVerifier,
         Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier
-    ) ZetoFungible(_depositVerifier) {
+    ) public onlyInitializing {
+        __ZetoFungible_init(_depositVerifier);
         withdrawVerifier = _withdrawVerifier;
     }
 

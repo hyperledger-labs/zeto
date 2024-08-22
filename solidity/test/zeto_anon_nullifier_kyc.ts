@@ -14,16 +14,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ethers, ignition } from 'hardhat';
-import { ContractTransactionReceipt, Signer, BigNumberish, AddressLike } from 'ethers';
+import { ethers } from 'hardhat';
+import { ContractTransactionReceipt, Signer, BigNumberish } from 'ethers';
 import { expect } from 'chai';
 import { loadCircuit, Poseidon, encodeProof, kycHash } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
-import zetoModule from '../ignition/modules/zeto_anon_nullifier_kyc';
-import erc20Module from '../ignition/modules/erc20';
 import { UTXO, User, newUser, newUTXO, newNullifier, doMint, ZERO_UTXO, parseUTXOEvents, parseRegistryEvents } from './lib/utils';
 import { loadProvingKeys, prepareDepositProof, prepareNullifierWithdrawProof } from './utils';
+import { deployZeto } from './lib/deploy';
 
 describe("Zeto based fungible token with anonymity, KYC, using nullifiers without encryption", function () {
   let deployer: Signer;
@@ -54,8 +53,9 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
     Bob = await newUser(b);
     Charlie = await newUser(c);
     unregistered = await newUser(e);
-    ({ zeto } = await ignition.deploy(zetoModule));
-    ({ erc20 } = await ignition.deploy(erc20Module));
+
+    ({ deployer, zeto, erc20 } = await deployZeto('Zeto_AnonNullifierKyc'));
+
     const tx1 = await zeto.connect(deployer).setERC20(erc20.target);
     await tx1.wait();
 

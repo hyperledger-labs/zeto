@@ -14,17 +14,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ethers, ignition } from 'hardhat';
+import { ethers } from 'hardhat';
 import { ContractTransactionReceipt, Signer, BigNumberish } from 'ethers';
 import { expect } from 'chai';
 import { loadCircuit, poseidonDecrypt, encodeProof, Poseidon } from "zeto-js";
 import { groth16 } from 'snarkjs';
 import { genRandomSalt, genEcdhSharedKey, stringifyBigInts } from 'maci-crypto';
 import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
-import zetoModule from '../ignition/modules/zeto_anon_enc_nullifier_non_repudiation';
-import erc20Module from '../ignition/modules/erc20';
 import { UTXO, User, newUser, newUTXO, newNullifier, doMint, ZERO_UTXO, parseUTXOEvents } from './lib/utils';
 import { loadProvingKeys, prepareDepositProof, prepareNullifierWithdrawProof } from './utils';
+import { deployZeto } from './lib/deploy';
 
 describe("Zeto based fungible token with anonymity using nullifiers and encryption for non-repudiation", function () {
   let deployer: Signer;
@@ -52,11 +51,11 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     Charlie = await newUser(c);
     Authority = await newUser(e);
 
-    ({ zeto } = await ignition.deploy(zetoModule));
-    ({ erc20 } = await ignition.deploy(erc20Module));
+    ({ deployer, zeto, erc20 } = await deployZeto('Zeto_AnonEncNullifierNonRepudiation'));
+
     const tx4 = await zeto.connect(deployer).setERC20(erc20.target);
     await tx4.wait();
-    const tx5 = await zeto.connect(deployer).setAuthority(Authority.babyJubPublicKey);
+    const tx5 = await zeto.connect(deployer).setArbiter(Authority.babyJubPublicKey);
     await tx5.wait();
 
     circuit = await loadCircuit('anon_enc_nullifier_non_repudiation');

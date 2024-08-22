@@ -31,10 +31,11 @@ abstract contract ZetoFungibleWithdrawWithNullifiers is ZetoFungible {
     // match the withdrawn value
     Groth16Verifier_CheckNullifierValue internal withdrawVerifier;
 
-    constructor(
+    function __ZetoFungibleWithdrawWithNullifiers_init(
         Groth16Verifier_CheckHashesValue _depositVerifier,
         Groth16Verifier_CheckNullifierValue _withdrawVerifier
-    ) ZetoFungible(_depositVerifier) {
+    ) internal onlyInitializing {
+        __ZetoFungible_init(_depositVerifier);
         withdrawVerifier = _withdrawVerifier;
     }
 

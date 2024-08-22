@@ -19,12 +19,12 @@ import {Groth16Verifier_CheckHashesValue} from "./verifier_check_hashes_value.so
 import {Groth16Verifier_CheckNullifierValue} from "./verifier_check_nullifier_value.sol";
 import {Commonlib} from "./common.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 /// @title A sample implementation of a base Zeto fungible token contract
 /// @author Kaleido, Inc.
 /// @dev Defines the verifier library for checking UTXOs against a claimed value.
-abstract contract ZetoFungible is Ownable {
+abstract contract ZetoFungible is OwnableUpgradeable {
     // depositVerifier library for checking UTXOs against a claimed value.
     // this can be used in the optional deposit calls to verify that
     // the UTXOs match the deposited value
@@ -32,7 +32,9 @@ abstract contract ZetoFungible is Ownable {
 
     IERC20 internal erc20;
 
-    constructor(Groth16Verifier_CheckHashesValue _depositVerifier) {
+    function __ZetoFungible_init(
+        Groth16Verifier_CheckHashesValue _depositVerifier
+    ) public onlyInitializing {
         depositVerifier = _depositVerifier;
     }
 
