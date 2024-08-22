@@ -17,14 +17,11 @@
 package utxo
 
 import (
-	"crypto/rand"
-	"fmt"
 	"math/big"
 
 	"github.com/hyperledger-labs/zeto/go-sdk/internal/utxo"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/utxo/core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
-	"github.com/iden3/go-iden3-crypto/constants"
 )
 
 func NewFungible(amount *big.Int, owner *babyjub.PublicKey, salt *big.Int) core.UTXO {
@@ -50,16 +47,9 @@ func HashTokenUri(tokenUri string) (*big.Int, error) {
 // NewSalt generates a new random salt in the range of [0, MAX) where MAX is the order of the BabyJub curve.
 // This ensures that the salt is a valid scalar for the curve.
 func NewSalt() *big.Int {
-	// ensure that the salt fits inside the field of SNARKs
-	max := constants.Q
-	maxRounds := 10
-	var e error
-	for rounds := 0; rounds < maxRounds; rounds++ {
-		randInt, err := rand.Int(rand.Reader, max)
-		if err == nil {
-			return randInt
-		}
-		e = err
-	}
-	panic(fmt.Sprintf("failed to generate a random salt after trying %d times: %v", maxRounds, e))
+	return utxo.NewSalt()
+}
+
+func NewEncryptionNonce() *big.Int {
+	return utxo.NewEncryptionNonce()
 }
