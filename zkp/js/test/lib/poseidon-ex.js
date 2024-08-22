@@ -17,15 +17,13 @@
 const { expect } = require('chai');
 const { join } = require('path');
 const { wasm: wasm_tester } = require('circom_tester');
-const { buildPoseidon } = require('circomlibjs');
+const { poseidon4 } = require('poseidon-lite/build');
 
 describe('PoseidonEx circuit tests', () => {
-  let circuit, poseidon, Fr;
+  let circuit;
   before(async function () {
     this.timeout(60000);
     circuit = await wasm_tester(join(__dirname, '../circuits/poseidon-ex.circom'));
-    poseidon = await buildPoseidon();
-    Fr = poseidon.F;
   });
 
   it('should generate the states matching JS lib', async () => {
@@ -33,7 +31,7 @@ describe('PoseidonEx circuit tests', () => {
     const witness = await circuit.calculateWitness({ inputs });
 
     const state = inputs;
-    const result = poseidon(state, 0, 4);
-    expect(witness.slice(1, 5)).deep.equals(result.map((x) => Fr.toObject(x)));
+    const result = poseidon4(state, 4);
+    expect(witness.slice(1, 5)).deep.equals(result);
   });
 });

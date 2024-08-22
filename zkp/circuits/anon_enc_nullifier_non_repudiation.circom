@@ -50,13 +50,21 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   signal input encryptionNonce;
   signal input authorityPublicKey[2];
 
-  signal output cipherText[2];
-  signal output authorityCipherText_inputOwner[2];
-  // two encrypted values for each input: value and salt
-  signal output authorityCipherText_inputs[2 * nInputs];
-  signal output authorityCipherText_outputOwner[2 * nOutputs];
-  // two encrypted values for each input: value and salt
-  signal output authorityCipherText_outputs[2 * nOutputs];
+  // the output for a 2-element input (value and salt) encryption is a 4-element array
+  signal output cipherTextReceiver[4];
+  // the number of cipher text messages returned by
+  // the encryption template will be 3n+1
+  // input length: 
+  //   - input owner public key (x, y): 2
+  //   - secrets (value and salt) for each input UTXOs: 2 * nInputs
+  //   - output owner public keys (x, y): 2 * nOutputs
+  //   - secrets (value and salt) for each output UTXOs: 2 * nOutputs
+  var outputElementsLength = 2 + 2 * nInputs + 2 * nOutputs + 2 * nOutputs;
+  var l = outputElementsLength;
+  while (l % 3 != 0) {
+    l += 1;
+  }
+  signal output cipherTextAuthority[l+1];
 
   // derive the sender's public key from the secret input
   // for the sender's private key. This step demonstrates
@@ -125,8 +133,11 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   encrypt1.plainText[1] <== outputSalts[0];
   encrypt1.key <== sharedSecretReceiver;
   encrypt1.nonce <== encryptionNonce;
-  encrypt1.cipherText[0] --> cipherText[0];
-  encrypt1.cipherText[1] --> cipherText[1];
+  // the output for a 2-element input encryption is a 4-element array
+  encrypt1.cipherText[0] --> cipherTextReceiver[0];
+  encrypt1.cipherText[1] --> cipherTextReceiver[1];
+  encrypt1.cipherText[2] --> cipherTextReceiver[2];
+  encrypt1.cipherText[3] --> cipherTextReceiver[3];
 
   // generate shared secret for the authority
   var sharedSecretAuthority[2];
@@ -163,36 +174,7 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   }
   encrypt2.key <== sharedSecretAuthority;
   encrypt2.nonce <== encryptionNonce;
-  encrypt2.cipherText[0] --> authorityCipherText_inputOwner[0];
-  encrypt2.cipherText[1] --> authorityCipherText_inputOwner[1];
-  var idx2 = 2;
-  var j1 = 0;
-  for (var i = 0; i < nInputs; i++) {
-    encrypt2.cipherText[idx2] --> authorityCipherText_inputs[j1];
-    idx2++;
-    j1++;
-    encrypt2.cipherText[idx2] --> authorityCipherText_inputs[j1];
-    idx2++;
-    j1++;
-  }
-  var j2 = 0;
-  for (var i = 0; i < nOutputs; i++) {
-    encrypt2.cipherText[idx2] --> authorityCipherText_outputOwner[j2];
-    idx2++;
-    j2++;
-    encrypt2.cipherText[idx2] --> authorityCipherText_outputOwner[j2];
-    idx2++;
-    j2++;
-  }
-  var j3 = 0;
-  for (var i = 0; i < nOutputs; i++) {
-    encrypt2.cipherText[idx2] --> authorityCipherText_outputs[j3];
-    idx2++;
-    j3++;
-    encrypt2.cipherText[idx2] --> authorityCipherText_outputs[j3];
-    idx2++;
-    j3++;
-  }
+  encrypt2.cipherText --> cipherTextAuthority;
 }
 
 component main { public [ nullifiers, outputCommitments, encryptionNonce, root, enabled, authorityPublicKey ] } = Zeto(2, 2, 64);

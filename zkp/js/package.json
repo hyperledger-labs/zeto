@@ -10,14 +10,14 @@
   },
   "dependencies": {
     "maci-crypto": "^1.1.1",
-    "poseidon-lite": "^0.2.0",
-    "snarkjs": "^0.7.4"
+    "poseidon-lite": "git://github.com/kaleido-io/poseidon-lite.git#nOuts"
   },
   "devDependencies": {
     "@iden3/js-merkletree": "^1.2.0",
     "chai": "^4.4.1",
     "circom_tester": "^0.0.20",
     "circomlibjs": "^0.1.7",
-    "mocha": "^10.2.0"
+    "mocha": "^10.2.0",
+    "snarkjs": "^0.7.4"
   }
 }

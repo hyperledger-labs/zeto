@@ -19,7 +19,7 @@ const { join } = require('path');
 const crypto = require('crypto');
 const { wasm: wasm_tester } = require('circom_tester');
 const { genKeypair, genEcdhSharedKey, stringifyBigInts } = require('maci-crypto');
-const { PoseidonCipher } = require('../../lib/util.js');
+const { poseidonEncrypt, poseidonDecrypt } = require('../../lib/util.js');
 
 describe('Encryption circuit tests', () => {
   let circuit;
@@ -43,14 +43,23 @@ describe('Encryption circuit tests', () => {
     const hex = crypto.randomBytes(16).toString('hex');
     const nonce = BigInt(`0x${hex}`);
 
-    const cipher = new PoseidonCipher();
-    await cipher.init();
-
-    const result = await cipher.encrypt([123n, 4567890n], key, nonce);
+    const result = await poseidonEncrypt([1234567890n, 2345678901n], key, nonce);
 
     const recoveredKey = genEcdhSharedKey(receiverPrivKey, senderPubKey);
-    const plainText = await cipher.decrypt(result, recoveredKey, nonce, 2);
-    expect(plainText).to.deep.equal([123n, 4567890n]);
+    const plainText = await poseidonDecrypt(result, recoveredKey, nonce, 2);
+    expect(plainText).to.deep.equal([1234567890n, 2345678901n]);
+  });
+
+  it('using poseidonEncrypt() to generate the cipher text with inputs longer than 3, and poseidonDecrypt() to recover the plain text', async () => {
+    const key = genEcdhSharedKey(senderPrivKey, receiverPubKey);
+    const hex = crypto.randomBytes(16).toString('hex');
+    const nonce = BigInt(`0x${hex}`);
+
+    const result = await poseidonEncrypt([1234567890n, 2345678901n, 3456789012n, 4567890123n], key, nonce);
+
+    const recoveredKey = genEcdhSharedKey(receiverPrivKey, senderPubKey);
+    const plainText = await poseidonDecrypt(result, recoveredKey, nonce, 4);
+    expect(plainText).to.deep.equal([1234567890n, 2345678901n, 3456789012n, 4567890123n]);
   });
 
   it('should generate the cipher text in the proof circuit, which can be decrypted by the receiver', async () => {
@@ -59,7 +68,7 @@ describe('Encryption circuit tests', () => {
     const nonce = BigInt(`0x${hex}`);
 
     const circuitInputs = stringifyBigInts({
-      plainText: [123, 4567890],
+      plainText: [1234567890, 2345678901],
       nonce,
       key,
     });
@@ -69,9 +78,7 @@ describe('Encryption circuit tests', () => {
     const ciphertext = witness.slice(1, 5).map((x) => BigInt(x));
     const recoveredKey = genEcdhSharedKey(receiverPrivKey, senderPubKey);
 
-    const cipher = new PoseidonCipher();
-    await cipher.init();
-    const plainText = await cipher.decrypt(ciphertext, recoveredKey, nonce, 2);
-    expect(plainText).to.deep.equal([123n, 4567890n]);
+    const plainText = await poseidonDecrypt(ciphertext, recoveredKey, nonce, 2);
+    expect(plainText).to.deep.equal([1234567890n, 2345678901n]);
   });
 });

@@ -19,7 +19,7 @@ const { join } = require('path');
 const { wasm: wasm_tester } = require('circom_tester');
 const { genRandomSalt, genKeypair, genEcdhSharedKey, formatPrivKeyForBabyJub, stringifyBigInts } = require('maci-crypto');
 const { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } = require('@iden3/js-merkletree');
-const { Poseidon, newSalt, poseidonDecrypt } = require('../index.js');
+const { Poseidon, newSalt, poseidonDecrypt, newEncryptionNonce } = require('../index.js');
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
@@ -86,7 +86,7 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     const output2 = poseidonHash([BigInt(outputValues[1]), salt4, ...Alice.pubKey]);
     const outputCommitments = [output1, output2];
 
-    const encryptionNonce = genRandomSalt();
+    const encryptionNonce = newEncryptionNonce();
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
     });
@@ -110,7 +110,7 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
       true
     );
 
-    // console.log('witness', witness);
+    // console.log('witness', witness.slice(0, 15));
     // console.log('nullifiers', nullifiers);
     // console.log('inputCommitments', inputCommitments);
     // console.log('inputValues', inputValues);
@@ -119,18 +119,18 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     // console.log('root', proof1.root.bigInt());
     // console.log('outputValues', outputValues);
     // console.log('outputSalt', salt3);
-    // console.log('outputOwnerPublicKeys', [receiver.pubKey, sender.pubKey]);
+    // console.log('outputOwnerPublicKeys', [Bob.pubKey, Alice.pubKey]);
     // console.log('encryptionNonce', encryptionNonce);
 
-    expect(witness[3]).to.equal(BigInt(nullifiers[0]));
-    expect(witness[4]).to.equal(BigInt(nullifiers[1]));
-    expect(witness[5]).to.equal(proof1.root.bigInt());
+    expect(witness[5]).to.equal(BigInt(nullifiers[0]));
+    expect(witness[6]).to.equal(BigInt(nullifiers[1]));
+    expect(witness[7]).to.equal(proof1.root.bigInt());
 
     // take the output from the proof circuit and attempt to decrypt
     // as the receiver
-    const cipherText = [witness[1], witness[2]]; // index 1 is the encrypted value, index 2 is the encrypted salt
+    const cipherText = witness.slice(1, 5); // first 4 elements are the cipher text for the first encryption output
     const recoveredKey = genEcdhSharedKey(Bob.privKey, Alice.pubKey);
-    const plainText = poseidonDecrypt(cipherText, recoveredKey, encryptionNonce);
+    const plainText = poseidonDecrypt(cipherText, recoveredKey, encryptionNonce, 2);
     expect(plainText).to.deep.equal([20n, salt3]);
   });
 
@@ -161,7 +161,7 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     const output2 = poseidonHash([BigInt(outputValues[1]), salt4, ...Alice.pubKey]);
     const outputCommitments = [output1, output2];
 
-    const encryptionNonce = genRandomSalt();
+    const encryptionNonce = newEncryptionNonce();
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
     });
@@ -197,15 +197,15 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     // console.log('outputOwnerPublicKeys', [receiver.pubKey, sender.pubKey]);
     // console.log('encryptionNonce', encryptionNonce);
 
-    expect(witness[3]).to.equal(BigInt(nullifiers[0]));
-    expect(witness[4]).to.equal(BigInt(nullifiers[1]));
-    expect(witness[5]).to.equal(proof1.root.bigInt());
+    expect(witness[5]).to.equal(BigInt(nullifiers[0]));
+    expect(witness[6]).to.equal(BigInt(nullifiers[1]));
+    expect(witness[7]).to.equal(proof1.root.bigInt());
 
     // take the output from the proof circuit and attempt to decrypt
     // as the receiver
-    const cipherText = [witness[1], witness[2]]; // index 1 is the encrypted value, index 2 is the encrypted salt
+    const cipherText = witness.slice(1, 5); // first 4 elements are the cipher text for the first encryption output
     const recoveredKey = genEcdhSharedKey(Bob.privKey, Alice.pubKey);
-    const plainText = poseidonDecrypt(cipherText, recoveredKey, encryptionNonce);
+    const plainText = poseidonDecrypt(cipherText, recoveredKey, encryptionNonce, 2);
     expect(plainText).to.deep.equal([20n, salt3]);
   });
 
@@ -270,6 +270,6 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     }
     // console.log(err);
     expect(err).to.match(/Error in template CheckSum_161 line: 44/);
-    expect(err).to.match(/Error in template Zeto_258 line: 91/);
+    expect(err).to.match(/Error in template Zeto_263 line: 92/);
   });
 });
