@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ethers } from 'hardhat';
+import { ethers, network } from 'hardhat';
 import { ContractTransactionReceipt, Signer, BigNumberish } from 'ethers';
 import { expect } from 'chai';
 import { loadCircuit, Poseidon, encodeProof, tokenUriHash } from "zeto-js";
@@ -143,48 +143,57 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
     await smtAlice.add(events[0].outputs[0], events[0].outputs[0]);
   }).timeout(600000);
 
-  it("mint existing unspent UTXOs should fail", async function () {
-    await expect(doMint(zeto, deployer, [utxo3])).rejectedWith("UTXOAlreadyOwned");
+  describe("failure cases", function () {
+    // the following failure cases rely on the hardhat network
+    // to return the details of the errors. This is not possible
+    // on non-hardhat networks
+    if (network.name !== 'hardhat') {
+      return;
+    }
+
+    it("mint existing unspent UTXOs should fail", async function () {
+      await expect(doMint(zeto, deployer, [utxo3])).rejectedWith("UTXOAlreadyOwned");
+    });
+
+    it("mint existing spent UTXOs should fail", async function () {
+      await expect(doMint(zeto, deployer, [utxo1])).rejectedWith("UTXOAlreadyOwned");
+    });
+
+    it("transfer spent UTXOs should fail (double spend protection)", async function () {
+      // Alice create outputs in an attempt to send to Charlie an already spent asset
+      const _utxo1 = newAssetUTXO(utxo1.tokenId!, utxo1.uri!, Charlie);
+
+      // generate the nullifiers for the UTXOs to be spent
+      const nullifier1 = newAssetNullifier(utxo1, Alice);
+
+      // generate inclusion proofs for the UTXOs to be spent
+      let root = await smtAlice.root();
+      const proof1 = await smtAlice.generateCircomVerifierProof(utxo1.hash, root);
+      const merkleProof = proof1.siblings.map((s) => s.bigInt());
+
+      await expect(doTransfer(Alice, utxo1, nullifier1, _utxo1, root.bigInt(), merkleProof, Charlie)).rejectedWith("UTXOAlreadySpent")
+    }).timeout(600000);
+
+    it("transfer non-existing UTXOs should fail", async function () {
+      const nonExisting1 = newAssetUTXO(1002, 'http://ipfs.io/file-hash-2', Alice);
+
+      // add to our local SMT (but they don't exist on the chain)
+      await smtAlice.add(nonExisting1.hash, nonExisting1.hash);
+
+      // generate the nullifiers for the UTXOs to be spent
+      const nullifier1 = newAssetNullifier(nonExisting1, Alice);
+
+      // generate inclusion proofs for the UTXOs to be spent
+      let root = await smtAlice.root();
+      const proof1 = await smtAlice.generateCircomVerifierProof(nonExisting1.hash, root);
+      const merkleProof = proof1.siblings.map((s) => s.bigInt());
+
+      // propose the output UTXOs
+      const _utxo1 = newAssetUTXO(nonExisting1.tokenId!, nonExisting1.uri!, Charlie);
+
+      await expect(doTransfer(Alice, nonExisting1, nullifier1, _utxo1, root.bigInt(), merkleProof, Charlie)).rejectedWith("UTXORootNotFound");
+    }).timeout(600000);
   });
-
-  it("mint existing spent UTXOs should fail", async function () {
-    await expect(doMint(zeto, deployer, [utxo1])).rejectedWith("UTXOAlreadyOwned");
-  });
-
-  it("transfer spent UTXOs should fail (double spend protection)", async function () {
-    // Alice create outputs in an attempt to send to Charlie an already spent asset
-    const _utxo1 = newAssetUTXO(utxo1.tokenId!, utxo1.uri!, Charlie);
-
-    // generate the nullifiers for the UTXOs to be spent
-    const nullifier1 = newAssetNullifier(utxo1, Alice);
-
-    // generate inclusion proofs for the UTXOs to be spent
-    let root = await smtAlice.root();
-    const proof1 = await smtAlice.generateCircomVerifierProof(utxo1.hash, root);
-    const merkleProof = proof1.siblings.map((s) => s.bigInt());
-
-    await expect(doTransfer(Alice, utxo1, nullifier1, _utxo1, root.bigInt(), merkleProof, Charlie)).rejectedWith("UTXOAlreadySpent")
-  }).timeout(600000);
-
-  it("transfer non-existing UTXOs should fail", async function () {
-    const nonExisting1 = newAssetUTXO(1002, 'http://ipfs.io/file-hash-2', Alice);
-
-    // add to our local SMT (but they don't exist on the chain)
-    await smtAlice.add(nonExisting1.hash, nonExisting1.hash);
-
-    // generate the nullifiers for the UTXOs to be spent
-    const nullifier1 = newAssetNullifier(nonExisting1, Alice);
-
-    // generate inclusion proofs for the UTXOs to be spent
-    let root = await smtAlice.root();
-    const proof1 = await smtAlice.generateCircomVerifierProof(nonExisting1.hash, root);
-    const merkleProof = proof1.siblings.map((s) => s.bigInt());
-
-    // propose the output UTXOs
-    const _utxo1 = newAssetUTXO(nonExisting1.tokenId!, nonExisting1.uri!, Charlie);
-
-    await expect(doTransfer(Alice, nonExisting1, nullifier1, _utxo1, root.bigInt(), merkleProof, Charlie)).rejectedWith("UTXORootNotFound");
-  }).timeout(600000);
 
   async function doTransfer(signer: User, input: UTXO, _nullifier: UTXO, output: UTXO, root: BigInt, merkleProof: BigInt[], owner: User) {
     let nullifier: BigNumberish;

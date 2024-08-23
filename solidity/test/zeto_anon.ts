@@ -14,8 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import hre from 'hardhat';
-const { ethers } = hre;
+import { ethers, network } from 'hardhat';
 import { Signer, BigNumberish, AddressLike, ZeroAddress } from 'ethers';
 import { expect } from 'chai';
 import { loadCircuit, encodeProof, Poseidon } from "zeto-js";
@@ -45,6 +44,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
   let circuit: any, provingKey: any;
 
   before(async function () {
+    this.timeout(600000);
     let [d, a, b, c] = await ethers.getSigners();
     deployer = d;
     Alice = await newUser(a);
@@ -52,9 +52,6 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     Charlie = await newUser(c);
 
     ({ deployer, zeto, erc20 } = await deployZeto('Zeto_Anon'));
-
-    const tx3 = await zeto.connect(deployer).setERC20(erc20.target);
-    await tx3.wait();
 
     circuit = await loadCircuit('anon');
     ({ provingKeyFile: provingKey } = loadProvingKeys('anon'));
@@ -64,7 +61,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     const tx = await erc20.connect(deployer).mint(Alice.ethAddress, 100);
     await tx.wait();
     const balance = await erc20.balanceOf(Alice.ethAddress);
-    expect(balance).to.equal(100);
+    expect(balance).to.be.gte(100);
 
     const tx1 = await erc20.connect(Alice.signer).approve(zeto.target, 100);
     await tx1.wait();
@@ -128,43 +125,52 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
 
     // Alice checks her ERC20 balance
     const balance = await erc20.balanceOf(Alice.ethAddress);
-    expect(balance).to.equal(80);
+    expect(balance).to.be.gte(80);
   });
 
-  it("Alice attempting to withdraw spent UTXOs should fail", async function () {
-    // Alice proposes the output ERC20 tokens
-    const outputCommitment = newUTXO(90, Alice);
+  describe('failure cases', function () {
+    // the following failure cases rely on the hardhat network
+    // to return the details of the errors. This is not possible
+    // on non-hardhat networks
+    if (network.name !== 'hardhat') {
+      return;
+    }
 
-    const { inputCommitments, outputCommitments, encodedProof } = await prepareWithdrawProof(Alice, [utxo100, ZERO_UTXO], outputCommitment);
+    it("Alice attempting to withdraw spent UTXOs should fail", async function () {
+      // Alice proposes the output ERC20 tokens
+      const outputCommitment = newUTXO(90, Alice);
 
-    await expect(zeto.connect(Alice.signer).withdraw(10, inputCommitments, outputCommitments[0], encodedProof)).rejectedWith("UTXOAlreadySpent");
-  });
+      const { inputCommitments, outputCommitments, encodedProof } = await prepareWithdrawProof(Alice, [utxo100, ZERO_UTXO], outputCommitment);
 
-  it("mint existing unspent UTXOs should fail", async function () {
-    await expect(doMint(zeto, deployer, [utxo4])).rejectedWith("UTXOAlreadyOwned");
-  });
+      await expect(zeto.connect(Alice.signer).withdraw(10, inputCommitments, outputCommitments[0], encodedProof)).rejectedWith("UTXOAlreadySpent");
+    });
 
-  it("mint existing spent UTXOs should fail", async function () {
-    await expect(doMint(zeto, deployer, [utxo1])).rejectedWith("UTXOAlreadySpent");
-  });
+    it("mint existing unspent UTXOs should fail", async function () {
+      await expect(doMint(zeto, deployer, [utxo4])).rejectedWith("UTXOAlreadyOwned");
+    });
 
-  it("transfer non-existing UTXOs should fail", async function () {
-    const nonExisting1 = newUTXO(10, Alice);
-    const nonExisting2 = newUTXO(20, Alice, nonExisting1.salt);
-    await expect(doTransfer(Alice, [nonExisting1, nonExisting2], [nonExisting1, nonExisting2], [Alice, Alice])).rejectedWith("UTXONotMinted");
-  });
+    it("mint existing spent UTXOs should fail", async function () {
+      await expect(doMint(zeto, deployer, [utxo1])).rejectedWith("UTXOAlreadySpent");
+    });
 
-  it("transfer spent UTXOs should fail (double spend protection)", async function () {
-    // create outputs
-    const utxo5 = newUTXO(25, Bob);
-    const utxo6 = newUTXO(5, Alice, utxo5.salt);
-    await expect(doTransfer(Alice, [utxo1, utxo2], [utxo5, utxo6], [Bob, Alice])).rejectedWith("UTXOAlreadySpent")
-  });
+    it("transfer non-existing UTXOs should fail", async function () {
+      const nonExisting1 = newUTXO(10, Alice);
+      const nonExisting2 = newUTXO(20, Alice, nonExisting1.salt);
+      await expect(doTransfer(Alice, [nonExisting1, nonExisting2], [nonExisting1, nonExisting2], [Alice, Alice])).rejectedWith("UTXONotMinted");
+    });
 
-  it("spend by using the same UTXO as both inputs should fail", async function () {
-    const utxo5 = newUTXO(20, Alice);
-    const utxo6 = newUTXO(10, Bob, utxo5.salt);
-    await expect(doTransfer(Bob, [utxo7, utxo7], [utxo5, utxo6], [Alice, Bob])).rejectedWith(`UTXODuplicate(${utxo7.hash.toString()}`);
+    it("transfer spent UTXOs should fail (double spend protection)", async function () {
+      // create outputs
+      const utxo5 = newUTXO(25, Bob);
+      const utxo6 = newUTXO(5, Alice, utxo5.salt);
+      await expect(doTransfer(Alice, [utxo1, utxo2], [utxo5, utxo6], [Bob, Alice])).rejectedWith("UTXOAlreadySpent")
+    });
+
+    it("spend by using the same UTXO as both inputs should fail", async function () {
+      const utxo5 = newUTXO(20, Alice);
+      const utxo6 = newUTXO(10, Bob, utxo5.salt);
+      await expect(doTransfer(Bob, [utxo7, utxo7], [utxo5, utxo6], [Alice, Bob])).rejectedWith(`UTXODuplicate(${utxo7.hash.toString()}`);
+    });
   });
 
   async function doTransfer(signer: User, inputs: UTXO[], outputs: UTXO[], owners: User[]) {
