@@ -16,7 +16,7 @@
 
 const path = require('path');
 const { readFileSync } = require('fs');
-const Poseidon = require('poseidon-lite/build');
+const Poseidon = require('poseidon-lite');
 const { newSalt, newEncryptionNonce, poseidonDecrypt, encodeProof, getProofHash, tokenUriHash, kycHash } = require('./lib/util.js');
 
 function loadCircuit(type) {

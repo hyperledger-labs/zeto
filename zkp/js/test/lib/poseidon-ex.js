@@ -17,7 +17,7 @@
 const { expect } = require('chai');
 const { join } = require('path');
 const { wasm: wasm_tester } = require('circom_tester');
-const { poseidon4 } = require('poseidon-lite/build');
+const { poseidon4 } = require('poseidon-lite');
 
 describe('PoseidonEx circuit tests', () => {
   let circuit;

@@ -15,7 +15,7 @@
 // limitations under the License.
 
 const { genRandomSalt } = require('maci-crypto');
-const { poseidon4: poseidon, poseidon2 } = require('poseidon-lite/build');
+const { poseidon4: poseidon, poseidon2 } = require('poseidon-lite');
 const { solidityPackedKeccak256 } = require('ethers');
 const { createHash, randomBytes } = require('crypto');
 
