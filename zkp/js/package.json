@@ -9,6 +9,7 @@
     "test:e2e": "mocha --exit integration-test/*.js"
   },
   "dependencies": {
+    "ethers": "^6.13.2",
     "maci-crypto": "^1.1.1",
     "poseidon-lite": "git://github.com/kaleido-io/poseidon-lite.git#pre-build"
   },
