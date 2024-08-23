@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "maci-crypto": "^1.1.1",
-    "poseidon-lite": "git://github.com/kaleido-io/poseidon-lite.git#nOuts"
+    "poseidon-lite": "git://github.com/kaleido-io/poseidon-lite.git#pre-build"
   },
   "devDependencies": {
     "@iden3/js-merkletree": "^1.2.0",
