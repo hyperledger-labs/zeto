@@ -324,7 +324,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
     });
   });
 
-  describe.skip("failure cases", function () {
+  describe("failure cases", function () {
     // the following failure cases rely on the hardhat network
     // to return the details of the errors. This is not possible
     // on non-hardhat networks

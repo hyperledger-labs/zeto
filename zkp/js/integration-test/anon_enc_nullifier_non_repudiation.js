@@ -119,13 +119,13 @@ describe('main circuit tests for Zeto fungible tokens with encryption fro non-re
     console.log('Proving time: ', (Date.now() - startTime) / 1000, 's');
 
     const success = await groth16.verify(verificationKey, publicSignals, proof);
-    console.log('nullifiers', nullifiers);
-    console.log('inputCommitments', inputCommitments);
-    console.log('outputCommitments', outputCommitments);
-    console.log('root', proof1.root.bigInt());
-    console.log('encryptionNonce', encryptionNonce);
-    console.log('authorityPublicKey', Regulator.pubKey);
-    console.log('publicSignals', publicSignals);
+    // console.log('nullifiers', nullifiers);
+    // console.log('inputCommitments', inputCommitments);
+    // console.log('outputCommitments', outputCommitments);
+    // console.log('root', proof1.root.bigInt());
+    // console.log('encryptionNonce', encryptionNonce);
+    // console.log('authorityPublicKey', Regulator.pubKey);
+    // console.log('publicSignals', publicSignals);
     expect(success, true);
   }).timeout(600000);
 });

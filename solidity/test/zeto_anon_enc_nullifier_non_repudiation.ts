@@ -236,7 +236,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     expect(balance).to.be.gte(80);
   });
 
-  describe.skip("failure cases", function () {
+  describe("failure cases", function () {
     // the following failure cases rely on the hardhat network
     // to return the details of the errors. This is not possible
     // on non-hardhat networks
