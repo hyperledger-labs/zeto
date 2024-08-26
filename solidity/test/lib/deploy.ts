@@ -61,8 +61,11 @@ export async function deployZeto(tokenName: string) {
     }
     zeto = await ethers.getContractAt(tokenName, zetoAddress);
 
-    const tx3 = await zeto.connect(deployer).setERC20(erc20.target);
-    await tx3.wait();
+    // set the ERC20 token for the fungible Zeto token
+    if (isFungible) {
+      const tx3 = await zeto.connect(deployer).setERC20(erc20.target);
+      await tx3.wait();
+    }
   }
 
   return { deployer, zeto, erc20 };
