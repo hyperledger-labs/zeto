@@ -19,8 +19,8 @@ package smt
 import "errors"
 
 var (
-	// ErrMaxLevelsExceeded is used when a level is larger than the max
-	ErrMaxLevelsExceeded = errors.New("tree height is larger than max allowed (256)")
+	// ErrMaxLevelsNotInRange is used when a level is larger than the max
+	ErrMaxLevelsNotInRange = errors.New("tree height must be larger than zero and less than max allowed (256)")
 	// ErrNodeIndexAlreadyExists is used when a node index already exists.
 	ErrNodeIndexAlreadyExists = errors.New("key already exists")
 	// ErrKeyNotFound is used when a key is not found in the MerkleTree.
