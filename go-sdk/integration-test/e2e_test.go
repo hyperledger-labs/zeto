@@ -197,7 +197,7 @@ func TestZeto_2_SuccessfulProving(t *testing.T) {
 	output2, _ := poseidon.Hash([]*big.Int{outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
 	outputCommitments := []*big.Int{output1, output2}
 
-	encryptionNonce := utxo.NewSalt()
+	encryptionNonce := utxo.NewEncryptionNonce()
 
 	witnessInputs := map[string]interface{}{
 		"inputCommitments":      inputCommitments,
@@ -223,7 +223,7 @@ func TestZeto_2_SuccessfulProving(t *testing.T) {
 	assert.Equal(t, 3, len(proof.Proof.A))
 	assert.Equal(t, 3, len(proof.Proof.B))
 	assert.Equal(t, 3, len(proof.Proof.C))
-	assert.Equal(t, 7, len(proof.PubSignals))
+	assert.Equal(t, 9, len(proof.PubSignals))
 }
 
 func TestZeto_3_SuccessfulProving(t *testing.T) {
@@ -360,7 +360,7 @@ func TestZeto_4_SuccessfulProving(t *testing.T) {
 	output2, _ := poseidon.Hash([]*big.Int{outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
 	outputCommitments := []*big.Int{output1, output2}
 
-	encryptionNonce := utxo.NewSalt()
+	encryptionNonce := utxo.NewEncryptionNonce()
 
 	proof1Siblings := make([]*big.Int, len(circomProof1.Siblings)-1)
 	for i, s := range circomProof1.Siblings[0 : len(circomProof1.Siblings)-1] {
@@ -398,7 +398,7 @@ func TestZeto_4_SuccessfulProving(t *testing.T) {
 	assert.Equal(t, 3, len(proof.Proof.A))
 	assert.Equal(t, 3, len(proof.Proof.B))
 	assert.Equal(t, 3, len(proof.Proof.C))
-	assert.Equal(t, 10, len(proof.PubSignals))
+	assert.Equal(t, 12, len(proof.PubSignals))
 }
 
 func TestZeto_5_SuccessfulProving(t *testing.T) {

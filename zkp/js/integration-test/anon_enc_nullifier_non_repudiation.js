@@ -18,7 +18,7 @@ const { expect } = require('chai');
 const { groth16 } = require('snarkjs');
 const { genRandomSalt, genKeypair, formatPrivKeyForBabyJub, stringifyBigInts } = require('maci-crypto');
 const { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } = require('@iden3/js-merkletree');
-const { Poseidon, newSalt, loadCircuit } = require('../index.js');
+const { Poseidon, newSalt, loadCircuit, newEncryptionNonce } = require('../index.js');
 const { loadProvingKeys } = require('./utils.js');
 
 const SMT_HEIGHT = 64;
@@ -89,7 +89,7 @@ describe('main circuit tests for Zeto fungible tokens with encryption fro non-re
     const output2 = poseidonHash([BigInt(outputValues[1]), salt3, ...Alice.pubKey]);
     const outputCommitments = [output1, output2];
 
-    const encryptionNonce = genRandomSalt();
+    const encryptionNonce = newEncryptionNonce();
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
     });
@@ -119,13 +119,13 @@ describe('main circuit tests for Zeto fungible tokens with encryption fro non-re
     console.log('Proving time: ', (Date.now() - startTime) / 1000, 's');
 
     const success = await groth16.verify(verificationKey, publicSignals, proof);
-    console.log('nullifiers', nullifiers);
-    console.log('inputCommitments', inputCommitments);
-    console.log('outputCommitments', outputCommitments);
-    console.log('root', proof1.root.bigInt());
-    console.log('encryptionNonce', encryptionNonce);
-    console.log('authorityPublicKey', Regulator.pubKey);
-    console.log('publicSignals', publicSignals);
+    // console.log('nullifiers', nullifiers);
+    // console.log('inputCommitments', inputCommitments);
+    // console.log('outputCommitments', outputCommitments);
+    // console.log('root', proof1.root.bigInt());
+    // console.log('encryptionNonce', encryptionNonce);
+    // console.log('authorityPublicKey', Regulator.pubKey);
+    // console.log('publicSignals', publicSignals);
     expect(success, true);
   }).timeout(600000);
 });

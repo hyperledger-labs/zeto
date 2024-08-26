@@ -99,8 +99,8 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         uint256[2] memory outputs,
         uint256 root,
         uint256 encryptionNonce,
-        uint256[2] memory encryptedValuesForReceiver,
-        uint256[14] memory encryptedValuesForAuthority,
+        uint256[4] memory encryptedValuesForReceiver,
+        uint256[16] memory encryptedValuesForAuthority,
         Commonlib.Proof calldata proof
     ) public returns (bool) {
         require(
@@ -109,33 +109,37 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         );
 
         // construct the public inputs
-        uint256[26] memory publicInputs;
+        uint256[30] memory publicInputs;
         publicInputs[0] = encryptedValuesForReceiver[0]; // encrypted value for the receiver UTXO
         publicInputs[1] = encryptedValuesForReceiver[1]; // encrypted salt for the receiver UTXO
-        publicInputs[2] = encryptedValuesForAuthority[0]; // encrypted input owner public key[0]
-        publicInputs[3] = encryptedValuesForAuthority[1]; // encrypted input owner public key[1]
-        publicInputs[4] = encryptedValuesForAuthority[2]; // encrypted input value[0]
-        publicInputs[5] = encryptedValuesForAuthority[3]; // encrypted input salt[0]
-        publicInputs[6] = encryptedValuesForAuthority[4]; // encrypted input value[1]
-        publicInputs[7] = encryptedValuesForAuthority[5]; // encrypted input salt[1]
-        publicInputs[8] = encryptedValuesForAuthority[6]; // encrypted first output owner public key[0]
-        publicInputs[9] = encryptedValuesForAuthority[7]; // encrypted first output owner public key[1]
-        publicInputs[10] = encryptedValuesForAuthority[8]; // encrypted second output owner public key[0]
-        publicInputs[11] = encryptedValuesForAuthority[9]; // encrypted second output owner public key[1]
-        publicInputs[12] = encryptedValuesForAuthority[10]; // encrypted output value[0]
-        publicInputs[13] = encryptedValuesForAuthority[11]; // encrypted output salt[0]
-        publicInputs[14] = encryptedValuesForAuthority[12]; // encrypted output value[1]
-        publicInputs[15] = encryptedValuesForAuthority[13]; // encrypted output salt[1]
-        publicInputs[16] = nullifiers[0];
-        publicInputs[17] = nullifiers[1];
-        publicInputs[18] = root;
-        publicInputs[19] = (nullifiers[0] == 0) ? 0 : 1; // if the first nullifier is empty, disable its MT proof verification
-        publicInputs[20] = (nullifiers[1] == 0) ? 0 : 1; // if the second nullifier is empty, disable its MT proof verification
-        publicInputs[21] = outputs[0];
-        publicInputs[22] = outputs[1];
-        publicInputs[23] = encryptionNonce;
-        publicInputs[24] = arbiter[0];
-        publicInputs[25] = arbiter[1];
+        publicInputs[2] = encryptedValuesForReceiver[2]; // parity bit for the cipher text
+        publicInputs[3] = encryptedValuesForReceiver[3]; // parity bit for the cipher text
+        publicInputs[4] = encryptedValuesForAuthority[0]; // encrypted input owner public key[0]
+        publicInputs[5] = encryptedValuesForAuthority[1]; // encrypted input owner public key[1]
+        publicInputs[6] = encryptedValuesForAuthority[2]; // encrypted input value[0]
+        publicInputs[7] = encryptedValuesForAuthority[3]; // encrypted input salt[0]
+        publicInputs[8] = encryptedValuesForAuthority[4]; // encrypted input value[1]
+        publicInputs[9] = encryptedValuesForAuthority[5]; // encrypted input salt[1]
+        publicInputs[10] = encryptedValuesForAuthority[6]; // encrypted first output owner public key[0]
+        publicInputs[11] = encryptedValuesForAuthority[7]; // encrypted first output owner public key[1]
+        publicInputs[12] = encryptedValuesForAuthority[8]; // encrypted second output owner public key[0]
+        publicInputs[13] = encryptedValuesForAuthority[9]; // encrypted second output owner public key[1]
+        publicInputs[14] = encryptedValuesForAuthority[10]; // encrypted output value[0]
+        publicInputs[15] = encryptedValuesForAuthority[11]; // encrypted output salt[0]
+        publicInputs[16] = encryptedValuesForAuthority[12]; // encrypted output value[1]
+        publicInputs[17] = encryptedValuesForAuthority[13]; // encrypted output salt[1]
+        publicInputs[18] = encryptedValuesForAuthority[14]; // parity bit for the cipher text
+        publicInputs[19] = encryptedValuesForAuthority[15]; // parity bit for the cipher text
+        publicInputs[20] = nullifiers[0];
+        publicInputs[21] = nullifiers[1];
+        publicInputs[22] = root;
+        publicInputs[23] = (nullifiers[0] == 0) ? 0 : 1; // if the first nullifier is empty, disable its MT proof verification
+        publicInputs[24] = (nullifiers[1] == 0) ? 0 : 1; // if the second nullifier is empty, disable its MT proof verification
+        publicInputs[25] = outputs[0];
+        publicInputs[26] = outputs[1];
+        publicInputs[27] = encryptionNonce;
+        publicInputs[28] = arbiter[0];
+        publicInputs[29] = arbiter[1];
 
         // // Check the proof
         require(

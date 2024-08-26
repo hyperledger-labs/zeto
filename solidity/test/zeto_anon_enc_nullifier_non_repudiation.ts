@@ -17,9 +17,9 @@
 import { ethers } from 'hardhat';
 import { ContractTransactionReceipt, Signer, BigNumberish } from 'ethers';
 import { expect } from 'chai';
-import { loadCircuit, poseidonDecrypt, encodeProof, Poseidon } from "zeto-js";
+import { loadCircuit, poseidonDecrypt, encodeProof, Poseidon, newEncryptionNonce } from "zeto-js";
 import { groth16 } from 'snarkjs';
-import { genRandomSalt, genEcdhSharedKey, stringifyBigInts } from 'maci-crypto';
+import { genEcdhSharedKey, stringifyBigInts } from 'maci-crypto';
 import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
 import { UTXO, User, newUser, newUTXO, newNullifier, doMint, ZERO_UTXO, parseUTXOEvents } from './lib/utils';
 import { loadProvingKeys, prepareDepositProof, prepareNullifierWithdrawProof } from './utils';
@@ -147,7 +147,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
 
     // Bob uses the encrypted values in the event to decrypt and recover the UTXO value and salt
     const sharedKey1 = genEcdhSharedKey(Bob.babyJubPrivateKey, Alice.babyJubPublicKey);
-    const plainText1 = poseidonDecrypt(events[0].encryptedValuesForReceiver, sharedKey1, events[0].encryptionNonce);
+    const plainText1 = poseidonDecrypt(events[0].encryptedValuesForReceiver, sharedKey1, events[0].encryptionNonce, 2);
     expect(plainText1).to.deep.equal([
       25n,
       result2.plainTextSalt,
@@ -155,7 +155,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
 
     // The regulator uses the encrypted values in the event to decrypt and recover the UTXO value and salt
     const sharedKey2 = genEcdhSharedKey(Authority.babyJubPrivateKey, Alice.babyJubPublicKey);
-    const plainText2 = poseidonDecrypt(events[0].encryptedValuesForAuthority, sharedKey2, events[0].encryptionNonce);
+    const plainText2 = poseidonDecrypt(events[0].encryptedValuesForAuthority, sharedKey2, events[0].encryptionNonce, 14);
     expect(plainText2).to.deep.equal([
       Alice.babyJubPublicKey[0],
       Alice.babyJubPublicKey[1],
@@ -340,7 +340,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
   async function doTransfer(signer: User, inputs: UTXO[], _nullifiers: UTXO[], outputs: UTXO[], root: BigInt, merkleProofs: BigInt[][], owners: User[]) {
     let nullifiers: [BigNumberish, BigNumberish];
     let outputCommitments: [BigNumberish, BigNumberish];
-    let encryptedValues: [BigNumberish, BigNumberish];
+    let encryptedValues: BigNumberish[];
     let encryptionNonce: BigNumberish;
     let encodedProof: any;
     const result = await prepareProof(signer, inputs, _nullifiers, outputs, root, merkleProofs, owners);
@@ -363,7 +363,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     const outputCommitments: [BigNumberish, BigNumberish] = outputs.map((output) => output.hash) as [BigNumberish, BigNumberish];
     const outputValues = outputs.map((output) => BigInt(output.value || 0n));
     const outputOwnerPublicKeys: [[BigNumberish, BigNumberish], [BigNumberish, BigNumberish]] = owners.map(owner => owner.babyJubPublicKey) as [[BigNumberish, BigNumberish], [BigNumberish, BigNumberish]];
-    const encryptionNonce: BigNumberish = genRandomSalt() as BigNumberish;
+    const encryptionNonce: BigNumberish = newEncryptionNonce() as BigNumberish;
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
     });
@@ -401,7 +401,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     return {
       inputCommitments,
       outputCommitments,
-      encryptedValues: publicSignals.slice(0, 16),
+      encryptedValues: publicSignals.slice(0, 20),
       encryptionNonce,
       encodedProof
     };
@@ -412,13 +412,13 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     nullifiers: [BigNumberish, BigNumberish],
     outputCommitments: [BigNumberish, BigNumberish],
     root: BigNumberish,
-    encryptedValues: [BigNumberish, BigNumberish],
+    encryptedValues: BigNumberish[],
     encryptionNonce: BigNumberish,
     encodedProof: any
   ) {
     const startTx = Date.now();
-    const encryptedValuesForReceiver = encryptedValues.slice(0, 2);
-    const encryptedValuesForRegulator = encryptedValues.slice(2, 16);
+    const encryptedValuesForReceiver = encryptedValues.slice(0, 4);
+    const encryptedValuesForRegulator = encryptedValues.slice(4, 20);
     const tx = await zeto.connect(signer.signer).transfer(nullifiers, outputCommitments, root, encryptionNonce, encryptedValuesForReceiver, encryptedValuesForRegulator, encodedProof);
     const results: ContractTransactionReceipt | null = await tx.wait();
     console.log(`Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${results?.gasUsed}`);

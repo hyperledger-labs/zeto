@@ -17,9 +17,9 @@
 import { ethers } from 'hardhat';
 import { ContractTransactionReceipt, Signer, BigNumberish } from 'ethers';
 import { expect } from 'chai';
-import { loadCircuit, poseidonDecrypt, encodeProof } from "zeto-js";
+import { loadCircuit, poseidonDecrypt, encodeProof, newEncryptionNonce } from "zeto-js";
 import { groth16 } from 'snarkjs';
-import { genRandomSalt, genEcdhSharedKey, stringifyBigInts } from 'maci-crypto';
+import { genEcdhSharedKey, stringifyBigInts } from 'maci-crypto';
 import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
 import { UTXO, User, newUser, newUTXO, newNullifier, doMint, ZERO_UTXO, parseUTXOEvents } from './lib/utils';
 import { loadProvingKeys, prepareDepositProof, prepareNullifierWithdrawProof } from './utils';
@@ -143,7 +143,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
 
     // Bob uses the encrypted values in the event to decrypt and recover the UTXO value and salt
     const sharedKey = genEcdhSharedKey(Bob.babyJubPrivateKey, Alice.babyJubPublicKey);
-    const plainText = poseidonDecrypt(events[0].encryptedValues, sharedKey, events[0].encryptionNonce);
+    const plainText = poseidonDecrypt(events[0].encryptedValues, sharedKey, events[0].encryptionNonce, 2);
     expect(plainText).to.deep.equal([25n, result2.plainTextSalt]);
 
     // Bob uses the decrypted values to construct the UTXO received from the transaction
@@ -304,7 +304,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
   async function doTransfer(signer: User, inputs: UTXO[], _nullifiers: UTXO[], outputs: UTXO[], root: BigInt, merkleProofs: BigInt[][], owners: User[]) {
     let nullifiers: [BigNumberish, BigNumberish];
     let outputCommitments: [BigNumberish, BigNumberish];
-    let encryptedValues: [BigNumberish, BigNumberish];
+    let encryptedValues: BigNumberish[];
     let encryptionNonce: BigNumberish;
     let encodedProof: any;
     const result = await prepareProof(signer, inputs, _nullifiers, outputs, root, merkleProofs, owners);
@@ -327,7 +327,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     const outputCommitments: [BigNumberish, BigNumberish] = outputs.map((output) => output.hash) as [BigNumberish, BigNumberish];
     const outputValues = outputs.map((output) => BigInt(output.value || 0n));
     const outputOwnerPublicKeys: [[BigNumberish, BigNumberish], [BigNumberish, BigNumberish]] = owners.map(owner => owner.babyJubPublicKey) as [[BigNumberish, BigNumberish], [BigNumberish, BigNumberish]];
-    const encryptionNonce: BigNumberish = genRandomSalt() as BigNumberish;
+    const encryptionNonce: BigNumberish = newEncryptionNonce() as BigNumberish;
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
     });
@@ -361,12 +361,11 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     console.log(`Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`);
 
     const encodedProof = encodeProof(proof);
-    const encryptedValue = publicSignals[0];
-    const encryptedSalt = publicSignals[1];
+    const encryptedValues = publicSignals.slice(0, 4);
     return {
       inputCommitments,
       outputCommitments,
-      encryptedValues: [encryptedValue, encryptedSalt] as [BigNumberish, BigNumberish],
+      encryptedValues,
       encryptionNonce,
       encodedProof
     };
@@ -377,7 +376,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     nullifiers: [BigNumberish, BigNumberish],
     outputCommitments: [BigNumberish, BigNumberish],
     root: BigNumberish,
-    encryptedValues: [BigNumberish, BigNumberish],
+    encryptedValues: BigNumberish[],
     encryptionNonce: BigNumberish,
     encodedProof: any
   ) {

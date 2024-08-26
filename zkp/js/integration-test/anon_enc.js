@@ -17,7 +17,7 @@
 const { expect } = require('chai');
 const { groth16 } = require('snarkjs');
 const { genRandomSalt, genKeypair, formatPrivKeyForBabyJub, stringifyBigInts } = require('maci-crypto');
-const { Poseidon, newSalt, loadCircuit } = require('../index.js');
+const { Poseidon, newSalt, loadCircuit, newEncryptionNonce } = require('../index.js');
 const { loadProvingKeys } = require('./utils.js');
 
 const ZERO_PUBKEY = [0, 0];
@@ -55,7 +55,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     const output1 = poseidonHash([BigInt(outputValues[0]), salt3, ...receiver.pubKey]);
     const outputCommitments = [output1, 0];
 
-    const encryptionNonce = genRandomSalt();
+    const encryptionNonce = newEncryptionNonce();
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
       inputOwnerPrivateKey: formatPrivKeyForBabyJub(sender.privKey),

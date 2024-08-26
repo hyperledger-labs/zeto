@@ -18,7 +18,7 @@ const { expect } = require('chai');
 const { join } = require('path');
 const { wasm: wasm_tester } = require('circom_tester');
 const { genRandomSalt, genKeypair, genEcdhSharedKey, formatPrivKeyForBabyJub, stringifyBigInts } = require('maci-crypto');
-const { Poseidon, newSalt, poseidonDecrypt } = require('../index.js');
+const { Poseidon, newSalt, poseidonDecrypt, newEncryptionNonce } = require('../index.js');
 
 const poseidonHash = Poseidon.poseidon4;
 
@@ -60,7 +60,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     const output2 = poseidonHash([BigInt(outputValues[1]), salt4, ...sender.pubKey]);
     const outputCommitments = [output1, output2];
 
-    const encryptionNonce = genRandomSalt();
+    const encryptionNonce = newEncryptionNonce();
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
       inputOwnerPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
@@ -87,16 +87,16 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     // console.log('receiverPublicKey', receiverPubKey);
     // console.log('encryptionNonce', encryptionNonce);
 
-    expect(witness[3]).to.equal(BigInt(inputCommitments[0]));
-    expect(witness[4]).to.equal(BigInt(inputCommitments[1]));
-    expect(witness[5]).to.equal(BigInt(outputCommitments[0]));
-    expect(witness[6]).to.equal(BigInt(outputCommitments[1]));
+    expect(witness[5]).to.equal(BigInt(inputCommitments[0]));
+    expect(witness[6]).to.equal(BigInt(inputCommitments[1]));
+    expect(witness[7]).to.equal(BigInt(outputCommitments[0]));
+    expect(witness[8]).to.equal(BigInt(outputCommitments[1]));
 
     // take the output from the proof circuit and attempt to decrypt
     // as the receiver
-    const cipherText = [witness[1], witness[2]]; // index 1 is the encrypted value, index 2 is the encrypted salt
+    const cipherText = witness.slice(1, 5);
     const recoveredKey = genEcdhSharedKey(receiver.privKey, sender.pubKey);
-    const plainText = poseidonDecrypt(cipherText, recoveredKey, encryptionNonce);
+    const plainText = poseidonDecrypt(cipherText, recoveredKey, encryptionNonce, 2);
     // use the recovered value (plainText[0]) and salt (plainText[1]) to verify the output commitment
     const calculatedHash = poseidonHash([BigInt(plainText[0]), BigInt(plainText[1]), ...receiver.pubKey]);
     expect(calculatedHash).to.equal(outputCommitments[0]);
@@ -118,7 +118,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     const output2 = poseidonHash([BigInt(outputValues[1]), salt3, ...sender.pubKey]);
     const outputCommitments = [output1, output2];
 
-    const encryptionNonce = genRandomSalt();
+    const encryptionNonce = newEncryptionNonce();
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
       inputOwnerPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
@@ -143,7 +143,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
       err = e;
     }
     // console.log(err);
-    expect(err).to.match(/Error in template Zeto_100 line: 77/);
+    expect(err).to.match(/Error in template Zeto_105 line: 78/);
   });
 
   it('should failed to match output UTXO after decrypting the cipher texts from the events if using the wrong sender public keys', async () => {
@@ -164,7 +164,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     const output2 = poseidonHash([BigInt(outputValues[1]), salt4, ...sender.pubKey]);
     const outputCommitments = [output1, output2];
 
-    const encryptionNonce = genRandomSalt();
+    const encryptionNonce = newEncryptionNonce();
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
       inputOwnerPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
@@ -187,11 +187,11 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     // take the output from the proof circuit and attempt to decrypt
     // as the receiver, but without using the correct sender public key
     const wrongSender = genKeypair();
-    const cipherText = [witness[1], witness[2]]; // index 1 is the encrypted value, index 2 is the encrypted salt
+    const cipherText = witness.slice(1, 5);
     const recoveredKey = genEcdhSharedKey(receiver.privKey, wrongSender.pubKey);
-    const plainText = poseidonDecrypt(cipherText, recoveredKey, encryptionNonce);
-    // use the recovered value (plainText[0]) and salt (plainText[1]) to verify the output commitment
-    const calculatedHash = poseidonHash([BigInt(plainText[0]), BigInt(plainText[1]), ...receiver.pubKey]);
-    expect(calculatedHash).to.not.equal(outputCommitments[0]);
+    // the decryption scheme has self-checking mechanism, so it should throw an error
+    expect(function () {
+      poseidonDecrypt(cipherText, recoveredKey, encryptionNonce, 2);
+    }).to.throw('The last ciphertext element must match the second item of the permuted state');
   });
 });

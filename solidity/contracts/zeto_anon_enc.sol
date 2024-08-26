@@ -66,7 +66,7 @@ contract Zeto_AnonEnc is ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         uint256[2] memory inputs,
         uint256[2] memory outputs,
         uint256 encryptionNonce,
-        uint256[2] memory encryptedValues,
+        uint256[4] memory encryptedValues,
         Commonlib.Proof calldata proof
     ) public returns (bool) {
         require(
@@ -75,14 +75,16 @@ contract Zeto_AnonEnc is ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         );
 
         // construct the public inputs
-        uint256[7] memory publicInputs;
+        uint256[9] memory publicInputs;
         publicInputs[0] = encryptedValues[0]; // encrypted value for the receiver UTXO
         publicInputs[1] = encryptedValues[1]; // encrypted salt for the receiver UTXO
-        publicInputs[2] = inputs[0];
-        publicInputs[3] = inputs[1];
-        publicInputs[4] = outputs[0];
-        publicInputs[5] = outputs[1];
-        publicInputs[6] = encryptionNonce;
+        publicInputs[2] = encryptedValues[2]; // parity bit for the cipher text
+        publicInputs[3] = encryptedValues[3]; // parity bit for the cipher text
+        publicInputs[4] = inputs[0];
+        publicInputs[5] = inputs[1];
+        publicInputs[6] = outputs[0];
+        publicInputs[7] = outputs[1];
+        publicInputs[8] = encryptionNonce;
 
         // Check the proof
         require(
@@ -100,6 +102,8 @@ contract Zeto_AnonEnc is ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         for (uint256 i = 0; i < inputs.length; ++i) {
             inputArray[i] = inputs[i];
             outputArray[i] = outputs[i];
+        }
+        for (uint256 i = 0; i < encryptedValues.length; ++i) {
             encryptedValuesArray[i] = encryptedValues[i];
         }
 

@@ -40,7 +40,8 @@ template Zeto(nInputs, nOutputs) {
   signal input outputOwnerPublicKeys[nOutputs][2];
   signal input encryptionNonce;
 
-  signal output cipherText[2];
+  // the output for a 2-element input (value and salt) encryption is a 4-element array
+  signal output cipherText[4];
 
   // derive the sender's public key from the secret input
   // for the sender's private key. This step demonstrates
@@ -94,6 +95,8 @@ template Zeto(nInputs, nOutputs) {
   encrypt.nonce <== encryptionNonce;
   encrypt.cipherText[0] --> cipherText[0];
   encrypt.cipherText[1] --> cipherText[1];
+  encrypt.cipherText[2] --> cipherText[2];
+  encrypt.cipherText[3] --> cipherText[3];
 }
 
 component main { public [ inputCommitments, outputCommitments, encryptionNonce ] } = Zeto(2, 2);

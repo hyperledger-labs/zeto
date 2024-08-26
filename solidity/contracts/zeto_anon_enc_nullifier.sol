@@ -76,7 +76,7 @@ contract Zeto_AnonEncNullifier is
         uint256[2] memory outputs,
         uint256 root,
         uint256 encryptionNonce,
-        uint256[2] memory encryptedValues,
+        uint256[4] memory encryptedValues,
         Commonlib.Proof calldata proof
     ) public returns (bool) {
         require(
@@ -85,17 +85,19 @@ contract Zeto_AnonEncNullifier is
         );
 
         // construct the public inputs
-        uint256[10] memory publicInputs;
+        uint256[12] memory publicInputs;
         publicInputs[0] = encryptedValues[0]; // encrypted value for the receiver UTXO
         publicInputs[1] = encryptedValues[1]; // encrypted salt for the receiver UTXO
-        publicInputs[2] = nullifiers[0];
-        publicInputs[3] = nullifiers[1];
-        publicInputs[4] = root;
-        publicInputs[5] = (nullifiers[0] == 0) ? 0 : 1; // if the first nullifier is empty, disable its MT proof verification
-        publicInputs[6] = (nullifiers[1] == 0) ? 0 : 1; // if the second nullifier is empty, disable its MT proof verification
-        publicInputs[7] = outputs[0];
-        publicInputs[8] = outputs[1];
-        publicInputs[9] = encryptionNonce;
+        publicInputs[2] = encryptedValues[2]; // parity bit for the cipher text
+        publicInputs[3] = encryptedValues[3]; // parity bit for the cipher text
+        publicInputs[4] = nullifiers[0];
+        publicInputs[5] = nullifiers[1];
+        publicInputs[6] = root;
+        publicInputs[7] = (nullifiers[0] == 0) ? 0 : 1; // if the first nullifier is empty, disable its MT proof verification
+        publicInputs[8] = (nullifiers[1] == 0) ? 0 : 1; // if the second nullifier is empty, disable its MT proof verification
+        publicInputs[9] = outputs[0];
+        publicInputs[10] = outputs[1];
+        publicInputs[11] = encryptionNonce;
 
         // // Check the proof
         require(
