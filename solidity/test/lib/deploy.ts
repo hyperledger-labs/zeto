@@ -37,6 +37,8 @@ export async function deployZeto(tokenName: string) {
     const result = await deployFunc(tokenName);
     ({ deployer, zetoImpl, erc20, args } = result as any);
 
+    // we want to test the effectiveness of the factory contract
+    // to create clones of the Zeto implementation contract
     const Factory = await ethers.getContractFactory("ZetoTokenFactory");
     const factory = await Factory.deploy();
     await factory.waitForDeployment();
@@ -58,6 +60,9 @@ export async function deployZeto(tokenName: string) {
       }
     }
     zeto = await ethers.getContractAt(tokenName, zetoAddress);
+
+    const tx3 = await zeto.connect(deployer).setERC20(erc20.target);
+    await tx3.wait();
   }
 
   return { deployer, zeto, erc20 };
