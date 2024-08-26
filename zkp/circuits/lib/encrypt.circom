@@ -38,8 +38,8 @@ template SymmetricEncrypt(length) {
   // pad the array with zeros if necessary.
   // e.g. if length == 4, l == 6
   var l = length;
-  while (l % 3 != 0) {
-    l += 1;
+  if (l % 3 != 0) {
+    l += (3 - (l % 3));
   }
   var messages[l];
   for (var i = 0; i < l; i++) {

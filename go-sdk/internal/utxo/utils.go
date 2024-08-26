@@ -32,8 +32,12 @@ func NewSalt() *big.Int {
 	return newRandomNumberInRange(max)
 }
 
+const TWO_POW_128 = "340282366920938463463374607431768211456"
+
 func NewEncryptionNonce() *big.Int {
-	max, _ := new(big.Int).SetString("340282366920938463463374607431768211456", 10)
+	// per https://drive.google.com/file/d/1EVrP3DzoGbmzkRmYnyEDcIQcXVU7GlOd/view
+	// the encrpition nonce should be in the range [0, 2^128)
+	max, _ := new(big.Int).SetString(TWO_POW_128, 10)
 	return newRandomNumberInRange(max)
 }
 

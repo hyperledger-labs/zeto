@@ -134,10 +134,10 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   encrypt1.key <== sharedSecretReceiver;
   encrypt1.nonce <== encryptionNonce;
   // the output for a 2-element input encryption is a 4-element array
-  encrypt1.cipherText[0] --> cipherTextReceiver[0];
-  encrypt1.cipherText[1] --> cipherTextReceiver[1];
-  encrypt1.cipherText[2] --> cipherTextReceiver[2];
-  encrypt1.cipherText[3] --> cipherTextReceiver[3];
+  encrypt1.cipherText[0] ==> cipherTextReceiver[0];
+  encrypt1.cipherText[1] ==> cipherTextReceiver[1];
+  encrypt1.cipherText[2] ==> cipherTextReceiver[2];
+  encrypt1.cipherText[3] ==> cipherTextReceiver[3];
 
   // generate shared secret for the authority
   var sharedSecretAuthority[2];
@@ -174,7 +174,7 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   }
   encrypt2.key <== sharedSecretAuthority;
   encrypt2.nonce <== encryptionNonce;
-  encrypt2.cipherText --> cipherTextAuthority;
+  encrypt2.cipherText ==> cipherTextAuthority;
 }
 
 component main { public [ nullifiers, outputCommitments, encryptionNonce, root, enabled, authorityPublicKey ] } = Zeto(2, 2, 64);
