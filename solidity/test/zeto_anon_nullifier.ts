@@ -73,10 +73,11 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
   });
 
   it("mint ERC20 tokens to Alice to deposit to Zeto should succeed", async function () {
+    const startingBalance = await erc20.balanceOf(Alice.ethAddress);
     const tx = await erc20.connect(deployer).mint(Alice.ethAddress, 100);
     await tx.wait();
-    const balance = await erc20.balanceOf(Alice.ethAddress);
-    expect(balance).to.be.gte(100);
+    const endingBalance = await erc20.balanceOf(Alice.ethAddress);
+    expect(endingBalance - startingBalance).to.be.equal(100);
 
     const tx1 = await erc20.connect(Alice.signer).approve(zeto.target, 100);
     await tx1.wait();
@@ -181,6 +182,8 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
   }).timeout(600000);
 
   it("Alice withdraws her UTXOs to ERC20 tokens should succeed", async function () {
+    const startingBalance = await erc20.balanceOf(Alice.ethAddress);
+
     // Alice generates the nullifiers for the UTXOs to be spent
     const nullifier1 = newNullifier(utxo100, Alice);
 
@@ -200,8 +203,8 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
     await tx.wait();
 
     // Alice checks her ERC20 balance
-    const balance = await erc20.balanceOf(Alice.ethAddress);
-    expect(balance).to.be.gte(80);
+    const endingBalance = await erc20.balanceOf(Alice.ethAddress);
+    expect(endingBalance - startingBalance).to.be.equal(80);
   });
 
   describe("failure cases", function () {
