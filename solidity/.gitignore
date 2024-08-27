@@ -4,3 +4,4 @@ artifacts
 cache
 typechain-types
 ignition/deployments
+.openzeppelin
