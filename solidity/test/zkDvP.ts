@@ -47,7 +47,10 @@ describe("DvP flows between fungible and non-fungible tokens based on Zeto with 
   let deployer: Signer;
 
   before(async function () {
-    this.timeout(600000);
+    if (network.name !== 'hardhat') {
+      // accommodate for longer block times on public networks
+      this.timeout(120000);
+    }
     let [d, a, b, c] = await ethers.getSigners();
     deployer = d;
     Alice = await newUser(a);

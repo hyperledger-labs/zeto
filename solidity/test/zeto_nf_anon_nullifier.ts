@@ -37,6 +37,10 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
   let smtBob: Merkletree;
 
   before(async function () {
+    if (network.name !== 'hardhat') {
+      // accommodate for longer block times on public networks
+      this.timeout(120000);
+    }
     let [d, a, b, c] = await ethers.getSigners();
     deployer = d;
     Alice = await newUser(a);

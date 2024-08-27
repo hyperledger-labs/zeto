@@ -47,7 +47,10 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
   let smtKyc: Merkletree;
 
   before(async function () {
-    this.timeout(600000);
+    if (network.name !== 'hardhat') {
+      // accommodate for longer block times on public networks
+      this.timeout(120000);
+    }
     let [d, a, b, c, e] = await ethers.getSigners();
     deployer = d;
     Alice = await newUser(a);

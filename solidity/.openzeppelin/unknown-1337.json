@@ -1,0 +1,345 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0xf8AD579928Ca0E41FddB95Ce16FFFf6E5C8C742D",
+      "txHash": "0x882bd16240765b2b2dde017b893f7e790edaa863ace12c0f602429e6a4ede639",
+      "kind": "uups"
+    },
+    {
+      "address": "0xA52F9928409Cb15F2e1a220CF86D56D7dcbCE917",
+      "txHash": "0x0034c2278e6d952815dd5fa7abc8991a3b7a963a19ee1f9a6dd27b43d6d3a780",
+      "kind": "uups"
+    },
+    {
+      "address": "0xcD420d9fE00C78820EB1EcE7241a9608519589c1",
+      "txHash": "0xc660bc1e81f02255834d68df4037a6c9fbbd85deaaebdf6ecdc58ead92a67a59",
+      "kind": "uups"
+    },
+    {
+      "address": "0xe36a3d4b5B55c6F8FeA0Ffe95444772a0ed4091a",
+      "txHash": "0x1e14cf679484b6200e27498d65c4dd352a926c11451e8911b0d26aa888a48c6d",
+      "kind": "uups"
+    },
+    {
+      "address": "0x55019bC141a29c0Fb77A35951625666bc375cC76",
+      "txHash": "0x272e428542cce5f7e1f66ff13478f3ce00149f10627cca3ee5d6ec7241efa0f3",
+      "kind": "uups"
+    },
+    {
+      "address": "0x6165E50070494A547e7cc1e86739F3645Feb0453",
+      "txHash": "0x3d95cd6d932e3fcb2410a18bb9037a6a1cd05f070c855ece6a86f72ea211114b",
+      "kind": "uups"
+    }
+  ],
+  "impls": {
+    "d1f8a292f5a7ed6e35483f0f170b39434ed5090fa54bfaeaec7a5e097529e8e2": {
+      "address": "0xc5119e3e608fE6AE471567B9170671015228A31e",
+      "txHash": "0x011c26d9bcd6eb9f4371199841b744e3df64d404186699e25419d4e783b0bd85",
+      "layout": {
+        "solcVersion": "0.8.20",
+        "storage": [
+          {
+            "label": "lockedProofs",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_mapping(t_bytes32,t_address)",
+            "contract": "ZetoCommon",
+            "src": "contracts/lib/zeto_common.sol:53"
+          },
+          {
+            "label": "_utxos",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_uint256,t_enum(UTXOStatus)6682)",
+            "contract": "ZetoBase",
+            "src": "contracts/lib/zeto_base.sol:36"
+          },
+          {
+            "label": "depositVerifier",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_contract(Groth16Verifier_CheckHashesValue)6203",
+            "contract": "ZetoFungible",
+            "src": "contracts/lib/zeto_fungible.sol:31"
+          },
+          {
+            "label": "erc20",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_contract(IERC20)4041",
+            "contract": "ZetoFungible",
+            "src": "contracts/lib/zeto_fungible.sol:33"
+          },
+          {
+            "label": "withdrawVerifier",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_contract(Groth16Verifier_CheckInputsOutputsValue)6318",
+            "contract": "ZetoFungibleWithdraw",
+            "src": "contracts/lib/zeto_fungible_withdraw.sol:31"
+          },
+          {
+            "label": "verifier",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_contract(Groth16Verifier_Anon)5249",
+            "contract": "Zeto_Anon",
+            "src": "contracts/zeto_anon.sol:38"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)687_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)620_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(Groth16Verifier_Anon)5249": {
+            "label": "contract Groth16Verifier_Anon",
+            "numberOfBytes": "20"
+          },
+          "t_contract(Groth16Verifier_CheckHashesValue)6203": {
+            "label": "contract Groth16Verifier_CheckHashesValue",
+            "numberOfBytes": "20"
+          },
+          "t_contract(Groth16Verifier_CheckInputsOutputsValue)6318": {
+            "label": "contract Groth16Verifier_CheckInputsOutputsValue",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IERC20)4041": {
+            "label": "contract IERC20",
+            "numberOfBytes": "20"
+          },
+          "t_enum(UTXOStatus)6682": {
+            "label": "enum ZetoBase.UTXOStatus",
+            "members": [
+              "UNKNOWN",
+              "UNSPENT",
+              "SPENT"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_bytes32,t_address)": {
+            "label": "mapping(bytes32 => address)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_enum(UTXOStatus)6682)": {
+            "label": "mapping(uint256 => enum ZetoBase.UTXOStatus)",
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "ff52d8def6e74418ef76c250bb2cc04a90f26ad4106ab5c59f453ed30cf1e2a1": {
+      "address": "0xf1edb0d4CacC0F524851c28FAdA9547a967f7886",
+      "txHash": "0x70728bae15390b5359d6da865c790730b7b7b4cc5a9d40dc397707a3bdb38fd2",
+      "layout": {
+        "solcVersion": "0.8.20",
+        "storage": [
+          {
+            "label": "lockedProofs",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_mapping(t_bytes32,t_address)",
+            "contract": "ZetoCommon",
+            "src": "contracts/lib/zeto_common.sol:53"
+          },
+          {
+            "label": "_utxos",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_uint256,t_enum(UTXOStatus)6682)",
+            "contract": "ZetoBase",
+            "src": "contracts/lib/zeto_base.sol:36"
+          },
+          {
+            "label": "verifier",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_contract(Groth16Verifier_NfAnon)6554",
+            "contract": "Zeto_NfAnon",
+            "src": "contracts/zeto_nf_anon.sol:33"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)687_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)620_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(Groth16Verifier_NfAnon)6554": {
+            "label": "contract Groth16Verifier_NfAnon",
+            "numberOfBytes": "20"
+          },
+          "t_enum(UTXOStatus)6682": {
+            "label": "enum ZetoBase.UTXOStatus",
+            "members": [
+              "UNKNOWN",
+              "UNSPENT",
+              "SPENT"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_bytes32,t_address)": {
+            "label": "mapping(bytes32 => address)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_enum(UTXOStatus)6682)": {
+            "label": "mapping(uint256 => enum ZetoBase.UTXOStatus)",
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
