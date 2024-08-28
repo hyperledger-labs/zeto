@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ethers } from 'hardhat';
+import { ethers, network } from 'hardhat';
 import { Signer, BigNumberish, AddressLike } from 'ethers';
 import { expect } from 'chai';
 import { loadCircuit, tokenUriHash, encodeProof } from "zeto-js";
@@ -36,6 +36,10 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
   let circuit: any, provingKey: any;
 
   before(async function () {
+    if (network.name !== 'hardhat') {
+      // accommodate for longer block times on public networks
+      this.timeout(120000);
+    }
     let [d, a, b, c] = await ethers.getSigners();
     deployer = d;
     Alice = await newUser(a);
@@ -72,25 +76,34 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
     await doTransfer(Bob, utxo2, utxo3, Charlie);
   });
 
-  it("mint existing unspent UTXOs should fail", async function () {
-    await expect(doMint(zeto, deployer, [utxo3])).rejectedWith("UTXOAlreadyOwned");
-  });
+  describe("failure cases", function () {
+    // the following failure cases rely on the hardhat network
+    // to return the details of the errors. This is not possible
+    // on non-hardhat networks
+    if (network.name !== 'hardhat') {
+      return;
+    }
 
-  it("mint existing spent UTXOs should fail", async function () {
-    await expect(doMint(zeto, deployer, [utxo1])).rejectedWith("UTXOAlreadySpent");
-  });
+    it("mint existing unspent UTXOs should fail", async function () {
+      await expect(doMint(zeto, deployer, [utxo3])).rejectedWith("UTXOAlreadyOwned");
+    });
 
-  it("transfer non-existing UTXOs should fail", async function () {
-    const nonExisting1 = newAssetUTXO(1002, 'http://ipfs.io/file-hash-2', Alice);
-    const nonExisting2 = newAssetUTXO(1002, 'http://ipfs.io/file-hash-2', Bob);
+    it("mint existing spent UTXOs should fail", async function () {
+      await expect(doMint(zeto, deployer, [utxo1])).rejectedWith("UTXOAlreadySpent");
+    });
 
-    await expect(doTransfer(Alice, nonExisting1, nonExisting2, Bob)).rejectedWith("UTXONotMinted");
-  });
+    it("transfer non-existing UTXOs should fail", async function () {
+      const nonExisting1 = newAssetUTXO(1002, 'http://ipfs.io/file-hash-2', Alice);
+      const nonExisting2 = newAssetUTXO(1002, 'http://ipfs.io/file-hash-2', Bob);
 
-  it("transfer spent UTXOs should fail (double spend protection)", async function () {
-    // create outputs
-    const _utxo4 = newAssetUTXO(utxo1.tokenId!, utxo1.uri!, Bob);
-    await expect(doTransfer(Alice, utxo1, _utxo4, Bob)).rejectedWith("UTXOAlreadySpent")
+      await expect(doTransfer(Alice, nonExisting1, nonExisting2, Bob)).rejectedWith("UTXONotMinted");
+    });
+
+    it("transfer spent UTXOs should fail (double spend protection)", async function () {
+      // create outputs
+      const _utxo4 = newAssetUTXO(utxo1.tokenId!, utxo1.uri!, Bob);
+      await expect(doTransfer(Alice, utxo1, _utxo4, Bob)).rejectedWith("UTXOAlreadySpent")
+    });
   });
 
   async function doTransfer(signer: User, input: UTXO, output: UTXO, to: User) {

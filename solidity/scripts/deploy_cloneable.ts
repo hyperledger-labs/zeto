@@ -8,14 +8,8 @@ export async function deployFungible(tokenName: string) {
   const { deployer, args, libraries } = await verifiersDeployer.deployDependencies();
 
   let zetoFactory;
-  const opts = {
-    kind: 'uups',
-    initializer: 'initialize',
-    unsafeAllow: ['delegatecall']
-  };
   if (libraries) {
     zetoFactory = await getLinkedContractFactory(tokenName, libraries);
-    opts.unsafeAllow.push('external-library-linking');
   } else {
     zetoFactory = await ethers.getContractFactory(tokenName)
   }
@@ -23,6 +17,9 @@ export async function deployFungible(tokenName: string) {
   const zetoImpl: any = await zetoFactory.deploy();
   await zetoImpl.waitForDeployment();
   await zetoImpl.connect(deployer).initialize(...args);
+
+  const tx3 = await zetoImpl.connect(deployer).setERC20(erc20.target);
+  await tx3.wait();
 
   console.log(`ERC20 deployed:     ${erc20.target}`);
   console.log(`ZetoToken deployed: ${zetoImpl.target}`);
@@ -36,14 +33,8 @@ export async function deployNonFungible(tokenName: string) {
   const { args, libraries } = await verifiersDeployer.deployDependencies();
 
   let zetoFactory;
-  const opts = {
-    kind: 'uups',
-    initializer: 'initialize',
-    unsafeAllow: ['delegatecall']
-  };
   if (libraries) {
     zetoFactory = await getLinkedContractFactory(tokenName, libraries);
-    opts.unsafeAllow.push('external-library-linking');
   } else {
     zetoFactory = await ethers.getContractFactory(tokenName)
   }

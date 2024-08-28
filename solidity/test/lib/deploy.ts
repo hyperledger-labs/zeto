@@ -9,6 +9,15 @@ import { ethers } from 'hardhat';
 export async function deployZeto(tokenName: string) {
   let zeto, erc20, deployer;
 
+  // for testing with public chains, skip deployment if
+  // the contract address is provided
+  if (process.env.ZETO_ADDRESS && process.env.ERC20_ADDRESS) {
+    zeto = await ethers.getContractAt(tokenName, process.env.ZETO_ADDRESS);
+    erc20 = await ethers.getContractAt('SampleERC20', process.env.ERC20_ADDRESS);
+    deployer = (await ethers.getSigners())[0];
+    return { deployer, zeto, erc20 };
+  }
+
   let isFungible = false;
   const fungibility = (fungibilities as any)[tokenName];
   if (fungibility === 'fungible') {
@@ -28,6 +37,8 @@ export async function deployZeto(tokenName: string) {
     const result = await deployFunc(tokenName);
     ({ deployer, zetoImpl, erc20, args } = result as any);
 
+    // we want to test the effectiveness of the factory contract
+    // to create clones of the Zeto implementation contract
     const Factory = await ethers.getContractFactory("ZetoTokenFactory");
     const factory = await Factory.deploy();
     await factory.waitForDeployment();
@@ -49,6 +60,12 @@ export async function deployZeto(tokenName: string) {
       }
     }
     zeto = await ethers.getContractAt(tokenName, zetoAddress);
+
+    // set the ERC20 token for the fungible Zeto token
+    if (isFungible) {
+      const tx3 = await zeto.connect(deployer).setERC20(erc20.target);
+      await tx3.wait();
+    }
   }
 
   return { deployer, zeto, erc20 };

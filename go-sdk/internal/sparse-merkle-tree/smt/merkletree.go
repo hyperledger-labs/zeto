@@ -38,8 +38,8 @@ type sparseMerkleTree struct {
 }
 
 func NewMerkleTree(db core.Storage, maxLevels int) (core.SparseMerkleTree, error) {
-	if maxLevels > MAX_TREE_HEIGHT {
-		return nil, ErrMaxLevelsExceeded
+	if maxLevels <= 0 || maxLevels > MAX_TREE_HEIGHT {
+		return nil, ErrMaxLevelsNotInRange
 	}
 	mt := sparseMerkleTree{db: db, maxLevels: maxLevels}
 
