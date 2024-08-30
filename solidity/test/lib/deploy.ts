@@ -46,8 +46,8 @@ export async function deployZeto(tokenName: string) {
 
     const implInfo = {
       implementation: zetoImpl.target,
-      depositVerifier: depositVerifier || verifier,
-      withdrawVerifier: withdrawVerifier || verifier,
+      depositVerifier: depositVerifier || "0x0000000000000000000000000000000000000000",
+      withdrawVerifier: withdrawVerifier || "0x0000000000000000000000000000000000000000",
       verifier
     };
     const tx1 = await factory.connect(deployer).registerImplementation(tokenName, implInfo as any);
