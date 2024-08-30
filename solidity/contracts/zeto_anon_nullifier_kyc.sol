@@ -48,9 +48,9 @@ contract Zeto_AnonNullifierKyc is
 
     function initialize(
         address initialOwner,
+        Groth16Verifier_AnonNullifierKyc _verifier,
         Groth16Verifier_CheckHashesValue _depositVerifier,
-        Groth16Verifier_CheckNullifierValue _withdrawVerifier,
-        Groth16Verifier_AnonNullifierKyc _verifier
+        Groth16Verifier_CheckNullifierValue _withdrawVerifier
     ) public initializer {
         __Registry_init();
         __ZetoNullifier_init(initialOwner);

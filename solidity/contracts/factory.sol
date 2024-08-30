@@ -56,9 +56,9 @@ contract ZetoTokenFactory {
         );
         (IZetoFungibleInitializable(instance)).initialize(
             initialOwner,
+            args.verifier,
             args.depositVerifier,
-            args.withdrawVerifier,
-            args.verifier
+            args.withdrawVerifier
         );
         emit ZetoTokenDeployed(instance);
         return instance;
