@@ -20,36 +20,45 @@ import {IZetoFungibleInitializable} from "./lib/interfaces/zeto_fungible_initial
 import {IZetoNonFungibleInitializable} from "./lib/interfaces/zeto_nf_initializable.sol";
 
 contract ZetoTokenFactory {
+    struct InitArgs {
+        address implementation;
+        address depositVerifier;
+        address withdrawVerifier;
+        address verifier;
+    }
+
     event ZetoTokenDeployed(address indexed zetoToken);
 
-    mapping(string => address) internal implementations;
+    mapping(string => InitArgs) internal implementations;
 
     constructor() {}
 
     function registerImplementation(
         string memory name,
-        address implementation
+        InitArgs memory implementation
     ) public {
         implementations[name] = implementation;
     }
 
     function deployZetoFungibleToken(
         string memory name,
-        address initialOwner,
-        address _depositVerifier,
-        address _withdrawVerifier,
-        address _verifier
+        address initialOwner
     ) public returns (address) {
-        address instance = Clones.clone(implementations[name]);
+        InitArgs memory args = implementations[name];
+        require(
+            args.implementation != address(0),
+            "Factory: failed to find implementation"
+        );
+        address instance = Clones.clone(args.implementation);
         require(
             instance != address(0),
-            "Factory: failed to find implementation"
+            "Factory: failed to clone implementation"
         );
         (IZetoFungibleInitializable(instance)).initialize(
             initialOwner,
-            _depositVerifier,
-            _withdrawVerifier,
-            _verifier
+            args.depositVerifier,
+            args.withdrawVerifier,
+            args.verifier
         );
         emit ZetoTokenDeployed(instance);
         return instance;
@@ -57,17 +66,21 @@ contract ZetoTokenFactory {
 
     function deployZetoNonFungibleToken(
         string memory name,
-        address initialOwner,
-        address _verifier
+        address initialOwner
     ) public returns (address) {
-        address instance = Clones.clone(implementations[name]);
+        InitArgs memory args = implementations[name];
+        require(
+            args.implementation != address(0),
+            "Factory: failed to find implementation"
+        );
+        address instance = Clones.clone(args.implementation);
         require(
             instance != address(0),
-            "Factory: failed to find implementation"
+            "Factory: failed to clone implementation"
         );
         (IZetoNonFungibleInitializable(instance)).initialize(
             initialOwner,
-            _verifier
+            args.verifier
         );
         emit ZetoTokenDeployed(instance);
         return instance;
