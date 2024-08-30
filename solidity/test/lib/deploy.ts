@@ -36,19 +36,21 @@ export async function deployZeto(tokenName: string) {
     const deployFunc = isFungible ? deployFungibleCloneable : deployNonFungibleCloneable;
     const result = await deployFunc(tokenName);
     ({ deployer, zetoImpl, erc20, args } = result as any);
-    const [deployerAddr, depositVerifier, withdrawVerifier, verifier] = args;
+    const [deployerAddr, verifier, depositVerifier, withdrawVerifier] = args;
 
     // we want to test the effectiveness of the factory contract
     // to create clones of the Zeto implementation contract
     const Factory = await ethers.getContractFactory("ZetoTokenFactory");
     const factory = await Factory.deploy();
     await factory.waitForDeployment();
-    const tx1 = await factory.connect(deployer).registerImplementation(tokenName, {
+
+    const implInfo = {
       implementation: zetoImpl.target,
-      depositVerifier,
-      withdrawVerifier,
+      depositVerifier: depositVerifier || verifier,
+      withdrawVerifier: withdrawVerifier || verifier,
       verifier
-    } as any);
+    };
+    const tx1 = await factory.connect(deployer).registerImplementation(tokenName, implInfo as any);
     await tx1.wait();
     let tx2;
     if (isFungible) {
