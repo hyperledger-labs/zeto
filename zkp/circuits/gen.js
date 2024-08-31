@@ -112,7 +112,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
 
   log(circuit, `Generating test proving key with ${ptau}`);
   await execAsync(
-    `snarkjs groth16 setup ${path.join(
+    `npx snarkjs groth16 setup ${path.join(
       provingKeysRoot,
       `${circuit}.r1cs`
     )} ${ptauFile} ${zkeyOutput}`
@@ -120,7 +120,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
 
   log(circuit, `Generating verification key`);
   await execAsync(
-    `snarkjs zkey export verificationkey ${zkeyOutput} ${path.join(
+    `npx snarkjs zkey export verificationkey ${zkeyOutput} ${path.join(
       provingKeysRoot,
       `${circuit}-vkey.json`
     )}`
@@ -141,7 +141,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
     `verifier_${circuit}.sol`
   );
   await execAsync(
-    `snarkjs zkey export solidityverifier ${zkeyOutput} ${solidityFile}`
+    `npx snarkjs zkey export solidityverifier ${zkeyOutput} ${solidityFile}`
   );
 
   log(circuit, `Modifying the contract name in the Solidity file`);
