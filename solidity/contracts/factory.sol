@@ -20,36 +20,69 @@ import {IZetoFungibleInitializable} from "./lib/interfaces/zeto_fungible_initial
 import {IZetoNonFungibleInitializable} from "./lib/interfaces/zeto_nf_initializable.sol";
 
 contract ZetoTokenFactory {
+    // all the addresses needed by the factory to
+    // clone a Zeto token and initialize it. The
+    // "implementation" is used to clone the token,
+    // the rest of the addresses are used to initialize
+    struct ImplementationInfo {
+        address implementation;
+        address depositVerifier;
+        address withdrawVerifier;
+        address verifier;
+    }
+
     event ZetoTokenDeployed(address indexed zetoToken);
 
-    mapping(string => address) internal implementations;
+    mapping(string => ImplementationInfo) internal implementations;
 
     constructor() {}
 
     function registerImplementation(
         string memory name,
-        address implementation
+        ImplementationInfo memory implementation
     ) public {
+        require(
+            implementation.implementation != address(0),
+            "Factory: implementation address is required"
+        );
+        require(
+            implementation.verifier != address(0),
+            "Factory: verifier address is required"
+        );
+        // the depositVerifier and withdrawVerifier are optional
+        // for the non-fungible token implementations
         implementations[name] = implementation;
     }
 
     function deployZetoFungibleToken(
         string memory name,
-        address initialOwner,
-        address _depositVerifier,
-        address _withdrawVerifier,
-        address _verifier
+        address initialOwner
     ) public returns (address) {
-        address instance = Clones.clone(implementations[name]);
+        ImplementationInfo memory args = implementations[name];
+        require(
+            args.implementation != address(0),
+            "Factory: failed to find implementation"
+        );
+        // check that the registered implementation is for a fungible token
+        // and has the required verifier addresses
+        require(
+            args.depositVerifier != address(0),
+            "Factory: depositVerifier address is required"
+        );
+        require(
+            args.withdrawVerifier != address(0),
+            "Factory: withdrawVerifier address is required"
+        );
+        address instance = Clones.clone(args.implementation);
         require(
             instance != address(0),
-            "Factory: failed to find implementation"
+            "Factory: failed to clone implementation"
         );
         (IZetoFungibleInitializable(instance)).initialize(
             initialOwner,
-            _depositVerifier,
-            _withdrawVerifier,
-            _verifier
+            args.verifier,
+            args.depositVerifier,
+            args.withdrawVerifier
         );
         emit ZetoTokenDeployed(instance);
         return instance;
@@ -57,17 +90,21 @@ contract ZetoTokenFactory {
 
     function deployZetoNonFungibleToken(
         string memory name,
-        address initialOwner,
-        address _verifier
+        address initialOwner
     ) public returns (address) {
-        address instance = Clones.clone(implementations[name]);
+        ImplementationInfo memory args = implementations[name];
+        require(
+            args.implementation != address(0),
+            "Factory: failed to find implementation"
+        );
+        address instance = Clones.clone(args.implementation);
         require(
             instance != address(0),
-            "Factory: failed to find implementation"
+            "Factory: failed to clone implementation"
         );
         (IZetoNonFungibleInitializable(instance)).initialize(
             initialOwner,
-            _verifier
+            args.verifier
         );
         emit ZetoTokenDeployed(instance);
         return instance;

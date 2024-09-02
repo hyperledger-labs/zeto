@@ -25,9 +25,9 @@ export async function deployDependencies() {
     deployer,
     args: [
       await deployer.getAddress(),
+      verifier.target,
       depositVerifier.target,
-      withdrawVerifier.target,
-      verifier.target
+      withdrawVerifier.target
     ]
   };
 }

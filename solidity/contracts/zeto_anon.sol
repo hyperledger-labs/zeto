@@ -39,9 +39,9 @@ contract Zeto_Anon is ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
 
     function initialize(
         address initialOwner,
+        Groth16Verifier_Anon _verifier,
         Groth16Verifier_CheckHashesValue _depositVerifier,
-        Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier,
-        Groth16Verifier_Anon _verifier
+        Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier
     ) public initializer {
         __ZetoBase_init(initialOwner);
         __ZetoFungibleWithdraw_init(_depositVerifier, _withdrawVerifier);
