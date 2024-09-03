@@ -25,8 +25,6 @@ github.com/hyperledger/firefly-common v1.4.6 h1:qqXoSaRml3WjUnWcWxrrXs5AIOWa+UcM
 github.com/hyperledger/firefly-common v1.4.6/go.mod h1:jkErZdQmC9fsAJZQO427tURdwB9iiW+NMUZSqS3eBIE=
 github.com/hyperledger/firefly-signer v1.1.13 h1:eiHjc6HPRG8AzXUCUgm51qqX1I9BokiuiiqJ89XwK4M=
 github.com/hyperledger/firefly-signer v1.1.13/go.mod h1:pK6kivzBFSue3zpJSQpH67VasnLLbwBJOBUNv0zHbRA=
-github.com/iden3/go-iden3-crypto v0.0.16 h1:zN867xiz6HgErXVIV/6WyteGcOukE9gybYTorBMEdsk=
-github.com/iden3/go-iden3-crypto v0.0.16/go.mod h1:dLpM4vEPJ3nDHzhWFXDjzkn1qHoBeOT/3UEhXsEsP3E=
 github.com/iden3/go-rapidsnark/prover v0.0.10 h1:NvOfRPpex/k646UsqOcUy7a7uVl17t4ok9kWvpQg4+k=
 github.com/iden3/go-rapidsnark/prover v0.0.10/go.mod h1:wgDsmKOGCuWGtgVtuW9ARWNguNr4NJAIyg2G7+uTax0=
 github.com/iden3/go-rapidsnark/types v0.0.2 h1:CjJSrlbWchHzuMRdxSYrEh7n/akP+Z2PLNbwT5yBmQY=

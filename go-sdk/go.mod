@@ -53,3 +53,5 @@ require (
 	gorm.io/driver/sqlite v1.5.6
 	gorm.io/gorm v1.25.11
 )
+
+replace github.com/iden3/go-iden3-crypto => ../../go-iden3-crypto
