@@ -1,0 +1,58 @@
+name: release
+
+# triggered on pushing a tag
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install circom
+        uses: supplypike/setup-bin@v4
+        with:
+          uri: https://github.com/iden3/circom/releases/download/v2.1.9/circom-linux-amd64
+          name: circom
+          version: 2.1.9
+
+      - name: Setup node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: install snarkjs
+        run: |
+          npm install -g snarkjs
+
+      - name: Checkout circuits
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup temp dir for the artifacts
+        run: |
+          mkdir -p ${{ runner.temp }}/zeto-artifacts
+
+      - name: Build circuits
+        env:
+          CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts
+          PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
+          PTAU_DOWNLOAD_PATH: ${{ runner.temp }}/zeto-artifacts
+        working-directory: zkp/circuits
+        run: |
+          npm install
+          npm run gen
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          prerelease: ${{ contains(github.ref, '-rc') || contains(github.ref, '-beta') || contains(github.ref, '-alpha') }}
+          files: |
+            ${{ runner.temp }}/zeto-artifacts/**/*.wasm
+            ${{ runner.temp }}/zeto-artifacts/**/*.zkey
