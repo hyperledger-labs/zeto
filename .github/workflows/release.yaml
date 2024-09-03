@@ -1,0 +1,84 @@
+name: release
+
+# triggered on pushing a tag
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  ZETO_VER: ${{ github.ref_name }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install circom
+        uses: supplypike/setup-bin@v4
+        with:
+          uri: https://github.com/iden3/circom/releases/download/v2.1.9/circom-linux-amd64
+          name: circom
+          version: 2.1.9
+
+      - name: Setup node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: install snarkjs
+        run: |
+          npm install -g snarkjs
+
+      - name: Checkout circuits
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup temp dir for the artifacts
+        run: |
+          mkdir -p ${{ runner.temp }}/zeto-artifacts
+
+      - name: Build circuits
+        env:
+          CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts
+          PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
+          PTAU_DOWNLOAD_PATH: ${{ runner.temp }}/zeto-artifacts
+        working-directory: zkp/circuits
+        run: |
+          npm install
+          npm run gen
+
+      - name: Create artifacts archives
+        working-directory: ${{ runner.temp }}/zeto-artifacts
+        run: |
+          tar -czvf zeto-wasm.tar.gz **/*.wasm
+          tar -czvf zeto-test-proving-keys.tar.gz *.zkey *-vkey.json
+
+      - name: Publish Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeto-wasm-and-proving-keys
+          path: |
+            ${{ runner.temp }}/zeto-artifacts/zeto-wasm.tar.gz
+            ${{ runner.temp }}/zeto-artifacts/**/zeto-test-proving-keys.tar.gz
+
+  create-release:
+    name: Create GitHub Release
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifacts
+        id: download
+        uses: actions/download-artifact@v4
+      - name: Release Zeto Version
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: 'true'
+          artifacts: zeto-wasm.tar.gz,zeto-test-proving-keys.tar.gz
+          tag: ${{ env.ZETO_VER }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
