@@ -58,16 +58,16 @@ func PoseidonEncrypt(msg []*big.Int, key []*big.Int, nonce *big.Int) ([]*big.Int
 	state := []*big.Int{big.NewInt(0), key[0], key[1], nonce.Add(nonce, l.Mul(l, &two128))}
 
 	cipherText := make([]*big.Int, length+1)
+	var err error
 
 	n := length / 3
 	i := 0
 	for ; i < n; i++ {
 		// Iterate Poseidon on the state
-		state, err := poseidon.HashEx(state, 4)
+		state, err = poseidon.HashEx(state, 4)
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("state before add", state)
 
 		// Modify the state for the next round
 		// state[1] = addMod(message[i * 3], state[1]);
@@ -76,21 +76,18 @@ func PoseidonEncrypt(msg []*big.Int, key []*big.Int, nonce *big.Int) ([]*big.Int
 		state[2] = ff.NewElement().Add(ff.NewElement().SetBigInt(message[i*3+1]), ff.NewElement().SetBigInt(state[2])).ToBigIntRegular(state[2])
 		// state[3] = addMod(message[i * 3 + 2], state[3]);
 		state[3] = ff.NewElement().Add(ff.NewElement().SetBigInt(message[i*3+2]), ff.NewElement().SetBigInt(state[3])).ToBigIntRegular(state[3])
-		fmt.Println("state after add", state)
 
 		// Record the three elements of the encrypted message
 		cipherText[i*3] = state[1]
 		cipherText[i*3+1] = state[2]
 		cipherText[i*3+2] = state[3]
-		fmt.Println("cipherText", cipherText)
 	}
 
 	// Iterate Poseidon on the state one last time
-	state, err := poseidon.HashEx(state, 4)
+	state, err = poseidon.HashEx(state, 4)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("state last", state)
 
 	// Record the last ciphertext element
 	cipherText[i*3] = state[1]

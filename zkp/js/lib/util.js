@@ -60,20 +60,24 @@ function poseidonEncrypt(msg, key, nonce) {
   for (let i = 0; i < n; i += 1) {
     // Iterate Poseidon on the state
     state = poseidon(state, 4);
+    console.log('state before add', state);
 
     // Modify the state for the next round
     state[1] = addMod(message[i * 3], state[1]);
     state[2] = addMod(message[i * 3 + 1], state[2]);
     state[3] = addMod(message[i * 3 + 2], state[3]);
+    console.log('state after add', state);
 
     // Record the three elements of the encrypted message
     ciphertext.push(state[1]);
     ciphertext.push(state[2]);
     ciphertext.push(state[3]);
+    console.log('ciphertext', ciphertext);
   }
 
   // Iterate Poseidon on the state one last time
   state = poseidon(state, 4);
+  console.log('state final', state);
 
   // Record the last ciphertext element
   ciphertext.push(state[1]);
