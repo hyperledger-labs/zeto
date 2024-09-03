@@ -94,3 +94,73 @@ func PoseidonEncrypt(msg []*big.Int, key []*big.Int, nonce *big.Int) ([]*big.Int
 
 	return cipherText, nil
 }
+
+// the "cipherText" parameter must be the output of the PoseidonEncrypt function, with potentially
+// extra elements due to the padding of the plain text messages with 0s to make the length to be 3n.
+//
+// the "length" parameter must be the length of the original message
+func PoseidonDecrypt(cipherText []*big.Int, key []*big.Int, nonce *big.Int, length int) ([]*big.Int, error) {
+	if len(key) != 2 {
+		return nil, fmt.Errorf("the key must have 2 elements, but got %d", len(key))
+	}
+	// length of the cipher text must be 3n+1
+	if len(cipherText)%3 != 1 {
+		return nil, fmt.Errorf("the length of the cipher text must be 3n+1, but got %d", len(cipherText))
+	}
+
+	// Create the initial state
+	// S = (0, kS[0], kS[1], N + l * 2^128)
+	l := big.NewInt(int64(len(cipherText) - 1))
+	state := []*big.Int{big.NewInt(0), key[0], key[1], nonce.Add(nonce, l.Mul(l, &two128))}
+
+	message := make([]*big.Int, len(cipherText)-1)
+
+	// Decrypt the message
+	n := len(cipherText) - 1
+	var err error
+	i := 0
+	for ; i < n/3; i++ {
+		// Iterate Poseidon on the state
+		state, err = poseidon.HashEx(state, 4)
+		if err != nil {
+			return nil, err
+		}
+
+		// Modify the state for the next round
+		// message[1] = subMod(cipherText[i * 3], state[1]);
+		message[i*3] = ff.NewElement().Sub(ff.NewElement().SetBigInt(cipherText[i*3]), ff.NewElement().SetBigInt(state[1])).ToBigIntRegular(state[1])
+		// state[2] = subMod(cipherText[i * 3 + 1], state[2]);
+		message[i*3+1] = ff.NewElement().Sub(ff.NewElement().SetBigInt(cipherText[i*3+1]), ff.NewElement().SetBigInt(state[2])).ToBigIntRegular(state[2])
+		// state[3] = subMod(cipherText[i * 3 + 2], state[3]);
+		message[i*3+2] = ff.NewElement().Sub(ff.NewElement().SetBigInt(cipherText[i*3+2]), ff.NewElement().SetBigInt(state[3])).ToBigIntRegular(state[3])
+
+		state[1] = cipherText[i*3]
+		state[2] = cipherText[i*3+1]
+		state[3] = cipherText[i*3+2]
+	}
+
+	// If length > 3, check if the last (3 - (l mod 3)) elements of the message are 0
+	// this is a safty check because the message would have been padded with 0s
+	if length > 3 {
+		if length%3 == 2 {
+			if cipherText[len(cipherText)-1].Cmp(big.NewInt(0)) != 0 {
+				return nil, fmt.Errorf("the last element of the cipher text must be 0")
+			}
+		} else if length%3 == 1 {
+			if cipherText[len(cipherText)-2].Cmp(big.NewInt(0)) != 0 || cipherText[len(cipherText)-1].Cmp(big.NewInt(0)) != 0 {
+				return nil, fmt.Errorf("the last two elements of the cipher text must be 0")
+			}
+		}
+	}
+
+	// Iterate Poseidon on the state one last time
+	state, err = poseidon.HashEx(state, 4)
+	if err != nil {
+		return nil, err
+	}
+
+	// Record the last decrypted message element
+	decrypted := []*big.Int{state[1]}
+
+	return decrypted, nil
+}
