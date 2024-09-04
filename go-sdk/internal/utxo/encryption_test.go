@@ -139,3 +139,68 @@ func TestPoseidonEncryptDecryptWithLongMessages_3nPlus2(t *testing.T) {
 	assert.Equal(t, "7890123456", decryptedMsg[6].Text(10))
 	assert.Equal(t, "8901234567", decryptedMsg[7].Text(10))
 }
+
+func TestPoseidonEncryptFail_WrongKeyLength(t *testing.T) {
+	nonce := NewEncryptionNonce()
+	x, _ := new(big.Int).SetString("14104886431895638088879904796248988944763544789684292755064599086710742631244", 10)
+	y, _ := new(big.Int).SetString("12567888666920372522142016384715158971908391387943244674769979344082830343251", 10)
+	sharedKey := []*big.Int{x, y, big.NewInt(0)}
+
+	msg := []*big.Int{big.NewInt(1234567890), big.NewInt(2345678901), big.NewInt(3456789012)}
+	_, err := PoseidonEncrypt(msg, sharedKey, nonce)
+	assert.EqualError(t, err, "the key must have 2 elements, but got 3")
+}
+
+func TestPoseidonDecryptFail_WrongKeyLength(t *testing.T) {
+	nonce := NewEncryptionNonce()
+	x, _ := new(big.Int).SetString("14104886431895638088879904796248988944763544789684292755064599086710742631244", 10)
+	y, _ := new(big.Int).SetString("12567888666920372522142016384715158971908391387943244674769979344082830343251", 10)
+	sharedKey := []*big.Int{x, y, big.NewInt(0)}
+
+	cipherText := []*big.Int{big.NewInt(1234567890), big.NewInt(2345678901), big.NewInt(3456789012)}
+	_, err := PoseidonDecrypt(cipherText, sharedKey, nonce, 2)
+	assert.EqualError(t, err, "the key must have 2 elements, but got 3")
+}
+
+func TestPoseidonDecryptFail_WrongCipherTextLength(t *testing.T) {
+	nonce := NewEncryptionNonce()
+	x, _ := new(big.Int).SetString("14104886431895638088879904796248988944763544789684292755064599086710742631244", 10)
+	y, _ := new(big.Int).SetString("12567888666920372522142016384715158971908391387943244674769979344082830343251", 10)
+	sharedKey := []*big.Int{x, y}
+
+	cipherText := []*big.Int{big.NewInt(0), big.NewInt(0), big.NewInt(0)}
+	_, err := PoseidonDecrypt(cipherText, sharedKey, nonce, 3)
+	assert.EqualError(t, err, "the length of the cipher text must be 3n+1, but got 3")
+}
+
+func TestPoseidonDecryptFail_DecryptedPaddingNotZero(t *testing.T) {
+	x, _ := new(big.Int).SetString("2225468530552752510522780019536893048169408270351832766087923920964657502364", 10)
+	y, _ := new(big.Int).SetString("18264896395019517559018400396898398442219687903646821466907778802937824776999", 10)
+	key := []*big.Int{x, y}
+	nonce, _ := new(big.Int).SetString("220373351579243596212522709113509916796", 10)
+	c1, _ := new(big.Int).SetString("3623473636383738070031324804097049685564466189577273141109672613904615191520", 10)
+	c2, _ := new(big.Int).SetString("14192366070411288656840625597415252300006763456323771445497376523077328650161", 10)
+	c3, _ := new(big.Int).SetString("8948874854696341437962075211230225158124203775185169948359228967178039019393", 10)
+	c4, _ := new(big.Int).SetString("13654519867376896827561074824557193869787926453227340059166840999629617764240", 10)
+	cipherText := []*big.Int{c1, c2, c3, c4}
+	_, err := PoseidonDecrypt(cipherText, key, nonce, 4)
+	assert.EqualError(t, err, "the last two elements of the decrypted text must be 0")
+
+	_, err = PoseidonDecrypt(cipherText, key, nonce, 5)
+	assert.EqualError(t, err, "the last element of the decrypted text must be 0")
+}
+
+func TestPoseidonDecryptFail_LastCipherTextCheck(t *testing.T) {
+	x, _ := new(big.Int).SetString("2225468530552752510522780019536893048169408270351832766087923920964657502364", 10)
+	y, _ := new(big.Int).SetString("18264896395019517559018400396898398442219687903646821466907778802937824776999", 10)
+	key := []*big.Int{x, y}
+	nonce, _ := new(big.Int).SetString("220373351579243596212522709113509916796", 10)
+	c1, _ := new(big.Int).SetString("3623473636383738070031324804097049685564466189577273141109672613904615191520", 10)
+	c2, _ := new(big.Int).SetString("14192366070411288656840625597415252300006763456323771445497376523077328650161", 10)
+	c3, _ := new(big.Int).SetString("8948874854696341437962075211230225158124203775185169948359228967178039019393", 10)
+	c4, _ := new(big.Int).SetString("13654519867376896827561074824557193869787926453227340059166840999629617764240", 10)
+	c4 = c4.Add(c4, big.NewInt(1))
+	cipherText := []*big.Int{c1, c2, c3, c4}
+	_, err := PoseidonDecrypt(cipherText, key, nonce, 2)
+	assert.EqualError(t, err, "the last element of the cipher text does not match the 2nd element of the state from the last round")
+}

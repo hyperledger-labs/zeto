@@ -144,11 +144,11 @@ func PoseidonDecrypt(cipherText []*big.Int, key []*big.Int, nonce *big.Int, leng
 	if length > 3 {
 		if length%3 == 2 {
 			if message[len(message)-1].Cmp(big.NewInt(0)) != 0 {
-				return nil, fmt.Errorf("the last element of the cipher text must be 0")
+				return nil, fmt.Errorf("the last element of the decrypted text must be 0")
 			}
 		} else if length%3 == 1 {
 			if message[len(message)-2].Cmp(big.NewInt(0)) != 0 || message[len(message)-1].Cmp(big.NewInt(0)) != 0 {
-				return nil, fmt.Errorf("the last two elements of the cipher text must be 0")
+				return nil, fmt.Errorf("the last two elements of the decrypted text must be 0")
 			}
 		}
 	}
