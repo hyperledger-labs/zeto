@@ -110,7 +110,7 @@ func PoseidonDecrypt(cipherText []*big.Int, key []*big.Int, nonce *big.Int, leng
 
 	// Create the initial state
 	// S = (0, kS[0], kS[1], N + l * 2^128)
-	l := big.NewInt(int64(len(cipherText) - 1))
+	l := big.NewInt(int64(length))
 	state := []*big.Int{big.NewInt(0), key[0], key[1], nonce.Add(nonce, l.Mul(l, &two128))}
 
 	message := make([]*big.Int, len(cipherText)-1)
@@ -143,11 +143,11 @@ func PoseidonDecrypt(cipherText []*big.Int, key []*big.Int, nonce *big.Int, leng
 	// this is a safty check because the message would have been padded with 0s
 	if length > 3 {
 		if length%3 == 2 {
-			if cipherText[len(cipherText)-1].Cmp(big.NewInt(0)) != 0 {
+			if message[len(message)-1].Cmp(big.NewInt(0)) != 0 {
 				return nil, fmt.Errorf("the last element of the cipher text must be 0")
 			}
 		} else if length%3 == 1 {
-			if cipherText[len(cipherText)-2].Cmp(big.NewInt(0)) != 0 || cipherText[len(cipherText)-1].Cmp(big.NewInt(0)) != 0 {
+			if message[len(message)-2].Cmp(big.NewInt(0)) != 0 || message[len(message)-1].Cmp(big.NewInt(0)) != 0 {
 				return nil, fmt.Errorf("the last two elements of the cipher text must be 0")
 			}
 		}
@@ -159,8 +159,11 @@ func PoseidonDecrypt(cipherText []*big.Int, key []*big.Int, nonce *big.Int, leng
 		return nil, err
 	}
 
-	// Record the last decrypted message element
-	decrypted := []*big.Int{state[1]}
+	// another satety check. The last element of the cipher text
+	// must match the 2nd element of the state from the last round
+	if state[1].Cmp(cipherText[len(cipherText)-1]) != 0 {
+		return nil, fmt.Errorf("the last element of the cipher text does not match the 2nd element of the state from the last round")
+	}
 
-	return decrypted, nil
+	return message[:length], nil
 }
