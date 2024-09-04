@@ -224,6 +224,30 @@ func TestZeto_2_SuccessfulProving(t *testing.T) {
 	assert.Equal(t, 3, len(proof.Proof.B))
 	assert.Equal(t, 3, len(proof.Proof.C))
 	assert.Equal(t, 9, len(proof.PubSignals))
+
+	// the receiver would be able to get the encrypted values and salts
+	// from the transaction events
+	encryptedValues := make([]*big.Int, 4)
+	for i := 0; i < 4; i++ {
+		v, ok := new(big.Int).SetString(proof.PubSignals[i], 10)
+		assert.True(t, ok)
+		encryptedValues[i] = v
+	}
+
+	// the first two elements in the public signals are the encrypted value and salt
+	// for the first output. decrypt using the receiver's private key and compare with
+	// the UTXO hash
+	secret := utxo.GenerateECDHSharedSecret(receiver.PrivateKey, sender.PublicKey)
+	decrypted, err := utxo.PoseidonDecrypt(encryptedValues, []*big.Int{secret.X, secret.Y}, encryptionNonce, 2)
+	assert.NoError(t, err)
+	assert.Equal(t, outputValues[0].String(), decrypted[0].String())
+	assert.Equal(t, salt3.String(), decrypted[1].String())
+
+	// as the receiver, to check if the decryption was successful, we hash the decrypted
+	// value and salt and compare with the output commitment
+	calculatedHash, err := poseidon.Hash([]*big.Int{decrypted[0], decrypted[1], receiver.PublicKey.X, receiver.PublicKey.Y})
+	assert.NoError(t, err)
+	assert.Equal(t, output1.String(), calculatedHash.String())
 }
 
 func TestZeto_3_SuccessfulProving(t *testing.T) {
