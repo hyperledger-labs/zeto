@@ -14,14 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        path: zeto
         with:
+          path: zeto
           fetch-depth: 0
 
       - name: Checkout kaleido's fork of go-iden3-crypto
         uses: actions/checkout@v3
-        path: go-iden3-crypto
         with:
+          path: go-iden3-crypto
           repository: kaleido-io/go-iden3-crypto
           ref: multi-states
           fetch-depth: 0
