@@ -17,6 +17,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Checkout kaleido's fork of go-iden3-crypto
+        uses: actions/checkout@v3
+        with:
+          repository: kaleido-io/go-iden3-crypto
+          ref: multi-states
+          fetch-depth: 0
+
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
