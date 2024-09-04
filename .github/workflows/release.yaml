@@ -54,8 +54,8 @@ jobs:
       - name: Create artifacts archives
         working-directory: ${{ runner.temp }}/zeto-artifacts
         run: |
-          tar -czvf zeto-wasm.tar.gz **/*.wasm
-          tar -czvf zeto-test-proving-keys.tar.gz *.zkey *-vkey.json
+          tar -czvf zeto-wasm-$ZETO_VER.tar.gz **/*.wasm
+          tar -czvf zeto-test-proving-keys-$ZETO_VER.tar.gz *.zkey *-vkey.json
 
       - name: Publish Release Artifact
         uses: actions/upload-artifact@v4
@@ -80,7 +80,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: 'true'
-          artifacts: zeto-wasm.tar.gz,zeto-test-proving-keys.tar.gz
+          artifacts: zeto-wasm-and-proving-keys/*.tar.gz
           tag: ${{ env.ZETO_VER }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
