@@ -62,8 +62,8 @@ jobs:
         with:
           name: zeto-wasm-and-proving-keys
           path: |
-            ${{ runner.temp }}/zeto-artifacts/zeto-wasm.tar.gz
-            ${{ runner.temp }}/zeto-artifacts/**/zeto-test-proving-keys.tar.gz
+            ${{ runner.temp }}/zeto-artifacts/zeto-wasm-*.tar.gz
+            ${{ runner.temp }}/zeto-artifacts/zeto-test-proving-keys-*.tar.gz
 
   create-release:
     name: Create GitHub Release
