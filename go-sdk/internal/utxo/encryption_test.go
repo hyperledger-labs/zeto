@@ -64,3 +64,78 @@ func TestPoseidonDecrypt(t *testing.T) {
 	assert.Equal(t, "1234567890", msg[0].Text(10))
 	assert.Equal(t, "2345678901", msg[1].Text(10))
 }
+
+func TestPoseidonEncryptDecryptWithLongMessages_3n(t *testing.T) {
+	nonce := NewEncryptionNonce()
+	x, _ := new(big.Int).SetString("14104886431895638088879904796248988944763544789684292755064599086710742631244", 10)
+	y, _ := new(big.Int).SetString("12567888666920372522142016384715158971908391387943244674769979344082830343251", 10)
+	sharedKey := []*big.Int{x, y}
+
+	// Encrypt a message of length 3n but bigger than 3
+	msg := []*big.Int{big.NewInt(1234567890), big.NewInt(2345678901), big.NewInt(3456789012), big.NewInt(4567890123), big.NewInt(5678901234), big.NewInt(6789012345)}
+	cipherText, err := PoseidonEncrypt(msg, sharedKey, nonce)
+	assert.NoError(t, err)
+	assert.Equal(t, 7, len(cipherText))
+
+	// Decrypt the message
+	decryptedMsg, err := PoseidonDecrypt(cipherText, sharedKey, nonce, 6)
+	assert.NoError(t, err)
+	assert.Equal(t, 6, len(decryptedMsg))
+	assert.Equal(t, "1234567890", decryptedMsg[0].Text(10))
+	assert.Equal(t, "2345678901", decryptedMsg[1].Text(10))
+	assert.Equal(t, "3456789012", decryptedMsg[2].Text(10))
+	assert.Equal(t, "4567890123", decryptedMsg[3].Text(10))
+	assert.Equal(t, "5678901234", decryptedMsg[4].Text(10))
+	assert.Equal(t, "6789012345", decryptedMsg[5].Text(10))
+}
+
+func TestPoseidonEncryptDecryptWithLongMessages_3nPlus1(t *testing.T) {
+	nonce := NewEncryptionNonce()
+	x, _ := new(big.Int).SetString("14104886431895638088879904796248988944763544789684292755064599086710742631244", 10)
+	y, _ := new(big.Int).SetString("12567888666920372522142016384715158971908391387943244674769979344082830343251", 10)
+	sharedKey := []*big.Int{x, y}
+
+	// Encrypt a message of length 3n but bigger than 3
+	msg := []*big.Int{big.NewInt(1234567890), big.NewInt(2345678901), big.NewInt(3456789012), big.NewInt(4567890123), big.NewInt(5678901234), big.NewInt(6789012345), big.NewInt(7890123456)}
+	cipherText, err := PoseidonEncrypt(msg, sharedKey, nonce)
+	assert.NoError(t, err)
+	assert.Equal(t, 10, len(cipherText))
+
+	// Decrypt the message
+	decryptedMsg, err := PoseidonDecrypt(cipherText, sharedKey, nonce, 7)
+	assert.NoError(t, err)
+	assert.Equal(t, 7, len(decryptedMsg))
+	assert.Equal(t, "1234567890", decryptedMsg[0].Text(10))
+	assert.Equal(t, "2345678901", decryptedMsg[1].Text(10))
+	assert.Equal(t, "3456789012", decryptedMsg[2].Text(10))
+	assert.Equal(t, "4567890123", decryptedMsg[3].Text(10))
+	assert.Equal(t, "5678901234", decryptedMsg[4].Text(10))
+	assert.Equal(t, "6789012345", decryptedMsg[5].Text(10))
+	assert.Equal(t, "7890123456", decryptedMsg[6].Text(10))
+}
+
+func TestPoseidonEncryptDecryptWithLongMessages_3nPlus2(t *testing.T) {
+	nonce := NewEncryptionNonce()
+	x, _ := new(big.Int).SetString("14104886431895638088879904796248988944763544789684292755064599086710742631244", 10)
+	y, _ := new(big.Int).SetString("12567888666920372522142016384715158971908391387943244674769979344082830343251", 10)
+	sharedKey := []*big.Int{x, y}
+
+	// Encrypt a message of length 3n but bigger than 3
+	msg := []*big.Int{big.NewInt(1234567890), big.NewInt(2345678901), big.NewInt(3456789012), big.NewInt(4567890123), big.NewInt(5678901234), big.NewInt(6789012345), big.NewInt(7890123456), big.NewInt(8901234567)}
+	cipherText, err := PoseidonEncrypt(msg, sharedKey, nonce)
+	assert.NoError(t, err)
+	assert.Equal(t, 10, len(cipherText))
+
+	// Decrypt the message
+	decryptedMsg, err := PoseidonDecrypt(cipherText, sharedKey, nonce, 8)
+	assert.NoError(t, err)
+	assert.Equal(t, 8, len(decryptedMsg))
+	assert.Equal(t, "1234567890", decryptedMsg[0].Text(10))
+	assert.Equal(t, "2345678901", decryptedMsg[1].Text(10))
+	assert.Equal(t, "3456789012", decryptedMsg[2].Text(10))
+	assert.Equal(t, "4567890123", decryptedMsg[3].Text(10))
+	assert.Equal(t, "5678901234", decryptedMsg[4].Text(10))
+	assert.Equal(t, "6789012345", decryptedMsg[5].Text(10))
+	assert.Equal(t, "7890123456", decryptedMsg[6].Text(10))
+	assert.Equal(t, "8901234567", decryptedMsg[7].Text(10))
+}
