@@ -17,23 +17,28 @@
 package utxo
 
 import (
+	"encoding/hex"
 	"math/big"
 	"testing"
 
-	"github.com/hyperledger-labs/zeto/go-sdk/pkg/key-manager/key"
+	"github.com/hyperledger-labs/zeto/go-sdk/internal/key-manager/key"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGenerateECDHSharedSecret(t *testing.T) {
-	var privKeyBytes [32]byte
-	copy(privKeyBytes[:], []byte("8591289168377258325192647276232541221313093486070083428653476231739508184269"))
+	privKeyBytes, _ := hex.DecodeString("071ee2e78079dc65acedf508c6b7925fc9da9256b1fa587904f023dbd90f14f6")
 	keyEntry := key.NewKeyEntryFromPrivateKeyBytes([32]byte(privKeyBytes))
-	assert.Equal(t, "18614971213364712859074067781477589685149038833485178398149193853175174072062", babyjub.SkToBigInt(keyEntry.PrivateKey).Text(10))
+	assert.Equal(t, "4532338485190197018098951877626853959968121575106182738140659704351327237813", babyjub.SkToBigInt(keyEntry.PrivateKey).Text(10))
 
-	sharedSecret := GenerateECDHSharedSecret(keyEntry.PrivateKey, keyEntry.PublicKey)
-	x, _ := new(big.Int).SetString("18518446309131784949822597362227135493418835513165915991318565714720134219323", 10)
-	y, _ := new(big.Int).SetString("8439048455461513413627610793392358187791494867846033897541485313950764756693", 10)
+	pubKeyBytes := []byte("3f7d4633f5e4ae60d005480ca8f8cfb3fd2fcd27c33e5354743831eb2454de82")
+	var otherPartyPublicKey babyjub.PublicKey
+	err := otherPartyPublicKey.UnmarshalText(pubKeyBytes)
+	assert.NoError(t, err)
+
+	sharedSecret := GenerateECDHSharedSecret(keyEntry.PrivateKey, &otherPartyPublicKey)
+	x, _ := new(big.Int).SetString("541910283019899847970697361288826370780990225479189552333070747388630510763", 10)
+	y, _ := new(big.Int).SetString("137416317897045242441765515781734290757020753544555776335583609907821726489", 10)
 	expected := &babyjub.Point{
 		X: x,
 		Y: y,
