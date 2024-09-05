@@ -14,26 +14,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utxo
+package crypto
 
-import (
-	"math/big"
-	"testing"
+import "github.com/iden3/go-iden3-crypto/babyjub"
 
-	"github.com/iden3/go-iden3-crypto/constants"
-	"github.com/stretchr/testify/assert"
-)
-
-func TestNewSalt(t *testing.T) {
-	salt := NewSalt()
-	assert.NotNil(t, salt)
-	max := constants.Q
-	assert.Less(t, salt.Cmp(max), 0)
-}
-
-func TestNewEncryptionNonce(t *testing.T) {
-	nonce := NewEncryptionNonce()
-	assert.NotNil(t, nonce)
-	max, _ := new(big.Int).SetString("340282366920938463463374607431768211456", 10)
-	assert.Less(t, nonce.Cmp(max), 0)
+func GenerateECDHSharedSecret(privKey *babyjub.PrivateKey, pubKey *babyjub.PublicKey) *babyjub.Point {
+	privKeyForZkp := babyjub.SkToBigInt(privKey)
+	return babyjub.NewPoint().Mul(privKeyForZkp, pubKey.Point())
 }

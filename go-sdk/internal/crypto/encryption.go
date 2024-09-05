@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utxo
+package crypto
 
 import (
 	"fmt"
@@ -38,6 +38,9 @@ func init() {
 func PoseidonEncrypt(msg []*big.Int, key []*big.Int, nonce *big.Int) ([]*big.Int, error) {
 	if len(key) != 2 {
 		return nil, fmt.Errorf("the key must have 2 elements, but got %d", len(key))
+	}
+	if nonce.Cmp(&two128) >= 0 {
+		return nil, fmt.Errorf("the nonce must be less than 2^128, but got %s", nonce.String())
 	}
 
 	// the size of the message array must be a multiple of 3
@@ -106,6 +109,12 @@ func PoseidonDecrypt(cipherText []*big.Int, key []*big.Int, nonce *big.Int, leng
 	// length of the cipher text must be 3n+1
 	if len(cipherText)%3 != 1 {
 		return nil, fmt.Errorf("the length of the cipher text must be 3n+1, but got %d", len(cipherText))
+	}
+	if nonce.Cmp(&two128) >= 0 {
+		return nil, fmt.Errorf("the nonce must be less than 2^128, but got %s", nonce.String())
+	}
+	if length < 1 || length > len(cipherText)-1 {
+		return nil, fmt.Errorf("the length must be between 1 and %d (length of cipher text array - 1), but got %d", len(cipherText)-1, length)
 	}
 
 	// Create the initial state

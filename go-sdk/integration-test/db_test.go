@@ -22,11 +22,11 @@ import (
 	"testing"
 
 	"github.com/hyperledger-labs/zeto/go-sdk/internal/testutils"
+	"github.com/hyperledger-labs/zeto/go-sdk/pkg/crypto"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/core"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/node"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/smt"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/storage"
-	"github.com/hyperledger-labs/zeto/go-sdk/pkg/utxo"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
@@ -68,7 +68,7 @@ func TestSqliteStorage(t *testing.T) {
 	uriString := "https://example.com/token/1001"
 	assert.NoError(t, err)
 	sender := testutils.NewKeypair()
-	salt1 := utxo.NewSalt()
+	salt1 := crypto.NewSalt()
 
 	utxo1 := node.NewNonFungible(tokenId, uriString, sender.PublicKey, salt1)
 	n1, err := node.NewLeafNode(utxo1)
@@ -116,7 +116,7 @@ func TestPostgresStorage(t *testing.T) {
 	tokenUri := "https://example.com/token/1001"
 	assert.NoError(t, err)
 	sender := testutils.NewKeypair()
-	salt1 := utxo.NewSalt()
+	salt1 := crypto.NewSalt()
 
 	utxo1 := node.NewNonFungible(tokenId, tokenUri, sender.PublicKey, salt1)
 	n1, err := node.NewLeafNode(utxo1)

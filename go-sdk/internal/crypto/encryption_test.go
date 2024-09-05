@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utxo
+package crypto
 
 import (
 	"math/big"
@@ -71,7 +71,7 @@ func TestPoseidonEncryptDecryptWithLongMessages_3n(t *testing.T) {
 	y, _ := new(big.Int).SetString("12567888666920372522142016384715158971908391387943244674769979344082830343251", 10)
 	sharedKey := []*big.Int{x, y}
 
-	// Encrypt a message of length 3n but bigger than 3
+	// Encrypt a message of length 3n and bigger than 3
 	msg := []*big.Int{big.NewInt(1234567890), big.NewInt(2345678901), big.NewInt(3456789012), big.NewInt(4567890123), big.NewInt(5678901234), big.NewInt(6789012345)}
 	cipherText, err := PoseidonEncrypt(msg, sharedKey, nonce)
 	assert.NoError(t, err)
@@ -95,7 +95,7 @@ func TestPoseidonEncryptDecryptWithLongMessages_3nPlus1(t *testing.T) {
 	y, _ := new(big.Int).SetString("12567888666920372522142016384715158971908391387943244674769979344082830343251", 10)
 	sharedKey := []*big.Int{x, y}
 
-	// Encrypt a message of length 3n but bigger than 3
+	// Encrypt a message of length 3n+1 and bigger than 3
 	msg := []*big.Int{big.NewInt(1234567890), big.NewInt(2345678901), big.NewInt(3456789012), big.NewInt(4567890123), big.NewInt(5678901234), big.NewInt(6789012345), big.NewInt(7890123456)}
 	cipherText, err := PoseidonEncrypt(msg, sharedKey, nonce)
 	assert.NoError(t, err)
@@ -120,7 +120,7 @@ func TestPoseidonEncryptDecryptWithLongMessages_3nPlus2(t *testing.T) {
 	y, _ := new(big.Int).SetString("12567888666920372522142016384715158971908391387943244674769979344082830343251", 10)
 	sharedKey := []*big.Int{x, y}
 
-	// Encrypt a message of length 3n but bigger than 3
+	// Encrypt a message of length 3n+2 and bigger than 3
 	msg := []*big.Int{big.NewInt(1234567890), big.NewInt(2345678901), big.NewInt(3456789012), big.NewInt(4567890123), big.NewInt(5678901234), big.NewInt(6789012345), big.NewInt(7890123456), big.NewInt(8901234567)}
 	cipherText, err := PoseidonEncrypt(msg, sharedKey, nonce)
 	assert.NoError(t, err)
@@ -174,15 +174,20 @@ func TestPoseidonDecryptFail_WrongCipherTextLength(t *testing.T) {
 }
 
 func TestPoseidonDecryptFail_DecryptedPaddingNotZero(t *testing.T) {
+	// using the wrong key to decrypt the message to cause the padding to be not zero
 	x, _ := new(big.Int).SetString("2225468530552752510522780019536893048169408270351832766087923920964657502364", 10)
 	y, _ := new(big.Int).SetString("18264896395019517559018400396898398442219687903646821466907778802937824776999", 10)
 	key := []*big.Int{x, y}
 	nonce, _ := new(big.Int).SetString("220373351579243596212522709113509916796", 10)
-	c1, _ := new(big.Int).SetString("3623473636383738070031324804097049685564466189577273141109672613904615191520", 10)
-	c2, _ := new(big.Int).SetString("14192366070411288656840625597415252300006763456323771445497376523077328650161", 10)
-	c3, _ := new(big.Int).SetString("8948874854696341437962075211230225158124203775185169948359228967178039019393", 10)
-	c4, _ := new(big.Int).SetString("13654519867376896827561074824557193869787926453227340059166840999629617764240", 10)
-	cipherText := []*big.Int{c1, c2, c3, c4}
+	c1, _ := new(big.Int).SetString("21039212344699161871898848613539390724983078519593720831154100738838838817785", 10)
+	c2, _ := new(big.Int).SetString("15977345191053612091391791983324450668689493803418876942389476888978407035452", 10)
+	c3, _ := new(big.Int).SetString("5372411734880755416968088645882790397762440240735300976022902570974350057620", 10)
+	c4, _ := new(big.Int).SetString("19025632437627264551396791396969817959604751019734376072608658820773266990048", 10)
+	c5, _ := new(big.Int).SetString("6160222253936480678964609308357479211911264527083645332807503357507880448565", 10)
+	c6, _ := new(big.Int).SetString("20422614434004746360815436868365648789543143774057224246303845550093575638210", 10)
+	c7, _ := new(big.Int).SetString("7221629992444548069963332349434479366564733367858828912252976650571445651163", 10)
+
+	cipherText := []*big.Int{c1, c2, c3, c4, c5, c6, c7}
 	_, err := PoseidonDecrypt(cipherText, key, nonce, 4)
 	assert.EqualError(t, err, "the last two elements of the decrypted text must be 0")
 
@@ -203,4 +208,48 @@ func TestPoseidonDecryptFail_LastCipherTextCheck(t *testing.T) {
 	cipherText := []*big.Int{c1, c2, c3, c4}
 	_, err := PoseidonDecrypt(cipherText, key, nonce, 2)
 	assert.EqualError(t, err, "the last element of the cipher text does not match the 2nd element of the state from the last round")
+}
+
+func TestPoseidonEncryptFail_NonceTooBig(t *testing.T) {
+	nonce := new(big.Int).Lsh(big.NewInt(1), 128)
+	x, _ := new(big.Int).SetString("2225468530552752510522780019536893048169408270351832766087923920964657502364", 10)
+	y, _ := new(big.Int).SetString("18264896395019517559018400396898398442219687903646821466907778802937824776999", 10)
+	sharedKey := []*big.Int{x, y}
+
+	msg := []*big.Int{big.NewInt(1234567890), big.NewInt(2345678901)}
+	_, err := PoseidonEncrypt(msg, sharedKey, nonce)
+	assert.EqualError(t, err, "the nonce must be less than 2^128, but got 340282366920938463463374607431768211456")
+}
+
+func TestPoseidonDecryptFail_NonceTooBig(t *testing.T) {
+	nonce := new(big.Int).Lsh(big.NewInt(1), 128)
+	x, _ := new(big.Int).SetString("2225468530552752510522780019536893048169408270351832766087923920964657502364", 10)
+	y, _ := new(big.Int).SetString("18264896395019517559018400396898398442219687903646821466907778802937824776999", 10)
+	sharedKey := []*big.Int{x, y}
+
+	c1, _ := new(big.Int).SetString("3623473636383738070031324804097049685564466189577273141109672613904615191520", 10)
+	c2, _ := new(big.Int).SetString("14192366070411288656840625597415252300006763456323771445497376523077328650161", 10)
+	c3, _ := new(big.Int).SetString("8948874854696341437962075211230225158124203775185169948359228967178039019393", 10)
+	c4, _ := new(big.Int).SetString("13654519867376896827561074824557193869787926453227340059166840999629617764240", 10)
+	cipherText := []*big.Int{c1, c2, c3, c4}
+	_, err := PoseidonDecrypt(cipherText, sharedKey, nonce, 2)
+	assert.EqualError(t, err, "the nonce must be less than 2^128, but got 340282366920938463463374607431768211456")
+}
+
+func TestPoseidonDecryptFail_LengthOutOfRange(t *testing.T) {
+	nonce := NewEncryptionNonce()
+	x, _ := new(big.Int).SetString("2225468530552752510522780019536893048169408270351832766087923920964657502364", 10)
+	y, _ := new(big.Int).SetString("18264896395019517559018400396898398442219687903646821466907778802937824776999", 10)
+	sharedKey := []*big.Int{x, y}
+
+	c1, _ := new(big.Int).SetString("3623473636383738070031324804097049685564466189577273141109672613904615191520", 10)
+	c2, _ := new(big.Int).SetString("14192366070411288656840625597415252300006763456323771445497376523077328650161", 10)
+	c3, _ := new(big.Int).SetString("8948874854696341437962075211230225158124203775185169948359228967178039019393", 10)
+	c4, _ := new(big.Int).SetString("13654519867376896827561074824557193869787926453227340059166840999629617764240", 10)
+	cipherText := []*big.Int{c1, c2, c3, c4}
+	_, err := PoseidonDecrypt(cipherText, sharedKey, nonce, 0)
+	assert.EqualError(t, err, "the length must be between 1 and 3 (length of cipher text array - 1), but got 0")
+
+	_, err = PoseidonDecrypt(cipherText, sharedKey, nonce, 5)
+	assert.EqualError(t, err, "the length must be between 1 and 3 (length of cipher text array - 1), but got 5")
 }

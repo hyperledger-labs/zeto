@@ -43,25 +43,3 @@ func NewNonFungibleNullifier(tokenId *big.Int, tokenUri string, owner *big.Int, 
 func HashTokenUri(tokenUri string) (*big.Int, error) {
 	return utxo.HashTokenUri(tokenUri)
 }
-
-// NewSalt generates a new random salt in the range of [0, MAX) where MAX is the order of the BabyJub curve.
-// This ensures that the salt is a valid scalar for the curve.
-func NewSalt() *big.Int {
-	return utxo.NewSalt()
-}
-
-func NewEncryptionNonce() *big.Int {
-	return utxo.NewEncryptionNonce()
-}
-
-func PoseidonEncrypt(msg []*big.Int, key []*big.Int, nonce *big.Int) ([]*big.Int, error) {
-	return utxo.PoseidonEncrypt(msg, key, nonce)
-}
-
-func PoseidonDecrypt(ciphertext []*big.Int, key []*big.Int, nonce *big.Int, length int) ([]*big.Int, error) {
-	return utxo.PoseidonDecrypt(ciphertext, key, nonce, length)
-}
-
-func GenerateECDHSharedSecret(privKey *babyjub.PrivateKey, pubKey *babyjub.PublicKey) *babyjub.Point {
-	return utxo.GenerateECDHSharedSecret(privKey, pubKey)
-}
