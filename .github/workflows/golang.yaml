@@ -15,15 +15,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          path: zeto
-          fetch-depth: 0
-
-      - name: Checkout kaleido's fork of go-iden3-crypto
-        uses: actions/checkout@v3
-        with:
-          path: go-iden3-crypto
-          repository: kaleido-io/go-iden3-crypto
-          ref: multi-states
           fetch-depth: 0
 
       - name: Set up Go
@@ -32,10 +23,10 @@ jobs:
           go-version: 1.22
 
       - name: Build and Test
-        working-directory: zeto/go-sdk
+        working-directory: go-sdk
         run: make
 
       - uses: codecov/codecov-action@v4
         with:
-          codecov_yml_path: ./zeto/go-sdk/coverage.txt
+          codecov_yml_path: ./go-sdk/coverage.txt
           token: ${{ secrets.CODECOV_TOKEN }}
