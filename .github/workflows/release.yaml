@@ -51,11 +51,24 @@ jobs:
           npm install
           npm run gen
 
-      - name: Create artifacts archives
+      - name: Build contracts
+        working-directory: solidity
+        run: |
+          npm install
+          npx hardhat compile
+
+      - name: Create prover archives
         working-directory: ${{ runner.temp }}/zeto-artifacts
         run: |
           tar -czvf zeto-wasm-$ZETO_VER.tar.gz **/*.wasm
           tar -czvf zeto-test-proving-keys-$ZETO_VER.tar.gz *.zkey *-vkey.json
+
+      - name: Create contract archives
+        working-directory: solidity
+        env:
+          ARTIFACTS_ROOT: ${{ runner.temp }}/zeto-artifacts
+        run: |
+          tar -czvf $ARTIFACTS_ROOT/zeto-contracts-$ZETO_VER.tar.gz artifacts/contracts/**/*.json
 
       - name: Publish Release Artifact
         uses: actions/upload-artifact@v4
@@ -64,6 +77,7 @@ jobs:
           path: |
             ${{ runner.temp }}/zeto-artifacts/zeto-wasm-*.tar.gz
             ${{ runner.temp }}/zeto-artifacts/zeto-test-proving-keys-*.tar.gz
+            ${{ runner.temp }}/zeto-artifacts/zeto-contracts-*.tar.gz
 
   create-release:
     name: Create GitHub Release
