@@ -58,7 +58,7 @@ func PoseidonEncrypt(msg []*big.Int, key []*big.Int, nonce *big.Int) ([]*big.Int
 	// Create the initial state
 	// S = (0, kS[0], kS[1], N + l * 2^128)
 	l := big.NewInt(int64(len(msg)))
-	state := []*big.Int{big.NewInt(0), key[0], key[1], big.NewInt(0).Add(nonce, big.NewInt(0).Mul(l, &two128))}
+	state := []*big.Int{big.NewInt(0), key[0], key[1], new(big.Int).Add(nonce, new(big.Int).Mul(l, &two128))}
 
 	cipherText := make([]*big.Int, length+1)
 	var err error
