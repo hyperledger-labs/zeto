@@ -28,5 +28,5 @@ jobs:
 
       - uses: codecov/codecov-action@v4
         with:
-          codecov_yml_path: ./codecov.yml
+          codecov_yml_path: ./go-sdk/coverage.txt
           token: ${{ secrets.CODECOV_TOKEN }}

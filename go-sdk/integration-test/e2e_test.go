@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/hyperledger-labs/zeto/go-sdk/internal/testutils"
+	"github.com/hyperledger-labs/zeto/go-sdk/pkg/crypto"
 	keyscore "github.com/hyperledger-labs/zeto/go-sdk/pkg/key-manager/core"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/key-manager/key"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/node"
@@ -124,15 +125,15 @@ func TestZeto_1_SuccessfulProving(t *testing.T) {
 	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
 	outputValues := []*big.Int{big.NewInt(32), big.NewInt(38)}
 
-	salt1 := utxo.NewSalt()
+	salt1 := crypto.NewSalt()
 	input1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PublicKey.X, sender.PublicKey.Y})
-	salt2 := utxo.NewSalt()
+	salt2 := crypto.NewSalt()
 	input2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PublicKey.X, sender.PublicKey.Y})
 	inputCommitments := []*big.Int{input1, input2}
 
-	salt3 := utxo.NewSalt()
+	salt3 := crypto.NewSalt()
 	output1, _ := poseidon.Hash([]*big.Int{outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-	salt4 := utxo.NewSalt()
+	salt4 := crypto.NewSalt()
 	output2, _ := poseidon.Hash([]*big.Int{outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
 	outputCommitments := []*big.Int{output1, output2}
 
@@ -185,19 +186,19 @@ func TestZeto_2_SuccessfulProving(t *testing.T) {
 	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
 	outputValues := []*big.Int{big.NewInt(32), big.NewInt(38)}
 
-	salt1 := utxo.NewSalt()
+	salt1 := crypto.NewSalt()
 	input1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PublicKey.X, sender.PublicKey.Y})
-	salt2 := utxo.NewSalt()
+	salt2 := crypto.NewSalt()
 	input2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PublicKey.X, sender.PublicKey.Y})
 	inputCommitments := []*big.Int{input1, input2}
 
-	salt3 := utxo.NewSalt()
+	salt3 := crypto.NewSalt()
 	output1, _ := poseidon.Hash([]*big.Int{outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-	salt4 := utxo.NewSalt()
+	salt4 := crypto.NewSalt()
 	output2, _ := poseidon.Hash([]*big.Int{outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
 	outputCommitments := []*big.Int{output1, output2}
 
-	encryptionNonce := utxo.NewEncryptionNonce()
+	encryptionNonce := crypto.NewEncryptionNonce()
 
 	witnessInputs := map[string]interface{}{
 		"inputCommitments":      inputCommitments,
@@ -224,6 +225,30 @@ func TestZeto_2_SuccessfulProving(t *testing.T) {
 	assert.Equal(t, 3, len(proof.Proof.B))
 	assert.Equal(t, 3, len(proof.Proof.C))
 	assert.Equal(t, 9, len(proof.PubSignals))
+
+	// the receiver would be able to get the encrypted values and salts
+	// from the transaction events
+	encryptedValues := make([]*big.Int, 4)
+	for i := 0; i < 4; i++ {
+		v, ok := new(big.Int).SetString(proof.PubSignals[i], 10)
+		assert.True(t, ok)
+		encryptedValues[i] = v
+	}
+
+	// the first two elements in the public signals are the encrypted value and salt
+	// for the first output. decrypt using the receiver's private key and compare with
+	// the UTXO hash
+	secret := crypto.GenerateECDHSharedSecret(receiver.PrivateKey, sender.PublicKey)
+	decrypted, err := crypto.PoseidonDecrypt(encryptedValues, []*big.Int{secret.X, secret.Y}, encryptionNonce, 2)
+	assert.NoError(t, err)
+	assert.Equal(t, outputValues[0].String(), decrypted[0].String())
+	assert.Equal(t, salt3.String(), decrypted[1].String())
+
+	// as the receiver, to check if the decryption was successful, we hash the decrypted
+	// value and salt and compare with the output commitment
+	calculatedHash, err := poseidon.Hash([]*big.Int{decrypted[0], decrypted[1], receiver.PublicKey.X, receiver.PublicKey.Y})
+	assert.NoError(t, err)
+	assert.Equal(t, output1.String(), calculatedHash.String())
 }
 
 func TestZeto_3_SuccessfulProving(t *testing.T) {
@@ -237,9 +262,9 @@ func TestZeto_3_SuccessfulProving(t *testing.T) {
 	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
 	outputValues := []*big.Int{big.NewInt(32), big.NewInt(38)}
 
-	salt1 := utxo.NewSalt()
+	salt1 := crypto.NewSalt()
 	input1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PublicKey.X, sender.PublicKey.Y})
-	salt2 := utxo.NewSalt()
+	salt2 := crypto.NewSalt()
 	input2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PublicKey.X, sender.PublicKey.Y})
 	inputCommitments := []*big.Int{input1, input2}
 
@@ -268,9 +293,9 @@ func TestZeto_3_SuccessfulProving(t *testing.T) {
 	circomProof2, err := proof2.ToCircomVerifierProof(input2, input2, mt.Root(), MAX_HEIGHT)
 	assert.NoError(t, err)
 
-	salt3 := utxo.NewSalt()
+	salt3 := crypto.NewSalt()
 	output1, _ := poseidon.Hash([]*big.Int{outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-	salt4 := utxo.NewSalt()
+	salt4 := crypto.NewSalt()
 	output2, _ := poseidon.Hash([]*big.Int{outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
 	outputCommitments := []*big.Int{output1, output2}
 
@@ -323,9 +348,9 @@ func TestZeto_4_SuccessfulProving(t *testing.T) {
 	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
 	outputValues := []*big.Int{big.NewInt(32), big.NewInt(38)}
 
-	salt1 := utxo.NewSalt()
+	salt1 := crypto.NewSalt()
 	input1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PublicKey.X, sender.PublicKey.Y})
-	salt2 := utxo.NewSalt()
+	salt2 := crypto.NewSalt()
 	input2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PublicKey.X, sender.PublicKey.Y})
 	inputCommitments := []*big.Int{input1, input2}
 
@@ -354,13 +379,13 @@ func TestZeto_4_SuccessfulProving(t *testing.T) {
 	circomProof2, err := proof2.ToCircomVerifierProof(input2, input2, mt.Root(), MAX_HEIGHT)
 	assert.NoError(t, err)
 
-	salt3 := utxo.NewSalt()
+	salt3 := crypto.NewSalt()
 	output1, _ := poseidon.Hash([]*big.Int{outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-	salt4 := utxo.NewSalt()
+	salt4 := crypto.NewSalt()
 	output2, _ := poseidon.Hash([]*big.Int{outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
 	outputCommitments := []*big.Int{output1, output2}
 
-	encryptionNonce := utxo.NewEncryptionNonce()
+	encryptionNonce := crypto.NewEncryptionNonce()
 
 	proof1Siblings := make([]*big.Int, len(circomProof1.Siblings)-1)
 	for i, s := range circomProof1.Siblings[0 : len(circomProof1.Siblings)-1] {
@@ -413,11 +438,11 @@ func TestZeto_5_SuccessfulProving(t *testing.T) {
 	tokenUri, err := utxo.HashTokenUri("https://example.com/token/1001")
 	assert.NoError(t, err)
 
-	salt1 := utxo.NewSalt()
+	salt1 := crypto.NewSalt()
 	input1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt1, sender.PublicKey.X, sender.PublicKey.Y})
 	assert.NoError(t, err)
 
-	salt3 := utxo.NewSalt()
+	salt3 := crypto.NewSalt()
 	output1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
 	assert.NoError(t, err)
 
@@ -472,7 +497,7 @@ func TestZeto_6_SuccessfulProving(t *testing.T) {
 	tokenUri, err := utxo.HashTokenUri(uriString)
 	assert.NoError(t, err)
 
-	salt1 := utxo.NewSalt()
+	salt1 := crypto.NewSalt()
 	input1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt1, sender.PublicKey.X, sender.PublicKey.Y})
 	assert.NoError(t, err)
 
@@ -494,7 +519,7 @@ func TestZeto_6_SuccessfulProving(t *testing.T) {
 		proof1Siblings[i] = s.BigInt()
 	}
 
-	salt3 := utxo.NewSalt()
+	salt3 := crypto.NewSalt()
 	output1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
 	assert.NoError(t, err)
 

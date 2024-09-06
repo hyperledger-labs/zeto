@@ -41,9 +41,18 @@ jobs:
         run: |
           npm install -g snarkjs
 
-      - name: Checkout circuits
+      - name: Checkout Zeto
         uses: actions/checkout@v4
         with:
+          path: zeto
+          fetch-depth: 0
+
+      - name: Checkout kaleido's fork of go-iden3-crypto
+        uses: actions/checkout@v3
+        with:
+          path: go-iden3-crypto
+          repository: kaleido-io/go-iden3-crypto
+          ref: multi-states
           fetch-depth: 0
 
       - name: Setup temp dir for the artifacts
@@ -55,7 +64,7 @@ jobs:
           CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts
           PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
           PTAU_DOWNLOAD_PATH: ${{ runner.temp }}/zeto-artifacts
-        working-directory: zkp/circuits
+        working-directory: zeto/zkp/circuits
         run: |
           npm install
           npm run gen
@@ -64,7 +73,7 @@ jobs:
         env:
           PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
           CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts
-        working-directory: go-sdk
+        working-directory: zeto/go-sdk
         run: |
           make e2e
 
@@ -72,7 +81,7 @@ jobs:
         env:
           PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
           CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts
-        working-directory: zkp/js
+        working-directory: zeto/zkp/js
         run: |
           npm install
           npm run test:e2e
@@ -81,7 +90,7 @@ jobs:
         env:
           PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
           CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts
-        working-directory: solidity
+        working-directory: zeto/solidity
         run: |
           npm install
           npm t
@@ -91,7 +100,7 @@ jobs:
           USE_FACTORY: true
           PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
           CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts
-        working-directory: solidity
+        working-directory: zeto/solidity
         run: |
           npm install
           npm t

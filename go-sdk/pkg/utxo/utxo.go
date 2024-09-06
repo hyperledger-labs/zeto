@@ -43,13 +43,3 @@ func NewNonFungibleNullifier(tokenId *big.Int, tokenUri string, owner *big.Int, 
 func HashTokenUri(tokenUri string) (*big.Int, error) {
 	return utxo.HashTokenUri(tokenUri)
 }
-
-// NewSalt generates a new random salt in the range of [0, MAX) where MAX is the order of the BabyJub curve.
-// This ensures that the salt is a valid scalar for the curve.
-func NewSalt() *big.Int {
-	return utxo.NewSalt()
-}
-
-func NewEncryptionNonce() *big.Int {
-	return utxo.NewEncryptionNonce()
-}
