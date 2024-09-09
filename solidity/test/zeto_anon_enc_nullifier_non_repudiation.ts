@@ -97,10 +97,15 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
   });
 
   it("mint to Alice and transfer UTXOs honestly to Bob should succeed and verifiable by the regulator", async function () {
+    const startingBalance = await erc20.balanceOf(Alice.ethAddress);
     // The authority mints a new UTXO and assigns it to Alice
     utxo1 = newUTXO(10, Alice);
     utxo2 = newUTXO(20, Alice);
     const result1 = await doMint(zeto, deployer, [utxo1, utxo2]);
+    
+    // check the private mint activity is not exposed in the ERC20 contract
+    const afterMintBalance = await erc20.balanceOf(Alice.ethAddress);
+    expect(afterMintBalance).to.equal(startingBalance);
 
     // Alice locally tracks the UTXOs inside the Sparse Merkle Tree
     // hardhat doesn't have a good way to subscribe to events so we have to parse the Tx result object
@@ -130,6 +135,10 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
 
     // Alice transfers her UTXOs to Bob
     const result2 = await doTransfer(Alice, [utxo1, utxo2], [nullifier1, nullifier2], [_utxo3, utxo4], root.bigInt(), merkleProofs, [Bob, Alice]);
+
+    // check the private transfer activity is not exposed in the ERC20 contract
+    const afterTransferBalance = await erc20.balanceOf(Alice.ethAddress);
+    expect(afterTransferBalance).to.equal(startingBalance);
 
     // Alice locally tracks the UTXOs inside the Sparse Merkle Tree
     await smtAlice.add(_utxo3.hash, _utxo3.hash);
@@ -228,13 +237,18 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     const merkleProofs = [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())];
 
     // Alice proposes the output ERC20 tokens
-    const outputCommitment = newUTXO(20, Alice);
+    const withdrawChangeUTXO = newUTXO(20, Alice);
 
-    const { nullifiers, outputCommitments, encodedProof } = await prepareNullifierWithdrawProof(Alice, [utxo100, ZERO_UTXO], [nullifier1, ZERO_UTXO], outputCommitment, root.bigInt(), merkleProofs);
+    const { nullifiers, outputCommitments, encodedProof } = await prepareNullifierWithdrawProof(Alice, [utxo100, ZERO_UTXO], [nullifier1, ZERO_UTXO], withdrawChangeUTXO, root.bigInt(), merkleProofs);
 
     // Alice withdraws her UTXOs to ERC20 tokens
     const tx = await zeto.connect(Alice.signer).withdraw(80, nullifiers, outputCommitments[0], root.bigInt(), encodedProof);
     await tx.wait();
+
+    // Alice tracks the UTXO inside the SMT
+    await smtAlice.add(withdrawChangeUTXO.hash, withdrawChangeUTXO.hash);
+    // Bob also locally tracks the UTXOs inside the SMT
+    await smtBob.add(withdrawChangeUTXO.hash, withdrawChangeUTXO.hash);
 
     // Alice checks her ERC20 balance
     const endingBalance = await erc20.balanceOf(Alice.ethAddress);
