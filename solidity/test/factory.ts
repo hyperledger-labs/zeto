@@ -20,13 +20,28 @@ import { expect } from 'chai';
 
 describe("Zeto based fungible token with anonymity without encryption or nullifier", function () {
   let deployer: Signer;
+  let nonOwner: Signer;
 
   before(async function () {
     if (network.name !== 'hardhat') {
       // accommodate for longer block times on public networks
       this.timeout(120000);
     }
-    [deployer] = await ethers.getSigners();
+    [deployer, nonOwner] = await ethers.getSigners();
+  });
+
+  it("attempting to register an implementation as a non-owner should fail", async function () {
+    const Factory = await ethers.getContractFactory("ZetoTokenFactory");
+    const factory = await Factory.deploy();
+    await factory.waitForDeployment();
+
+    const implInfo = {
+      implementation: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+      verifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+      depositVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+      withdrawVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+    };
+    await expect(factory.connect(nonOwner).registerImplementation("test", implInfo as any)).rejectedWith(`reverted with custom error 'OwnableUnauthorizedAccount(`);
   });
 
   it("attempting to register an implementation without the required implementation value should fail", async function () {
