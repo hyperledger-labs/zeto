@@ -74,10 +74,15 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
   });
 
   it("mint to Alice and transfer UTXOs honestly to Bob should succeed", async function () {
+    const startingBalance = await erc20.balanceOf(Alice.ethAddress);
     // first the authority mints UTXOs to Alice
     utxo1 = newUTXO(10, Alice);
     utxo2 = newUTXO(20, Alice);
     await doMint(zeto, deployer, [utxo1, utxo2]);
+
+    // check the private mint activity is not exposed in the ERC20 contract
+    const afterMintBalance = await erc20.balanceOf(Alice.ethAddress);
+    expect(afterMintBalance).to.equal(startingBalance);
 
     // Alice proposes the output UTXOs
     const _utxo1 = newUTXO(25, Bob);
@@ -86,6 +91,10 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     // Alice transfers UTXOs to Bob
     const result = await doTransfer(Alice, [utxo1, utxo2], [_utxo1, utxo4], [Bob, Alice]);
 
+    // check the private transfer activity is not exposed in the ERC20 contract
+    const afterTransferBalance = await erc20.balanceOf(Alice.ethAddress);
+    expect(afterTransferBalance).to.equal(startingBalance);
+  
     // Bob uses the information in the event to recover the incoming UTXO
     // first obtain the UTXO from the transaction event
     const events = parseUTXOEvents(zeto, result.txResult!);

@@ -5,3 +5,4 @@ cache
 typechain-types
 ignition/deployments
 .openzeppelin
+package-lock.json
