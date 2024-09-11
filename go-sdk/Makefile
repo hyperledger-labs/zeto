@@ -11,7 +11,7 @@ GOGC=30
 
 all: test go-mod-tidy
 test: deps lint
-		$(VGO) test ./internal/... -cover -coverprofile=coverage.txt -covermode=atomic -timeout=30s ${TEST_ARGS}
+		$(VGO) test -v ./internal/... -cover -coverprofile=coverage.txt -covermode=atomic -timeout=30s ${TEST_ARGS}
 coverage.html:
 		$(VGO) tool cover -html=coverage.txt
 coverage: test coverage.html
@@ -23,7 +23,7 @@ ${LINT}:
 go-mod-tidy: .ALWAYS
 		$(VGO) mod tidy
 e2e: test
-		$(VGO) test ./integration-test
+		$(VGO) test -v ./integration-test
 .ALWAYS: ;
 clean:
 		$(VGO) clean

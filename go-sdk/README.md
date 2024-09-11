@@ -5,11 +5,7 @@ Golang implementation of Sparse Merkle Tree that is optimized for managing an ap
 ## Running the unit tests for the Spark Merkle Tree implementation
 
 ```console
-$ go test ./internal/node ./internal/smt ./internal/storage ./internal/utxo
-?   	github.com/hyperledger-labs/zeto/internal/storage	[no test files]
-ok  	github.com/hyperledger-labs/zeto/internal/node	0.828s
-ok  	github.com/hyperledger-labs/zeto/internal/smt	1.037s
-ok  	github.com/hyperledger-labs/zeto/internal/utxo	1.269s
+$ make
 ```
 
 ## Running the integration test
@@ -24,29 +20,11 @@ Once the proving keys and verification keys are generated, set the following env
 - `PROVING_KEYS_ROOT`: the folder that contains the proving keys and verification keys
 
 Note: you need to be running a postgres database locally before running the tests, you can run it in Docker with:
+
 ```console
 docker run -d --name postgres -e POSTGRES_PASSWORD=my-secret -p 5432:5432 postgres
 ```
 
 ```console
-$ go test -v ./integration-test/
-=== RUN   TestZeto_1_SuccessfulProving
-Proving time: 201.09225ms
---- PASS: TestZeto_1_SuccessfulProving (0.58s)
-=== RUN   TestZeto_2_SuccessfulProving
-Proving time: 404.013542ms
---- PASS: TestZeto_2_SuccessfulProving (0.69s)
-=== RUN   TestZeto_3_SuccessfulProving
-Proving time: 2.30433175s
---- PASS: TestZeto_3_SuccessfulProving (2.61s)
-=== RUN   TestHashTokenUri
---- PASS: TestHashTokenUri (0.00s)
-=== RUN   TestZeto_4_SuccessfulProving
-Proving time: 129.8345ms
---- PASS: TestZeto_4_SuccessfulProving (0.46s)
-=== RUN   TestZeto_5_SuccessfulProving
-Proving time: 1.126922875s
---- PASS: TestZeto_5_SuccessfulProving (1.64s)
-PASS
-ok  	github.com/kaleido-io/zeto/lib	6.324s
+$ make e2e
 ```
