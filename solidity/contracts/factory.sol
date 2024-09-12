@@ -16,10 +16,11 @@
 pragma solidity ^0.8.20;
 
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IZetoFungibleInitializable} from "./lib/interfaces/zeto_fungible_initializable.sol";
 import {IZetoNonFungibleInitializable} from "./lib/interfaces/zeto_nf_initializable.sol";
 
-contract ZetoTokenFactory {
+contract ZetoTokenFactory is Ownable {
     // all the addresses needed by the factory to
     // clone a Zeto token and initialize it. The
     // "implementation" is used to clone the token,
@@ -35,12 +36,12 @@ contract ZetoTokenFactory {
 
     mapping(string => ImplementationInfo) internal implementations;
 
-    constructor() {}
+    constructor() Ownable(msg.sender) {}
 
     function registerImplementation(
         string memory name,
         ImplementationInfo memory implementation
-    ) public {
+    ) public onlyOwner {
         require(
             implementation.implementation != address(0),
             "Factory: implementation address is required"
