@@ -161,6 +161,32 @@ func (s *MerkleTreeTestSuite) TestAddNode() {
 	assert.Equal(s.T(), "abacf46f5217552ee28fe50b8fd7ca6aa46daeb9acf9f60928654c3b1a472f23", mt2.Root().Hex())
 }
 
+func (s *MerkleTreeTestSuite) TestAddNodeFailExistingKey() {
+	mt, err := NewMerkleTree(s.db, 10)
+	assert.NoError(s.T(), err)
+
+	x, _ := new(big.Int).SetString("9198063289874244593808956064764348354864043212453245695133881114917754098693", 10)
+	y, _ := new(big.Int).SetString("3600411115173311692823743444460566395943576560299970643507632418781961416843", 10)
+	alice := &babyjub.PublicKey{
+		X: x,
+		Y: y,
+	}
+	salt1, _ := new(big.Int).SetString("43c49e8ba68a9b8a6bb5c230a734d8271a83d2f63722e7651272ebeef5446e", 16)
+	utxo1 := node.NewFungible(big.NewInt(10), alice, salt1)
+	idx1, err := utxo1.CalculateIndex()
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), "11a22e32f5010d3658d1da9c93f26b77afe7a84346f49eae3d1d4fc6cd0a36fd", idx1.BigInt().Text(16))
+
+	n1, err := node.NewLeafNode(utxo1)
+	assert.NoError(s.T(), err)
+	err = mt.AddLeaf(n1)
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), "525b60b382630ee7825bea84fb8808c13ede1fb827fe683cd5b14d76f6ac6d0b", mt.Root().Hex())
+
+	err = mt.AddLeaf(n1)
+	assert.EqualError(s.T(), err, "key already exists")
+}
+
 func (s *MerkleTreeTestSuite) TestGenerateProof() {
 	const levels = 10
 	mt, _ := NewMerkleTree(s.db, levels)

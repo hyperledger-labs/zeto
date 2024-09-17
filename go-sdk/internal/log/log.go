@@ -51,14 +51,6 @@ func InitConfig() {
 	logrus.SetFormatter(formatter)
 }
 
-func IsDebugEnabled() bool {
-	return logrus.IsLevelEnabled(logrus.DebugLevel)
-}
-
-func IsTraceEnabled() bool {
-	return logrus.IsLevelEnabled(logrus.TraceLevel)
-}
-
 func ensureInit() {
 	// Called at a couple of strategic points to check we get log initialize in things like unit tests
 	// However NOT guaranteed to be called because we can't afford to do atomic load on every log line
