@@ -320,7 +320,7 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
           identitiesMerkleProof: [
             proof3.siblings.map((s) => s.bigInt()),
             proof4.siblings.map((s) => s.bigInt()),
-            proof4.siblings.map((s) => s.bigInt()),
+            [0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n], // invalid MTP
           ],
           outputCommitments,
           outputValues,

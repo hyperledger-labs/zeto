@@ -183,7 +183,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity, KYC, using
 
     let error;
     try {
-      const witness = await circuit.calculateWitness(
+      await circuit.calculateWitness(
         {
           nullifiers,
           inputCommitments,
@@ -194,7 +194,11 @@ describe('main circuit tests for Zeto fungible tokens with anonymity, KYC, using
           utxosMerkleProof: [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())],
           enabled: [1, 1],
           identitiesRoot,
-          identitiesMerkleProof: [proof3.siblings.map((s) => s.bigInt()), proof4.siblings.map((s) => s.bigInt()), proof4.siblings.map((s) => s.bigInt())],
+          identitiesMerkleProof: [
+            proof3.siblings.map((s) => s.bigInt()),
+            proof4.siblings.map((s) => s.bigInt()),
+            [0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n], // invalid MTP
+          ],
           outputCommitments,
           outputValues,
           outputSalts: [salt3, salt4],

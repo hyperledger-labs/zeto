@@ -118,10 +118,10 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   encrypt.plainText[1] <== outputSalts[0];
   encrypt.key <== sharedSecret;
   encrypt.nonce <== encryptionNonce;
-  encrypt.cipherText[0] --> cipherText[0];
-  encrypt.cipherText[1] --> cipherText[1];
-  encrypt.cipherText[2] --> cipherText[2];
-  encrypt.cipherText[3] --> cipherText[3];
+  encrypt.cipherText[0] ==> cipherText[0];
+  encrypt.cipherText[1] ==> cipherText[1];
+  encrypt.cipherText[2] ==> cipherText[2];
+  encrypt.cipherText[3] ==> cipherText[3];
 }
 
 component main { public [ nullifiers, outputCommitments, encryptionNonce, root, enabled ] } = Zeto(2, 2, 64);
