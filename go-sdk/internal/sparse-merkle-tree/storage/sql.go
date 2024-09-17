@@ -55,20 +55,70 @@ func (s *sqlStorage) GetRootNodeIndex() (core.NodeIndex, error) {
 }
 
 func (s *sqlStorage) UpsertRootNodeIndex(root core.NodeIndex) error {
-	err := s.p.DB().Table(core.TreeRootsTable).Save(&core.SMTRoot{
+	return upsertRootNodeIndex(s.p.DB(), s.smtName, root)
+}
+
+func (s *sqlStorage) GetNode(ref core.NodeIndex) (core.Node, error) {
+	return getNode(s.p.DB(), s.nodesTableName, ref)
+}
+
+func (s *sqlStorage) InsertNode(n core.Node) error {
+	return insertNode(s.p.DB(), s.nodesTableName, n)
+}
+
+func (s *sqlStorage) BeginBatch() (core.Transaction, error) {
+	return &sqlBatchStorage{
+		tx:             s.p.DB().Begin(),
+		smtName:        s.smtName,
+		nodesTableName: s.nodesTableName,
+	}, nil
+}
+
+type sqlBatchStorage struct {
+	tx             *gorm.DB
+	smtName        string
+	nodesTableName string
+}
+
+func (b *sqlBatchStorage) UpsertRootNodeIndex(root core.NodeIndex) error {
+	return upsertRootNodeIndex(b.tx, b.smtName, root)
+}
+
+func (b *sqlBatchStorage) GetNode(ref core.NodeIndex) (core.Node, error) {
+	return getNode(b.tx, b.nodesTableName, ref)
+}
+
+func (b *sqlBatchStorage) InsertNode(n core.Node) error {
+	return insertNode(b.tx, b.nodesTableName, n)
+}
+
+func (b *sqlBatchStorage) Commit() error {
+	return b.tx.Commit().Error
+}
+
+func (b *sqlBatchStorage) Rollback() error {
+	return b.tx.Rollback().Error
+}
+
+func (m *sqlStorage) Close() {
+	m.p.Close()
+}
+
+func upsertRootNodeIndex(batchOrDb *gorm.DB, name string, root core.NodeIndex) error {
+	err := batchOrDb.Table(core.TreeRootsTable).Save(&core.SMTRoot{
 		RootIndex: root.Hex(),
-		Name:      s.smtName,
+		Name:      name,
 	}).Error
 	return err
 }
 
-func (s *sqlStorage) GetNode(ref core.NodeIndex) (core.Node, error) {
+func getNode(batchOrDb *gorm.DB, nodesTableName string, ref core.NodeIndex) (core.Node, error) {
 	// the node's reference key (not the index) is used as the key to
 	// store the node in the DB
 	n := core.SMTNode{
 		RefKey: ref.Hex(),
 	}
-	err := s.p.DB().Table(s.nodesTableName).First(&n).Error
+	err := batchOrDb.Table(nodesTableName).First(&n).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, ErrNotFound
 	} else if err != nil {
@@ -98,7 +148,7 @@ func (s *sqlStorage) GetNode(ref core.NodeIndex) (core.Node, error) {
 	return newNode, err
 }
 
-func (s *sqlStorage) InsertNode(n core.Node) error {
+func insertNode(batchOrDb *gorm.DB, nodesTableName string, n core.Node) error {
 	// we clone the node so that the value properties are not saved
 	dbNode := &core.SMTNode{
 		RefKey: n.Ref().Hex(),
@@ -114,10 +164,6 @@ func (s *sqlStorage) InsertNode(n core.Node) error {
 		dbNode.Index = &idx
 	}
 
-	err := s.p.DB().Table(s.nodesTableName).Create(dbNode).Error
+	err := batchOrDb.Table(nodesTableName).Create(dbNode).Error
 	return err
-}
-
-func (m *sqlStorage) Close() {
-	m.p.Close()
 }

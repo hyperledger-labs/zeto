@@ -4,7 +4,9 @@ go 1.22.0
 
 require (
 	github.com/iden3/go-rapidsnark/witness/wasmer v0.0.0-20230524142950-0986cf057d4e
+	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.9.0
+	github.com/x-cray/logrus-prefixed-formatter v0.5.2
 )
 
 require (
@@ -29,8 +31,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1 // indirect
-	github.com/sirupsen/logrus v1.9.3 // indirect
-	github.com/x-cray/logrus-prefixed-formatter v0.5.2 // indirect
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/term v0.24.0 // indirect
 	golang.org/x/text v0.18.0 // indirect
