@@ -277,10 +277,6 @@ func (mt *sparseMerkleTree) addNode(batch core.Transaction, n core.Node) (core.N
 		return n.Ref(), nil
 	}
 	k := n.Ref()
-	// Check that the node key doesn't already exist
-	if _, err := batch.GetNode(k); err == nil {
-		return nil, ErrNodeIndexAlreadyExists
-	}
 	err := batch.InsertNode(n)
 	return k, err
 }

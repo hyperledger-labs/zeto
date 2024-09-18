@@ -21,6 +21,7 @@ import (
 	"github.com/hyperledger-labs/zeto/go-sdk/internal/sparse-merkle-tree/utils"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/core"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type sqlStorage struct {
@@ -164,6 +165,9 @@ func insertNode(batchOrDb *gorm.DB, nodesTableName string, n core.Node) error {
 		dbNode.Index = &idx
 	}
 
-	err := batchOrDb.Table(nodesTableName).Create(dbNode).Error
+	// the merkle tree nodes, whether leaf nodes or branch nodes, are constructed
+	// in such a way that the reference key is the hash of the node's content, so
+	// there's no need to do anything if a node already exists in the DB
+	err := batchOrDb.Table(nodesTableName).Clauses(clause.OnConflict{DoNothing: true}).Create(dbNode).Error
 	return err
 }
