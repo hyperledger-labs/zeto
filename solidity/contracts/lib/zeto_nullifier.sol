@@ -113,6 +113,9 @@ abstract contract ZetoNullifier is ZetoCommon {
     function _mint(uint256[] memory utxos) internal virtual {
         for (uint256 i = 0; i < utxos.length; ++i) {
             uint256 utxo = utxos[i];
+            if (utxo == 0) {
+                continue;
+            }
             uint256 nodeHash = _getLeafNodeHash(utxo);
             SmtLib.Node memory node = _commitmentsTree.getNode(nodeHash);
 

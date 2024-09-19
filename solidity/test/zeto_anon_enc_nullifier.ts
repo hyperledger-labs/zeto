@@ -134,7 +134,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     // check the private transfer activity is not exposed in the ERC20 contract
     const afterTransferBalance = await erc20.balanceOf(Alice.ethAddress);
     expect(afterTransferBalance).to.equal(startingBalance);
-  
+
     // Alice locally tracks the UTXOs inside the Sparse Merkle Tree
     await smtAlice.add(_utxo3.hash, _utxo3.hash);
     await smtAlice.add(utxo4.hash, utxo4.hash);
@@ -326,6 +326,13 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
 
       await expect(doTransfer(Alice, [nonExisting1, nonExisting2], [nullifier1, nullifier2], [utxo7, _utxo1], root.bigInt(), merkleProofs, [Bob, Charlie])).rejectedWith("UTXORootNotFound");
     }).timeout(600000);
+
+    it("repeated mint calls with single UTXO should not fail", async function () {
+      const utxo5 = newUTXO(10, Alice);
+      await expect(doMint(zeto, deployer, [utxo5, ZERO_UTXO])).fulfilled;
+      const utxo6 = newUTXO(20, Alice);
+      await expect(doMint(zeto, deployer, [utxo6, ZERO_UTXO])).fulfilled;
+    });
   });
 
   async function doTransfer(signer: User, inputs: UTXO[], _nullifiers: UTXO[], outputs: UTXO[], root: BigInt, merkleProofs: BigInt[][], owners: User[]) {

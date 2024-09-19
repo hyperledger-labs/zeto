@@ -327,6 +327,13 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
 
       await expect(doTransfer(Alice, [nonExisting1, nonExisting2], [nullifier1, nullifier2], [utxo7, _utxo1], root.bigInt(), merkleProofs, [Bob, Charlie])).rejectedWith("UTXORootNotFound");
     }).timeout(600000);
+
+    it("repeated mint calls with single UTXO should not fail", async function () {
+      const utxo5 = newUTXO(10, Alice);
+      await expect(doMint(zeto, deployer, [utxo5, ZERO_UTXO])).fulfilled;
+      const utxo6 = newUTXO(20, Alice);
+      await expect(doMint(zeto, deployer, [utxo6, ZERO_UTXO])).fulfilled;
+    });
   });
 
   async function doTransfer(signer: User, inputs: UTXO[], _nullifiers: UTXO[], outputs: UTXO[], root: BigInt, merkleProofs: BigInt[][], owners: User[]) {
