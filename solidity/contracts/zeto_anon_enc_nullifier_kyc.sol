@@ -24,7 +24,6 @@ import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_n
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "hardhat/console.sol";
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity, encryption and history masking
 /// @author Kaleido, Inc.

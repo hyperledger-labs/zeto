@@ -23,7 +23,6 @@ import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
-import "hardhat/console.sol";
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity, encryption and history masking
 /// @author Kaleido, Inc.

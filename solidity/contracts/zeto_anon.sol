@@ -26,7 +26,6 @@ import {ZetoFungible} from "./lib/zeto_fungible.sol";
 import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "hardhat/console.sol";
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and no encryption
 /// @author Kaleido, Inc.

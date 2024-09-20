@@ -24,7 +24,6 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
-import "hardhat/console.sol";
 
 uint256 constant MAX_SMT_DEPTH = 64;
 
