@@ -220,7 +220,8 @@ contract zkDvP {
                 paymentToken.transfer(
                     trade.paymentInputs,
                     trade.paymentOutputs,
-                    trade.paymentProof
+                    trade.paymentProof,
+                    ""
                 ),
                 "Payment branch of the trade failed"
             );
@@ -228,7 +229,8 @@ contract zkDvP {
                 assetToken.transfer(
                     trade.assetInput,
                     trade.assetOutput,
-                    trade.assetProof
+                    trade.assetProof,
+                    ""
                 ),
                 "Asset branch of the trade failed"
             );

@@ -63,7 +63,8 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
     function transfer(
         uint256[2] memory inputs,
         uint256[2] memory outputs,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof calldata proof,
+        bytes calldata data
     ) public returns (bool) {
         require(
             validateTransactionProposal(inputs, outputs, proof),
@@ -91,7 +92,7 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
             inputArray[i] = inputs[i];
             outputArray[i] = outputs[i];
         }
-        emit UTXOTransfer(inputArray, outputArray, msg.sender);
+        emit UTXOTransfer(inputArray, outputArray, msg.sender, data);
 
         return true;
     }

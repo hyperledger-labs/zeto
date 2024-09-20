@@ -21,6 +21,7 @@ interface IZeto is IZetoBase {
     event UTXOTransfer(
         uint256[] inputs,
         uint256[] outputs,
-        address indexed submitter
+        address indexed submitter,
+        bytes data
     );
 }

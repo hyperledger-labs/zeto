@@ -63,7 +63,8 @@ contract Zeto_NfAnonNullifier is IZeto, ZetoNullifier, UUPSUpgradeable {
         uint256 nullifier,
         uint256 output,
         uint256 root,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof calldata proof,
+        bytes calldata data
     ) public returns (bool) {
         require(
             validateTransactionProposal([nullifier, 0], [output, 0], root),
@@ -89,7 +90,7 @@ contract Zeto_NfAnonNullifier is IZeto, ZetoNullifier, UUPSUpgradeable {
         nullifierArray[0] = nullifier;
         outputArray[0] = output;
 
-        emit UTXOTransfer(nullifierArray, outputArray, msg.sender);
+        emit UTXOTransfer(nullifierArray, outputArray, msg.sender, data);
         return true;
     }
 

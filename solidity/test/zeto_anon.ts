@@ -221,7 +221,9 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     encodedProof: any
   ) {
     const signerAddress = await signer.signer.getAddress();
-    const tx = await zeto.connect(signer.signer).transfer(inputCommitments, outputCommitments, encodedProof);
+    const tx = await zeto
+      .connect(signer.signer)
+      .transfer(inputCommitments, outputCommitments, encodedProof, "0x");
     const results = await tx.wait();
     console.log(`Method transfer() complete. Gas used: ${results?.gasUsed}`);
 

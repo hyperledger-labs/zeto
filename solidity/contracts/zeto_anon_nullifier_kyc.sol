@@ -83,7 +83,8 @@ contract Zeto_AnonNullifierKyc is
         uint256[2] memory nullifiers,
         uint256[2] memory outputs,
         uint256 root,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof calldata proof,
+        bytes calldata data
     ) public returns (bool) {
         require(
             validateTransactionProposal(nullifiers, outputs, root),
@@ -115,7 +116,7 @@ contract Zeto_AnonNullifierKyc is
             nullifierArray[i] = nullifiers[i];
             outputArray[i] = outputs[i];
         }
-        emit UTXOTransfer(nullifierArray, outputArray, msg.sender);
+        emit UTXOTransfer(nullifierArray, outputArray, msg.sender, data);
         return true;
     }
 

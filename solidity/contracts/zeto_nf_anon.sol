@@ -55,7 +55,8 @@ contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
     function transfer(
         uint256 input,
         uint256 output,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof calldata proof,
+        bytes calldata data
     ) public returns (bool) {
         require(
             validateTransactionProposal([input, 0], [output, 0], proof),
@@ -81,7 +82,7 @@ contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
         inputArray[0] = input;
         outputArray[0] = output;
 
-        emit UTXOTransfer(inputArray, outputArray, msg.sender);
+        emit UTXOTransfer(inputArray, outputArray, msg.sender, data);
         return true;
     }
 
