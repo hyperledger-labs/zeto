@@ -78,7 +78,8 @@ contract Zeto_AnonEncNullifier is
         uint256 root,
         uint256 encryptionNonce,
         uint256[4] memory encryptedValues,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof calldata proof,
+        bytes calldata data
     ) public returns (bool) {
         require(
             validateTransactionProposal(nullifiers, outputs, root),
@@ -127,7 +128,8 @@ contract Zeto_AnonEncNullifier is
             outputArray,
             encryptionNonce,
             encryptedValuesArray,
-            msg.sender
+            msg.sender,
+            data
         );
         return true;
     }

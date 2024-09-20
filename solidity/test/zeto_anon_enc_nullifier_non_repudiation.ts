@@ -448,7 +448,18 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     const startTx = Date.now();
     const encryptedValuesForReceiver = encryptedValues.slice(0, 4);
     const encryptedValuesForRegulator = encryptedValues.slice(4, 20);
-    const tx = await zeto.connect(signer.signer).transfer(nullifiers, outputCommitments, root, encryptionNonce, encryptedValuesForReceiver, encryptedValuesForRegulator, encodedProof);
+    const tx = await zeto
+      .connect(signer.signer)
+      .transfer(
+        nullifiers,
+        outputCommitments,
+        root,
+        encryptionNonce,
+        encryptedValuesForReceiver,
+        encryptedValuesForRegulator,
+        encodedProof,
+        "0x"
+      );
     const results: ContractTransactionReceipt | null = await tx.wait();
     console.log(`Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${results?.gasUsed}`);
     return results;

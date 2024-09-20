@@ -953,7 +953,8 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
         root,
         encryptionNonce,
         encryptedValues,
-        encodedProof
+        encodedProof,
+        "0x"
       );
     const results: ContractTransactionReceipt | null = await tx.wait();
     console.log(

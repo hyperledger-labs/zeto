@@ -44,7 +44,8 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         uint256 encryptionNonce,
         uint256[] encryptedValuesForReceiver,
         uint256[] encryptedValuesForAuthority,
-        address indexed submitter
+        address indexed submitter,
+        bytes data
     );
 
     Groth16Verifier_AnonEncNullifierNonRepudiation verifier;
@@ -100,7 +101,8 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         uint256 encryptionNonce,
         uint256[4] memory encryptedValuesForReceiver,
         uint256[16] memory encryptedValuesForAuthority,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof calldata proof,
+        bytes calldata data
     ) public returns (bool) {
         require(
             validateTransactionProposal(nullifiers, outputs, root),
@@ -174,7 +176,8 @@ contract Zeto_AnonEncNullifierNonRepudiation is
             encryptionNonce,
             encryptedValuesReceiverArray,
             encryptedValuesAuthorityArray,
-            msg.sender
+            msg.sender,
+            data
         );
         return true;
     }

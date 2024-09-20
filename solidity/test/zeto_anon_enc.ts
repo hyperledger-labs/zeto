@@ -261,7 +261,16 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     encryptionNonce: BigNumberish,
     encodedProof: any
   ) {
-    const tx = await zeto.connect(signer.signer).transfer(inputCommitments, outputCommitments, encryptionNonce, encryptedValues, encodedProof);
+    const tx = await zeto
+      .connect(signer.signer)
+      .transfer(
+        inputCommitments,
+        outputCommitments,
+        encryptionNonce,
+        encryptedValues,
+        encodedProof,
+        "0x"
+      );
     const results: ContractTransactionReceipt | null = await tx.wait();
 
     for (const input of inputCommitments) {

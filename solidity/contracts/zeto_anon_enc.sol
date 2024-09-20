@@ -67,7 +67,8 @@ contract Zeto_AnonEnc is IZetoEncrypted, ZetoBase, ZetoFungibleWithdraw, UUPSUpg
         uint256[2] memory outputs,
         uint256 encryptionNonce,
         uint256[4] memory encryptedValues,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof calldata proof,
+        bytes calldata data
     ) public returns (bool) {
         require(
             validateTransactionProposal(inputs, outputs, proof),
@@ -112,7 +113,8 @@ contract Zeto_AnonEnc is IZetoEncrypted, ZetoBase, ZetoFungibleWithdraw, UUPSUpg
             outputArray,
             encryptionNonce,
             encryptedValuesArray,
-            msg.sender
+            msg.sender,
+            data
         );
         return true;
     }

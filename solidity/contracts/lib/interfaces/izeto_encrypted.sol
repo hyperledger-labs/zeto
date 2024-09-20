@@ -23,6 +23,7 @@ interface IZetoEncrypted is IZetoBase {
         uint256[] outputs,
         uint256 encryptionNonce,
         uint256[] encryptedValues,
-        address indexed submitter
+        address indexed submitter,
+        bytes data
     );
 }
