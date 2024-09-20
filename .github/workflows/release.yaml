@@ -68,7 +68,7 @@ jobs:
         env:
           ARTIFACTS_ROOT: ${{ runner.temp }}/zeto-artifacts
         run: |
-          tar -czvf $ARTIFACTS_ROOT/zeto-contracts-$ZETO_VER.tar.gz artifacts/contracts
+          tar -czvf $ARTIFACTS_ROOT/zeto-contracts-$ZETO_VER.tar.gz artifacts/contracts artifacts/@iden3
 
       - name: Publish Release Artifact
         uses: actions/upload-artifact@v4
