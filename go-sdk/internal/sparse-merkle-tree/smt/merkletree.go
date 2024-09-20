@@ -101,9 +101,9 @@ func (mt *sparseMerkleTree) GetNode(key core.NodeIndex) (core.Node, error) {
 	return mt.getNode(key)
 }
 
-// GenerateProof generates the proof of existence (or non-existence) of a leaf node
-// for a Merkle Tree given the root. It uses the node's index to represent the node.
-// If the rootKey is nil, the current merkletree root is used
+// GenerateProofs generates a list of proofs of existence (or non-existence) of the provided
+// leaf nodes that are represented by their indexes. An optional Merkle tree root can be provided.
+// If rootKey is not provided, the current Merkle tree root is used
 func (mt *sparseMerkleTree) GenerateProofs(keys []*big.Int, rootKey core.NodeIndex) ([]core.Proof, []*big.Int, error) {
 	mt.RLock()
 	defer mt.RUnlock()
