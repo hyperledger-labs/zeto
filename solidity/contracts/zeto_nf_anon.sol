@@ -85,7 +85,7 @@ contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
         return true;
     }
 
-    function mint(uint256[] memory utxos) public {
-        _mint(utxos);
+    function mint(uint256[] memory utxos, bytes calldata data) public {
+        _mint(utxos, data);
     }
 }

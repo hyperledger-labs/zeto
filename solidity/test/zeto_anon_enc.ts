@@ -69,7 +69,9 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
 
     utxo100 = newUTXO(100, Alice);
     const { outputCommitments, encodedProof } = await prepareDepositProof(Alice, utxo100);
-    const tx2 = await zeto.connect(Alice.signer).deposit(100, outputCommitments[0], encodedProof);
+    const tx2 = await zeto
+      .connect(Alice.signer)
+      .deposit(100, outputCommitments[0], encodedProof, "0x");
     await tx2.wait();
   });
 

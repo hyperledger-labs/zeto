@@ -16,5 +16,5 @@
 pragma solidity ^0.8.20;
 
 interface IZetoBase {
-    event UTXOMint(uint256[] outputs, address indexed submitter);
+    event UTXOMint(uint256[] outputs, address indexed submitter, bytes data);
 }

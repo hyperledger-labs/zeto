@@ -115,7 +115,7 @@ abstract contract ZetoBase is IZetoBase, ZetoCommon {
 
     // This function is used to mint new UTXOs, as an example implementation,
     // which is only callable by the owner.
-    function _mint(uint256[] memory utxos) internal virtual {
+    function _mint(uint256[] memory utxos, bytes calldata data) internal virtual {
         for (uint256 i = 0; i < utxos.length; ++i) {
             uint256 utxo = utxos[i];
             if (_utxos[utxo] == UTXOStatus.UNSPENT) {
@@ -126,6 +126,6 @@ abstract contract ZetoBase is IZetoBase, ZetoCommon {
 
             _utxos[utxo] = UTXOStatus.UNSPENT;
         }
-        emit UTXOMint(utxos, msg.sender);
+        emit UTXOMint(utxos, msg.sender, data);
     }
 }
