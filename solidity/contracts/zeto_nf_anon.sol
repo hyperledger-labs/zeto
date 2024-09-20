@@ -15,6 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.20;
 
+import {IZeto} from "./lib/interfaces/izeto.sol";
 import {Groth16Verifier_NfAnon} from "./lib/verifier_nf_anon.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
 import {Registry} from "./lib/registry.sol";
@@ -29,7 +30,7 @@ import "hardhat/console.sol";
 ///        - The sender owns the private key whose public key is part of the pre-image of the input UTXOs commitments
 ///          (aka the sender is authorized to spend the input UTXOs)
 ///        - The input UTXOs and output UTXOs are valid in terms of obeying mass conservation rules
-contract Zeto_NfAnon is ZetoBase, UUPSUpgradeable {
+contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
     Groth16Verifier_NfAnon internal verifier;
 
     function initialize(

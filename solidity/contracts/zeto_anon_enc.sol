@@ -15,6 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.20;
 
+import {IZetoEncrypted} from "./lib/interfaces/izeto_encrypted.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValue} from "./lib/verifier_check_inputs_outputs_value.sol";
 import {Groth16Verifier_AnonEnc} from "./lib/verifier_anon_enc.sol";
@@ -36,7 +37,7 @@ import "hardhat/console.sol";
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
 ///        - the encrypted value in the input is derived from the receiver's UTXO value and encrypted with a shared secret using
 ///          the ECDH protocol between the sender and receiver (this guarantees data availability for the receiver)
-contract Zeto_AnonEnc is ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
+contract Zeto_AnonEnc is IZetoEncrypted, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
     Groth16Verifier_AnonEnc internal verifier;
 
     function initialize(

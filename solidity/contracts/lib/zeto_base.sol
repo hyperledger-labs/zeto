@@ -15,6 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.20;
 
+import {IZetoBase} from "./interfaces/izeto_base.sol";
 import {Commonlib} from "./common.sol";
 import {Registry} from "./registry.sol";
 import {ZetoCommon} from "./zeto_common.sol";
@@ -25,7 +26,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 ///        without using nullifiers. Each UTXO's spending status is explicitly tracked.
 /// @author Kaleido, Inc.
 /// @dev Implements common functionalities of Zeto based tokens without nullifiers
-abstract contract ZetoBase is ZetoCommon {
+abstract contract ZetoBase is IZetoBase, ZetoCommon {
     enum UTXOStatus {
         UNKNOWN, // default value for the empty UTXO slots
         UNSPENT,
