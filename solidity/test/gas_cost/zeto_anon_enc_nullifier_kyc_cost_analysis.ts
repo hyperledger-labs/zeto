@@ -42,7 +42,7 @@ import {
 } from '../utils';
 import { deployZeto } from '../lib/deploy';
 
-const TOTAL_AMOUNT = parseInt(process.env.TOTAL_ROUNDS || '1000');
+const TOTAL_AMOUNT = parseInt(process.env.TOTAL_ROUNDS || '4');
 const TX_CONCURRENCY = parseInt(process.env.TX_CONCURRENCY || '20');
 
 describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity using nullifiers and encryption with KYC', function () {
@@ -64,6 +64,9 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
   let smtAlice: Merkletree;
   let smtBob: Merkletree;
   let smtKyc: Merkletree;
+
+  const date = new Date();
+  const reportPrefix = date.toISOString();
 
   before(async function () {
     if (network.name !== 'hardhat') {
@@ -113,24 +116,24 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
     // console.log(`Transfer costs: ${transferGasCostHistory.join(',')}`);
     // console.log(`Withdraw costs: ${withdrawGasCostHistory.join(',')}`);
 
-    // Write each set of gas costs to a CSV file
     writeGasCostsToCSV(
-      'mint_gas_costs.csv',
+      `${reportPrefix}mint_gas_costs.csv`,
       mintGasCostHistory,
       'Mint Gas Costs'
     );
     writeGasCostsToCSV(
-      'deposit_gas_costs.csv',
+      `${reportPrefix}deposit_gas_costs.csv`,
       depositGasCostHistory,
       'Deposit Gas Costs'
     );
     writeGasCostsToCSV(
-      'transfer_gas_costs.csv',
+      `${reportPrefix}transfer_gas_costs.csv`,
       transferGasCostHistory,
       'Transfer Gas Costs'
     );
+
     writeGasCostsToCSV(
-      'withdraw_gas_costs.csv',
+      `${reportPrefix}withdraw_gas_costs.csv`,
       withdrawGasCostHistory,
       'Withdraw Gas Costs'
     );
@@ -202,7 +205,7 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
       if (promises.length > 0) {
         await Promise.all(promises);
       }
-    }).timeout(600000);
+    }).timeout(6000000000000);
 
     it(`Zeto mint ${atMostHalfAmount + (TOTAL_AMOUNT % 2)} token to Alice in ${
       Math.floor(atLeastHalfAmount / 2) + (atLeastHalfAmount % 2)
@@ -252,7 +255,7 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
       if (promises.length > 0) {
         await Promise.all(promises);
       }
-    }).timeout(600000);
+    }).timeout(6000000000000);
 
     it(`Alice transfer ${TOTAL_AMOUNT} tokens to Bob in ${atLeastHalfAmount} txs`, async function () {
       const totalTxs = unspentAliceUTXOs.length / 2;
@@ -335,7 +338,7 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
       if (promises.length > 0) {
         await Promise.all(promises);
       }
-    }).timeout(600000);
+    }).timeout(6000000000000);
 
     it(`Bob withdraw ${TOTAL_AMOUNT} tokens`, async function () {
       const startingBalance = await erc20.balanceOf(Bob.ethAddress);
@@ -382,8 +385,8 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
       // Bob checks ERC20 balance
       const endingBalance = await erc20.balanceOf(Bob.ethAddress);
       expect(endingBalance - startingBalance).to.be.equal(TOTAL_AMOUNT);
-    }).timeout(600000);
-  });
+    }).timeout(6000000000000);
+  }).timeout(6000000000000);
 
   async function doTransfer(
     signer: User,
