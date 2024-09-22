@@ -75,11 +75,34 @@ export function newAssetNullifier(utxo: UTXO, owner: User): UTXO {
   return { tokenId: utxo.tokenId, uri: utxo.uri, hash, salt: utxo.salt };
 }
 
-export async function doMint(zetoTokenContract: any, minter: Signer, outputs: UTXO[]): Promise<ContractTransactionReceipt> {
+export async function doMint(zetoTokenContract: any, minter: Signer, outputs: UTXO[], gasHistories?:number[]): Promise<ContractTransactionReceipt> {
   const outputCommitments = outputs.map((output) => output.hash) as BigNumberish[];
   const tx = await zetoTokenContract.connect(minter).mint(outputCommitments);
   const result = await tx.wait();
   console.log(`Method mint() complete. Gas used: ${result?.gasUsed}`);
+  if (result?.gasUsed && Array.isArray(gasHistories)) {
+    gasHistories.push(result?.gasUsed)
+  }
+  return result;
+}
+
+export async function doDeposit(zetoTokenContract: any, depositUser: Signer, amount:any, commitment: any, proof: any, gasHistories?:number[]): Promise<ContractTransactionReceipt> {
+  const tx = await zetoTokenContract.connect(depositUser).deposit(amount, commitment, proof);
+  const result = await tx.wait();
+  console.log(`Method deposit() complete. Gas used: ${result?.gasUsed}`);
+  if (result?.gasUsed && Array.isArray(gasHistories)) {
+    gasHistories.push(result?.gasUsed)
+  }
+  return result;
+}
+
+export async function doWithdraw(zetoTokenContract: any, withdrawUser: Signer, amount:any, nullifiers:any, commitment: any, root:any, proof: any, gasHistories?:number[]): Promise<ContractTransactionReceipt> {
+  const tx = await zetoTokenContract.connect(withdrawUser).withdraw(amount, nullifiers, commitment, root, proof);
+  const result = await tx.wait();
+  console.log(`Method withdraw() complete. Gas used: ${result?.gasUsed}`);
+  if (result?.gasUsed && Array.isArray(gasHistories)) {
+    gasHistories.push(result?.gasUsed)
+  }
   return result;
 }
 
