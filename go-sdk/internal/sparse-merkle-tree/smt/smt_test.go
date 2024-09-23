@@ -225,7 +225,7 @@ func (s *MerkleTreeTestSuite) TestGenerateProof() {
 }
 
 func (s *MerkleTreeTestSuite) TestVerifyProof() {
-	const levels = 10
+	const levels = 100
 	mt, _ := NewMerkleTree(s.db, levels)
 
 	alice := testutils.NewKeypair()
