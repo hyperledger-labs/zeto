@@ -15,6 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.20;
 
+import {IZeto} from "./lib/interfaces/izeto.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckNullifierValue} from "./lib/verifier_check_nullifier_value.sol";
 import {Groth16Verifier_AnonNullifierKyc} from "./lib/verifier_anon_nullifier_kyc.sol";
@@ -26,7 +27,6 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
-import "hardhat/console.sol";
 
 uint256 constant MAX_SMT_DEPTH = 64;
 
@@ -39,6 +39,7 @@ uint256 constant MAX_SMT_DEPTH = 64;
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 contract Zeto_AnonNullifierKyc is
+    IZeto,
     ZetoNullifier,
     ZetoFungibleWithdrawWithNullifiers,
     Registry,
@@ -82,7 +83,8 @@ contract Zeto_AnonNullifierKyc is
         uint256[2] memory nullifiers,
         uint256[2] memory outputs,
         uint256 root,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof calldata proof,
+        bytes calldata data
     ) public returns (bool) {
         require(
             validateTransactionProposal(nullifiers, outputs, root),
@@ -114,19 +116,20 @@ contract Zeto_AnonNullifierKyc is
             nullifierArray[i] = nullifiers[i];
             outputArray[i] = outputs[i];
         }
-        emit UTXOTransfer(nullifierArray, outputArray, msg.sender);
+        emit UTXOTransfer(nullifierArray, outputArray, msg.sender, data);
         return true;
     }
 
     function deposit(
         uint256 amount,
         uint256 utxo,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof calldata proof,
+        bytes calldata data
     ) public {
         _deposit(amount, utxo, proof);
         uint256[] memory utxos = new uint256[](1);
         utxos[0] = utxo;
-        _mint(utxos);
+        _mint(utxos, data);
     }
 
     function withdraw(
@@ -141,7 +144,7 @@ contract Zeto_AnonNullifierKyc is
         processInputsAndOutputs(nullifiers, [output, 0]);
     }
 
-    function mint(uint256[] memory utxos) public onlyOwner {
-        _mint(utxos);
+    function mint(uint256[] memory utxos, bytes calldata data) public onlyOwner {
+        _mint(utxos, data);
     }
 }

@@ -15,6 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.20;
 
+import {IZetoBase} from "./interfaces/izeto_base.sol";
 import {Commonlib} from "./common.sol";
 import {Registry} from "./registry.sol";
 import {ZetoCommon} from "./zeto_common.sol";
@@ -27,7 +28,7 @@ uint256 constant MAX_SMT_DEPTH = 64;
 /// @title A sample base implementation of a Zeto based token contract with nullifiers
 /// @author Kaleido, Inc.
 /// @dev Implements common functionalities of Zeto based tokens using nullifiers
-abstract contract ZetoNullifier is ZetoCommon {
+abstract contract ZetoNullifier is IZetoBase, ZetoCommon {
     SmtLib.Data internal _commitmentsTree;
     using SmtLib for SmtLib.Data;
     mapping(uint256 => bool) private _nullifiers;
@@ -110,7 +111,7 @@ abstract contract ZetoNullifier is ZetoCommon {
 
     // This function is used to mint new UTXOs, as an example implementation,
     // which is only callable by the owner.
-    function _mint(uint256[] memory utxos) internal virtual {
+    function _mint(uint256[] memory utxos, bytes calldata data) internal virtual {
         for (uint256 i = 0; i < utxos.length; ++i) {
             uint256 utxo = utxos[i];
             if (utxo == 0) {
@@ -126,7 +127,7 @@ abstract contract ZetoNullifier is ZetoCommon {
             _commitmentsTree.addLeaf(utxo, utxo);
         }
 
-        emit UTXOMint(utxos, msg.sender);
+        emit UTXOMint(utxos, msg.sender, data);
     }
 
     function getRoot() public view returns (uint256) {

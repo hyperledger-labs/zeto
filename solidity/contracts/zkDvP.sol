@@ -18,7 +18,6 @@ pragma solidity ^0.8.20;
 import {Commonlib} from "./lib/common.sol";
 import {Zeto_Anon} from "./zeto_anon.sol";
 import {Zeto_NfAnon} from "./zeto_nf_anon.sol";
-import "hardhat/console.sol";
 
 /// @title A sample on-chain implementation of a DvP escrow contract using ZKP based C-UTXO tokens
 /// @author Kaleido, Inc.
@@ -221,7 +220,8 @@ contract zkDvP {
                 paymentToken.transfer(
                     trade.paymentInputs,
                     trade.paymentOutputs,
-                    trade.paymentProof
+                    trade.paymentProof,
+                    ""
                 ),
                 "Payment branch of the trade failed"
             );
@@ -229,7 +229,8 @@ contract zkDvP {
                 assetToken.transfer(
                     trade.assetInput,
                     trade.assetOutput,
-                    trade.assetProof
+                    trade.assetProof,
+                    ""
                 ),
                 "Asset branch of the trade failed"
             );

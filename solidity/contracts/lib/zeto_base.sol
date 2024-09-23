@@ -15,6 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.20;
 
+import {IZetoBase} from "./interfaces/izeto_base.sol";
 import {Commonlib} from "./common.sol";
 import {Registry} from "./registry.sol";
 import {ZetoCommon} from "./zeto_common.sol";
@@ -25,7 +26,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 ///        without using nullifiers. Each UTXO's spending status is explicitly tracked.
 /// @author Kaleido, Inc.
 /// @dev Implements common functionalities of Zeto based tokens without nullifiers
-abstract contract ZetoBase is ZetoCommon {
+abstract contract ZetoBase is IZetoBase, ZetoCommon {
     enum UTXOStatus {
         UNKNOWN, // default value for the empty UTXO slots
         UNSPENT,
@@ -114,7 +115,7 @@ abstract contract ZetoBase is ZetoCommon {
 
     // This function is used to mint new UTXOs, as an example implementation,
     // which is only callable by the owner.
-    function _mint(uint256[] memory utxos) internal virtual {
+    function _mint(uint256[] memory utxos, bytes calldata data) internal virtual {
         for (uint256 i = 0; i < utxos.length; ++i) {
             uint256 utxo = utxos[i];
             if (_utxos[utxo] == UTXOStatus.UNSPENT) {
@@ -125,6 +126,6 @@ abstract contract ZetoBase is ZetoCommon {
 
             _utxos[utxo] = UTXOStatus.UNSPENT;
         }
-        emit UTXOMint(utxos, msg.sender);
+        emit UTXOMint(utxos, msg.sender, data);
     }
 }

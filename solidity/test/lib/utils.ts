@@ -77,7 +77,9 @@ export function newAssetNullifier(utxo: UTXO, owner: User): UTXO {
 
 export async function doMint(zetoTokenContract: any, minter: Signer, outputs: UTXO[]): Promise<ContractTransactionReceipt> {
   const outputCommitments = outputs.map((output) => output.hash) as BigNumberish[];
-  const tx = await zetoTokenContract.connect(minter).mint(outputCommitments);
+  const tx = await zetoTokenContract
+    .connect(minter)
+    .mint(outputCommitments, "0x");
   const result = await tx.wait();
   console.log(`Method mint() complete. Gas used: ${result?.gasUsed}`);
   return result;

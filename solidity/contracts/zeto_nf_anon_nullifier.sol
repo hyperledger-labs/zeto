@@ -15,6 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.20;
 
+import {IZeto} from "./lib/interfaces/izeto.sol";
 import {Groth16Verifier_NfAnonNullifier} from "./lib/verifier_nf_anon_nullifier.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {Registry} from "./lib/registry.sol";
@@ -23,7 +24,6 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
-import "hardhat/console.sol";
 
 uint256 constant MAX_SMT_DEPTH = 64;
 
@@ -35,7 +35,7 @@ uint256 constant MAX_SMT_DEPTH = 64;
 ///        - the hashes in the input and output match the hash(value, salt, owner public key) formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
-contract Zeto_NfAnonNullifier is ZetoNullifier, UUPSUpgradeable {
+contract Zeto_NfAnonNullifier is IZeto, ZetoNullifier, UUPSUpgradeable {
     Groth16Verifier_NfAnonNullifier verifier;
 
     function initialize(
@@ -63,7 +63,8 @@ contract Zeto_NfAnonNullifier is ZetoNullifier, UUPSUpgradeable {
         uint256 nullifier,
         uint256 output,
         uint256 root,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof calldata proof,
+        bytes calldata data
     ) public returns (bool) {
         require(
             validateTransactionProposal([nullifier, 0], [output, 0], root),
@@ -89,11 +90,11 @@ contract Zeto_NfAnonNullifier is ZetoNullifier, UUPSUpgradeable {
         nullifierArray[0] = nullifier;
         outputArray[0] = output;
 
-        emit UTXOTransfer(nullifierArray, outputArray, msg.sender);
+        emit UTXOTransfer(nullifierArray, outputArray, msg.sender, data);
         return true;
     }
 
-    function mint(uint256[] memory utxos) public {
-        _mint(utxos);
+    function mint(uint256[] memory utxos, bytes calldata data) public {
+        _mint(utxos, data);
     }
 }

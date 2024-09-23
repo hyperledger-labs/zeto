@@ -23,7 +23,6 @@ import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
-import "hardhat/console.sol";
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity, encryption and history masking
 /// @author Kaleido, Inc.
@@ -45,7 +44,8 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         uint256 encryptionNonce,
         uint256[] encryptedValuesForReceiver,
         uint256[] encryptedValuesForAuthority,
-        address indexed submitter
+        address indexed submitter,
+        bytes data
     );
 
     Groth16Verifier_AnonEncNullifierNonRepudiation verifier;
@@ -101,7 +101,8 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         uint256 encryptionNonce,
         uint256[4] memory encryptedValuesForReceiver,
         uint256[16] memory encryptedValuesForAuthority,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof calldata proof,
+        bytes calldata data
     ) public returns (bool) {
         require(
             validateTransactionProposal(nullifiers, outputs, root),
@@ -175,7 +176,8 @@ contract Zeto_AnonEncNullifierNonRepudiation is
             encryptionNonce,
             encryptedValuesReceiverArray,
             encryptedValuesAuthorityArray,
-            msg.sender
+            msg.sender,
+            data
         );
         return true;
     }
@@ -183,12 +185,13 @@ contract Zeto_AnonEncNullifierNonRepudiation is
     function deposit(
         uint256 amount,
         uint256 utxo,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof calldata proof,
+        bytes calldata data
     ) public {
         _deposit(amount, utxo, proof);
         uint256[] memory utxos = new uint256[](1);
         utxos[0] = utxo;
-        _mint(utxos);
+        _mint(utxos, data);
     }
 
     function withdraw(
@@ -203,7 +206,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         processInputsAndOutputs(nullifiers, [output, 0]);
     }
 
-    function mint(uint256[] memory utxos) public onlyOwner {
-        _mint(utxos);
+    function mint(uint256[] memory utxos, bytes calldata data) public onlyOwner {
+        _mint(utxos, data);
     }
 }
