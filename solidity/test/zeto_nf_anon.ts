@@ -126,7 +126,9 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
     outputCommitment: BigNumberish,
     encodedProof: any
   ) {
-    const tx = await zeto.connect(signer.signer).transfer(inputCommitment, outputCommitment, encodedProof);
+    const tx = await zeto
+      .connect(signer.signer)
+      .transfer(inputCommitment, outputCommitment, encodedProof, "0x");
     const results = await tx.wait();
     console.log(`Method transfer() complete. Gas used: ${results?.gasUsed}`);
 

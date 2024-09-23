@@ -72,7 +72,9 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
 
     utxo100 = newUTXO(100, Alice);
     const { outputCommitments, encodedProof } = await prepareDepositProof(Alice, utxo100);
-    const tx2 = await zeto.connect(Alice.signer).deposit(100, outputCommitments[0], encodedProof);
+    const tx2 = await zeto
+      .connect(Alice.signer)
+      .deposit(100, outputCommitments[0], encodedProof, "0x");
     await tx2.wait();
   });
 
@@ -219,7 +221,9 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     encodedProof: any
   ) {
     const signerAddress = await signer.signer.getAddress();
-    const tx = await zeto.connect(signer.signer).transfer(inputCommitments, outputCommitments, encodedProof);
+    const tx = await zeto
+      .connect(signer.signer)
+      .transfer(inputCommitments, outputCommitments, encodedProof, "0x");
     const results = await tx.wait();
     console.log(`Method transfer() complete. Gas used: ${results?.gasUsed}`);
 

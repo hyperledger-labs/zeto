@@ -23,22 +23,6 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 /// @author Kaleido, Inc.
 /// @dev Implements common functionalities of Zeto based tokens
 abstract contract ZetoCommon is OwnableUpgradeable {
-    event UTXOMint(uint256[] outputs, address indexed submitter);
-
-    event UTXOTransfer(
-        uint256[] inputs,
-        uint256[] outputs,
-        address indexed submitter
-    );
-
-    event UTXOTransferWithEncryptedValues(
-        uint256[] inputs,
-        uint256[] outputs,
-        uint256 encryptionNonce,
-        uint256[] encryptedValues,
-        address indexed submitter
-    );
-
     error UTXONotMinted(uint256 utxo);
     error UTXOAlreadyOwned(uint256 utxo);
     error UTXOAlreadySpent(uint256 utxo);

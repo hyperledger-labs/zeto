@@ -15,6 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.20;
 
+import {IZetoEncrypted} from "./lib/interfaces/izeto_encrypted.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckNullifierValue} from "./lib/verifier_check_nullifier_value.sol";
 import {Groth16Verifier_AnonEncNullifier} from "./lib/verifier_anon_enc_nullifier.sol";
@@ -23,7 +24,6 @@ import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_n
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "hardhat/console.sol";
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity, encryption and history masking
 /// @author Kaleido, Inc.
@@ -35,6 +35,7 @@ import "hardhat/console.sol";
 ///        - the encrypted value in the input is derived from the receiver's UTXO value and encrypted with a shared secret using the ECDH protocol between the sender and receiver (this guarantees data availability for the receiver)
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 contract Zeto_AnonEncNullifier is
+    IZetoEncrypted,
     ZetoNullifier,
     ZetoFungibleWithdrawWithNullifiers,
     UUPSUpgradeable
@@ -77,7 +78,8 @@ contract Zeto_AnonEncNullifier is
         uint256 root,
         uint256 encryptionNonce,
         uint256[4] memory encryptedValues,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof calldata proof,
+        bytes calldata data
     ) public returns (bool) {
         require(
             validateTransactionProposal(nullifiers, outputs, root),
@@ -126,7 +128,8 @@ contract Zeto_AnonEncNullifier is
             outputArray,
             encryptionNonce,
             encryptedValuesArray,
-            msg.sender
+            msg.sender,
+            data
         );
         return true;
     }
@@ -134,12 +137,13 @@ contract Zeto_AnonEncNullifier is
     function deposit(
         uint256 amount,
         uint256 utxo,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof calldata proof,
+        bytes calldata data
     ) public {
         _deposit(amount, utxo, proof);
         uint256[] memory utxos = new uint256[](1);
         utxos[0] = utxo;
-        _mint(utxos);
+        _mint(utxos, data);
     }
 
     function withdraw(
@@ -154,7 +158,7 @@ contract Zeto_AnonEncNullifier is
         processInputsAndOutputs(nullifiers, [output, 0]);
     }
 
-    function mint(uint256[] memory utxos) public onlyOwner {
-        _mint(utxos);
+    function mint(uint256[] memory utxos, bytes calldata data) public onlyOwner {
+        _mint(utxos, data);
     }
 }

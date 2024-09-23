@@ -13,14 +13,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+pragma solidity ^0.8.20;
 
-package storage
-
-import (
-	"github.com/hyperledger-labs/zeto/go-sdk/internal/sparse-merkle-tree/storage"
-	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/core"
-)
-
-func NewSqlStorage(provider core.SqlDBProvider, smtName string) (core.Storage, error) {
-	return storage.NewSqlStorage(provider, smtName), nil
+interface IZetoBase {
+    event UTXOMint(uint256[] outputs, address indexed submitter, bytes data);
 }

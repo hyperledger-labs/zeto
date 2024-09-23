@@ -15,13 +15,13 @@
 // limitations under the License.
 pragma solidity ^0.8.20;
 
+import {IZeto} from "./lib/interfaces/izeto.sol";
 import {Groth16Verifier_NfAnon} from "./lib/verifier_nf_anon.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "hardhat/console.sol";
 
 /// @title A sample implementation of a Zeto based non-fungible token with anonymity and no encryption
 /// @author Kaleido, Inc.
@@ -29,7 +29,7 @@ import "hardhat/console.sol";
 ///        - The sender owns the private key whose public key is part of the pre-image of the input UTXOs commitments
 ///          (aka the sender is authorized to spend the input UTXOs)
 ///        - The input UTXOs and output UTXOs are valid in terms of obeying mass conservation rules
-contract Zeto_NfAnon is ZetoBase, UUPSUpgradeable {
+contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
     Groth16Verifier_NfAnon internal verifier;
 
     function initialize(
@@ -55,7 +55,8 @@ contract Zeto_NfAnon is ZetoBase, UUPSUpgradeable {
     function transfer(
         uint256 input,
         uint256 output,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof calldata proof,
+        bytes calldata data
     ) public returns (bool) {
         require(
             validateTransactionProposal([input, 0], [output, 0], proof),
@@ -81,11 +82,11 @@ contract Zeto_NfAnon is ZetoBase, UUPSUpgradeable {
         inputArray[0] = input;
         outputArray[0] = output;
 
-        emit UTXOTransfer(inputArray, outputArray, msg.sender);
+        emit UTXOTransfer(inputArray, outputArray, msg.sender, data);
         return true;
     }
 
-    function mint(uint256[] memory utxos) public {
-        _mint(utxos);
+    function mint(uint256[] memory utxos, bytes calldata data) public {
+        _mint(utxos, data);
     }
 }

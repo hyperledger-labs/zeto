@@ -17,7 +17,9 @@
 package integration_test
 
 import (
+	"fmt"
 	"math/big"
+	"math/rand"
 	"os"
 	"testing"
 
@@ -27,65 +29,90 @@ import (
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/node"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/smt"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/storage"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
+type SqliteTestSuite struct {
+	suite.Suite
+	db      core.Storage
+	dbfile  *os.File
+	gormDB  *gorm.DB
+	smtName string
+}
+
 type testSqlProvider struct {
 	db *gorm.DB
 }
 
-func (s *testSqlProvider) DB() *gorm.DB {
-	return s.db
+func (p *testSqlProvider) DB() *gorm.DB {
+	return p.db
 }
 
-func (s *testSqlProvider) Close() {}
+func (p *testSqlProvider) Close() {}
 
-func TestSqliteStorage(t *testing.T) {
-	dbfile, err := os.CreateTemp("", "gorm.db")
+func newSqliteStorage(t *testing.T) (*os.File, core.Storage, *gorm.DB, string) {
+	seq := rand.Intn(1000)
+	testName := fmt.Sprintf("test_%d", seq)
+	dbfile, err := os.CreateTemp("", fmt.Sprintf("gorm-%s.db", testName))
 	assert.NoError(t, err)
-	defer func() {
-		err := os.Remove(dbfile.Name())
-		assert.NoError(t, err)
-	}()
 	db, err := gorm.Open(sqlite.Open(dbfile.Name()), &gorm.Config{})
 	assert.NoError(t, err)
 	err = db.Table(core.TreeRootsTable).AutoMigrate(&core.SMTRoot{})
 	assert.NoError(t, err)
-	err = db.Table(core.NodesTablePrefix + "test_1").AutoMigrate(&core.SMTNode{})
+	err = db.Table(core.NodesTablePrefix + testName).AutoMigrate(&core.SMTNode{})
 	assert.NoError(t, err)
 
 	provider := &testSqlProvider{db: db}
-	s, err := storage.NewSqlStorage(provider, "test_1")
+	sqlStorage, err := storage.NewSqlStorage(provider, testName)
 	assert.NoError(t, err)
+	return dbfile, sqlStorage, db, testName
+}
 
-	mt, err := smt.NewMerkleTree(s, MAX_HEIGHT)
-	assert.NoError(t, err)
+func (s *SqliteTestSuite) SetupTest() {
+	logrus.SetLevel(logrus.DebugLevel)
+	s.dbfile, s.db, s.gormDB, s.smtName = newSqliteStorage(s.T())
+}
+
+func (s *SqliteTestSuite) TearDownTest() {
+	err := os.Remove(s.dbfile.Name())
+	assert.NoError(s.T(), err)
+}
+
+func (s *SqliteTestSuite) TestSqliteStorage() {
+	mt, err := smt.NewMerkleTree(s.db, MAX_HEIGHT)
+	assert.NoError(s.T(), err)
 
 	tokenId := big.NewInt(1001)
 	uriString := "https://example.com/token/1001"
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 	sender := testutils.NewKeypair()
 	salt1 := crypto.NewSalt()
 
 	utxo1 := node.NewNonFungible(tokenId, uriString, sender.PublicKey, salt1)
 	n1, err := node.NewLeafNode(utxo1)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 	err = mt.AddLeaf(n1)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 
 	root := mt.Root()
-	dbRoot := core.SMTRoot{Name: "test_1"}
-	err = db.Table(core.TreeRootsTable).First(&dbRoot).Error
-	assert.NoError(t, err)
-	assert.Equal(t, root.Hex(), dbRoot.RootIndex)
+	dbRoot := core.SMTRoot{Name: s.smtName}
+	err = s.gormDB.Table(core.TreeRootsTable).First(&dbRoot).Error
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), root.Hex(), dbRoot.RootIndex)
 
 	dbNode := core.SMTNode{RefKey: n1.Ref().Hex()}
-	err = db.Table(core.NodesTablePrefix + "test_1").First(&dbNode).Error
-	assert.NoError(t, err)
-	assert.Equal(t, n1.Ref().Hex(), dbNode.RefKey)
+	err = s.gormDB.Table(core.NodesTablePrefix + s.smtName).First(&dbNode).Error
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), n1.Ref().Hex(), dbNode.RefKey)
+}
+
+func TestSqliteStorage(t *testing.T) {
+	suite.Run(t, new(SqliteTestSuite))
 }
 
 func TestPostgresStorage(t *testing.T) {

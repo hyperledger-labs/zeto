@@ -264,7 +264,9 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
     encodedProof: any
   ) {
     const startTx = Date.now();
-    const tx = await zeto.connect(signer.signer).transfer(nullifier, outputCommitment, root, encodedProof);
+    const tx = await zeto
+      .connect(signer.signer)
+      .transfer(nullifier, outputCommitment, root, encodedProof, "0x");
     const results: ContractTransactionReceipt | null = await tx.wait();
     console.log(`Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${results?.gasUsed}`);
     return results;

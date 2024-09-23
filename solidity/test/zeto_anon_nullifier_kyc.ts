@@ -105,8 +105,13 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
     await tx1.wait();
 
     utxo100 = newUTXO(100, Alice);
-    const { outputCommitments, encodedProof } = await prepareDepositProof(Alice, utxo100);
-    const tx2 = await zeto.connect(Alice.signer).deposit(100, outputCommitments[0], encodedProof);
+    const { outputCommitments, encodedProof } = await prepareDepositProof(
+      Alice,
+      utxo100
+    );
+    const tx2 = await zeto
+      .connect(Alice.signer)
+      .deposit(100, outputCommitments[0], encodedProof, "0x");
     await tx2.wait();
 
     await smtAlice.add(utxo100.hash, utxo100.hash);
@@ -281,8 +286,13 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
       await tx1.wait();
 
       unregisteredUtxo100 = newUTXO(100, unregistered);
-      const { outputCommitments, encodedProof } = await prepareDepositProof(unregistered, unregisteredUtxo100);
-      const tx2 = await zeto.connect(unregistered.signer).deposit(100, outputCommitments[0], encodedProof);
+      const { outputCommitments, encodedProof } = await prepareDepositProof(
+        unregistered,
+        unregisteredUtxo100
+      );
+      const tx2 = await zeto
+        .connect(unregistered.signer)
+        .deposit(100, outputCommitments[0], encodedProof, "0x");
       await tx2.wait();
 
       // Alice tracks the UTXO inside the SMT
@@ -572,7 +582,9 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
     encodedProof: any
   ) {
     const startTx = Date.now();
-    const tx = await zeto.connect(signer.signer).transfer(nullifiers, outputCommitments, root, encodedProof);
+    const tx = await zeto
+      .connect(signer.signer)
+      .transfer(nullifiers, outputCommitments, root, encodedProof, "0x");
     const results: ContractTransactionReceipt | null = await tx.wait();
     console.log(`Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${results?.gasUsed}`);
     return results;

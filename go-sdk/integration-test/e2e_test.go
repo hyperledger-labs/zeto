@@ -19,7 +19,6 @@ package integration_test
 import (
 	"fmt"
 	"math/big"
-	"math/rand"
 	"os"
 	"path"
 	"testing"
@@ -29,18 +28,20 @@ import (
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/crypto"
 	keyscore "github.com/hyperledger-labs/zeto/go-sdk/pkg/key-manager/core"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/key-manager/key"
+	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/core"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/node"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/smt"
-	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/storage"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/utxo"
 	"github.com/hyperledger/firefly-signer/pkg/keystorev3"
 	"github.com/hyperledger/firefly-signer/pkg/secp256k1"
-	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-iden3-crypto/poseidon"
 	"github.com/iden3/go-rapidsnark/prover"
 	"github.com/iden3/go-rapidsnark/witness/v2"
 	"github.com/iden3/go-rapidsnark/witness/wasmer"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
+	"gorm.io/gorm"
 )
 
 const MAX_HEIGHT = 64
@@ -114,12 +115,29 @@ func testKeyFromKeyStorev3(t *testing.T) *keyscore.KeyEntry {
 	return key.NewKeyEntryFromPrivateKeyBytes([32]byte(keypair.PrivateKeyBytes()))
 }
 
-func TestZeto_1_SuccessfulProving(t *testing.T) {
-	calc, provingKey, err := loadCircuit("anon")
-	assert.NoError(t, err)
-	assert.NotNil(t, calc)
+type E2ETestSuite struct {
+	suite.Suite
+	db     core.Storage
+	dbfile *os.File
+	gormDB *gorm.DB
+}
 
-	sender := testKeyFromKeyStorev3(t)
+func (s *E2ETestSuite) SetupSuite() {
+	logrus.SetLevel(logrus.DebugLevel)
+	s.dbfile, s.db, s.gormDB, _ = newSqliteStorage(s.T())
+}
+
+func (s *E2ETestSuite) TearDownSuite() {
+	err := os.Remove(s.dbfile.Name())
+	assert.NoError(s.T(), err)
+}
+
+func (s *E2ETestSuite) TestZeto_1_SuccessfulProving() {
+	calc, provingKey, err := loadCircuit("anon")
+	assert.NoError(s.T(), err)
+	assert.NotNil(s.T(), calc)
+
+	sender := testKeyFromKeyStorev3(s.T())
 	receiver := testutils.NewKeypair()
 
 	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
@@ -150,37 +168,37 @@ func TestZeto_1_SuccessfulProving(t *testing.T) {
 
 	// calculate the witness object for checking correctness
 	witness, err := calc.CalculateWitness(witnessInputs, true)
-	assert.NoError(t, err)
-	assert.NotNil(t, witness)
+	assert.NoError(s.T(), err)
+	assert.NotNil(s.T(), witness)
 
-	assert.Equal(t, 0, witness[0].Cmp(big.NewInt(1)))
-	assert.Equal(t, 0, witness[1].Cmp(inputCommitments[0]))
-	assert.Equal(t, 0, witness[2].Cmp(inputCommitments[1]))
-	assert.Equal(t, 0, witness[3].Cmp(outputCommitments[0]))
-	assert.Equal(t, 0, witness[4].Cmp(outputCommitments[1]))
+	assert.Equal(s.T(), 0, witness[0].Cmp(big.NewInt(1)))
+	assert.Equal(s.T(), 0, witness[1].Cmp(inputCommitments[0]))
+	assert.Equal(s.T(), 0, witness[2].Cmp(inputCommitments[1]))
+	assert.Equal(s.T(), 0, witness[3].Cmp(outputCommitments[0]))
+	assert.Equal(s.T(), 0, witness[4].Cmp(outputCommitments[1]))
 
 	// generate the witness binary to feed into the prover
 	startTime := time.Now()
 	witnessBin, err := calc.CalculateWTNSBin(witnessInputs, true)
-	assert.NoError(t, err)
-	assert.NotNil(t, witnessBin)
+	assert.NoError(s.T(), err)
+	assert.NotNil(s.T(), witnessBin)
 
 	proof, err := prover.Groth16Prover(provingKey, witnessBin)
 	elapsedTime := time.Since(startTime)
 	fmt.Printf("Proving time: %s\n", elapsedTime)
-	assert.NoError(t, err)
-	assert.Equal(t, 3, len(proof.Proof.A))
-	assert.Equal(t, 3, len(proof.Proof.B))
-	assert.Equal(t, 3, len(proof.Proof.C))
-	assert.Equal(t, 4, len(proof.PubSignals))
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), 3, len(proof.Proof.A))
+	assert.Equal(s.T(), 3, len(proof.Proof.B))
+	assert.Equal(s.T(), 3, len(proof.Proof.C))
+	assert.Equal(s.T(), 4, len(proof.PubSignals))
 }
 
-func TestZeto_2_SuccessfulProving(t *testing.T) {
+func (s *E2ETestSuite) TestZeto_2_SuccessfulProving() {
 	calc, provingKey, err := loadCircuit("anon_enc")
-	assert.NoError(t, err)
-	assert.NotNil(t, calc)
+	assert.NoError(s.T(), err)
+	assert.NotNil(s.T(), calc)
 
-	sender := testKeyFromKeyStorev3(t)
+	sender := testKeyFromKeyStorev3(s.T())
 	receiver := testutils.NewKeypair()
 
 	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
@@ -214,24 +232,24 @@ func TestZeto_2_SuccessfulProving(t *testing.T) {
 
 	startTime := time.Now()
 	witnessBin, err := calc.CalculateWTNSBin(witnessInputs, true)
-	assert.NoError(t, err)
-	assert.NotNil(t, witnessBin)
+	assert.NoError(s.T(), err)
+	assert.NotNil(s.T(), witnessBin)
 
 	proof, err := prover.Groth16Prover(provingKey, witnessBin)
 	elapsedTime := time.Since(startTime)
 	fmt.Printf("Proving time: %s\n", elapsedTime)
-	assert.NoError(t, err)
-	assert.Equal(t, 3, len(proof.Proof.A))
-	assert.Equal(t, 3, len(proof.Proof.B))
-	assert.Equal(t, 3, len(proof.Proof.C))
-	assert.Equal(t, 9, len(proof.PubSignals))
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), 3, len(proof.Proof.A))
+	assert.Equal(s.T(), 3, len(proof.Proof.B))
+	assert.Equal(s.T(), 3, len(proof.Proof.C))
+	assert.Equal(s.T(), 9, len(proof.PubSignals))
 
 	// the receiver would be able to get the encrypted values and salts
 	// from the transaction events
 	encryptedValues := make([]*big.Int, 4)
 	for i := 0; i < 4; i++ {
 		v, ok := new(big.Int).SetString(proof.PubSignals[i], 10)
-		assert.True(t, ok)
+		assert.True(s.T(), ok)
 		encryptedValues[i] = v
 	}
 
@@ -240,21 +258,21 @@ func TestZeto_2_SuccessfulProving(t *testing.T) {
 	// the UTXO hash
 	secret := crypto.GenerateECDHSharedSecret(receiver.PrivateKey, sender.PublicKey)
 	decrypted, err := crypto.PoseidonDecrypt(encryptedValues, []*big.Int{secret.X, secret.Y}, encryptionNonce, 2)
-	assert.NoError(t, err)
-	assert.Equal(t, outputValues[0].String(), decrypted[0].String())
-	assert.Equal(t, salt3.String(), decrypted[1].String())
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), outputValues[0].String(), decrypted[0].String())
+	assert.Equal(s.T(), salt3.String(), decrypted[1].String())
 
 	// as the receiver, to check if the decryption was successful, we hash the decrypted
 	// value and salt and compare with the output commitment
 	calculatedHash, err := poseidon.Hash([]*big.Int{decrypted[0], decrypted[1], receiver.PublicKey.X, receiver.PublicKey.Y})
-	assert.NoError(t, err)
-	assert.Equal(t, output1.String(), calculatedHash.String())
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), output1.String(), calculatedHash.String())
 }
 
-func TestZeto_3_SuccessfulProving(t *testing.T) {
+func (s *E2ETestSuite) TestZeto_3_SuccessfulProving() {
 	calc, provingKey, err := loadCircuit("anon_nullifier")
-	assert.NoError(t, err)
-	assert.NotNil(t, calc)
+	assert.NoError(s.T(), err)
+	assert.NotNil(s.T(), calc)
 
 	sender := testutils.NewKeypair()
 	receiver := testutils.NewKeypair()
@@ -272,24 +290,24 @@ func TestZeto_3_SuccessfulProving(t *testing.T) {
 	nullifier2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PrivateKeyBigInt})
 	nullifiers := []*big.Int{nullifier1, nullifier2}
 
-	mt, err := smt.NewMerkleTree(storage.NewMemoryStorage(), MAX_HEIGHT)
-	assert.NoError(t, err)
+	mt, err := smt.NewMerkleTree(s.db, MAX_HEIGHT)
+	assert.NoError(s.T(), err)
 	utxo1 := node.NewFungible(inputValues[0], sender.PublicKey, salt1)
 	n1, err := node.NewLeafNode(utxo1)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 	err = mt.AddLeaf(n1)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 	utxo2 := node.NewFungible(inputValues[1], sender.PublicKey, salt2)
 	n2, err := node.NewLeafNode(utxo2)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 	err = mt.AddLeaf(n2)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 	proofs, _, err := mt.GenerateProofs([]*big.Int{input1, input2}, nil)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 	circomProof1, err := proofs[0].ToCircomVerifierProof(input1, input1, mt.Root(), MAX_HEIGHT)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 	circomProof2, err := proofs[1].ToCircomVerifierProof(input2, input2, mt.Root(), MAX_HEIGHT)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 
 	salt3 := crypto.NewSalt()
 	output1, _ := poseidon.Hash([]*big.Int{outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
@@ -322,23 +340,23 @@ func TestZeto_3_SuccessfulProving(t *testing.T) {
 
 	startTime := time.Now()
 	witnessBin, err := calc.CalculateWTNSBin(witnessInputs, true)
-	assert.NoError(t, err)
-	assert.NotNil(t, witnessBin)
+	assert.NoError(s.T(), err)
+	assert.NotNil(s.T(), witnessBin)
 
 	proof, err := prover.Groth16Prover(provingKey, witnessBin)
 	elapsedTime := time.Since(startTime)
 	fmt.Printf("Proving time: %s\n", elapsedTime)
-	assert.NoError(t, err)
-	assert.Equal(t, 3, len(proof.Proof.A))
-	assert.Equal(t, 3, len(proof.Proof.B))
-	assert.Equal(t, 3, len(proof.Proof.C))
-	assert.Equal(t, 7, len(proof.PubSignals))
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), 3, len(proof.Proof.A))
+	assert.Equal(s.T(), 3, len(proof.Proof.B))
+	assert.Equal(s.T(), 3, len(proof.Proof.C))
+	assert.Equal(s.T(), 7, len(proof.PubSignals))
 }
 
-func TestZeto_4_SuccessfulProving(t *testing.T) {
+func (s *E2ETestSuite) TestZeto_4_SuccessfulProving() {
 	calc, provingKey, err := loadCircuit("anon_enc_nullifier")
-	assert.NoError(t, err)
-	assert.NotNil(t, calc)
+	assert.NoError(s.T(), err)
+	assert.NotNil(s.T(), calc)
 
 	sender := testutils.NewKeypair()
 	receiver := testutils.NewKeypair()
@@ -356,24 +374,24 @@ func TestZeto_4_SuccessfulProving(t *testing.T) {
 	nullifier2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PrivateKeyBigInt})
 	nullifiers := []*big.Int{nullifier1, nullifier2}
 
-	mt, err := smt.NewMerkleTree(storage.NewMemoryStorage(), MAX_HEIGHT)
-	assert.NoError(t, err)
+	mt, err := smt.NewMerkleTree(s.db, MAX_HEIGHT)
+	assert.NoError(s.T(), err)
 	utxo1 := node.NewFungible(inputValues[0], sender.PublicKey, salt1)
 	n1, err := node.NewLeafNode(utxo1)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 	err = mt.AddLeaf(n1)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 	utxo2 := node.NewFungible(inputValues[1], sender.PublicKey, salt2)
 	n2, err := node.NewLeafNode(utxo2)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 	err = mt.AddLeaf(n2)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 	proofs, _, err := mt.GenerateProofs([]*big.Int{input1, input2}, nil)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 	circomProof1, err := proofs[0].ToCircomVerifierProof(input1, input1, mt.Root(), MAX_HEIGHT)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 	circomProof2, err := proofs[1].ToCircomVerifierProof(input2, input2, mt.Root(), MAX_HEIGHT)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 
 	salt3 := crypto.NewSalt()
 	output1, _ := poseidon.Hash([]*big.Int{outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
@@ -409,38 +427,38 @@ func TestZeto_4_SuccessfulProving(t *testing.T) {
 
 	startTime := time.Now()
 	witnessBin, err := calc.CalculateWTNSBin(witnessInputs, true)
-	assert.NoError(t, err)
-	assert.NotNil(t, witnessBin)
+	assert.NoError(s.T(), err)
+	assert.NotNil(s.T(), witnessBin)
 
 	proof, err := prover.Groth16Prover(provingKey, witnessBin)
 	elapsedTime := time.Since(startTime)
 	fmt.Printf("Proving time: %s\n", elapsedTime)
-	assert.NoError(t, err)
-	assert.Equal(t, 3, len(proof.Proof.A))
-	assert.Equal(t, 3, len(proof.Proof.B))
-	assert.Equal(t, 3, len(proof.Proof.C))
-	assert.Equal(t, 12, len(proof.PubSignals))
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), 3, len(proof.Proof.A))
+	assert.Equal(s.T(), 3, len(proof.Proof.B))
+	assert.Equal(s.T(), 3, len(proof.Proof.C))
+	assert.Equal(s.T(), 12, len(proof.PubSignals))
 }
 
-func TestZeto_5_SuccessfulProving(t *testing.T) {
+func (s *E2ETestSuite) TestZeto_5_SuccessfulProving() {
 	calc, provingKey, err := loadCircuit("nf_anon")
-	assert.NoError(t, err)
-	assert.NotNil(t, calc)
+	assert.NoError(s.T(), err)
+	assert.NotNil(s.T(), calc)
 
 	sender := testutils.NewKeypair()
 	receiver := testutils.NewKeypair()
 
 	tokenId := big.NewInt(1001)
 	tokenUri, err := utxo.HashTokenUri("https://example.com/token/1001")
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 
 	salt1 := crypto.NewSalt()
 	input1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt1, sender.PublicKey.X, sender.PublicKey.Y})
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 
 	salt3 := crypto.NewSalt()
 	output1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 
 	witnessInputs := map[string]interface{}{
 		"tokenIds":              []*big.Int{tokenId},
@@ -455,35 +473,35 @@ func TestZeto_5_SuccessfulProving(t *testing.T) {
 
 	// calculate the witness object for checking correctness
 	witness, err := calc.CalculateWitness(witnessInputs, true)
-	assert.NoError(t, err)
-	assert.NotNil(t, witness)
+	assert.NoError(s.T(), err)
+	assert.NotNil(s.T(), witness)
 
-	assert.Equal(t, 0, witness[0].Cmp(big.NewInt(1)))
-	assert.Equal(t, 0, witness[1].Cmp(input1))
-	assert.Equal(t, 0, witness[2].Cmp(output1))
-	assert.Equal(t, 0, witness[3].Cmp(tokenId))
-	assert.Equal(t, 0, witness[4].Cmp(tokenUri))
+	assert.Equal(s.T(), 0, witness[0].Cmp(big.NewInt(1)))
+	assert.Equal(s.T(), 0, witness[1].Cmp(input1))
+	assert.Equal(s.T(), 0, witness[2].Cmp(output1))
+	assert.Equal(s.T(), 0, witness[3].Cmp(tokenId))
+	assert.Equal(s.T(), 0, witness[4].Cmp(tokenUri))
 
 	// generate the witness binary to feed into the prover
 	startTime := time.Now()
 	witnessBin, err := calc.CalculateWTNSBin(witnessInputs, true)
-	assert.NoError(t, err)
-	assert.NotNil(t, witnessBin)
+	assert.NoError(s.T(), err)
+	assert.NotNil(s.T(), witnessBin)
 
 	proof, err := prover.Groth16Prover(provingKey, witnessBin)
 	elapsedTime := time.Since(startTime)
 	fmt.Printf("Proving time: %s\n", elapsedTime)
-	assert.NoError(t, err)
-	assert.Equal(t, 3, len(proof.Proof.A))
-	assert.Equal(t, 3, len(proof.Proof.B))
-	assert.Equal(t, 3, len(proof.Proof.C))
-	assert.Equal(t, 2, len(proof.PubSignals))
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), 3, len(proof.Proof.A))
+	assert.Equal(s.T(), 3, len(proof.Proof.B))
+	assert.Equal(s.T(), 3, len(proof.Proof.C))
+	assert.Equal(s.T(), 2, len(proof.PubSignals))
 }
 
-func TestZeto_6_SuccessfulProving(t *testing.T) {
+func (s *E2ETestSuite) TestZeto_6_SuccessfulProving() {
 	calc, provingKey, err := loadCircuit("nf_anon_nullifier")
-	assert.NoError(t, err)
-	assert.NotNil(t, calc)
+	assert.NoError(s.T(), err)
+	assert.NotNil(s.T(), calc)
 
 	sender := testutils.NewKeypair()
 	receiver := testutils.NewKeypair()
@@ -491,25 +509,25 @@ func TestZeto_6_SuccessfulProving(t *testing.T) {
 	tokenId := big.NewInt(1001)
 	uriString := "https://example.com/token/1001"
 	tokenUri, err := utxo.HashTokenUri(uriString)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 
 	salt1 := crypto.NewSalt()
 	input1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt1, sender.PublicKey.X, sender.PublicKey.Y})
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 
 	nullifier1, _ := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt1, sender.PrivateKeyBigInt})
 
-	mt, err := smt.NewMerkleTree(storage.NewMemoryStorage(), MAX_HEIGHT)
-	assert.NoError(t, err)
+	mt, err := smt.NewMerkleTree(s.db, MAX_HEIGHT)
+	assert.NoError(s.T(), err)
 	utxo1 := node.NewNonFungible(tokenId, uriString, sender.PublicKey, salt1)
 	n1, err := node.NewLeafNode(utxo1)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 	err = mt.AddLeaf(n1)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 	proofs, _, err := mt.GenerateProofs([]*big.Int{input1}, nil)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 	circomProof1, err := proofs[0].ToCircomVerifierProof(input1, input1, mt.Root(), MAX_HEIGHT)
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 	proof1Siblings := make([]*big.Int, len(circomProof1.Siblings)-1)
 	for i, s := range circomProof1.Siblings[0 : len(circomProof1.Siblings)-1] {
 		proof1Siblings[i] = s.BigInt()
@@ -517,7 +535,7 @@ func TestZeto_6_SuccessfulProving(t *testing.T) {
 
 	salt3 := crypto.NewSalt()
 	output1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-	assert.NoError(t, err)
+	assert.NoError(s.T(), err)
 
 	witnessInputs := map[string]interface{}{
 		"tokenId":              tokenId,
@@ -535,88 +553,39 @@ func TestZeto_6_SuccessfulProving(t *testing.T) {
 
 	// calculate the witness object for checking correctness
 	witness, err := calc.CalculateWitness(witnessInputs, true)
-	assert.NoError(t, err)
-	assert.NotNil(t, witness)
+	assert.NoError(s.T(), err)
+	assert.NotNil(s.T(), witness)
 
-	assert.Equal(t, 0, witness[0].Cmp(big.NewInt(1)))
-	assert.Equal(t, 0, witness[1].Cmp(nullifier1))
+	assert.Equal(s.T(), 0, witness[0].Cmp(big.NewInt(1)))
+	assert.Equal(s.T(), 0, witness[1].Cmp(nullifier1))
 
 	// generate the witness binary to feed into the prover
 	startTime := time.Now()
 	witnessBin, err := calc.CalculateWTNSBin(witnessInputs, true)
-	assert.NoError(t, err)
-	assert.NotNil(t, witnessBin)
+	assert.NoError(s.T(), err)
+	assert.NotNil(s.T(), witnessBin)
 
 	proof, err := prover.Groth16Prover(provingKey, witnessBin)
 	elapsedTime := time.Since(startTime)
 	fmt.Printf("Proving time: %s\n", elapsedTime)
-	assert.NoError(t, err)
-	assert.Equal(t, 3, len(proof.Proof.A))
-	assert.Equal(t, 3, len(proof.Proof.B))
-	assert.Equal(t, 3, len(proof.Proof.C))
-	assert.Equal(t, 3, len(proof.PubSignals))
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), 3, len(proof.Proof.A))
+	assert.Equal(s.T(), 3, len(proof.Proof.B))
+	assert.Equal(s.T(), 3, len(proof.Proof.C))
+	assert.Equal(s.T(), 3, len(proof.PubSignals))
 }
 
-func TestConcurrentLeafnodesInsertion(t *testing.T) {
-	x, _ := new(big.Int).SetString("9198063289874244593808956064764348354864043212453245695133881114917754098693", 10)
-	y, _ := new(big.Int).SetString("3600411115173311692823743444460566395943576560299970643507632418781961416843", 10)
-	alice := &babyjub.PublicKey{
-		X: x,
-		Y: y,
-	}
-
-	values := []int{10, 20, 30, 40}
-	salts := []string{
-		"43c49e8ba68a9b8a6bb5c230a734d8271a83d2f63722e7651272ebeef5446e",
-		"19b965f7629e4f0c4bd0b8f9c87f17580f18a32a31b4641550071ee4916bbbfc",
-		"9b0b93df975547e430eabff085a77831b8fcb6b5396e6bb815fda8d14125370",
-		"194ec10ec96a507c7c9b60df133d13679b874b0bd6ab89920135508f55b3f064",
-	}
-
-	// run the test 10 times
-	for i := 0; i < 100; i++ {
-		// shuffle the utxos for this run
-		for i := range values {
-			j := rand.Intn(i + 1)
-			values[i], values[j] = values[j], values[i]
-			salts[i], salts[j] = salts[j], salts[i]
-		}
-
-		testConcurrentInsertion(t, alice, values, salts)
-	}
-}
-
-func testConcurrentInsertion(t *testing.T, alice *babyjub.PublicKey, values []int, salts []string) {
-	mt, err := smt.NewMerkleTree(storage.NewMemoryStorage(), MAX_HEIGHT)
-	assert.NoError(t, err)
-	done := make(chan bool, len(values))
-
-	for i, v := range values {
-		go func(i, v int) {
-			salt, _ := new(big.Int).SetString(salts[i], 16)
-			utxo := node.NewFungible(big.NewInt(int64(v)), alice, salt)
-			n, err := node.NewLeafNode(utxo)
-			assert.NoError(t, err)
-			err = mt.AddLeaf(n)
-			assert.NoError(t, err)
-			done <- true
-		}(i, v)
-	}
-
-	for i := 0; i < len(values); i++ {
-		<-done
-	}
-
-	assert.Equal(t, "abacf46f5217552ee28fe50b8fd7ca6aa46daeb9acf9f60928654c3b1a472f23", mt.Root().Hex())
-}
-
-func TestKeyManager(t *testing.T) {
-	keypair := decryptKeyStorev3(t)
+func (s *E2ETestSuite) TestKeyManager() {
+	keypair := decryptKeyStorev3(s.T())
 
 	keyEntry := key.NewKeyEntryFromPrivateKeyBytes([32]byte(keypair.PrivateKeyBytes()))
-	assert.NotNil(t, keyEntry)
+	assert.NotNil(s.T(), keyEntry)
 
-	assert.NotNil(t, keyEntry.PrivateKey)
-	assert.NotNil(t, keyEntry.PublicKey)
-	assert.NotNil(t, keyEntry.PrivateKeyForZkp)
+	assert.NotNil(s.T(), keyEntry.PrivateKey)
+	assert.NotNil(s.T(), keyEntry.PublicKey)
+	assert.NotNil(s.T(), keyEntry.PrivateKeyForZkp)
+}
+
+func TestE2ETestSuite(t *testing.T) {
+	suite.Run(t, new(E2ETestSuite))
 }

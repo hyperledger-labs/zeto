@@ -15,6 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.20;
 
+import {IZetoEncrypted} from "./lib/interfaces/izeto_encrypted.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValue} from "./lib/verifier_check_inputs_outputs_value.sol";
 import {Groth16Verifier_AnonEnc} from "./lib/verifier_anon_enc.sol";
@@ -25,7 +26,6 @@ import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "hardhat/console.sol";
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity, and encryption
 /// @author Kaleido, Inc.
@@ -36,7 +36,7 @@ import "hardhat/console.sol";
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
 ///        - the encrypted value in the input is derived from the receiver's UTXO value and encrypted with a shared secret using
 ///          the ECDH protocol between the sender and receiver (this guarantees data availability for the receiver)
-contract Zeto_AnonEnc is ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
+contract Zeto_AnonEnc is IZetoEncrypted, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
     Groth16Verifier_AnonEnc internal verifier;
 
     function initialize(
@@ -67,7 +67,8 @@ contract Zeto_AnonEnc is ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         uint256[2] memory outputs,
         uint256 encryptionNonce,
         uint256[4] memory encryptedValues,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof calldata proof,
+        bytes calldata data
     ) public returns (bool) {
         require(
             validateTransactionProposal(inputs, outputs, proof),
@@ -112,7 +113,8 @@ contract Zeto_AnonEnc is ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
             outputArray,
             encryptionNonce,
             encryptedValuesArray,
-            msg.sender
+            msg.sender,
+            data
         );
         return true;
     }
@@ -120,12 +122,13 @@ contract Zeto_AnonEnc is ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
     function deposit(
         uint256 amount,
         uint256 utxo,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof calldata proof,
+        bytes calldata data
     ) public {
         _deposit(amount, utxo, proof);
         uint256[] memory utxos = new uint256[](1);
         utxos[0] = utxo;
-        _mint(utxos);
+        _mint(utxos, data);
     }
 
     function withdraw(
@@ -139,7 +142,7 @@ contract Zeto_AnonEnc is ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         processInputsAndOutputs(inputs, [output, 0]);
     }
 
-    function mint(uint256[] memory utxos) public onlyOwner {
-        _mint(utxos);
+    function mint(uint256[] memory utxos, bytes calldata data) public onlyOwner {
+        _mint(utxos, data);
     }
 }
