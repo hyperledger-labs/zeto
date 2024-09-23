@@ -44,6 +44,15 @@ func (ms *mockStorage) GetNode(core.NodeIndex) (core.Node, error) {
 func (ms *mockStorage) InsertNode(core.Node) error {
 	return nil
 }
+func (ms *mockStorage) BeginTx() (core.Transaction, error) {
+	return ms, nil
+}
+func (ms *mockStorage) Commit() error {
+	return nil
+}
+func (ms *mockStorage) Rollback() error {
+	return nil
+}
 func (ms *mockStorage) Close() {}
 
 func TestNewMerkleTreeFailures(t *testing.T) {

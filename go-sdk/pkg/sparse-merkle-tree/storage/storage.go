@@ -21,10 +21,6 @@ import (
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/core"
 )
 
-func NewMemoryStorage() core.Storage {
-	return storage.NewMemoryStorage()
-}
-
 func NewSqlStorage(provider core.SqlDBProvider, smtName string) (core.Storage, error) {
 	return storage.NewSqlStorage(provider, smtName), nil
 }
