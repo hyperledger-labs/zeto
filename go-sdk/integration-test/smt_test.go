@@ -66,7 +66,10 @@ func (s *SmtTestSuite) TestConcurrentLeafnodesInsertion() {
 
 func testConcurrentInsertion(t *testing.T, alice *babyjub.PublicKey, values []int, salts []string) {
 	dbfile, db, _, _ := newSqliteStorage(t)
-	defer os.Remove(dbfile.Name())
+	defer func() {
+		err := os.Remove(dbfile.Name())
+		assert.NoError(t, err)
+	}()
 
 	mt, err := smt.NewMerkleTree(db, MAX_HEIGHT)
 	assert.NoError(t, err)
