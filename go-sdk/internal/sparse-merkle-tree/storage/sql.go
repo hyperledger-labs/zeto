@@ -67,37 +67,37 @@ func (s *sqlStorage) InsertNode(n core.Node) error {
 	return insertNode(s.p.DB(), s.nodesTableName, n)
 }
 
-func (s *sqlStorage) BeginBatch() (core.Transaction, error) {
-	return &sqlBatchStorage{
+func (s *sqlStorage) BeginTx() (core.Transaction, error) {
+	return &sqlTxStorage{
 		tx:             s.p.DB().Begin(),
 		smtName:        s.smtName,
 		nodesTableName: s.nodesTableName,
 	}, nil
 }
 
-type sqlBatchStorage struct {
+type sqlTxStorage struct {
 	tx             *gorm.DB
 	smtName        string
 	nodesTableName string
 }
 
-func (b *sqlBatchStorage) UpsertRootNodeIndex(root core.NodeIndex) error {
+func (b *sqlTxStorage) UpsertRootNodeIndex(root core.NodeIndex) error {
 	return upsertRootNodeIndex(b.tx, b.smtName, root)
 }
 
-func (b *sqlBatchStorage) GetNode(ref core.NodeIndex) (core.Node, error) {
+func (b *sqlTxStorage) GetNode(ref core.NodeIndex) (core.Node, error) {
 	return getNode(b.tx, b.nodesTableName, ref)
 }
 
-func (b *sqlBatchStorage) InsertNode(n core.Node) error {
+func (b *sqlTxStorage) InsertNode(n core.Node) error {
 	return insertNode(b.tx, b.nodesTableName, n)
 }
 
-func (b *sqlBatchStorage) Commit() error {
+func (b *sqlTxStorage) Commit() error {
 	return b.tx.Commit().Error
 }
 
-func (b *sqlBatchStorage) Rollback() error {
+func (b *sqlTxStorage) Rollback() error {
 	return b.tx.Rollback().Error
 }
 

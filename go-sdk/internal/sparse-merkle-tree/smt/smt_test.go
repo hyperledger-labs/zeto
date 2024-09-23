@@ -82,7 +82,8 @@ func (s *MerkleTreeTestSuite) SetupTest() {
 }
 
 func (s *MerkleTreeTestSuite) TearDownTest() {
-	os.Remove(s.dbfile.Name())
+	err := os.Remove(s.dbfile.Name())
+	assert.NoError(s.T(), err)
 }
 
 func (s *MerkleTreeTestSuite) TestNewMerkleTree() {

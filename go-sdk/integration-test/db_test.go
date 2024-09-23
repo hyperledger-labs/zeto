@@ -79,7 +79,8 @@ func (s *SqliteTestSuite) SetupTest() {
 }
 
 func (s *SqliteTestSuite) TearDownTest() {
-	os.Remove(s.dbfile.Name())
+	err := os.Remove(s.dbfile.Name())
+	assert.NoError(s.T(), err)
 }
 
 func (s *SqliteTestSuite) TestSqliteStorage() {

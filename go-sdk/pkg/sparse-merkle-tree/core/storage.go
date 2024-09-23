@@ -30,9 +30,9 @@ type Storage interface {
 	// InsertNode inserts a node into the storage. Where the private values of a node are stored
 	// is implementation-specific
 	InsertNode(Node) error
-	// Batch executes a batch of operations in a single transaction. The semantics of the batch
+	// BeginTx executes a batch of operations in a single transaction. The semantics of the batch
 	// function follows the semantics of the gorm.DB.Transaction function.
-	BeginBatch() (Transaction, error)
+	BeginTx() (Transaction, error)
 	// Close closes the storage resource
 	Close()
 }

@@ -80,7 +80,7 @@ func (mt *sparseMerkleTree) AddLeaf(node core.Node) error {
 	// use up all the bits in the index's path. As soon as a unique path is found,
 	// which may be only the first few bits of the index, the new leaf node is added.
 	// One or more branch nodes may be created to accommodate the new leaf node.
-	batch, err := mt.db.BeginBatch()
+	batch, err := mt.db.BeginTx()
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,10 @@ func (mt *sparseMerkleTree) AddLeaf(node core.Node) error {
 	err = batch.Commit()
 	if err != nil {
 		log.L().Errorf("Error committing batch operations for adding leaf node %s: %v", node.Ref().Hex(), err)
-		_ = batch.Rollback()
+		err = batch.Rollback()
+		if err != nil {
+			log.L().Errorf("Error rolling back batch operations for adding leaf node %s: %v", node.Ref().Hex(), err)
+		}
 		return err
 	}
 	return nil

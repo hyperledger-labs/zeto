@@ -128,7 +128,8 @@ func (s *E2ETestSuite) SetupSuite() {
 }
 
 func (s *E2ETestSuite) TearDownSuite() {
-	os.Remove(s.dbfile.Name())
+	err := os.Remove(s.dbfile.Name())
+	assert.NoError(s.T(), err)
 }
 
 func (s *E2ETestSuite) TestZeto_1_SuccessfulProving() {
