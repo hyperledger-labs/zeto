@@ -42,8 +42,8 @@ import {
 } from '../utils';
 import { deployZeto } from '../lib/deploy';
 
-const TOTAL_AMOUNT = parseInt(process.env.TOTAL_ROUNDS || '4');
-const TX_CONCURRENCY = parseInt(process.env.TX_CONCURRENCY || '20');
+const TOTAL_AMOUNT = parseInt(process.env.TOTAL_ROUNDS || '1000');
+const TX_CONCURRENCY = parseInt(process.env.TX_CONCURRENCY || '30');
 
 describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity using nullifiers and encryption with KYC', function () {
   let deployer: Signer;
@@ -115,28 +115,6 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
     // console.log(`Deposit costs: ${depositGasCostHistory.join(',')}`);
     // console.log(`Transfer costs: ${transferGasCostHistory.join(',')}`);
     // console.log(`Withdraw costs: ${withdrawGasCostHistory.join(',')}`);
-
-    writeGasCostsToCSV(
-      `${reportPrefix}mint_gas_costs.csv`,
-      mintGasCostHistory,
-      'Mint Gas Costs'
-    );
-    writeGasCostsToCSV(
-      `${reportPrefix}deposit_gas_costs.csv`,
-      depositGasCostHistory,
-      'Deposit Gas Costs'
-    );
-    writeGasCostsToCSV(
-      `${reportPrefix}transfer_gas_costs.csv`,
-      transferGasCostHistory,
-      'Transfer Gas Costs'
-    );
-
-    writeGasCostsToCSV(
-      `${reportPrefix}withdraw_gas_costs.csv`,
-      withdrawGasCostHistory,
-      'Withdraw Gas Costs'
-    );
   });
 
   describe(`Transfer ${TOTAL_AMOUNT} tokens (half from deposit, half from mint) from single address to another`, function () {
@@ -205,6 +183,10 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
       if (promises.length > 0) {
         await Promise.all(promises);
       }
+      writeGasCostsToCSV(
+        `${reportPrefix}deposit_gas_costs.csv`,
+        depositGasCostHistory
+      );
     }).timeout(6000000000000);
 
     it(`Zeto mint ${atMostHalfAmount + (TOTAL_AMOUNT % 2)} token to Alice in ${
@@ -255,6 +237,10 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
       if (promises.length > 0) {
         await Promise.all(promises);
       }
+      writeGasCostsToCSV(
+        `${reportPrefix}mint_gas_costs.csv`,
+        mintGasCostHistory
+      );
     }).timeout(6000000000000);
 
     it(`Alice transfer ${TOTAL_AMOUNT} tokens to Bob in ${atLeastHalfAmount} txs`, async function () {
@@ -338,6 +324,10 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
       if (promises.length > 0) {
         await Promise.all(promises);
       }
+      writeGasCostsToCSV(
+        `${reportPrefix}transfer_gas_costs.csv`,
+        transferGasCostHistory
+      );
     }).timeout(6000000000000);
 
     it(`Bob withdraw ${TOTAL_AMOUNT} tokens`, async function () {
@@ -382,6 +372,10 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
           );
         }
       }
+      writeGasCostsToCSV(
+        `${reportPrefix}withdraw_gas_costs.csv`,
+        withdrawGasCostHistory
+      );
       // Bob checks ERC20 balance
       const endingBalance = await erc20.balanceOf(Bob.ethAddress);
       expect(endingBalance - startingBalance).to.be.equal(TOTAL_AMOUNT);
@@ -551,19 +545,14 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
   }
 });
 
-function writeGasCostsToCSV(
-  filename: string,
-  gasCosts: number[],
-  header: string
-) {
+function writeGasCostsToCSV(filename: string, gasCosts: number[]) {
   const filePath = path.join(__dirname, filename);
 
   // Prepare the CSV content
-  const csvHeader = `${header}\n`;
   const csvData = gasCosts.join(',\n') + '\n'; // Each value in a new line
 
   // Write the CSV content to a file (overwrite if file exists)
-  fs.writeFileSync(filePath, csvHeader + csvData, 'utf8');
+  fs.writeFileSync(filePath, 'gas_costs,\n' + csvData, 'utf8');
 
   console.log(`Gas costs written to ${filePath}`);
 }
