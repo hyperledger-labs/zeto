@@ -21,6 +21,8 @@ import { expect } from 'chai';
 import { loadCircuit, encodeProof, newEncryptionNonce, kycHash } from 'zeto-js';
 import { groth16 } from 'snarkjs';
 import { stringifyBigInts } from 'maci-crypto';
+import AsyncLock from 'async-lock';
+const lock = new AsyncLock();
 import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
 import {
   UTXO,
@@ -42,10 +44,20 @@ import {
 } from '../utils';
 import { deployZeto } from '../lib/deploy';
 
-const TOTAL_AMOUNT = parseInt(process.env.TOTAL_ROUNDS || '1000');
+const TOTAL_AMOUNT = parseInt(process.env.TOTAL_ROUNDS || '10');
 const TX_CONCURRENCY = parseInt(process.env.TX_CONCURRENCY || '30');
 
-describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity using nullifiers and encryption with KYC', function () {
+export interface PreparedTransferData {
+  signer: User;
+  nullifiers: [BigNumberish, BigNumberish];
+  outputCommitments: [BigNumberish, BigNumberish];
+  utxosRoot: BigNumberish;
+  encryptedValues: BigNumberish[];
+  encryptionNonce: BigNumberish;
+  encodedProof: any;
+}
+
+describe.only('(Gas cost analysis) Zeto based fungible token with anonymity using nullifiers and encryption with KYC', function () {
   let deployer: Signer;
   let Alice: User;
   let Bob: User;
@@ -244,7 +256,7 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
     }).timeout(6000000000000);
 
     it(`Alice transfer ${TOTAL_AMOUNT} tokens to Bob in ${atLeastHalfAmount} txs`, async function () {
-      const totalTxs = unspentAliceUTXOs.length / 2;
+      const totalTxs = Math.floor(unspentAliceUTXOs.length / 2);
       const utxosRoot = await smtAlice.root(); // get the root before all transfer and use it for all the proofs
       let promises = [];
       // Alice generates inclusion proofs for the identities in the transaction
@@ -314,7 +326,7 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
         );
 
         // If we reach the concurrency limit, wait for the current batch to finish
-        if (promises.length >= 1) {
+        if (promises.length >= TX_CONCURRENCY) {
           await Promise.all(promises);
           promises = []; // Reset promises for the next batch
         }
@@ -334,43 +346,56 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
       const startingBalance = await erc20.balanceOf(Bob.ethAddress);
 
       const root = await smtBob.root();
+      let promises = [];
       for (let i = 0; i < unspentBobUTXOs.length; i++) {
         if (unspentBobUTXOs[i].value) {
-          const utxoToWithdraw = unspentBobUTXOs[i];
-          const nullifier1 = newNullifier(utxoToWithdraw, Bob);
+          promises.push(
+            (async () => {
+              const utxoToWithdraw = unspentBobUTXOs[i];
+              const nullifier1 = newNullifier(utxoToWithdraw, Bob);
 
-          const proof1 = await smtBob.generateCircomVerifierProof(
-            utxoToWithdraw.hash,
-            root
-          );
-          const proof2 = await smtBob.generateCircomVerifierProof(0n, root);
-          const merkleProofs = [
-            proof1.siblings.map((s) => s.bigInt()),
-            proof2.siblings.map((s) => s.bigInt()),
-          ];
+              const proof1 = await smtBob.generateCircomVerifierProof(
+                utxoToWithdraw.hash,
+                root
+              );
+              const proof2 = await smtBob.generateCircomVerifierProof(0n, root);
+              const merkleProofs = [
+                proof1.siblings.map((s) => s.bigInt()),
+                proof2.siblings.map((s) => s.bigInt()),
+              ];
+              const { nullifiers, outputCommitments, encodedProof } =
+                await prepareNullifierWithdrawProof(
+                  Bob,
+                  [utxoToWithdraw, ZERO_UTXO],
+                  [nullifier1, ZERO_UTXO],
+                  newUTXO(0, Bob),
+                  root.bigInt(),
+                  merkleProofs
+                );
 
-          const { nullifiers, outputCommitments, encodedProof } =
-            await prepareNullifierWithdrawProof(
-              Bob,
-              [utxoToWithdraw, ZERO_UTXO],
-              [nullifier1, ZERO_UTXO],
-              newUTXO(0, Bob),
-              root.bigInt(),
-              merkleProofs
-            );
-
-          // Bob withdraws UTXOs to ERC20 tokens
-          await doWithdraw(
-            zeto,
-            Bob.signer,
-            1,
-            nullifiers,
-            outputCommitments[0],
-            root.bigInt(),
-            encodedProof,
-            withdrawGasCostHistory
+              // Bob withdraws UTXOs to ERC20 tokens
+              await doWithdraw(
+                zeto,
+                Bob.signer,
+                1,
+                nullifiers,
+                outputCommitments[0],
+                root.bigInt(),
+                encodedProof,
+                withdrawGasCostHistory
+              );
+            })()
           );
         }
+        // If we reach the concurrency limit, wait for the current batch to finish
+        if (promises.length >= TX_CONCURRENCY) {
+          await Promise.all(promises);
+          promises = []; // Reset promises for the next batch
+        }
+      }
+      // Run any remaining promises that didn’t fill the batch
+      if (promises.length > 0) {
+        await Promise.all(promises);
       }
       writeGasCostsToCSV(
         `${reportPrefix}withdraw_gas_costs.csv`,
@@ -490,7 +515,10 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
       outputOwnerPublicKeys,
       ...encryptInputs,
     };
-    const witness = await circuit.calculateWTNSBin(inputObj, true);
+    const witness = await lock.acquire('proofGen', async () => {
+      // this lock is added for https://github.com/hyperledger-labs/zeto/issues/80, which only happens for Transfer circuit, not deposit/mint
+      return circuit.calculateWTNSBin(inputObj, true);
+    });
     const timeWithnessCalculation = Date.now() - startWitnessCalculation;
 
     const startProofGeneration = Date.now();
@@ -533,7 +561,8 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
         root,
         encryptionNonce,
         encryptedValues,
-        encodedProof
+        encodedProof,
+        '0x'
       );
     const result: ContractTransactionReceipt | null = await tx.wait();
     console.log(
