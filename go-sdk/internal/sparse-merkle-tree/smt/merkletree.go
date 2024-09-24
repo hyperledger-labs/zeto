@@ -23,7 +23,6 @@ import (
 
 	"github.com/hyperledger-labs/zeto/go-sdk/internal/log"
 	"github.com/hyperledger-labs/zeto/go-sdk/internal/sparse-merkle-tree/node"
-	"github.com/hyperledger-labs/zeto/go-sdk/internal/sparse-merkle-tree/storage"
 	"github.com/hyperledger-labs/zeto/go-sdk/internal/sparse-merkle-tree/utils"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/core"
 )
@@ -46,7 +45,7 @@ func NewMerkleTree(db core.Storage, maxLevels int) (core.SparseMerkleTree, error
 	mt := sparseMerkleTree{db: db, maxLevels: maxLevels}
 
 	root, err := mt.db.GetRootNodeIndex()
-	if err == storage.ErrNotFound {
+	if err == core.ErrNotFound {
 		mt.rootKey = node.ZERO_INDEX
 		err = mt.db.UpsertRootNodeIndex(mt.rootKey)
 		if err != nil {

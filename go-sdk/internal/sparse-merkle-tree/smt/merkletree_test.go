@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hyperledger-labs/zeto/go-sdk/internal/sparse-merkle-tree/storage"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/core"
 	"github.com/stretchr/testify/assert"
 )
@@ -33,7 +32,7 @@ func (ms *mockStorage) GetRootNodeIndex() (core.NodeIndex, error) {
 	if ms.GetRootNodeIndex_customError {
 		return nil, fmt.Errorf("nasty error in get root")
 	}
-	return nil, storage.ErrNotFound
+	return nil, core.ErrNotFound
 }
 func (ms *mockStorage) UpsertRootNodeIndex(core.NodeIndex) error {
 	return fmt.Errorf("nasty error in upsert root")

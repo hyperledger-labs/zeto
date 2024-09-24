@@ -47,7 +47,7 @@ func (s *sqlStorage) GetRootNodeIndex() (core.NodeIndex, error) {
 	}
 	err := s.p.DB().Table(core.TreeRootsTable).First(&root).Error
 	if err == gorm.ErrRecordNotFound {
-		return nil, ErrNotFound
+		return nil, core.ErrNotFound
 	} else if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func getNode(batchOrDb *gorm.DB, nodesTableName string, ref core.NodeIndex) (cor
 	}
 	err := batchOrDb.Table(nodesTableName).First(&n).Error
 	if err == gorm.ErrRecordNotFound {
-		return nil, ErrNotFound
+		return nil, core.ErrNotFound
 	} else if err != nil {
 		return nil, err
 	}
