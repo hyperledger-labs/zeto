@@ -15,6 +15,6 @@
 // limitations under the License.
 pragma circom 2.1.4;
 
-include "./basetokens/anon_nullifier_base.circom";
+include "./basetokens/anon_base.circom";
 
-component main { public [ nullifiers, outputCommitments, root, enabled ] } = Zeto(2, 2, 64);
+component main { public [ inputCommitments, outputCommitments ] } = Zeto(10, 10);

@@ -11,6 +11,7 @@ const circuitsRoot = process.env.CIRCUITS_ROOT || argv.circuitsRoot;
 const provingKeysRoot = process.env.PROVING_KEYS_ROOT || argv.provingKeysRoot;
 const ptauDownload = process.env.PTAU_DOWNLOAD_PATH || argv.ptauDownloadPath;
 const specificCircuits = argv.c;
+const verbose = argv.v;
 const compileOnly = argv.compileOnly;
 const parallelLimit = parseInt(process.env.GEN_CONCURRENCY, 10) || 10; // Default to compile 10 circuits in parallel
 
@@ -101,31 +102,49 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
   }
 
   log(circuit, `Compiling circuit`);
-  await execAsync(
-    `circom ${circomInput} --output ${circuitsRoot} --sym --wasm`
+
+  const { cmOut, cmErr } = await execAsync(
+    `circom ${circomInput} --output ${provingKeysRoot} --r1cs`
   );
-  if (compileOnly) {
-    return;
+  if (verbose) {
+    if (cmOut) {
+      log(circuit, 'compile output:\n' + cmOut);
+    }
+    if (cmErr) {
+      log(circuit, 'compile error:\n' + cmErr);
+    }
   }
 
-  await execAsync(`circom ${circomInput} --output ${provingKeysRoot} --r1cs`);
-
   log(circuit, `Generating test proving key with ${ptau}`);
-  await execAsync(
+  const { pkOut, pkErr } = await execAsync(
     `npx snarkjs groth16 setup ${path.join(
       provingKeysRoot,
       `${circuit}.r1cs`
     )} ${ptauFile} ${zkeyOutput}`
   );
-
-  log(circuit, `Generating verification key`);
-  await execAsync(
+  if (verbose) {
+    if (pkOut) {
+      log(circuit, 'test proving key generation output:\n' + pkOut);
+    }
+    if (pkErr) {
+      log(circuit, 'test proving key generation error:\n' + pkErr);
+    }
+  }
+  log(circuit, `Exporting verification key`);
+  const { vkOut, vkErr } = await execAsync(
     `npx snarkjs zkey export verificationkey ${zkeyOutput} ${path.join(
       provingKeysRoot,
       `${circuit}-vkey.json`
     )}`
   );
-
+  if (verbose) {
+    if (vkOut) {
+      log(circuit, 'verification key export output:\n' + vkOut);
+    }
+    if (vkErr) {
+      log(circuit, 'verification key export error:\n' + vkErr);
+    }
+  }
   if (skipSolidityGenaration) {
     log(circuit, `Skipping solidity verifier generation`);
     return;
@@ -140,10 +159,17 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
     'lib',
     `verifier_${circuit}.sol`
   );
-  await execAsync(
+  const { svOut, svErr } = await execAsync(
     `npx snarkjs zkey export solidityverifier ${zkeyOutput} ${solidityFile}`
   );
-
+  if (verbose) {
+    if (svOut) {
+      log(circuit, 'solidity verifier export output:\n' + svOut);
+    }
+    if (svErr) {
+      log(circuit, 'solidity verifier export error:\n' + svErr);
+    }
+  }
   log(circuit, `Modifying the contract name in the Solidity file`);
   const camelCaseCircuitName = toCamelCase(circuit);
   const solidityFileTmp = `${solidityFile}.tmp`;
@@ -176,7 +202,10 @@ const run = async () => {
   const circuitsArray = Object.entries(circuits);
   const activePromises = new Set();
 
-  for (const [circuit, { ptau, skipSolidityGenaration }] of circuitsArray) {
+  for (const [
+    circuit,
+    { ptau, skipSolidityGenaration, batchPtau },
+  ] of circuitsArray) {
     if (onlyCircuits && !onlyCircuits.includes(circuit)) {
       continue;
     }
@@ -186,6 +215,19 @@ const run = async () => {
 
     if (activePromises.size >= parallelLimit) {
       await Promise.race(activePromises);
+    }
+
+    if (batchPtau) {
+      const pcBatchPromise = processCircuit(
+        circuit + '_batch',
+        batchPtau,
+        skipSolidityGenaration
+      );
+      activePromises.add(pcBatchPromise);
+
+      if (activePromises.size >= parallelLimit) {
+        await Promise.race(activePromises);
+      }
     }
 
     pcPromise.finally(() => activePromises.delete(pcPromise));

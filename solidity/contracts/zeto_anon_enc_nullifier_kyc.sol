@@ -19,6 +19,7 @@ import {IZetoEncrypted} from "./lib/interfaces/izeto_encrypted.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckNullifierValue} from "./lib/verifier_check_nullifier_value.sol";
 import {Groth16Verifier_AnonEncNullifierKyc} from "./lib/verifier_anon_enc_nullifier_kyc.sol";
+import {Groth16Verifier_AnonEncNullifierKycBatch} from "./lib/verifier_anon_enc_nullifier_kyc_batch.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Registry} from "./lib/registry.sol";
@@ -41,13 +42,15 @@ contract Zeto_AnonEncNullifierKyc is
     Registry,
     UUPSUpgradeable
 {
-    Groth16Verifier_AnonEncNullifierKyc verifier;
+    Groth16Verifier_AnonEncNullifierKyc internal verifier;
+    Groth16Verifier_AnonEncNullifierKycBatch internal batchVerifier;
 
     function initialize(
         address initialOwner,
         Groth16Verifier_AnonEncNullifierKyc _verifier,
         Groth16Verifier_CheckHashesValue _depositVerifier,
-        Groth16Verifier_CheckNullifierValue _withdrawVerifier
+        Groth16Verifier_CheckNullifierValue _withdrawVerifier,
+        Groth16Verifier_AnonEncNullifierKycBatch _batchVerifier
     ) public initializer {
         __Registry_init();
         __ZetoNullifier_init(initialOwner);
@@ -56,6 +59,7 @@ contract Zeto_AnonEncNullifierKyc is
             _withdrawVerifier
         );
         verifier = _verifier;
+        batchVerifier = _batchVerifier;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -169,7 +173,10 @@ contract Zeto_AnonEncNullifierKyc is
         processInputsAndOutputs(nullifiers, [output, 0]);
     }
 
-    function mint(uint256[] memory utxos, bytes calldata data) public onlyOwner {
+    function mint(
+        uint256[] memory utxos,
+        bytes calldata data
+    ) public onlyOwner {
         _mint(utxos, data);
     }
 }

@@ -15,60 +15,6 @@
 // limitations under the License.
 pragma circom 2.1.4;
 
-include "./lib/check-positive.circom";
-include "./lib/check-hashes.circom";
-include "./lib/check-sum.circom";
-include "./node_modules/circomlib/circuits/babyjub.circom";
-
-// This version of the circuit performs the following operations:
-// - derive the sender's public key from the sender's private key
-// - check the input and output commitments match the expected hashes
-// - check the input and output values sum to the same amount
-template Zeto(nInputs, nOutputs) {
-  signal input inputCommitments[nInputs];
-  signal input inputValues[nInputs];
-  signal input inputSalts[nInputs];
-  signal input outputCommitments[nOutputs];
-  signal input outputValues[nOutputs];
-  signal input outputSalts[nOutputs];
-  signal input outputOwnerPublicKeys[nOutputs][2];
-  // must be properly hashed and trimmed to be compatible with the BabyJub curve.
-  // Reference: https://github.com/iden3/circomlib/blob/master/test/babyjub.js#L103
-  signal input inputOwnerPrivateKey;
-
-  // derive the sender's public key from the secret input
-  // for the sender's private key. This step demonstrates
-  // the sender really owns the private key for the input
-  // UTXOs
-  var inputOwnerPublicKey[2];
-  component pub = BabyPbk();
-  pub.in <== inputOwnerPrivateKey;
-  inputOwnerPublicKey[0] = pub.Ax;
-  inputOwnerPublicKey[1] = pub.Ay;
-  var inputOwnerPublicKeys[nInputs][2];
-  for (var i = 0; i < nInputs; i++) {
-    inputOwnerPublicKeys[i][0] = inputOwnerPublicKey[0];
-    inputOwnerPublicKeys[i][1] = inputOwnerPublicKey[1];
-  }
-
-  component checkPositives = CheckPositive(nOutputs);
-  checkPositives.outputValues <== outputValues;
-
-  component checkInputHashes = CheckHashes(nInputs);
-  checkInputHashes.commitments <== inputCommitments;
-  checkInputHashes.values <== inputValues;
-  checkInputHashes.salts <== inputSalts;
-  checkInputHashes.ownerPublicKeys <== inputOwnerPublicKeys;
-
-  component checkOutputHashes = CheckHashes(nOutputs);
-  checkOutputHashes.commitments <== outputCommitments;
-  checkOutputHashes.values <== outputValues;
-  checkOutputHashes.salts <== outputSalts;
-  checkOutputHashes.ownerPublicKeys <== outputOwnerPublicKeys;
-
-  component checkSum = CheckSum(nInputs, nOutputs);
-  checkSum.inputValues <== inputValues;
-  checkSum.outputValues <== outputValues;
-}
+include "./basetokens/anon_base.circom";
 
 component main { public [ inputCommitments, outputCommitments ] } = Zeto(2, 2);

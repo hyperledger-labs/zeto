@@ -20,6 +20,7 @@ interface IZetoFungibleInitializable {
         address initialOwner,
         address _depositVerifier,
         address _withdrawVerifier,
-        address _verifier
+        address _verifier,
+        address _batchVerifier
     ) external;
 }

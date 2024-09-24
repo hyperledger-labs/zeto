@@ -19,6 +19,7 @@ import {IZetoEncrypted} from "./lib/interfaces/izeto_encrypted.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValue} from "./lib/verifier_check_inputs_outputs_value.sol";
 import {Groth16Verifier_AnonEnc} from "./lib/verifier_anon_enc.sol";
+import {Groth16Verifier_AnonEncBatch} from "./lib/verifier_anon_enc_batch.sol";
 import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
 import {ZetoFungible} from "./lib/zeto_fungible.sol";
@@ -36,18 +37,26 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
 ///        - the encrypted value in the input is derived from the receiver's UTXO value and encrypted with a shared secret using
 ///          the ECDH protocol between the sender and receiver (this guarantees data availability for the receiver)
-contract Zeto_AnonEnc is IZetoEncrypted, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
+contract Zeto_AnonEnc is
+    IZetoEncrypted,
+    ZetoBase,
+    ZetoFungibleWithdraw,
+    UUPSUpgradeable
+{
     Groth16Verifier_AnonEnc internal verifier;
+    Groth16Verifier_AnonEncBatch internal batchVerifier;
 
     function initialize(
         address initialOwner,
         Groth16Verifier_AnonEnc _verifier,
         Groth16Verifier_CheckHashesValue _depositVerifier,
-        Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier
+        Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier,
+        Groth16Verifier_AnonEncBatch _batchVerifier
     ) public initializer {
         __ZetoBase_init(initialOwner);
         __ZetoFungibleWithdraw_init(_depositVerifier, _withdrawVerifier);
         verifier = _verifier;
+        batchVerifier = _batchVerifier;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -142,7 +151,10 @@ contract Zeto_AnonEnc is IZetoEncrypted, ZetoBase, ZetoFungibleWithdraw, UUPSUpg
         processInputsAndOutputs(inputs, [output, 0]);
     }
 
-    function mint(uint256[] memory utxos, bytes calldata data) public onlyOwner {
+    function mint(
+        uint256[] memory utxos,
+        bytes calldata data
+    ) public onlyOwner {
         _mint(utxos, data);
     }
 }

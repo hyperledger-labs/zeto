@@ -19,6 +19,7 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckNullifierValue} from "./lib/verifier_check_nullifier_value.sol";
 import {Groth16Verifier_AnonEncNullifierNonRepudiation} from "./lib/verifier_anon_enc_nullifier_non_repudiation.sol";
+import {Groth16Verifier_AnonEncNullifierNonRepudiationBatch} from "./lib/verifier_anon_enc_nullifier_non_repudiation_batch.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Registry} from "./lib/registry.sol";
@@ -48,7 +49,8 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         bytes data
     );
 
-    Groth16Verifier_AnonEncNullifierNonRepudiation verifier;
+    Groth16Verifier_AnonEncNullifierNonRepudiation internal verifier;
+    Groth16Verifier_AnonEncNullifierNonRepudiationBatch internal batchVerifier;
     // the arbiter public key that must be used to
     // encrypt the secrets of every transaction
     uint256[2] private arbiter;
@@ -57,7 +59,8 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         address initialOwner,
         Groth16Verifier_AnonEncNullifierNonRepudiation _verifier,
         Groth16Verifier_CheckHashesValue _depositVerifier,
-        Groth16Verifier_CheckNullifierValue _withdrawVerifier
+        Groth16Verifier_CheckNullifierValue _withdrawVerifier,
+        Groth16Verifier_AnonEncNullifierNonRepudiationBatch _batchVerifier
     ) public initializer {
         __ZetoNullifier_init(initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(
@@ -65,6 +68,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is
             _withdrawVerifier
         );
         verifier = _verifier;
+        batchVerifier = _batchVerifier;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -206,7 +210,10 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         processInputsAndOutputs(nullifiers, [output, 0]);
     }
 
-    function mint(uint256[] memory utxos, bytes calldata data) public onlyOwner {
+    function mint(
+        uint256[] memory utxos,
+        bytes calldata data
+    ) public onlyOwner {
         _mint(utxos, data);
     }
 }

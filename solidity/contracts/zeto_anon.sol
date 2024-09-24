@@ -19,6 +19,7 @@ import {IZeto} from "./lib/interfaces/izeto.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValue} from "./lib/verifier_check_inputs_outputs_value.sol";
 import {Groth16Verifier_Anon} from "./lib/verifier_anon.sol";
+import {Groth16Verifier_AnonBatch} from "./lib/verifier_anon_batch.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
@@ -36,16 +37,19 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
 contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
     Groth16Verifier_Anon internal verifier;
+    Groth16Verifier_AnonBatch internal batchVerifier;
 
     function initialize(
         address initialOwner,
         Groth16Verifier_Anon _verifier,
         Groth16Verifier_CheckHashesValue _depositVerifier,
-        Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier
+        Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier,
+        Groth16Verifier_AnonBatch _batchVerifier
     ) public initializer {
         __ZetoBase_init(initialOwner);
         __ZetoFungibleWithdraw_init(_depositVerifier, _withdrawVerifier);
         verifier = _verifier;
+        batchVerifier = _batchVerifier;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -61,11 +65,19 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
      * Emits a {UTXOTransfer} event.
      */
     function transfer(
-        uint256[2] memory inputs,
-        uint256[2] memory outputs,
+        uint256[] memory inputs,
+        uint256[] memory outputs,
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public returns (bool) {
+        uint256 inputLen = inputs.length;
+        uint256 outputLen = outputs.length;
+
+        require(
+            (inputLen <= 10 && outputsLen <= 10),
+            "Inputs or outputs exceeded maximum number of 10"
+        );
+
         require(
             validateTransactionProposal(inputs, outputs, proof),
             "Invalid transaction proposal"
@@ -120,7 +132,10 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         processInputsAndOutputs(inputs, [output, 0]);
     }
 
-    function mint(uint256[] memory utxos, bytes calldata data) public onlyOwner {
+    function mint(
+        uint256[] memory utxos,
+        bytes calldata data
+    ) public onlyOwner {
         _mint(utxos, data);
     }
 }
