@@ -44,7 +44,7 @@ import {
 } from '../utils';
 import { deployZeto } from '../lib/deploy';
 
-const TOTAL_AMOUNT = parseInt(process.env.TOTAL_ROUNDS || '10');
+const TOTAL_AMOUNT = parseInt(process.env.TOTAL_ROUNDS || '1000');
 const TX_CONCURRENCY = parseInt(process.env.TX_CONCURRENCY || '30');
 
 export interface PreparedTransferData {
@@ -57,7 +57,7 @@ export interface PreparedTransferData {
   encodedProof: any;
 }
 
-describe.only('(Gas cost analysis) Zeto based fungible token with anonymity using nullifiers and encryption with KYC', function () {
+describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity using nullifiers and encryption with KYC', function () {
   let deployer: Signer;
   let Alice: User;
   let Bob: User;
