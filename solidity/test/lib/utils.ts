@@ -89,7 +89,7 @@ export async function doMint(zetoTokenContract: any, minter: Signer, outputs: UT
 }
 
 export async function doDeposit(zetoTokenContract: any, depositUser: Signer, amount:any, commitment: any, proof: any, gasHistories?:number[]): Promise<ContractTransactionReceipt> {
-  const tx = await zetoTokenContract.connect(depositUser).deposit(amount, commitment, proof);
+  const tx = await zetoTokenContract.connect(depositUser).deposit(amount, commitment, proof, "0x");
   const result = await tx.wait();
   console.log(`Method deposit() complete. Gas used: ${result?.gasUsed}`);
   if (result?.gasUsed && Array.isArray(gasHistories)) {
