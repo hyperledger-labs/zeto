@@ -61,8 +61,8 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   //   - secrets (value and salt) for each output UTXOs: 2 * nOutputs
   var outputElementsLength = 2 + 2 * nInputs + 2 * nOutputs + 2 * nOutputs;
   var l = outputElementsLength;
-  while (l % 3 != 0) {
-    l += 1;
+  if (l % 3 != 0) {
+    l += (3 - (l % 3));
   }
   signal output cipherTextAuthority[l+1];
 

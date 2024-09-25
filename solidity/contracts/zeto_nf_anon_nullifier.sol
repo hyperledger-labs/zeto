@@ -81,7 +81,7 @@ contract Zeto_NfAnonNullifier is IZeto, ZetoNullifier, UUPSUpgradeable {
         publicInputs[1] = root;
         publicInputs[2] = output;
 
-        // // Check the proof
+        // Check the proof
         require(
             verifier.verifyProof(proof.pA, proof.pB, proof.pC, publicInputs),
             "Invalid proof"

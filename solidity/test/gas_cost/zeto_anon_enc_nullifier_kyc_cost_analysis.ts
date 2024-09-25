@@ -44,6 +44,7 @@ import { deployZeto } from '../lib/deploy';
 
 const TOTAL_AMOUNT = parseInt(process.env.TOTAL_ROUNDS || '1000');
 const TX_CONCURRENCY = parseInt(process.env.TX_CONCURRENCY || '30');
+const UTXO_PER_TX = parseInt(process.env.UTXO_PER_TX || '2');
 
 describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity using nullifiers and encryption with KYC', function () {
   let deployer: Signer;
@@ -52,8 +53,9 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
   let Charlie: User;
   let erc20: any;
   let zeto: any;
-  const atMostHalfAmount = Math.floor(TOTAL_AMOUNT / 2);
-  const atLeastHalfAmount = atMostHalfAmount + (TOTAL_AMOUNT % 2);
+  const atMostBatchedAmount = Math.floor(TOTAL_AMOUNT / UTXO_PER_TX);
+  const atLeastBatchedAmount =
+    atMostBatchedAmount + (TOTAL_AMOUNT % UTXO_PER_TX);
   let unspentAliceUTXOs: UTXO[] = [];
   let unspentBobUTXOs: UTXO[] = [];
   let mintGasCostHistory: number[] = [];
@@ -126,33 +128,33 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
       const startingBalance = await erc20.balanceOf(Alice.ethAddress);
       const tx = await erc20
         .connect(deployer)
-        .mint(Alice.ethAddress, atMostHalfAmount); // mint to alice the amount of token that can be deposited
+        .mint(Alice.ethAddress, atMostBatchedAmount); // mint to alice the amount of token that can be deposited
       await tx.wait();
 
       const endingBalance = await erc20.balanceOf(Alice.ethAddress);
-      expect(endingBalance - startingBalance).to.be.equal(atMostHalfAmount);
+      expect(endingBalance - startingBalance).to.be.equal(atMostBatchedAmount);
       console.log(
-        `ERC20 successfully minted ${atMostHalfAmount} to Alice for deposit`
+        `ERC20 successfully minted ${atMostBatchedAmount} to Alice for deposit`
       );
       const tx1 = await erc20
         .connect(Alice.signer)
-        .approve(zeto.target, atMostHalfAmount);
+        .approve(zeto.target, atMostBatchedAmount);
       await tx1.wait();
 
       const startingBalanceDep = await erc20.balanceOf(zeto.target);
       const txDep = await erc20
         .connect(deployer)
-        .mint(zeto.target, atLeastHalfAmount); // mint to zeto contract the amount of token that can be minted
+        .mint(zeto.target, atLeastBatchedAmount); // mint to zeto contract the amount of token that can be minted
       await txDep.wait();
       const endingBalanceDep = await erc20.balanceOf(zeto.target);
       expect(endingBalanceDep - startingBalanceDep).to.be.equal(
-        atLeastHalfAmount
+        atLeastBatchedAmount
       );
     });
 
-    it(`Alice deposit ${atMostHalfAmount} token`, async function () {
+    it(`Alice deposit ${atMostBatchedAmount} token`, async function () {
       let promises = [];
-      for (let i = 0; i < atMostHalfAmount; i++) {
+      for (let i = 0; i < atMostBatchedAmount; i++) {
         promises.push(
           (async () => {
             const utxoSingle = newUTXO(1, Alice);
@@ -189,11 +191,13 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
       );
     }).timeout(6000000000000);
 
-    it(`Zeto mint ${atMostHalfAmount + (TOTAL_AMOUNT % 2)} token to Alice in ${
-      Math.floor(atLeastHalfAmount / 2) + (atLeastHalfAmount % 2)
+    it(`Zeto mint ${
+      atMostBatchedAmount + (TOTAL_AMOUNT % 2)
+    } token to Alice in ${
+      Math.floor(atLeastBatchedAmount / 2) + (atLeastBatchedAmount % 2)
     } txs`, async function () {
       const mintRounds =
-        Math.floor(atLeastHalfAmount / 2) + (atLeastHalfAmount % 2);
+        Math.floor(atLeastBatchedAmount / 2) + (atLeastBatchedAmount % 2);
       let promises = [];
       for (let i = 0; i < mintRounds; i++) {
         promises.push(
@@ -201,7 +205,7 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
             const utxo1 = newUTXO(1, Alice);
             let utxo2 = newUTXO(1, Alice);
 
-            if (i === mintRounds - 1 && atLeastHalfAmount % 2 === 1) {
+            if (i === mintRounds - 1 && atLeastBatchedAmount % 2 === 1) {
               utxo2 = newUTXO(0, Alice); // odd number
             }
 
@@ -243,7 +247,7 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
       );
     }).timeout(6000000000000);
 
-    it(`Alice transfer ${TOTAL_AMOUNT} tokens to Bob in ${atLeastHalfAmount} txs`, async function () {
+    it(`Alice transfer ${TOTAL_AMOUNT} tokens to Bob in ${atLeastBatchedAmount} txs`, async function () {
       const totalTxs = unspentAliceUTXOs.length / 2;
       const utxosRoot = await smtAlice.root(); // get the root before all transfer and use it for all the proofs
       let promises = [];

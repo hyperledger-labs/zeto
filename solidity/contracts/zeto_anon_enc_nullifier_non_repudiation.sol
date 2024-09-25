@@ -25,7 +25,7 @@ import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_n
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 
-uint256 constant MAX_BATCH = 10; // batch not supported
+uint256 constant MAX_BATCH = 10;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity, encryption and history masking
 /// @author Kaleido, Inc.
@@ -106,7 +106,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         uint256 root,
         uint256 encryptionNonce,
         uint256[4] memory encryptedValuesForReceiver,
-        uint256[16] memory encryptedValuesForAuthority,
+        uint256[] memory encryptedValuesForAuthority,
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public returns (bool) {
@@ -116,55 +116,113 @@ contract Zeto_AnonEncNullifierNonRepudiation is
             outputs,
             MAX_BATCH
         );
-        if (outputs.length > 2) {
-            revert("batch not supported");
-        }
         require(
             validateTransactionProposal(nullifiers, outputs, root),
             "Invalid transaction proposal"
         );
+        if (nullifiers.length > 2) {
+            require(
+                (encryptedValuesForAuthority.length == 64),
+                "Cipher Text for Authority must have a length of 64 with input or outputs number more than 2 and less than 10"
+            );
+            // construct the public inputs
+            uint256[102] memory publicInputs;
+            uint256 piIndex = 0;
+            // copy the encrypted value, salt and parity bit for receiver
+            for (uint256 i = 0; i < encryptedValuesForReceiver.length; ++i) {
+                publicInputs[piIndex++] = encryptedValuesForReceiver[i];
+            }
+            // copy the encrypted value, salt and parity bit for authority
+            for (uint256 i = 0; i < encryptedValuesForAuthority.length; ++i) {
+                publicInputs[piIndex++] = encryptedValuesForAuthority[i];
+            }
+            // copy input commitments
+            for (uint256 i = 0; i < nullifiers.length; i++) {
+                publicInputs[piIndex++] = nullifiers[i];
+            }
 
-        // construct the public inputs
-        uint256[30] memory publicInputs;
-        uint256 piIndex = 0;
-        // copy the encrypted value, salt and parity bit for receiver
-        for (uint256 i = 0; i < encryptedValuesForReceiver.length; ++i) {
-            publicInputs[piIndex++] = encryptedValuesForReceiver[i];
+            // copy root
+            publicInputs[piIndex++] = root;
+
+            // populate enables
+            for (uint256 i = 0; i < nullifiers.length; i++) {
+                publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
+            }
+
+            // copy output commitments
+            for (uint256 i = 0; i < outputs.length; i++) {
+                publicInputs[piIndex++] = outputs[i];
+            }
+
+            // copy encryption nonce
+            publicInputs[piIndex++] = encryptionNonce;
+
+            // copy arbiter pub key
+            publicInputs[piIndex++] = arbiter[0];
+            publicInputs[piIndex++] = arbiter[1];
+
+            // Check the proof
+            require(
+                batchVerifier.verifyProof(
+                    proof.pA,
+                    proof.pB,
+                    proof.pC,
+                    publicInputs
+                ),
+                "Invalid proof"
+            );
+        } else {
+            require(
+                (encryptedValuesForAuthority.length == 16),
+                "Cipher Text for Authority must have a length of 16 for no more than 2 inputs or outputs"
+            );
+            // construct the public inputs
+            uint256[30] memory publicInputs;
+            uint256 piIndex = 0;
+            // copy the encrypted value, salt and parity bit for receiver
+            for (uint256 i = 0; i < encryptedValuesForReceiver.length; ++i) {
+                publicInputs[piIndex++] = encryptedValuesForReceiver[i];
+            }
+            // copy the encrypted value, salt and parity bit for authority
+            for (uint256 i = 0; i < encryptedValuesForAuthority.length; ++i) {
+                publicInputs[piIndex++] = encryptedValuesForAuthority[i];
+            }
+            // copy input commitments
+            for (uint256 i = 0; i < nullifiers.length; i++) {
+                publicInputs[piIndex++] = nullifiers[i];
+            }
+
+            // copy root
+            publicInputs[piIndex++] = root;
+
+            // populate enables
+            for (uint256 i = 0; i < nullifiers.length; i++) {
+                publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
+            }
+
+            // copy output commitments
+            for (uint256 i = 0; i < outputs.length; i++) {
+                publicInputs[piIndex++] = outputs[i];
+            }
+
+            // copy encryption nonce
+            publicInputs[piIndex++] = encryptionNonce;
+
+            // copy arbiter pub key
+            publicInputs[piIndex++] = arbiter[0];
+            publicInputs[piIndex++] = arbiter[1];
+
+            // Check the proof
+            require(
+                verifier.verifyProof(
+                    proof.pA,
+                    proof.pB,
+                    proof.pC,
+                    publicInputs
+                ),
+                "Invalid proof"
+            );
         }
-        // copy the encrypted value, salt and parity bit for authority
-        for (uint256 i = 0; i < encryptedValuesForAuthority.length; ++i) {
-            publicInputs[piIndex++] = encryptedValuesForAuthority[i];
-        }
-        // copy input commitments
-        for (uint256 i = 0; i < nullifiers.length; i++) {
-            publicInputs[piIndex++] = nullifiers[i];
-        }
-
-        // copy root
-        publicInputs[piIndex++] = root;
-
-        // populate enables
-        for (uint256 i = 0; i < nullifiers.length; i++) {
-            publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
-        }
-
-        // copy output commitments
-        for (uint256 i = 0; i < outputs.length; i++) {
-            publicInputs[piIndex++] = outputs[i];
-        }
-
-        // copy encryption nonce
-        publicInputs[piIndex++] = encryptionNonce;
-
-        // copy arbiter pub key
-        publicInputs[piIndex++] = arbiter[0];
-        publicInputs[piIndex++] = arbiter[1];
-
-        // // Check the proof
-        require(
-            verifier.verifyProof(proof.pA, proof.pB, proof.pC, publicInputs),
-            "Invalid proof"
-        );
 
         // accept the transaction to consume the input UTXOs and produce new UTXOs
         processInputsAndOutputs(nullifiers, outputs);

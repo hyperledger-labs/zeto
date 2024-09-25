@@ -28,7 +28,7 @@ import {Commonlib} from "./lib/common.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-uint256 constant MAX_BATCH = 10; // batch not supported
+uint256 constant MAX_BATCH = 10;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity, and encryption
 /// @author Kaleido, Inc.
@@ -83,40 +83,74 @@ contract Zeto_AnonEnc is
     ) public returns (bool) {
         // Check and pad commitments
         (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
-        if (outputs.length > 2) {
-            revert("batch not supported");
-        }
         require(
             validateTransactionProposal(inputs, outputs, proof),
             "Invalid transaction proposal"
         );
 
-        // construct the public inputs
-        uint256[9] memory publicInputs;
-        uint256 piIndex = 0;
-        // copy the encrypted value, salt and parity bit
-        for (uint256 i = 0; i < encryptedValues.length; ++i) {
-            publicInputs[piIndex++] = encryptedValues[i];
+        if (inputs.length > 2) {
+            // construct the public inputs
+            uint256[25] memory publicInputs;
+            uint256 piIndex = 0;
+            // copy the encrypted value, salt and parity bit
+            for (uint256 i = 0; i < encryptedValues.length; ++i) {
+                publicInputs[piIndex++] = encryptedValues[i];
+            }
+            // copy input commitments
+            for (uint256 i = 0; i < inputs.length; i++) {
+                publicInputs[piIndex++] = inputs[i];
+            }
+
+            // copy output commitments
+            for (uint256 i = 0; i < outputs.length; i++) {
+                publicInputs[piIndex++] = outputs[i];
+            }
+
+            // copy encryption nonce
+            publicInputs[piIndex++] = encryptionNonce;
+
+            // Check the proof
+            require(
+                batchVerifier.verifyProof(
+                    proof.pA,
+                    proof.pB,
+                    proof.pC,
+                    publicInputs
+                ),
+                "Invalid proof"
+            );
+        } else {
+            // construct the public inputs
+            uint256[9] memory publicInputs;
+            uint256 piIndex = 0;
+            // copy the encrypted value, salt and parity bit
+            for (uint256 i = 0; i < encryptedValues.length; ++i) {
+                publicInputs[piIndex++] = encryptedValues[i];
+            }
+            // copy input commitments
+            for (uint256 i = 0; i < inputs.length; i++) {
+                publicInputs[piIndex++] = inputs[i];
+            }
+
+            // copy output commitments
+            for (uint256 i = 0; i < outputs.length; i++) {
+                publicInputs[piIndex++] = outputs[i];
+            }
+
+            // copy encryption nonce
+            publicInputs[piIndex++] = encryptionNonce;
+
+            // Check the proof
+            require(
+                verifier.verifyProof(
+                    proof.pA,
+                    proof.pB,
+                    proof.pC,
+                    publicInputs
+                ),
+                "Invalid proof"
+            );
         }
-        // copy input commitments
-        for (uint256 i = 0; i < inputs.length; i++) {
-            publicInputs[piIndex++] = inputs[i];
-        }
-
-        // copy output commitments
-        for (uint256 i = 0; i < outputs.length; i++) {
-            publicInputs[piIndex++] = outputs[i];
-        }
-
-        // copy encryption nonce
-        publicInputs[piIndex++] = encryptionNonce;
-
-        // Check the proof
-        require(
-            verifier.verifyProof(proof.pA, proof.pB, proof.pC, publicInputs),
-            "Invalid proof"
-        );
-
         processInputsAndOutputs(inputs, outputs);
 
         uint256[] memory encryptedValuesArray = new uint256[](
