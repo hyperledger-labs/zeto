@@ -24,6 +24,7 @@ export async function deployDependencies() {
     depositVerifier,
     withdrawVerifier,
     verifier,
+    batchVerifier,
     smtLib,
     poseidon2,
     poseidon3,
@@ -35,6 +36,7 @@ export async function deployDependencies() {
       verifier.target,
       depositVerifier.target,
       withdrawVerifier.target,
+      batchVerifier.target,
     ],
     libraries: {
       SmtLib: smtLib.target,

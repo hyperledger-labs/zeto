@@ -216,13 +216,14 @@ contract zkDvP {
         if (
             !isEmptyProof(trade.paymentProof) && !isEmptyProof(trade.assetProof)
         ) {
+            uint256[] memory pIns = new uint256[](2);
+            pIns[0] = trade.paymentInputs[0];
+            pIns[1] = trade.paymentInputs[1];
+            uint256[] memory pOuts = new uint256[](2);
+            pOuts[0] = trade.paymentOutputs[0];
+            pOuts[1] = trade.paymentOutputs[1];
             require(
-                paymentToken.transfer(
-                    trade.paymentInputs,
-                    trade.paymentOutputs,
-                    trade.paymentProof,
-                    ""
-                ),
+                paymentToken.transfer(pIns, pOuts, trade.paymentProof, ""),
                 "Payment branch of the trade failed"
             );
             require(

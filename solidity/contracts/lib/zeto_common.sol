@@ -28,6 +28,7 @@ abstract contract ZetoCommon is OwnableUpgradeable {
     error UTXOAlreadySpent(uint256 utxo);
     error UTXODuplicate(uint256 utxo);
     error IdentityNotRegistered(address addr);
+    error UTXOCommitmentsExceededMaximumNumber(uint256 maxAllowed);
 
     // used for multi-step transaction flows that require counterparties
     // to upload proofs. To protect the party that uploads their proof first,
@@ -49,8 +50,8 @@ abstract contract ZetoCommon is OwnableUpgradeable {
     }
 
     function sortInputsAndOutputs(
-        uint256[2] memory inputs,
-        uint256[2] memory outputs
+        uint256[] memory inputs,
+        uint256[] memory outputs
     ) internal pure returns (uint256[] memory, uint256[] memory) {
         uint256[] memory sortedInputs = new uint256[](inputs.length);
         uint256[] memory sortedOutputs = new uint256[](outputs.length);

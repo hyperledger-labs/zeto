@@ -47,8 +47,8 @@ abstract contract ZetoBase is IZetoBase, ZetoCommon {
     }
 
     function validateTransactionProposal(
-        uint256[2] memory inputs,
-        uint256[2] memory outputs,
+        uint256[] memory inputs,
+        uint256[] memory outputs,
         Commonlib.Proof calldata proof
     ) internal view returns (bool) {
         // sort the inputs and outputs to detect duplicates
@@ -100,9 +100,38 @@ abstract contract ZetoBase is IZetoBase, ZetoCommon {
         return true;
     }
 
+    function checkAndPadCommitments(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        uint256 batchMax
+    ) internal pure returns (uint256[] memory, uint256[] memory) {
+        uint256 inputLen = inputs.length;
+        uint256 outputLen = outputs.length;
+
+        // Check if inputs or outputs exceed batchMax and revert with custom error if necessary
+        if (inputLen > batchMax || outputLen > batchMax) {
+            revert UTXOCommitmentsExceededMaximumNumber(batchMax);
+        }
+
+        // Ensure both arrays are padded to the same length
+        uint256 maxLength;
+
+        if (inputLen > 2 || outputLen > 2) {
+            maxLength = batchMax; // Pad both to batchMax if one has more than 2 items
+        } else {
+            maxLength = 2; // Otherwise, pad both to 2
+        }
+
+        // Pad both inputs and outputs to the determined maxLength
+        inputs = Commonlib.padUintArray(inputs, maxLength, 0);
+        outputs = Commonlib.padUintArray(outputs, maxLength, 0);
+
+        return (inputs, outputs);
+    }
+
     function processInputsAndOutputs(
-        uint256[2] memory inputs,
-        uint256[2] memory outputs
+        uint256[] memory inputs,
+        uint256[] memory outputs
     ) internal {
         // accept the transaction to consume the input UTXOs and produce new UTXOs
         for (uint256 i = 0; i < inputs.length; ++i) {
@@ -115,7 +144,10 @@ abstract contract ZetoBase is IZetoBase, ZetoCommon {
 
     // This function is used to mint new UTXOs, as an example implementation,
     // which is only callable by the owner.
-    function _mint(uint256[] memory utxos, bytes calldata data) internal virtual {
+    function _mint(
+        uint256[] memory utxos,
+        bytes calldata data
+    ) internal virtual {
         for (uint256 i = 0; i < utxos.length; ++i) {
             uint256 utxo = utxos[i];
             if (_utxos[utxo] == UTXOStatus.UNSPENT) {

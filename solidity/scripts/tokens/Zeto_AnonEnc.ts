@@ -14,20 +14,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ethers, ignition } from "hardhat";
+import { ethers, ignition } from 'hardhat';
 import zetoModule from '../../ignition/modules/zeto_anon_enc';
 
 export async function deployDependencies() {
   const [deployer] = await ethers.getSigners();
 
-  const { depositVerifier, withdrawVerifier, verifier } = await ignition.deploy(zetoModule);
+  const { depositVerifier, withdrawVerifier, verifier, batchVerifier } =
+    await ignition.deploy(zetoModule);
   return {
     deployer,
     args: [
       await deployer.getAddress(),
       verifier.target,
       depositVerifier.target,
-      withdrawVerifier.target
-    ]
+      withdrawVerifier.target,
+      batchVerifier.target,
+    ],
   };
 }

@@ -134,7 +134,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     );
     const tx2 = await zeto
       .connect(Alice.signer)
-      .deposit(100, outputCommitments[0], encodedProof, "0x");
+      .deposit(100, outputCommitments[0], encodedProof, '0x');
     await tx2.wait();
 
     await smtAlice.add(utxo100.hash, utxo100.hash);
@@ -394,7 +394,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       );
       const tx2 = await zeto
         .connect(unregistered.signer)
-        .deposit(100, outputCommitments[0], encodedProof, "0x");
+        .deposit(100, outputCommitments[0], encodedProof, '0x');
       await tx2.wait();
 
       // Alice tracks the UTXO inside the SMT
@@ -954,7 +954,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
         encryptionNonce,
         encryptedValues,
         encodedProof,
-        "0x"
+        '0x'
       );
     const results: ContractTransactionReceipt | null = await tx.wait();
     console.log(

@@ -14,19 +14,45 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import { SmtLibModule, DepositVerifierModule, WithdrawNullifierVerifierModule } from "./lib/deps";
+import { buildModule } from '@nomicfoundation/hardhat-ignition/modules';
+import {
+  SmtLibModule,
+  DepositVerifierModule,
+  WithdrawNullifierVerifierModule,
+} from './lib/deps';
 
-const VerifierModule = buildModule("Groth16Verifier_AnonNullifierKyc", (m) => {
+const VerifierModule = buildModule('Groth16Verifier_AnonNullifierKyc', (m) => {
   const verifier = m.contract('Groth16Verifier_AnonNullifierKyc', []);
   return { verifier };
 });
 
-export default buildModule("Zeto_AnonNullifierKyc", (m) => {
+const BatchVerifierModule = buildModule(
+  'Groth16Verifier_AnonNullifierKycBatch',
+  (m) => {
+    const batchVerifier = m.contract(
+      'Groth16Verifier_AnonNullifierKycBatch',
+      []
+    );
+    return { batchVerifier };
+  }
+);
+
+export default buildModule('Zeto_AnonNullifierKyc', (m) => {
   const { smtLib, poseidon2, poseidon3 } = m.useModule(SmtLibModule);
   const { verifier } = m.useModule(VerifierModule);
+  const { batchVerifier } = m.useModule(BatchVerifierModule);
   const { verifier: depositVerifier } = m.useModule(DepositVerifierModule);
-  const { verifier: withdrawVerifier } = m.useModule(WithdrawNullifierVerifierModule);
+  const { verifier: withdrawVerifier } = m.useModule(
+    WithdrawNullifierVerifierModule
+  );
 
-  return { depositVerifier, withdrawVerifier, verifier, smtLib, poseidon2, poseidon3 };
+  return {
+    depositVerifier,
+    withdrawVerifier,
+    verifier,
+    batchVerifier,
+    smtLib,
+    poseidon2,
+    poseidon3,
+  };
 });

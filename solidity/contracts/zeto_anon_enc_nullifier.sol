@@ -26,6 +26,8 @@ import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
+uint256 constant MAX_BATCH = 10; // batch not supported
+
 /// @title A sample implementation of a Zeto based fungible token with anonymity, encryption and history masking
 /// @author Kaleido, Inc.
 /// @dev The proof has the following statements:
@@ -77,14 +79,23 @@ contract Zeto_AnonEncNullifier is
      * Emits a {UTXOTransferWithEncryptedValues} event.
      */
     function transfer(
-        uint256[2] memory nullifiers,
-        uint256[2] memory outputs,
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
         uint256 root,
         uint256 encryptionNonce,
         uint256[4] memory encryptedValues,
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public returns (bool) {
+        // Check and pad commitments
+        (nullifiers, outputs) = checkAndPadCommitments(
+            nullifiers,
+            outputs,
+            MAX_BATCH
+        );
+        if (outputs.length > 2) {
+            revert("batch not supported");
+        }
         require(
             validateTransactionProposal(nullifiers, outputs, root),
             "Invalid transaction proposal"
@@ -92,18 +103,31 @@ contract Zeto_AnonEncNullifier is
 
         // construct the public inputs
         uint256[12] memory publicInputs;
-        publicInputs[0] = encryptedValues[0]; // encrypted value for the receiver UTXO
-        publicInputs[1] = encryptedValues[1]; // encrypted salt for the receiver UTXO
-        publicInputs[2] = encryptedValues[2]; // parity bit for the cipher text
-        publicInputs[3] = encryptedValues[3]; // parity bit for the cipher text
-        publicInputs[4] = nullifiers[0];
-        publicInputs[5] = nullifiers[1];
-        publicInputs[6] = root;
-        publicInputs[7] = (nullifiers[0] == 0) ? 0 : 1; // if the first nullifier is empty, disable its MT proof verification
-        publicInputs[8] = (nullifiers[1] == 0) ? 0 : 1; // if the second nullifier is empty, disable its MT proof verification
-        publicInputs[9] = outputs[0];
-        publicInputs[10] = outputs[1];
-        publicInputs[11] = encryptionNonce;
+        uint256 piIndex = 0;
+        // copy the encrypted value, salt and parity bit
+        for (uint256 i = 0; i < encryptedValues.length; ++i) {
+            publicInputs[piIndex++] = encryptedValues[i];
+        }
+        // copy input commitments
+        for (uint256 i = 0; i < nullifiers.length; i++) {
+            publicInputs[piIndex++] = nullifiers[i];
+        }
+
+        // copy root
+        publicInputs[piIndex++] = root;
+
+        // populate enables
+        for (uint256 i = 0; i < nullifiers.length; i++) {
+            publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
+        }
+
+        // copy output commitments
+        for (uint256 i = 0; i < outputs.length; i++) {
+            publicInputs[piIndex++] = outputs[i];
+        }
+
+        // copy encryption nonce
+        publicInputs[piIndex++] = encryptionNonce;
 
         // // Check the proof
         require(
@@ -114,22 +138,16 @@ contract Zeto_AnonEncNullifier is
         // accept the transaction to consume the input UTXOs and produce new UTXOs
         processInputsAndOutputs(nullifiers, outputs);
 
-        uint256[] memory nullifierArray = new uint256[](nullifiers.length);
-        uint256[] memory outputArray = new uint256[](outputs.length);
         uint256[] memory encryptedValuesArray = new uint256[](
             encryptedValues.length
         );
-        for (uint256 i = 0; i < nullifiers.length; ++i) {
-            nullifierArray[i] = nullifiers[i];
-            outputArray[i] = outputs[i];
-        }
         for (uint256 i = 0; i < encryptedValues.length; ++i) {
             encryptedValuesArray[i] = encryptedValues[i];
         }
 
         emit UTXOTransferWithEncryptedValues(
-            nullifierArray,
-            outputArray,
+            nullifiers,
+            outputs,
             encryptionNonce,
             encryptedValuesArray,
             msg.sender,
@@ -152,14 +170,22 @@ contract Zeto_AnonEncNullifier is
 
     function withdraw(
         uint256 amount,
-        uint256[2] memory nullifiers,
+        uint256[] memory nullifiers,
         uint256 output,
         uint256 root,
         Commonlib.Proof calldata proof
     ) public {
-        validateTransactionProposal(nullifiers, [output, 0], root);
+        uint256[] memory outputs = new uint256[](nullifiers.length);
+        outputs[0] = output;
+        // Check and pad commitments
+        (nullifiers, outputs) = checkAndPadCommitments(
+            nullifiers,
+            outputs,
+            MAX_BATCH
+        );
+        validateTransactionProposal(nullifiers, outputs, root);
         _withdrawWithNullifiers(amount, nullifiers, output, root, proof);
-        processInputsAndOutputs(nullifiers, [output, 0]);
+        processInputsAndOutputs(nullifiers, outputs);
     }
 
     function mint(

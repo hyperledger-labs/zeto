@@ -28,6 +28,8 @@ import {Commonlib} from "./lib/common.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
+uint256 constant MAX_BATCH = 10; // batch not supported
+
 /// @title A sample implementation of a Zeto based fungible token with anonymity, and encryption
 /// @author Kaleido, Inc.
 /// @dev The proof has the following statements:
@@ -72,13 +74,18 @@ contract Zeto_AnonEnc is
      * Emits a {UTXOTransferWithEncryptedValues} event.
      */
     function transfer(
-        uint256[2] memory inputs,
-        uint256[2] memory outputs,
+        uint256[] memory inputs,
+        uint256[] memory outputs,
         uint256 encryptionNonce,
         uint256[4] memory encryptedValues,
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public returns (bool) {
+        // Check and pad commitments
+        (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
+        if (outputs.length > 2) {
+            revert("batch not supported");
+        }
         require(
             validateTransactionProposal(inputs, outputs, proof),
             "Invalid transaction proposal"
@@ -86,15 +93,23 @@ contract Zeto_AnonEnc is
 
         // construct the public inputs
         uint256[9] memory publicInputs;
-        publicInputs[0] = encryptedValues[0]; // encrypted value for the receiver UTXO
-        publicInputs[1] = encryptedValues[1]; // encrypted salt for the receiver UTXO
-        publicInputs[2] = encryptedValues[2]; // parity bit for the cipher text
-        publicInputs[3] = encryptedValues[3]; // parity bit for the cipher text
-        publicInputs[4] = inputs[0];
-        publicInputs[5] = inputs[1];
-        publicInputs[6] = outputs[0];
-        publicInputs[7] = outputs[1];
-        publicInputs[8] = encryptionNonce;
+        uint256 piIndex = 0;
+        // copy the encrypted value, salt and parity bit
+        for (uint256 i = 0; i < encryptedValues.length; ++i) {
+            publicInputs[piIndex++] = encryptedValues[i];
+        }
+        // copy input commitments
+        for (uint256 i = 0; i < inputs.length; i++) {
+            publicInputs[piIndex++] = inputs[i];
+        }
+
+        // copy output commitments
+        for (uint256 i = 0; i < outputs.length; i++) {
+            publicInputs[piIndex++] = outputs[i];
+        }
+
+        // copy encryption nonce
+        publicInputs[piIndex++] = encryptionNonce;
 
         // Check the proof
         require(
@@ -104,22 +119,16 @@ contract Zeto_AnonEnc is
 
         processInputsAndOutputs(inputs, outputs);
 
-        uint256[] memory inputArray = new uint256[](inputs.length);
-        uint256[] memory outputArray = new uint256[](outputs.length);
         uint256[] memory encryptedValuesArray = new uint256[](
             encryptedValues.length
         );
-        for (uint256 i = 0; i < inputs.length; ++i) {
-            inputArray[i] = inputs[i];
-            outputArray[i] = outputs[i];
-        }
         for (uint256 i = 0; i < encryptedValues.length; ++i) {
             encryptedValuesArray[i] = encryptedValues[i];
         }
 
         emit UTXOTransferWithEncryptedValues(
-            inputArray,
-            outputArray,
+            inputs,
+            outputs,
             encryptionNonce,
             encryptedValuesArray,
             msg.sender,
@@ -142,13 +151,17 @@ contract Zeto_AnonEnc is
 
     function withdraw(
         uint256 amount,
-        uint256[2] memory inputs,
+        uint256[] memory inputs,
         uint256 output,
         Commonlib.Proof calldata proof
     ) public {
-        validateTransactionProposal(inputs, [output, 0], proof);
+        uint256[] memory outputs = new uint256[](inputs.length);
+        outputs[0] = output;
+        // Check and pad commitments
+        (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
+        validateTransactionProposal(inputs, outputs, proof);
         _withdraw(amount, inputs, output, proof);
-        processInputsAndOutputs(inputs, [output, 0]);
+        processInputsAndOutputs(inputs, outputs);
     }
 
     function mint(

@@ -25,6 +25,8 @@ import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_n
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 
+uint256 constant MAX_BATCH = 10; // batch not supported
+
 /// @title A sample implementation of a Zeto based fungible token with anonymity, encryption and history masking
 /// @author Kaleido, Inc.
 /// @dev The proof has the following statements:
@@ -99,8 +101,8 @@ contract Zeto_AnonEncNullifierNonRepudiation is
      * Emits a {UTXOTransferNonRepudiation} event.
      */
     function transfer(
-        uint256[2] memory nullifiers,
-        uint256[2] memory outputs,
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
         uint256 root,
         uint256 encryptionNonce,
         uint256[4] memory encryptedValuesForReceiver,
@@ -108,6 +110,15 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public returns (bool) {
+        // Check and pad commitments
+        (nullifiers, outputs) = checkAndPadCommitments(
+            nullifiers,
+            outputs,
+            MAX_BATCH
+        );
+        if (outputs.length > 2) {
+            revert("batch not supported");
+        }
         require(
             validateTransactionProposal(nullifiers, outputs, root),
             "Invalid transaction proposal"
@@ -115,36 +126,39 @@ contract Zeto_AnonEncNullifierNonRepudiation is
 
         // construct the public inputs
         uint256[30] memory publicInputs;
-        publicInputs[0] = encryptedValuesForReceiver[0]; // encrypted value for the receiver UTXO
-        publicInputs[1] = encryptedValuesForReceiver[1]; // encrypted salt for the receiver UTXO
-        publicInputs[2] = encryptedValuesForReceiver[2]; // parity bit for the cipher text
-        publicInputs[3] = encryptedValuesForReceiver[3]; // parity bit for the cipher text
-        publicInputs[4] = encryptedValuesForAuthority[0]; // encrypted input owner public key[0]
-        publicInputs[5] = encryptedValuesForAuthority[1]; // encrypted input owner public key[1]
-        publicInputs[6] = encryptedValuesForAuthority[2]; // encrypted input value[0]
-        publicInputs[7] = encryptedValuesForAuthority[3]; // encrypted input salt[0]
-        publicInputs[8] = encryptedValuesForAuthority[4]; // encrypted input value[1]
-        publicInputs[9] = encryptedValuesForAuthority[5]; // encrypted input salt[1]
-        publicInputs[10] = encryptedValuesForAuthority[6]; // encrypted first output owner public key[0]
-        publicInputs[11] = encryptedValuesForAuthority[7]; // encrypted first output owner public key[1]
-        publicInputs[12] = encryptedValuesForAuthority[8]; // encrypted second output owner public key[0]
-        publicInputs[13] = encryptedValuesForAuthority[9]; // encrypted second output owner public key[1]
-        publicInputs[14] = encryptedValuesForAuthority[10]; // encrypted output value[0]
-        publicInputs[15] = encryptedValuesForAuthority[11]; // encrypted output salt[0]
-        publicInputs[16] = encryptedValuesForAuthority[12]; // encrypted output value[1]
-        publicInputs[17] = encryptedValuesForAuthority[13]; // encrypted output salt[1]
-        publicInputs[18] = encryptedValuesForAuthority[14]; // parity bit for the cipher text
-        publicInputs[19] = encryptedValuesForAuthority[15]; // parity bit for the cipher text
-        publicInputs[20] = nullifiers[0];
-        publicInputs[21] = nullifiers[1];
-        publicInputs[22] = root;
-        publicInputs[23] = (nullifiers[0] == 0) ? 0 : 1; // if the first nullifier is empty, disable its MT proof verification
-        publicInputs[24] = (nullifiers[1] == 0) ? 0 : 1; // if the second nullifier is empty, disable its MT proof verification
-        publicInputs[25] = outputs[0];
-        publicInputs[26] = outputs[1];
-        publicInputs[27] = encryptionNonce;
-        publicInputs[28] = arbiter[0];
-        publicInputs[29] = arbiter[1];
+        uint256 piIndex = 0;
+        // copy the encrypted value, salt and parity bit for receiver
+        for (uint256 i = 0; i < encryptedValuesForReceiver.length; ++i) {
+            publicInputs[piIndex++] = encryptedValuesForReceiver[i];
+        }
+        // copy the encrypted value, salt and parity bit for authority
+        for (uint256 i = 0; i < encryptedValuesForAuthority.length; ++i) {
+            publicInputs[piIndex++] = encryptedValuesForAuthority[i];
+        }
+        // copy input commitments
+        for (uint256 i = 0; i < nullifiers.length; i++) {
+            publicInputs[piIndex++] = nullifiers[i];
+        }
+
+        // copy root
+        publicInputs[piIndex++] = root;
+
+        // populate enables
+        for (uint256 i = 0; i < nullifiers.length; i++) {
+            publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
+        }
+
+        // copy output commitments
+        for (uint256 i = 0; i < outputs.length; i++) {
+            publicInputs[piIndex++] = outputs[i];
+        }
+
+        // copy encryption nonce
+        publicInputs[piIndex++] = encryptionNonce;
+
+        // copy arbiter pub key
+        publicInputs[piIndex++] = arbiter[0];
+        publicInputs[piIndex++] = arbiter[1];
 
         // // Check the proof
         require(
@@ -155,18 +169,12 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         // accept the transaction to consume the input UTXOs and produce new UTXOs
         processInputsAndOutputs(nullifiers, outputs);
 
-        uint256[] memory nullifierArray = new uint256[](nullifiers.length);
-        uint256[] memory outputArray = new uint256[](outputs.length);
         uint256[] memory encryptedValuesReceiverArray = new uint256[](
             encryptedValuesForReceiver.length
         );
         uint256[] memory encryptedValuesAuthorityArray = new uint256[](
             encryptedValuesForAuthority.length
         );
-        for (uint256 i = 0; i < nullifiers.length; ++i) {
-            nullifierArray[i] = nullifiers[i];
-            outputArray[i] = outputs[i];
-        }
         for (uint256 i = 0; i < encryptedValuesForReceiver.length; ++i) {
             encryptedValuesReceiverArray[i] = encryptedValuesForReceiver[i];
         }
@@ -175,8 +183,8 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         }
 
         emit UTXOTransferNonRepudiation(
-            nullifierArray,
-            outputArray,
+            nullifiers,
+            outputs,
             encryptionNonce,
             encryptedValuesReceiverArray,
             encryptedValuesAuthorityArray,
@@ -200,14 +208,22 @@ contract Zeto_AnonEncNullifierNonRepudiation is
 
     function withdraw(
         uint256 amount,
-        uint256[2] memory nullifiers,
+        uint256[] memory nullifiers,
         uint256 output,
         uint256 root,
         Commonlib.Proof calldata proof
     ) public {
-        validateTransactionProposal(nullifiers, [output, 0], root);
+        uint256[] memory outputs = new uint256[](nullifiers.length);
+        outputs[0] = output;
+        // Check and pad commitments
+        (nullifiers, outputs) = checkAndPadCommitments(
+            nullifiers,
+            outputs,
+            MAX_BATCH
+        );
+        validateTransactionProposal(nullifiers, outputs, root);
         _withdrawWithNullifiers(amount, nullifiers, output, root, proof);
-        processInputsAndOutputs(nullifiers, [output, 0]);
+        processInputsAndOutputs(nullifiers, outputs);
     }
 
     function mint(

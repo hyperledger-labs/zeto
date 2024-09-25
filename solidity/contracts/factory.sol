@@ -53,6 +53,7 @@ contract ZetoTokenFactory is Ownable {
         );
         // the depositVerifier and withdrawVerifier are optional
         // for the non-fungible token implementations
+        // TODO batchVerifier to be implemented for non-fungible token
         implementations[name] = implementation;
     }
 
@@ -74,6 +75,10 @@ contract ZetoTokenFactory is Ownable {
         require(
             args.withdrawVerifier != address(0),
             "Factory: withdrawVerifier address is required"
+        );
+        require(
+            args.batchVerifier != address(0),
+            "Factory: batchVerifier address is required"
         );
         address instance = Clones.clone(args.implementation);
         require(

@@ -102,9 +102,8 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
   }
 
   log(circuit, `Compiling circuit`);
-
   const { cmOut, cmErr } = await execAsync(
-    `circom ${circomInput} --output ${provingKeysRoot} --r1cs`
+    `circom ${circomInput} --output ${circuitsRoot} --sym --wasm`
   );
   if (verbose) {
     if (cmOut) {
@@ -112,6 +111,21 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
     }
     if (cmErr) {
       log(circuit, 'compile error:\n' + cmErr);
+    }
+  }
+  if (compileOnly) {
+    return;
+  }
+
+  const { ctOut, ctErr } = await execAsync(
+    `circom ${circomInput} --output ${provingKeysRoot} --r1cs`
+  );
+  if (verbose) {
+    if (ctOut) {
+      log(circuit, 'constraint output:\n' + ctOut);
+    }
+    if (ctErr) {
+      log(circuit, 'constraint error:\n' + ctErr);
     }
   }
 

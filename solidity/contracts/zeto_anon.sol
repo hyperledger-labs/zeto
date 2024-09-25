@@ -28,6 +28,8 @@ import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
+uint256 constant MAX_BATCH = 10;
+
 /// @title A sample implementation of a Zeto based fungible token with anonymity and no encryption
 /// @author Kaleido, Inc.
 /// @dev The proof has the following statements:
@@ -70,31 +72,61 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public returns (bool) {
-        uint256 inputLen = inputs.length;
-        uint256 outputLen = outputs.length;
-
-        require(
-            (inputLen <= 10 && outputsLen <= 10),
-            "Inputs or outputs exceeded maximum number of 10"
-        );
+        // Check and pad inputs and outputs based on the max size
+        (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
 
         require(
             validateTransactionProposal(inputs, outputs, proof),
             "Invalid transaction proposal"
         );
 
-        // construct the public inputs
-        uint256[4] memory publicInputs;
-        publicInputs[0] = inputs[0];
-        publicInputs[1] = inputs[1];
-        publicInputs[2] = outputs[0];
-        publicInputs[3] = outputs[1];
-
         // Check the proof
-        require(
-            verifier.verifyProof(proof.pA, proof.pB, proof.pC, publicInputs),
-            "Invalid proof"
-        );
+        if (inputs.length > 2) {
+            // construct the public inputs
+            uint256[20] memory publicInputs;
+            uint256 piIndex = 0;
+            // copy input commitments
+            for (uint256 i = 0; i < inputs.length; i++) {
+                publicInputs[piIndex++] = inputs[i];
+            }
+
+            // copy output commitments
+            for (uint256 i = 0; i < outputs.length; i++) {
+                publicInputs[piIndex++] = outputs[i];
+            }
+
+            require(
+                batchVerifier.verifyProof(
+                    proof.pA,
+                    proof.pB,
+                    proof.pC,
+                    publicInputs
+                ),
+                "Invalid proof"
+            );
+        } else {
+            // construct the public inputs
+            uint256[4] memory publicInputs;
+            uint256 piIndex = 0;
+            // copy input commitments
+            for (uint256 i = 0; i < inputs.length; i++) {
+                publicInputs[piIndex++] = inputs[i];
+            }
+
+            // copy output commitments
+            for (uint256 i = 0; i < outputs.length; i++) {
+                publicInputs[piIndex++] = outputs[i];
+            }
+            require(
+                verifier.verifyProof(
+                    proof.pA,
+                    proof.pB,
+                    proof.pC,
+                    publicInputs
+                ),
+                "Invalid proof"
+            );
+        }
 
         processInputsAndOutputs(inputs, outputs);
 
@@ -123,13 +155,17 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
 
     function withdraw(
         uint256 amount,
-        uint256[2] memory inputs,
+        uint256[] memory inputs,
         uint256 output,
         Commonlib.Proof calldata proof
     ) public {
-        validateTransactionProposal(inputs, [output, 0], proof);
+        // Check and pad inputs and outputs based on the max size
+        uint256[] memory outputs = new uint256[](inputs.length);
+        outputs[0] = output;
+        (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
+        validateTransactionProposal(inputs, outputs, proof);
         _withdraw(amount, inputs, output, proof);
-        processInputsAndOutputs(inputs, [output, 0]);
+        processInputsAndOutputs(inputs, outputs);
     }
 
     function mint(
