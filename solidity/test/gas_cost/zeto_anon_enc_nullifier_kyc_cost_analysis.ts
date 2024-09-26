@@ -44,10 +44,8 @@ import {
 } from '../utils';
 import { deployZeto } from '../lib/deploy';
 
-const TOTAL_AMOUNT = parseInt(process.env.TOTAL_ROUNDS || '40');
+const TOTAL_AMOUNT = parseInt(process.env.TOTAL_ROUNDS || '1000');
 const TX_CONCURRENCY = parseInt(process.env.TX_CONCURRENCY || '30');
-
-const UTXO_PER_TX = 10;
 
 describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity using nullifiers and encryption with KYC', function () {
   let deployer: Signer;
@@ -194,33 +192,39 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
     }).timeout(6000000000000);
 
     it(`Zeto mint ${atMostHalfAmount + (TOTAL_AMOUNT % 2)} token to Alice in ${
-      Math.floor(atLeastHalfAmount / UTXO_PER_TX) +
-      (atLeastHalfAmount % 2 !== 0 ? 1 : 0)
+      Math.floor(atLeastHalfAmount / 2) + (atLeastHalfAmount % 2)
     } txs`, async function () {
       const mintRounds =
-        Math.floor(atLeastHalfAmount / UTXO_PER_TX) +
-        (atLeastHalfAmount % 2 !== 0 ? 1 : 0);
+        Math.floor(atLeastHalfAmount / 2) + (atLeastHalfAmount % 2);
       let promises = [];
       for (let i = 0; i < mintRounds; i++) {
         promises.push(
           (async () => {
-            const mintUTXOs = [];
-            for (let j = 0; j < UTXO_PER_TX; j++) {
-              if (
-                i !== mintRounds - 1 ||
-                atLeastHalfAmount % 2 === 0 ||
-                j < atLeastHalfAmount % 2
-              ) {
-                const _new_utxo = newUTXO(1, Alice);
-                mintUTXOs.push(_new_utxo);
+            const utxo1 = newUTXO(1, Alice);
+            let utxo2 = newUTXO(1, Alice);
 
-                await smtAlice.add(_new_utxo.hash, _new_utxo.hash);
-                await smtBob.add(_new_utxo.hash, _new_utxo.hash);
-                unspentAliceUTXOs.push(_new_utxo);
-              }
+            if (i === mintRounds - 1 && atLeastHalfAmount % 2 === 1) {
+              utxo2 = newUTXO(0, Alice); // odd number
             }
 
-            await doMint(zeto, deployer, mintUTXOs, mintGasCostHistory);
+            const result1 = await doMint(
+              zeto,
+              deployer,
+              [utxo1, utxo2],
+              mintGasCostHistory
+            );
+            const mintEvents = parseUTXOEvents(zeto, result1);
+            const [_utxo1, _utxo2] = mintEvents[0].outputs;
+
+            // Add UTXOs to the sets
+            await smtAlice.add(_utxo1, _utxo1);
+            await smtBob.add(_utxo1, _utxo1);
+            await smtAlice.add(_utxo2, _utxo2);
+            await smtBob.add(_utxo2, _utxo2);
+
+            // Save unspent UTXOs
+            unspentAliceUTXOs.push(utxo1);
+            unspentAliceUTXOs.push(utxo2);
           })()
         );
 
@@ -241,19 +245,8 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
       );
     }).timeout(6000000000000);
 
-    it(`Alice transfer ${TOTAL_AMOUNT} tokens to Bob in ${
-      Math.floor(unspentAliceUTXOs.length / UTXO_PER_TX) +
-        (unspentAliceUTXOs.length % UTXO_PER_TX) !==
-      0
-        ? 1
-        : 0
-    } txs`, async function () {
-      const totalTxs =
-        Math.floor(unspentAliceUTXOs.length / UTXO_PER_TX) +
-          (unspentAliceUTXOs.length % UTXO_PER_TX) !==
-        0
-          ? 1
-          : 0;
+    it(`Alice transfer ${TOTAL_AMOUNT} tokens to Bob in ${atLeastHalfAmount} txs`, async function () {
+      const totalTxs = Math.floor(unspentAliceUTXOs.length / 2);
       const utxosRoot = await smtAlice.root(); // get the root before all transfer and use it for all the proofs
       let promises = [];
       // Alice generates inclusion proofs for the identities in the transaction
@@ -268,61 +261,57 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
       );
       const identityMerkleProofs = [
         proof3.siblings.map((s) => s.bigInt()), // identity proof for the sender (Alice)
+        proof4.siblings.map((s) => s.bigInt()), // identity proof for the 1st owner of the output UTXO (Bob)
+        proof4.siblings.map((s) => s.bigInt()), // identity proof for the 2nd owner of the output UTXO (Bob)
       ];
-
-      const batchSize = UTXO_PER_TX > 2 ? 10 : 2;
-
-      for (let i = 0; i < batchSize; i++) {
-        identityMerkleProofs.push(proof4.siblings.map((s) => s.bigInt())); // identity proof for the output utxos (Bob)
-      }
 
       for (let i = 0; i < totalTxs; i++) {
         promises.push(
           (async () => {
-            const _inUtxos = [];
-            const _outUtxos = [];
-            const _mtps = [];
-            const _nullifiers = [];
-            for (let j = 0; j < UTXO_PER_TX; j++) {
-              if (
-                i !== totalTxs - 1 ||
-                unspentAliceUTXOs.length % UTXO_PER_TX === 0 ||
-                j < unspentAliceUTXOs.length % UTXO_PER_TX
-              ) {
-                const _iUtxo = unspentAliceUTXOs[i * UTXO_PER_TX + j];
-                _inUtxos.push(_iUtxo);
-                _nullifiers.push(newNullifier(_iUtxo, Alice));
-                // Alice generates inclusion proofs for the UTXOs to be spent
-                const inProof = await smtAlice.generateCircomVerifierProof(
-                  _iUtxo.hash,
-                  utxosRoot
-                );
-                _mtps.push(inProof.siblings.map((s) => s.bigInt()));
-                const _oUtox = newUTXO(1, Bob);
-                _outUtxos.push(_oUtox);
-                await smtAlice.add(_oUtox.hash, _oUtox.hash);
-                await smtBob.add(_oUtox.hash, _oUtox.hash);
-                unspentBobUTXOs.push(_oUtox);
-              }
+            const utxo1 = unspentAliceUTXOs[i * 2];
+            const utxo2 = unspentAliceUTXOs[i * 2 + 1];
+
+            const newUtxo1 = newUTXO(1, Bob);
+            let newUtxo2 = newUTXO(1, Bob);
+            if (i === totalTxs - 1 && TOTAL_AMOUNT % 2 === 1) {
+              // last round
+              newUtxo2 = newUTXO(0, Bob); // odd number
             }
-            const owners = [];
-            for (let i = 0; i < batchSize; i++) {
-              owners.push(Bob);
-            }
+            const nullifier1 = newNullifier(utxo1, Alice);
+            const nullifier2 = newNullifier(utxo2, Alice);
+            // Alice generates inclusion proofs for the UTXOs to be spent
+            const proof1 = await smtAlice.generateCircomVerifierProof(
+              utxo1.hash,
+              utxosRoot
+            );
+            const proof2 = await smtAlice.generateCircomVerifierProof(
+              utxo2.hash,
+              utxosRoot
+            );
+            const utxoMerkleProofs = [
+              proof1.siblings.map((s) => s.bigInt()),
+              proof2.siblings.map((s) => s.bigInt()),
+            ];
 
             // Alice transfers her UTXOs to Bob
             await doTransfer(
               Alice,
-              _inUtxos,
-              _nullifiers,
-              _outUtxos,
+              [utxo1, utxo2],
+              [nullifier1, nullifier2],
+              [newUtxo1, newUtxo2],
               utxosRoot.bigInt(),
-              _mtps,
+              utxoMerkleProofs,
               identitiesRoot.bigInt(),
               identityMerkleProofs,
-              owners,
+              [Bob, Bob],
               transferGasCostHistory
             );
+            await smtAlice.add(newUtxo1.hash, newUtxo1.hash);
+            await smtBob.add(newUtxo1.hash, newUtxo1.hash);
+            await smtAlice.add(newUtxo2.hash, newUtxo2.hash);
+            await smtBob.add(newUtxo2.hash, newUtxo2.hash);
+            unspentBobUTXOs.push(newUtxo1);
+            unspentBobUTXOs.push(newUtxo2);
           })()
         );
 
@@ -420,8 +409,8 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
     owners: User[],
     gasHistories: number[]
   ) {
-    let nullifiers: BigNumberish[];
-    let outputCommitments: BigNumberish[];
+    let nullifiers: [BigNumberish, BigNumberish];
+    let outputCommitments: [BigNumberish, BigNumberish];
     let encryptedValues: BigNumberish[];
     let encryptionNonce: BigNumberish;
     let encodedProof: any;
@@ -459,14 +448,7 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
       gasHistories.push(txResult?.gasUsed);
     }
     // add the clear text value so that it can be used by tests to compare with the decrypted value
-    return {
-      txResult,
-      expectedPlainText: outputs.reduce((acc, o, i) => {
-        acc.push(BigInt(o.value || 0n) as BigNumberish);
-        acc.push((o.salt || 0n) as BigNumberish);
-        return acc;
-      }, [] as BigNumberish[]),
-    };
+    return { txResult, plainTextSalt: outputs[0].salt };
   }
 
   async function prepareProof(
@@ -484,18 +466,22 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
       BigNumberish,
       BigNumberish
     ];
-    const inputCommitments: BigNumberish[] = inputs.map(
+    const inputCommitments: [BigNumberish, BigNumberish] = inputs.map(
       (input) => input.hash
-    ) as BigNumberish[];
+    ) as [BigNumberish, BigNumberish];
     const inputValues = inputs.map((input) => BigInt(input.value || 0n));
     const inputSalts = inputs.map((input) => input.salt || 0n);
-    const outputCommitments: BigNumberish[] = outputs.map(
+    const outputCommitments: [BigNumberish, BigNumberish] = outputs.map(
       (output) => output.hash
-    ) as BigNumberish[];
+    ) as [BigNumberish, BigNumberish];
     const outputValues = outputs.map((output) => BigInt(output.value || 0n));
-    const outputOwnerPublicKeys: BigNumberish[][] = owners.map(
-      (owner) => owner.babyJubPublicKey
-    ) as BigNumberish[][];
+    const outputOwnerPublicKeys: [
+      [BigNumberish, BigNumberish],
+      [BigNumberish, BigNumberish]
+    ] = owners.map((owner) => owner.babyJubPublicKey) as [
+      [BigNumberish, BigNumberish],
+      [BigNumberish, BigNumberish]
+    ];
     const encryptionNonce: BigNumberish = newEncryptionNonce() as BigNumberish;
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
@@ -509,7 +495,7 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
       inputSalts,
       inputOwnerPrivateKey: signer.formattedPrivateKey,
       utxosRoot,
-      enabled: nullifiers.map((n) => (n !== 0n ? 1 : 0)),
+      enabled: [nullifiers[0] !== 0n ? 1 : 0, nullifiers[1] !== 0n ? 1 : 0],
       utxosMerkleProof,
       identitiesRoot,
       identitiesMerkleProof,
@@ -549,8 +535,8 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
 
   async function sendTx(
     signer: User,
-    nullifiers: BigNumberish[],
-    outputCommitments: BigNumberish[],
+    nullifiers: [BigNumberish, BigNumberish],
+    outputCommitments: [BigNumberish, BigNumberish],
     root: BigNumberish,
     encryptedValues: BigNumberish[],
     encryptionNonce: BigNumberish,
