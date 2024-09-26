@@ -53,11 +53,7 @@ abstract contract ZetoCommon is OwnableUpgradeable {
                 lockedProofs[proofHash] == msg.sender,
             "Proof already locked by another party"
         );
-        if (delegate != address(0)) {
-            lockedProofs[proofHash] = delegate;
-        } else {
-            lockedProofs[proofHash] = msg.sender;
-        }
+        lockedProofs[proofHash] = delegate;
     }
 
     function sortInputsAndOutputs(
