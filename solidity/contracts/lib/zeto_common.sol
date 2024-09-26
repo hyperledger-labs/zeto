@@ -48,7 +48,11 @@ abstract contract ZetoCommon is OwnableUpgradeable {
         address delegate
     ) public {
         bytes32 proofHash = Commonlib.getProofHash(proof);
-        require(lockedProofs[proofHash] == address(0), "Proof already locked");
+        require(
+            lockedProofs[proofHash] == address(0) ||
+                lockedProofs[proofHash] == msg.sender,
+            "Proof already locked by another party"
+        );
         if (delegate != address(0)) {
             lockedProofs[proofHash] = delegate;
         } else {
