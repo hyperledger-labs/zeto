@@ -77,7 +77,7 @@ contract Zeto_AnonEnc is
         uint256[] memory inputs,
         uint256[] memory outputs,
         uint256 encryptionNonce,
-        uint256[4] memory encryptedValues,
+        uint256[] memory encryptedValues,
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public returns (bool) {
@@ -90,7 +90,7 @@ contract Zeto_AnonEnc is
 
         if (inputs.length > 2) {
             // construct the public inputs
-            uint256[25] memory publicInputs;
+            uint256[43] memory publicInputs;
             uint256 piIndex = 0;
             // copy the encrypted value, salt and parity bit
             for (uint256 i = 0; i < encryptedValues.length; ++i) {
@@ -121,7 +121,7 @@ contract Zeto_AnonEnc is
             );
         } else {
             // construct the public inputs
-            uint256[9] memory publicInputs;
+            uint256[12] memory publicInputs;
             uint256 piIndex = 0;
             // copy the encrypted value, salt and parity bit
             for (uint256 i = 0; i < encryptedValues.length; ++i) {

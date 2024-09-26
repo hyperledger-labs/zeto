@@ -943,7 +943,14 @@ describe('Zeto based fungible token with anonymity, KYC, using nullifiers withou
       encodedProof
     );
     // add the clear text value so that it can be used by tests to compare with the decrypted value
-    return { txResult, plainTextSalt: outputs[0].salt };
+    return {
+      txResult,
+      expectedPlainText: outputs.reduce((acc, o, i) => {
+        acc.push(BigInt(o.value || 0n) as BigNumberish);
+        acc.push((o.salt || 0n) as BigNumberish);
+        return acc;
+      }, [] as BigNumberish[]),
+    };
   }
 
   async function prepareProof(

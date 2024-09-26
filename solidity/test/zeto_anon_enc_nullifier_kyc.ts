@@ -216,32 +216,30 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       events[0].encryptedValues,
       sharedKey,
       events[0].encryptionNonce,
-      2
+      20
     );
-    expect(plainText).to.deep.equal([8n, result.plainTextSalt]);
-    // only the first utxo can be decrypted
-    const hash = poseidonHash([
-      BigInt(plainText[0]),
-      plainText[1],
-      Bob.babyJubPublicKey[0],
-      Bob.babyJubPublicKey[1],
-    ]);
-    expect(hash).to.equal(incomingUTXOs[0]);
-    await smtAlice.add(incomingUTXOs[0], incomingUTXOs[0]);
-    await smtBob.add(incomingUTXOs[0], incomingUTXOs[0]);
-    await smtUnregistered.add(incomingUTXOs[0], incomingUTXOs[0]);
+    expect(plainText).to.deep.equal(result.expectedPlainText);
 
     // check the non-empty output hashes are correct
-    for (let i = 1; i < outputUtxos.length; i++) {
-      expect(incomingUTXOs[i]).to.equal(outputUtxos[i].hash);
+    for (let i = 0; i < outputUtxos.length; i++) {
+      // Bob uses the information received from Alice to reconstruct the UTXO sent to him
+      const hash = poseidonHash([
+        BigInt(plainText[2 * i]),
+        plainText[2 * i + 1],
+        outputOwners[i].babyJubPublicKey[0],
+        outputOwners[i].babyJubPublicKey[1],
+      ]);
+      expect(incomingUTXOs[i]).to.equal(hash);
       await smtAlice.add(incomingUTXOs[i], incomingUTXOs[i]);
       await smtBob.add(incomingUTXOs[i], incomingUTXOs[i]);
       await smtUnregistered.add(incomingUTXOs[i], incomingUTXOs[i]);
     }
 
-    // check empty hashes are empty
+    // check empty values, salt and hashes are empty
     for (let i = outputUtxos.length; i < 10; i++) {
       expect(incomingUTXOs[i]).to.equal(0);
+      expect(plainText[2 * i]).to.equal(0);
+      expect(plainText[2 * i + 1]).to.equal(0);
     }
   });
 
@@ -374,9 +372,9 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       events[0].encryptedValues,
       sharedKey,
       events[0].encryptionNonce,
-      2
+      4
     );
-    expect(plainText).to.deep.equal([25n, result2.plainTextSalt]);
+    expect(plainText).to.deep.equal(result2.expectedPlainText);
 
     // Bob uses the decrypted values to construct the UTXO received from the transaction
     utxo3 = newUTXO(Number(plainText[0]), Bob, plainText[1]);
@@ -974,7 +972,14 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       encodedProof
     );
     // add the clear text value so that it can be used by tests to compare with the decrypted value
-    return { txResult, plainTextSalt: outputs[0].salt };
+    return {
+      txResult,
+      expectedPlainText: outputs.reduce((acc, o, i) => {
+        acc.push(BigInt(o.value || 0n) as BigNumberish);
+        acc.push((o.salt || 0n) as BigNumberish);
+        return acc;
+      }, [] as BigNumberish[]),
+    };
   }
 
   async function prepareProof(
@@ -1010,7 +1015,9 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     });
     let circuitToUse = circuit;
     let provingKeyToUse = provingKey;
+    let isBatch = false;
     if (inputCommitments.length > 2 || outputCommitments.length > 2) {
+      isBatch = true;
       circuitToUse = batchCircuit;
       provingKeyToUse = batchProvingKey;
     }
@@ -1047,7 +1054,9 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     );
 
     const encodedProof = encodeProof(proof);
-    const encryptedValues = publicSignals.slice(0, 4);
+    const encryptedValues = isBatch
+      ? publicSignals.slice(0, 22)
+      : publicSignals.slice(0, 7);
     return {
       inputCommitments,
       outputCommitments,

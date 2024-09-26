@@ -105,7 +105,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         uint256[] memory outputs,
         uint256 root,
         uint256 encryptionNonce,
-        uint256[4] memory encryptedValuesForReceiver,
+        uint256[] memory encryptedValuesForReceiver,
         uint256[] memory encryptedValuesForAuthority,
         Commonlib.Proof calldata proof,
         bytes calldata data
@@ -126,7 +126,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is
                 "Cipher Text for Authority must have a length of 64 with input or outputs number more than 2 and less than 10"
             );
             // construct the public inputs
-            uint256[102] memory publicInputs;
+            uint256[120] memory publicInputs;
             uint256 piIndex = 0;
             // copy the encrypted value, salt and parity bit for receiver
             for (uint256 i = 0; i < encryptedValuesForReceiver.length; ++i) {
@@ -177,7 +177,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is
                 "Cipher Text for Authority must have a length of 16 for no more than 2 inputs or outputs"
             );
             // construct the public inputs
-            uint256[30] memory publicInputs;
+            uint256[33] memory publicInputs;
             uint256 piIndex = 0;
             // copy the encrypted value, salt and parity bit for receiver
             for (uint256 i = 0; i < encryptedValuesForReceiver.length; ++i) {

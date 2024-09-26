@@ -40,8 +40,14 @@ template Zeto(nInputs, nOutputs) {
   signal input outputOwnerPublicKeys[nOutputs][2];
   signal input encryptionNonce;
 
-  // the output for a 2-element input (value and salt) encryption is a 4-element array
-  signal output cipherText[4];
+  // the output for encrypted output values and salts
+  var cLen = 2 * nOutputs;
+  if (cLen % 3 != 0) {
+    cLen += (3 - (cLen % 3));
+  }
+  cLen++;
+  signal output cipherText[cLen];
+
 
   // derive the sender's public key from the secret input
   // for the sender's private key. This step demonstrates
@@ -86,15 +92,15 @@ template Zeto(nInputs, nOutputs) {
   sharedSecret[0] = ecdh.sharedKey[0];
   sharedSecret[1] = ecdh.sharedKey[1];
 
-  // encrypt the value for the receiver
-  component encrypt = SymmetricEncrypt(2);
-  // our circuit requires that the output UTXO for the receiver must be the first in the array
-  encrypt.plainText[0] <== outputValues[0];
-  encrypt.plainText[1] <== outputSalts[0];
+  // encrypt the value for the output utxos
+  component encrypt = SymmetricEncrypt(2 * nOutputs);
+  for (var i = 0; i < nOutputs; i++) {
+    encrypt.plainText[2 * i] <== outputValues[i];
+    encrypt.plainText[2 * i + 1] <== outputSalts[i];
+  }
   encrypt.key <== sharedSecret;
   encrypt.nonce <== encryptionNonce;
-  encrypt.cipherText[0] ==> cipherText[0];
-  encrypt.cipherText[1] ==> cipherText[1];
-  encrypt.cipherText[2] ==> cipherText[2];
-  encrypt.cipherText[3] ==> cipherText[3];
+  for (var i = 0; i < cLen; i++) {
+    encrypt.cipherText[i] ==> cipherText[i];
+  }
 }

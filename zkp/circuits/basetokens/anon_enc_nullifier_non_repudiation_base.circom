@@ -50,8 +50,14 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   signal input encryptionNonce;
   signal input authorityPublicKey[2];
 
-  // the output for a 2-element input (value and salt) encryption is a 4-element array
-  signal output cipherTextReceiver[4];
+  // the output for encrypted output values and salts
+  var cLen = 2 * nOutputs;
+  if (cLen % 3 != 0) {
+    cLen += (3 - (cLen % 3));
+  }
+  cLen++;
+  signal output cipherText[cLen];
+
   // the number of cipher text messages returned by
   // the encryption template will be 3n+1
   // input length: 
@@ -126,18 +132,17 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   sharedSecretReceiver[0] = ecdh1.sharedKey[0];
   sharedSecretReceiver[1] = ecdh1.sharedKey[1];
 
-  // encrypt the value for the receiver
-  component encrypt1 = SymmetricEncrypt(2);
-  // our circuit requires that the output UTXO for the receiver must be the first in the array
-  encrypt1.plainText[0] <== outputValues[0];
-  encrypt1.plainText[1] <== outputSalts[0];
+    // encrypt the value for the output utxos
+  component encrypt1 = SymmetricEncrypt(2 * nOutputs);
+  for (var i = 0; i < nOutputs; i++) {
+    encrypt1.plainText[2 * i] <== outputValues[i];
+    encrypt1.plainText[2 * i + 1] <== outputSalts[i];
+  }
   encrypt1.key <== sharedSecretReceiver;
   encrypt1.nonce <== encryptionNonce;
-  // the output for a 2-element input encryption is a 4-element array
-  encrypt1.cipherText[0] ==> cipherTextReceiver[0];
-  encrypt1.cipherText[1] ==> cipherTextReceiver[1];
-  encrypt1.cipherText[2] ==> cipherTextReceiver[2];
-  encrypt1.cipherText[3] ==> cipherTextReceiver[3];
+  for (var i = 0; i < cLen; i++) {
+    encrypt1.cipherText[i] ==> cipherText[i];
+  }
 
   // generate shared secret for the authority
   var sharedSecretAuthority[2];

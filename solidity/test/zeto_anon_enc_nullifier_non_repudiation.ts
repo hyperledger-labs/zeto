@@ -141,7 +141,6 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       mtps.push(p.siblings.map((s) => s.bigInt()));
     }
 
-
     // Alice proposes the output UTXOs, 1 utxo to bob, 2 utxos to alice
     const _bOut1 = newUTXO(8, Bob);
     const _bOut2 = newUTXO(1, Alice);
@@ -182,30 +181,29 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       events[0].encryptedValuesForReceiver,
       sharedKey,
       events[0].encryptionNonce,
-      2
+      20
     );
-    expect(plainText).to.deep.equal([8n, result.plainTextSalt]);
-    // only the first utxo can be decrypted
-    const hash = poseidonHash([
-      BigInt(plainText[0]),
-      plainText[1],
-      Bob.babyJubPublicKey[0],
-      Bob.babyJubPublicKey[1],
-    ]);
-    expect(hash).to.equal(incomingUTXOs[0]);
-    await smtAlice.add(incomingUTXOs[0], incomingUTXOs[0]);
-    await smtBob.add(incomingUTXOs[0], incomingUTXOs[0]);
+    expect(plainText).to.deep.equal(result.expectedPlainText);
 
     // check the non-empty output hashes are correct
-    for (let i = 1; i < outputUtxos.length; i++) {
-      expect(incomingUTXOs[i]).to.equal(outputUtxos[i].hash);
+    for (let i = 0; i < outputUtxos.length; i++) {
+      // Bob uses the information received from Alice to reconstruct the UTXO sent to him
+      const hash = poseidonHash([
+        BigInt(plainText[2 * i]),
+        plainText[2 * i + 1],
+        outputOwners[i].babyJubPublicKey[0],
+        outputOwners[i].babyJubPublicKey[1],
+      ]);
+      expect(incomingUTXOs[i]).to.equal(hash);
       await smtAlice.add(incomingUTXOs[i], incomingUTXOs[i]);
       await smtBob.add(incomingUTXOs[i], incomingUTXOs[i]);
     }
 
-    // check empty hashes are empty
+    // check empty values, salt and hashes are empty
     for (let i = outputUtxos.length; i < 10; i++) {
       expect(incomingUTXOs[i]).to.equal(0);
+      expect(plainText[2 * i]).to.equal(0);
+      expect(plainText[2 * i + 1]).to.equal(0);
     }
 
     // The regulator uses the encrypted values in the event to decrypt and recover the UTXO value and salt
@@ -357,9 +355,9 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       events[0].encryptedValuesForReceiver,
       sharedKey1,
       events[0].encryptionNonce,
-      2
+      4
     );
-    expect(plainText1).to.deep.equal([25n, result2.plainTextSalt]);
+    expect(plainText1).to.deep.equal(result2.expectedPlainText);
 
     // The regulator uses the encrypted values in the event to decrypt and recover the UTXO value and salt
     const sharedKey2 = genEcdhSharedKey(
@@ -758,7 +756,14 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       encodedProof
     );
     // add the clear text value so that it can be used by tests to compare with the decrypted value
-    return { txResult, plainTextSalt: outputs[0].salt };
+    return {
+      txResult,
+      expectedPlainText: outputs.reduce((acc, o, i) => {
+        acc.push(BigInt(o.value || 0n) as BigNumberish);
+        acc.push((o.salt || 0n) as BigNumberish);
+        return acc;
+      }, [] as BigNumberish[]),
+    };
   }
 
   async function prepareProof(
@@ -833,10 +838,12 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     return {
       inputCommitments,
       outputCommitments,
-      encryptedValuesForReceiver: publicSignals.slice(0, 4),
+      encryptedValuesForReceiver: isBatch
+        ? publicSignals.slice(0, 22)
+        : publicSignals.slice(0, 7),
       encryptedValuesForRegulator: isBatch
-        ? publicSignals.slice(4, 68)
-        : publicSignals.slice(4, 20),
+        ? publicSignals.slice(22, 86)
+        : publicSignals.slice(7, 23),
       encryptionNonce,
       encodedProof,
     };

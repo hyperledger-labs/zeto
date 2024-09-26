@@ -88,7 +88,7 @@ contract Zeto_AnonEncNullifierKyc is
         uint256[] memory outputs,
         uint256 root,
         uint256 encryptionNonce,
-        uint256[4] memory encryptedValues,
+        uint256[] memory encryptedValues,
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public returns (bool) {
@@ -104,7 +104,7 @@ contract Zeto_AnonEncNullifierKyc is
         );
         if (nullifiers.length > 2) {
             // construct the public inputs
-            uint256[37] memory publicInputs;
+            uint256[55] memory publicInputs;
             uint256 piIndex = 0;
             // copy the encrypted value, salt and parity bit
             for (uint256 i = 0; i < encryptedValues.length; ++i) {
@@ -145,7 +145,7 @@ contract Zeto_AnonEncNullifierKyc is
             );
         } else {
             // construct the public inputs
-            uint256[13] memory publicInputs;
+            uint256[16] memory publicInputs;
             uint256 piIndex = 0;
             // copy the encrypted value, salt and parity bit
             for (uint256 i = 0; i < encryptedValues.length; ++i) {
