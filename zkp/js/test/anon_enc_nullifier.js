@@ -17,9 +17,25 @@
 const { expect } = require('chai');
 const { join } = require('path');
 const { wasm: wasm_tester } = require('circom_tester');
-const { genRandomSalt, genKeypair, genEcdhSharedKey, formatPrivKeyForBabyJub, stringifyBigInts } = require('maci-crypto');
-const { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } = require('@iden3/js-merkletree');
-const { Poseidon, newSalt, poseidonDecrypt, newEncryptionNonce } = require('../index.js');
+const {
+  genRandomSalt,
+  genKeypair,
+  genEcdhSharedKey,
+  formatPrivKeyForBabyJub,
+  stringifyBigInts,
+} = require('maci-crypto');
+const {
+  Merkletree,
+  InMemoryDB,
+  str2Bytes,
+  ZERO_HASH,
+} = require('@iden3/js-merkletree');
+const {
+  Poseidon,
+  newSalt,
+  poseidonDecrypt,
+  newEncryptionNonce,
+} = require('../index.js');
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
@@ -35,7 +51,9 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
   before(async function () {
     this.timeout(60000);
 
-    circuit = await wasm_tester(join(__dirname, '../../circuits/anon_enc_nullifier.circom'));
+    circuit = await wasm_tester(
+      join(__dirname, '../../circuits/anon_enc_nullifier.circom')
+    );
 
     let keypair = genKeypair();
     Alice.privKey = keypair.privKey;
@@ -61,14 +79,30 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(inputValues[0]), salt1, ...Alice.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(inputValues[0]),
+      salt1,
+      ...Alice.pubKey,
+    ]);
     const salt2 = newSalt();
-    const input2 = poseidonHash([BigInt(inputValues[1]), salt2, ...Alice.pubKey]);
+    const input2 = poseidonHash([
+      BigInt(inputValues[1]),
+      salt2,
+      ...Alice.pubKey,
+    ]);
     const inputCommitments = [input1, input2];
 
     // create the nullifiers for the inputs
-    const nullifier1 = poseidonHash3([BigInt(inputValues[0]), salt1, senderPrivateKey]);
-    const nullifier2 = poseidonHash3([BigInt(inputValues[1]), salt2, senderPrivateKey]);
+    const nullifier1 = poseidonHash3([
+      BigInt(inputValues[0]),
+      salt1,
+      senderPrivateKey,
+    ]);
+    const nullifier2 = poseidonHash3([
+      BigInt(inputValues[1]),
+      salt2,
+      senderPrivateKey,
+    ]);
     const nullifiers = [nullifier1, nullifier2];
 
     // calculate the root of the SMT
@@ -76,14 +110,28 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     await smtAlice.add(input2, input2);
 
     // generate the merkle proof for the inputs
-    const proof1 = await smtAlice.generateCircomVerifierProof(input1, ZERO_HASH);
-    const proof2 = await smtAlice.generateCircomVerifierProof(input2, ZERO_HASH);
+    const proof1 = await smtAlice.generateCircomVerifierProof(
+      input1,
+      ZERO_HASH
+    );
+    const proof2 = await smtAlice.generateCircomVerifierProof(
+      input2,
+      ZERO_HASH
+    );
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(outputValues[0]), salt3, ...Bob.pubKey]);
+    const output1 = poseidonHash([
+      BigInt(outputValues[0]),
+      salt3,
+      ...Bob.pubKey,
+    ]);
     const salt4 = newSalt();
-    const output2 = poseidonHash([BigInt(outputValues[1]), salt4, ...Alice.pubKey]);
+    const output2 = poseidonHash([
+      BigInt(outputValues[1]),
+      salt4,
+      ...Alice.pubKey,
+    ]);
     const outputCommitments = [output1, output2];
 
     const encryptionNonce = newEncryptionNonce();
@@ -99,7 +147,10 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
         inputSalts: [salt1, salt2],
         inputOwnerPrivateKey: senderPrivateKey,
         root: proof1.root.bigInt(),
-        merkleProof: [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())],
+        merkleProof: [
+          proof1.siblings.map((s) => s.bigInt()),
+          proof2.siblings.map((s) => s.bigInt()),
+        ],
         enabled: [1, 1],
         outputCommitments,
         outputValues,
@@ -122,16 +173,21 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     // console.log('outputOwnerPublicKeys', [Bob.pubKey, Alice.pubKey]);
     // console.log('encryptionNonce', encryptionNonce);
 
-    expect(witness[5]).to.equal(BigInt(nullifiers[0]));
-    expect(witness[6]).to.equal(BigInt(nullifiers[1]));
-    expect(witness[7]).to.equal(proof1.root.bigInt());
+    expect(witness[8]).to.equal(BigInt(nullifiers[0]));
+    expect(witness[9]).to.equal(BigInt(nullifiers[1]));
+    expect(witness[10]).to.equal(proof1.root.bigInt());
 
     // take the output from the proof circuit and attempt to decrypt
     // as the receiver
-    const cipherText = witness.slice(1, 5); // first 4 elements are the cipher text for the first encryption output
+    const cipherText = witness.slice(1, 8); // first 7 elements are the cipher text for the encryption output
     const recoveredKey = genEcdhSharedKey(Bob.privKey, Alice.pubKey);
-    const plainText = poseidonDecrypt(cipherText, recoveredKey, encryptionNonce, 2);
-    expect(plainText).to.deep.equal([20n, salt3]);
+    const plainText = poseidonDecrypt(
+      cipherText,
+      recoveredKey,
+      encryptionNonce,
+      4
+    );
+    expect(plainText).to.deep.equal([20n, salt3, 52n, salt4]);
   });
 
   it('should succeed for valid witness and produce an encypted value - single input', async () => {
@@ -140,25 +196,44 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(inputValues[0]), salt1, ...Alice.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(inputValues[0]),
+      salt1,
+      ...Alice.pubKey,
+    ]);
     const inputCommitments = [input1, 0];
 
     // create the nullifiers for the inputs
-    const nullifier1 = poseidonHash3([BigInt(inputValues[0]), salt1, senderPrivateKey]);
+    const nullifier1 = poseidonHash3([
+      BigInt(inputValues[0]),
+      salt1,
+      senderPrivateKey,
+    ]);
     const nullifiers = [nullifier1, 0];
 
     // calculate the root of the SMT
     await smtAlice.add(input1, input1);
 
     // generate the merkle proof for the inputs
-    const proof1 = await smtAlice.generateCircomVerifierProof(input1, ZERO_HASH);
+    const proof1 = await smtAlice.generateCircomVerifierProof(
+      input1,
+      ZERO_HASH
+    );
     const proof2 = await smtAlice.generateCircomVerifierProof(0, ZERO_HASH);
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(outputValues[0]), salt3, ...Bob.pubKey]);
+    const output1 = poseidonHash([
+      BigInt(outputValues[0]),
+      salt3,
+      ...Bob.pubKey,
+    ]);
     const salt4 = newSalt();
-    const output2 = poseidonHash([BigInt(outputValues[1]), salt4, ...Alice.pubKey]);
+    const output2 = poseidonHash([
+      BigInt(outputValues[1]),
+      salt4,
+      ...Alice.pubKey,
+    ]);
     const outputCommitments = [output1, output2];
 
     const encryptionNonce = newEncryptionNonce();
@@ -174,7 +249,10 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
         inputSalts: [salt1, 0],
         inputOwnerPrivateKey: senderPrivateKey,
         root: proof1.root.bigInt(),
-        merkleProof: [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())],
+        merkleProof: [
+          proof1.siblings.map((s) => s.bigInt()),
+          proof2.siblings.map((s) => s.bigInt()),
+        ],
         enabled: [1, 0],
         outputCommitments,
         outputValues,
@@ -197,16 +275,21 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     // console.log('outputOwnerPublicKeys', [receiver.pubKey, sender.pubKey]);
     // console.log('encryptionNonce', encryptionNonce);
 
-    expect(witness[5]).to.equal(BigInt(nullifiers[0]));
-    expect(witness[6]).to.equal(BigInt(nullifiers[1]));
-    expect(witness[7]).to.equal(proof1.root.bigInt());
+    expect(witness[8]).to.equal(BigInt(nullifiers[0]));
+    expect(witness[9]).to.equal(BigInt(nullifiers[1]));
+    expect(witness[10]).to.equal(proof1.root.bigInt());
 
     // take the output from the proof circuit and attempt to decrypt
     // as the receiver
-    const cipherText = witness.slice(1, 5); // first 4 elements are the cipher text for the first encryption output
+    const cipherText = witness.slice(1, 8); // first 7 elements are the cipher text for the encryption output
     const recoveredKey = genEcdhSharedKey(Bob.privKey, Alice.pubKey);
-    const plainText = poseidonDecrypt(cipherText, recoveredKey, encryptionNonce, 2);
-    expect(plainText).to.deep.equal([20n, salt3]);
+    const plainText = poseidonDecrypt(
+      cipherText,
+      recoveredKey,
+      encryptionNonce,
+      4
+    );
+    expect(plainText).to.deep.equal([20n, salt3, 52n, salt4]);
   });
 
   it('should fail to generate a witness because mass conservation is not obeyed', async () => {
@@ -215,14 +298,30 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(inputValues[0]), salt1, ...Alice.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(inputValues[0]),
+      salt1,
+      ...Alice.pubKey,
+    ]);
     const salt2 = newSalt();
-    const input2 = poseidonHash([BigInt(inputValues[1]), salt2, ...Alice.pubKey]);
+    const input2 = poseidonHash([
+      BigInt(inputValues[1]),
+      salt2,
+      ...Alice.pubKey,
+    ]);
     const inputCommitments = [input1, input2];
 
     // create the nullifiers for the input UTXOs
-    const nullifier1 = poseidonHash3([BigInt(inputValues[0]), salt1, senderPrivateKey]);
-    const nullifier2 = poseidonHash3([BigInt(inputValues[1]), salt2, senderPrivateKey]);
+    const nullifier1 = poseidonHash3([
+      BigInt(inputValues[0]),
+      salt1,
+      senderPrivateKey,
+    ]);
+    const nullifier2 = poseidonHash3([
+      BigInt(inputValues[1]),
+      salt2,
+      senderPrivateKey,
+    ]);
     const nullifiers = [nullifier1, nullifier2];
 
     // calculate the root of the SMT
@@ -230,13 +329,27 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     await smtAlice.add(input2, input2);
 
     // generate the merkle proof for the inputs
-    const proof1 = await smtAlice.generateCircomVerifierProof(input1, ZERO_HASH);
-    const proof2 = await smtAlice.generateCircomVerifierProof(input2, ZERO_HASH);
+    const proof1 = await smtAlice.generateCircomVerifierProof(
+      input1,
+      ZERO_HASH
+    );
+    const proof2 = await smtAlice.generateCircomVerifierProof(
+      input2,
+      ZERO_HASH
+    );
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(outputValues[0]), salt3, ...Bob.pubKey]);
-    const output2 = poseidonHash([BigInt(outputValues[1]), salt3, ...Alice.pubKey]);
+    const output1 = poseidonHash([
+      BigInt(outputValues[0]),
+      salt3,
+      ...Bob.pubKey,
+    ]);
+    const output2 = poseidonHash([
+      BigInt(outputValues[1]),
+      salt3,
+      ...Alice.pubKey,
+    ]);
     const outputCommitments = [output1, output2];
 
     const sharedSecret = genEcdhSharedKey(Alice.privKey, Bob.pubKey);
@@ -255,7 +368,10 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
           inputSalts: [salt1, salt2],
           inputOwnerPrivateKey: senderPrivateKey,
           root: proof1.root.bigInt(),
-          merkleProof: [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())],
+          merkleProof: [
+            proof1.siblings.map((s) => s.bigInt()),
+            proof2.siblings.map((s) => s.bigInt()),
+          ],
           enabled: [1, 1],
           outputCommitments,
           outputValues,
@@ -270,6 +386,6 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     }
     // console.log(err);
     expect(err).to.match(/Error in template CheckSum_161 line: 44/);
-    expect(err).to.match(/Error in template Zeto_263 line: 92/);
+    expect(err).to.match(/Error in template Zeto_263 line: 97/);
   });
 });

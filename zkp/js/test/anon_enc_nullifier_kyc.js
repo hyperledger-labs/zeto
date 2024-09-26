@@ -206,22 +206,22 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     // console.log('identitiesRoot', proof3.root.bigInt());
     // console.log('encryptionNonce', encryptionNonce);
 
-    expect(witness[5]).to.equal(BigInt(nullifiers[0]));
-    expect(witness[6]).to.equal(BigInt(nullifiers[1]));
-    expect(witness[7]).to.equal(proof1.root.bigInt());
-    expect(witness[10]).to.equal(proof3.root.bigInt());
+    expect(witness[8]).to.equal(BigInt(nullifiers[0]));
+    expect(witness[9]).to.equal(BigInt(nullifiers[1]));
+    expect(witness[10]).to.equal(proof1.root.bigInt());
+    expect(witness[13]).to.equal(proof3.root.bigInt());
 
     // take the output from the proof circuit and attempt to decrypt
     // as the receiver
-    const cipherText = witness.slice(1, 5); // first 4 elements are the cipher text for the first encryption output
+    const cipherText = witness.slice(1, 8); // first 7 elements are the cipher text for the encryption output
     const recoveredKey = genEcdhSharedKey(Bob.privKey, Alice.pubKey);
     const plainText = poseidonDecrypt(
       cipherText,
       recoveredKey,
       encryptionNonce,
-      2
+      4
     );
-    expect(plainText).to.deep.equal([20n, salt3]);
+    expect(plainText).to.deep.equal([20n, salt3, 52n, salt4]);
   });
 
   it('should fail if not using the right identities merkle proofs', async () => {
@@ -334,7 +334,7 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
       err = e;
     }
     // console.log(err);
-    expect(err).to.match(/Error in template Zeto_266 line: 131/);
+    expect(err).to.match(/Error in template Zeto_266 line: 136/);
     expect(err).to.match(/Error in template CheckSMTProof_253 line: 46/);
   });
 });
