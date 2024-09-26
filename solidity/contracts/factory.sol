@@ -53,7 +53,6 @@ contract ZetoTokenFactory is Ownable {
         );
         // the depositVerifier and withdrawVerifier are optional
         // for the non-fungible token implementations
-        // TODO batchVerifier to be implemented for non-fungible token
         implementations[name] = implementation;
     }
 
