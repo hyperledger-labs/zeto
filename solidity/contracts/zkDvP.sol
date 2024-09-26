@@ -206,8 +206,10 @@ contract zkDvP {
         bytes32 proofHash = getProofHash(proof);
         if (trade.paymentProofHash == proofHash) {
             trade.paymentProof = proof;
+            paymentToken.lockProof(proof, address(this));
         } else if (trade.assetProofHash == proofHash) {
             trade.assetProof = proof;
+            assetToken.lockProof(proof, address(this));
         } else {
             revert("Invalid proof");
         }

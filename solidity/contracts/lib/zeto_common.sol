@@ -43,9 +43,17 @@ abstract contract ZetoCommon is OwnableUpgradeable {
     // should be called by escrow contracts that will use uploaded proofs
     // to execute transactions, in order to prevent the proof from being used
     // by parties other than the escrow contract
-    function lockProof(Commonlib.Proof calldata proof) public {
+    function lockProof(
+        Commonlib.Proof calldata proof,
+        address delegate
+    ) public {
         bytes32 proofHash = Commonlib.getProofHash(proof);
-        lockedProofs[proofHash] = msg.sender;
+        require(lockedProofs[proofHash] == address(0), "Proof already locked");
+        if (delegate != address(0)) {
+            lockedProofs[proofHash] = delegate;
+        } else {
+            lockedProofs[proofHash] = msg.sender;
+        }
     }
 
     function sortInputsAndOutputs(
