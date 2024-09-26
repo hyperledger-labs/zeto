@@ -413,8 +413,8 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
     owners: User[],
     gasHistories: number[]
   ) {
-    let nullifiers: [BigNumberish, BigNumberish];
-    let outputCommitments: [BigNumberish, BigNumberish];
+    let nullifiers: BigNumberish[];
+    let outputCommitments: BigNumberish[];
     let encryptedValues: BigNumberish[];
     let encryptionNonce: BigNumberish;
     let encodedProof: any;
@@ -470,22 +470,18 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
       BigNumberish,
       BigNumberish
     ];
-    const inputCommitments: [BigNumberish, BigNumberish] = inputs.map(
+    const inputCommitments: BigNumberish[] = inputs.map(
       (input) => input.hash
-    ) as [BigNumberish, BigNumberish];
+    ) as BigNumberish[];
     const inputValues = inputs.map((input) => BigInt(input.value || 0n));
     const inputSalts = inputs.map((input) => input.salt || 0n);
-    const outputCommitments: [BigNumberish, BigNumberish] = outputs.map(
+    const outputCommitments: BigNumberish[] = outputs.map(
       (output) => output.hash
-    ) as [BigNumberish, BigNumberish];
+    ) as BigNumberish[];
     const outputValues = outputs.map((output) => BigInt(output.value || 0n));
-    const outputOwnerPublicKeys: [
-      [BigNumberish, BigNumberish],
-      [BigNumberish, BigNumberish]
-    ] = owners.map((owner) => owner.babyJubPublicKey) as [
-      [BigNumberish, BigNumberish],
-      [BigNumberish, BigNumberish]
-    ];
+    const outputOwnerPublicKeys: BigNumberish[][] = owners.map(
+      (owner) => owner.babyJubPublicKey
+    ) as BigNumberish[][];
     const encryptionNonce: BigNumberish = newEncryptionNonce() as BigNumberish;
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
@@ -499,7 +495,7 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
       inputSalts,
       inputOwnerPrivateKey: signer.formattedPrivateKey,
       utxosRoot,
-      enabled: [nullifiers[0] !== 0n ? 1 : 0, nullifiers[1] !== 0n ? 1 : 0],
+      enabled: nullifiers.map((n) => (n !== 0n ? 1 : 0)),
       utxosMerkleProof,
       identitiesRoot,
       identitiesMerkleProof,
@@ -539,8 +535,8 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
 
   async function sendTx(
     signer: User,
-    nullifiers: [BigNumberish, BigNumberish],
-    outputCommitments: [BigNumberish, BigNumberish],
+    nullifiers: BigNumberish[],
+    outputCommitments: BigNumberish[],
     root: BigNumberish,
     encryptedValues: BigNumberish[],
     encryptionNonce: BigNumberish,

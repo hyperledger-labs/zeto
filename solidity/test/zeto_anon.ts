@@ -54,6 +54,7 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
   let utxo4: UTXO;
   let utxo7: UTXO;
   let circuit: any, provingKey: any;
+  let batchCircuit: any, batchProvingKey: any;
 
   before(async function () {
     if (network.name !== 'hardhat') {
@@ -70,6 +71,61 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
 
     circuit = await loadCircuit('anon');
     ({ provingKeyFile: provingKey } = loadProvingKeys('anon'));
+
+    batchCircuit = await loadCircuit('anon_batch');
+    ({ provingKeyFile: batchProvingKey } = loadProvingKeys('anon_batch'));
+  });
+
+  it('(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob should succeed', async function () {
+    // first mint the tokens for batch testing
+    const inputUtxos = [];
+    for (let i = 0; i < 10; i++) {
+      // mint 10 utxos
+      inputUtxos.push(newUTXO(1, Alice));
+    }
+    await doMint(zeto, deployer, inputUtxos);
+
+    // Alice proposes the output UTXOs, 1 utxo to bob, 2 utxos to alice
+    const _bOut1 = newUTXO(8, Bob);
+    const _bOut2 = newUTXO(1, Alice);
+    const _bOut3 = newUTXO(1, Alice);
+    const outputUtxos = [_bOut1, _bOut2, _bOut3];
+    const outputOwners = [Bob, Alice, Alice];
+    const inflatedOutputUtxos = [...outputUtxos];
+    const inflatedOutputOwners = [...outputOwners];
+    for (let i = 0; i < 10 - outputUtxos.length; i++) {
+      inflatedOutputUtxos.push(ZERO_UTXO);
+      inflatedOutputOwners.push(Bob);
+    }
+
+    // Alice transfers UTXOs to Bob
+    const result = await doTransfer(
+      Alice,
+      inputUtxos,
+      inflatedOutputUtxos,
+      inflatedOutputOwners
+    );
+
+    const events = parseUTXOEvents(zeto, result);
+    const incomingUTXOs: any = events[0].outputs;
+    // check the non-empty output hashes are correct
+    for (let i = 0; i < outputUtxos.length; i++) {
+      // Bob uses the information received from Alice to reconstruct the UTXO sent to him
+      const receivedValue = outputUtxos[i].value;
+      const receivedSalt = outputUtxos[i].salt;
+      const hash = poseidonHash([
+        BigInt(receivedValue),
+        receivedSalt,
+        outputOwners[i].babyJubPublicKey[0],
+        outputOwners[i].babyJubPublicKey[1],
+      ]);
+      expect(incomingUTXOs[i]).to.equal(hash);
+    }
+
+    // check empty hashes are empty
+    for (let i = outputUtxos.length; i < 10; i++) {
+      expect(incomingUTXOs[i]).to.equal(0);
+    }
   });
 
   it('mint ERC20 tokens to Alice to deposit to Zeto should succeed', async function () {
@@ -257,13 +313,19 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
     outputs: UTXO[],
     owners: User[]
   ) {
-    let inputCommitments: [BigNumberish, BigNumberish];
-    let outputCommitments: [BigNumberish, BigNumberish];
-    let outputOwnerAddresses: [AddressLike, AddressLike];
+    let inputCommitments: BigNumberish[];
+    let outputCommitments: BigNumberish[];
+    let outputOwnerAddresses: AddressLike[];
     let encodedProof: any;
+    let circuitToUse = circuit;
+    let provingKeyToUse = provingKey;
+    if (inputs.length > 2 || outputs.length > 2) {
+      circuitToUse = batchCircuit;
+      provingKeyToUse = batchProvingKey;
+    }
     const result = await prepareProof(
-      circuit,
-      provingKey,
+      circuitToUse,
+      provingKeyToUse,
       signer,
       inputs,
       outputs,
@@ -287,15 +349,18 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
 
   async function sendTx(
     signer: User,
-    inputCommitments: [BigNumberish, BigNumberish],
-    outputCommitments: [BigNumberish, BigNumberish],
-    outputOwnerAddresses: [AddressLike, AddressLike],
+    inputCommitments: BigNumberish[],
+    outputCommitments: BigNumberish[],
+    outputOwnerAddresses: AddressLike[],
     encodedProof: any
   ) {
     const signerAddress = await signer.signer.getAddress();
-    const tx = await zeto
-      .connect(signer.signer)
-      .transfer(inputCommitments, outputCommitments, encodedProof, '0x');
+    const tx = await zeto.connect(signer.signer).transfer(
+      inputCommitments.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
+      outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
+      encodedProof,
+      '0x'
+    );
     const results = await tx.wait();
     console.log(`Method transfer() complete. Gas used: ${results?.gasUsed}`);
 
@@ -319,23 +384,19 @@ async function prepareProof(
   outputs: UTXO[],
   owners: User[]
 ) {
-  const inputCommitments: [BigNumberish, BigNumberish] = inputs.map(
+  const inputCommitments: BigNumberish[] = inputs.map(
     (input) => input.hash
-  ) as [BigNumberish, BigNumberish];
+  ) as BigNumberish[];
   const inputValues = inputs.map((input) => BigInt(input.value || 0n));
   const inputSalts = inputs.map((input) => input.salt || 0n);
-  const outputCommitments: [BigNumberish, BigNumberish] = outputs.map(
+  const outputCommitments: BigNumberish[] = outputs.map(
     (output) => output.hash
-  ) as [BigNumberish, BigNumberish];
+  ) as BigNumberish[];
   const outputValues = outputs.map((output) => BigInt(output.value || 0n));
   const outputSalts = outputs.map((o) => o.salt || 0n);
-  const outputOwnerPublicKeys: [
-    [BigNumberish, BigNumberish],
-    [BigNumberish, BigNumberish]
-  ] = owners.map((owner) => owner.babyJubPublicKey || ZERO_PUBKEY) as [
-    [BigNumberish, BigNumberish],
-    [BigNumberish, BigNumberish]
-  ];
+  const outputOwnerPublicKeys: BigNumberish[][] = owners.map(
+    (owner) => owner.babyJubPublicKey || ZERO_PUBKEY
+  ) as BigNumberish[][];
   const otherInputs = stringifyBigInts({
     inputOwnerPrivateKey: formatPrivKeyForBabyJub(signer.babyJubPrivateKey),
   });
