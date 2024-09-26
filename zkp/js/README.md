@@ -31,7 +31,7 @@ npm i
   ```console
   export CIRCUITS_ROOT="$HOME/circuits"
   export PROVING_KEYS_ROOT="$HOME/proving-keys"
-  export PTAU_DOWNLOAD_PATH="$HOME/Downloads"
+  export PTAU_DOWNLOAD_PATH="$HOME/ptaus"
   mkdir -p $PROVING_KEYS_ROOT $PTAU_DOWNLOAD_PATH $CIRCUITS_ROOT
   ```
 - run the generation script for **ALL** circuits
