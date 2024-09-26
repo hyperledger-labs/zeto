@@ -39,6 +39,7 @@ npm i
   npm run gen
   ```
   **run `npm run gen -- -c $circuit` for developing a single circuit**
+  **run `npm run gen -- -v` to show details outputs of each command**
   **use `GEN_CONCURRENCY` to control how many circuits to be processed in parallel, default to 10**
 
 > Refer to [generation script explanation](#generation-script-explanation) for what the script does

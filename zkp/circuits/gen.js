@@ -5,7 +5,39 @@ const { promisify } = require('util');
 const axios = require('axios');
 const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
-const argv = yargs(hideBin(process.argv)).argv;
+const argv = yargs(hideBin(process.argv))
+  .option('c', {
+    alias: 'circuit',
+    describe: 'Specify a single circuit to build',
+    type: 'string',
+  })
+  .option('v', {
+    alias: 'verbose',
+    describe: 'Enable verbose mode',
+    type: 'boolean',
+    default: false,
+  })
+  .option('cp', {
+    alias: 'compileOnly',
+    describe: 'Compile only',
+    type: 'boolean',
+    default: false,
+  })
+  .option('cr', {
+    alias: 'circuitsRoot',
+    describe: 'Specify the root folder for storing circuits compilation files',
+    type: 'string',
+  })
+  .option('pk', {
+    alias: 'provingKeysRoot',
+    describe: 'Specify the root folder for storing generated proving keys',
+    type: 'string',
+  })
+  .option('pt', {
+    alias: 'ptauDownloadPath',
+    describe: 'Specify the root folder for storing downloaded PTAU',
+    type: 'string',
+  }).argv;
 
 const circuitsRoot = process.env.CIRCUITS_ROOT || argv.circuitsRoot;
 const provingKeysRoot = process.env.PROVING_KEYS_ROOT || argv.provingKeysRoot;
@@ -37,6 +69,7 @@ console.log(
       {
         specificCircuits,
         compileOnly,
+        verbose,
         parallelLimit,
         circuitsRoot,
         provingKeysRoot,
@@ -102,7 +135,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
   }
 
   log(circuit, `Compiling circuit`);
-  const { cmOut, cmErr } = await execAsync(
+  const { stdout: cmOut, stderr: cmErr } = await execAsync(
     `circom ${circomInput} --output ${circuitsRoot} --sym --wasm`
   );
   if (verbose) {
@@ -117,7 +150,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
     return;
   }
 
-  const { ctOut, ctErr } = await execAsync(
+  const { stdout: ctOut, stderr: ctErr } = await execAsync(
     `circom ${circomInput} --output ${provingKeysRoot} --r1cs`
   );
   if (verbose) {
@@ -130,7 +163,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
   }
 
   log(circuit, `Generating test proving key with ${ptau}`);
-  const { pkOut, pkErr } = await execAsync(
+  const { stdout: pkOut, stderr: pkErr } = await execAsync(
     `npx snarkjs groth16 setup ${path.join(
       provingKeysRoot,
       `${circuit}.r1cs`
@@ -145,7 +178,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
     }
   }
   log(circuit, `Exporting verification key`);
-  const { vkOut, vkErr } = await execAsync(
+  const { stdout: vkOut, stderr: vkErr } = await execAsync(
     `npx snarkjs zkey export verificationkey ${zkeyOutput} ${path.join(
       provingKeysRoot,
       `${circuit}-vkey.json`
@@ -173,7 +206,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
     'lib',
     `verifier_${circuit}.sol`
   );
-  const { svOut, svErr } = await execAsync(
+  const { stdout: svOut, stderr: svErr } = await execAsync(
     `npx snarkjs zkey export solidityverifier ${zkeyOutput} ${solidityFile}`
   );
   if (verbose) {
