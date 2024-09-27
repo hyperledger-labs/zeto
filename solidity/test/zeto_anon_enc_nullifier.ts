@@ -25,7 +25,12 @@ import {
   newEncryptionNonce,
 } from 'zeto-js';
 import { groth16 } from 'snarkjs';
-import { genEcdhSharedKey, stringifyBigInts } from 'maci-crypto';
+import {
+  genKeypair,
+  formatPrivKeyForBabyJub,
+  genEcdhSharedKey,
+  stringifyBigInts,
+} from 'maci-crypto';
 import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
 import {
   UTXO,
@@ -158,11 +163,10 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
 
     const incomingUTXOs: any = events[0].outputs;
 
-    // Bob uses the encrypted values in the event to decrypt and recover the UTXO value and salt
-    const sharedKey = genEcdhSharedKey(
-      Bob.babyJubPrivateKey,
-      Alice.babyJubPublicKey
-    );
+    const ecdhPublicKey = events[0].ecdhPublicKey;
+    // Bob reconstructs the shared key using his private key and ephemeral public key
+
+    const sharedKey = genEcdhSharedKey(Bob.babyJubPrivateKey, ecdhPublicKey);
     const plainText = poseidonDecrypt(
       events[0].encryptedValues,
       sharedKey,
@@ -289,11 +293,10 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     await smtBob.add(events[0].outputs[0], events[0].outputs[0]);
     await smtBob.add(events[0].outputs[1], events[0].outputs[1]);
 
-    // Bob uses the encrypted values in the event to decrypt and recover the UTXO value and salt
-    const sharedKey = genEcdhSharedKey(
-      Bob.babyJubPrivateKey,
-      Alice.babyJubPublicKey
-    );
+    const ecdhPublicKey = events[0].ecdhPublicKey;
+    // Bob reconstructs the shared key using his private key and ephemeral public key
+
+    const sharedKey = genEcdhSharedKey(Bob.babyJubPrivateKey, ecdhPublicKey);
     const plainText = poseidonDecrypt(
       events[0].encryptedValues,
       sharedKey,
@@ -622,6 +625,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     let encryptedValues: BigNumberish[];
     let encryptionNonce: BigNumberish;
     let encodedProof: any;
+    const ephemeralKeypair = genKeypair();
     const result = await prepareProof(
       signer,
       inputs,
@@ -629,7 +633,8 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       outputs,
       root,
       merkleProofs,
-      owners
+      owners,
+      ephemeralKeypair.privKey
     );
     nullifiers = _nullifiers.map((nullifier) => nullifier.hash) as [
       BigNumberish,
@@ -647,7 +652,8 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       root,
       encryptedValues,
       encryptionNonce,
-      encodedProof
+      encodedProof,
+      ephemeralKeypair.pubKey
     );
     // add the clear text value so that it can be used by tests to compare with the decrypted value
     return {
@@ -667,7 +673,8 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     outputs: UTXO[],
     root: BigInt,
     merkleProof: BigInt[][],
-    owners: User[]
+    owners: User[],
+    ephemeralPrivateKey: BigInt
   ) {
     const nullifiers = _nullifiers.map((nullifier) => nullifier.hash) as [
       BigNumberish,
@@ -688,6 +695,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     const encryptionNonce: BigNumberish = newEncryptionNonce() as BigNumberish;
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
+      ecdhPrivateKey: formatPrivKeyForBabyJub(ephemeralPrivateKey),
     });
     let circuitToUse = circuit;
     let provingKeyToUse = provingKey;
@@ -747,7 +755,8 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     root: BigNumberish,
     encryptedValues: BigNumberish[],
     encryptionNonce: BigNumberish,
-    encodedProof: any
+    encodedProof: any,
+    ecdhPublicKey: BigInt[]
   ) {
     const startTx = Date.now();
     const tx = await zeto.connect(signer.signer).transfer(
@@ -755,6 +764,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
       root,
       encryptionNonce,
+      ecdhPublicKey,
       encryptedValues,
       encodedProof,
       '0x'

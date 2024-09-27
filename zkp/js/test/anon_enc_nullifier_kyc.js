@@ -150,8 +150,10 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     const outputCommitments = [output1, output2];
 
     const encryptionNonce = newEncryptionNonce();
+    const ephemeralKeypair = genKeypair();
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
+      ecdhPrivateKey: formatPrivKeyForBabyJub(ephemeralKeypair.privKey),
     });
 
     // generate the merkle proof for the transacting identities
@@ -206,15 +208,15 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     // console.log('identitiesRoot', proof3.root.bigInt());
     // console.log('encryptionNonce', encryptionNonce);
 
-    expect(witness[8]).to.equal(BigInt(nullifiers[0]));
-    expect(witness[9]).to.equal(BigInt(nullifiers[1]));
-    expect(witness[10]).to.equal(proof1.root.bigInt());
-    expect(witness[13]).to.equal(proof3.root.bigInt());
+    expect(witness[10]).to.equal(BigInt(nullifiers[0]));
+    expect(witness[11]).to.equal(BigInt(nullifiers[1]));
+    expect(witness[12]).to.equal(proof1.root.bigInt());
+    expect(witness[15]).to.equal(proof3.root.bigInt());
 
     // take the output from the proof circuit and attempt to decrypt
     // as the receiver
     const cipherText = witness.slice(1, 8); // first 7 elements are the cipher text for the encryption output
-    const recoveredKey = genEcdhSharedKey(Bob.privKey, Alice.pubKey);
+    const recoveredKey = genEcdhSharedKey(Bob.privKey, ephemeralKeypair.pubKey);
     const plainText = poseidonDecrypt(
       cipherText,
       recoveredKey,
@@ -297,8 +299,10 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     const identitiesRoot = proof3.root.bigInt();
 
     const encryptionNonce = genRandomSalt();
+    const ephemeralKeypair = genKeypair();
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
+      ecdhPrivateKey: formatPrivKeyForBabyJub(ephemeralKeypair.privKey),
     });
 
     let err;
@@ -334,7 +338,7 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
       err = e;
     }
     // console.log(err);
-    expect(err).to.match(/Error in template Zeto_266 line: 136/);
+    expect(err).to.match(/Error in template Zeto_266 line: 141/);
     expect(err).to.match(/Error in template CheckSMTProof_253 line: 46/);
   });
 });

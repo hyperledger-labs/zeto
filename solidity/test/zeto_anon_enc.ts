@@ -26,6 +26,7 @@ import {
 } from 'zeto-js';
 import { groth16 } from 'snarkjs';
 import {
+  genKeypair,
   formatPrivKeyForBabyJub,
   genEcdhSharedKey,
   stringifyBigInts,
@@ -115,10 +116,10 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
     const events = parseUTXOEvents(zeto, result.txResult!);
     expect(events[0].inputs).to.deep.equal(inputUtxos.map((i) => i.hash));
     const incomingUTXOs: any = events[0].outputs;
-    // Bob reconstructs the shared key using his private key and Alice's public key (obtained out of band)
-    const senderPublicKey = Alice.babyJubPublicKey;
+    const ecdhPublicKey = events[0].ecdhPublicKey;
+    // Bob reconstructs the shared key using his private key and ephemeral public key
 
-    const sharedKey = genEcdhSharedKey(Bob.babyJubPrivateKey, senderPublicKey);
+    const sharedKey = genEcdhSharedKey(Bob.babyJubPrivateKey, ecdhPublicKey);
     const plainText = poseidonDecrypt(
       events[0].encryptedValues,
       sharedKey,
@@ -202,10 +203,10 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
     expect(events[0].outputs).to.deep.equal([_utxo1.hash, utxo4.hash]);
     const incomingUTXOs: any = events[0].outputs;
 
-    // Bob reconstructs the shared key using his private key and Alice's public key (obtained out of band)
-    const senderPublicKey = Alice.babyJubPublicKey;
+    const ecdhPublicKey = events[0].ecdhPublicKey;
+    // Bob reconstructs the shared key using his private key and ephemeral public key
 
-    const sharedKey = genEcdhSharedKey(Bob.babyJubPrivateKey, senderPublicKey);
+    const sharedKey = genEcdhSharedKey(Bob.babyJubPrivateKey, ecdhPublicKey);
     const plainText = poseidonDecrypt(
       events[0].encryptedValues,
       sharedKey,
@@ -341,7 +342,14 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
     let encryptedValues: BigNumberish[];
     let encryptionNonce: BigNumberish;
     let encodedProof: any;
-    const result = await prepareProof(signer, inputs, outputs, owners);
+    const ephemeralKeypair = genKeypair();
+    const result = await prepareProof(
+      signer,
+      inputs,
+      outputs,
+      owners,
+      ephemeralKeypair.privKey
+    );
     inputCommitments = result.inputCommitments;
     outputCommitments = result.outputCommitments;
     encodedProof = result.encodedProof;
@@ -354,7 +362,8 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
       outputCommitments,
       encryptedValues,
       encryptionNonce,
-      encodedProof
+      encodedProof,
+      ephemeralKeypair.pubKey
     );
     // add the clear text value so that it can be used by tests to compare with the decrypted value
     return {
@@ -371,7 +380,8 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
     signer: User,
     inputs: UTXO[],
     outputs: UTXO[],
-    owners: User[]
+    owners: User[],
+    ephemeralPrivateKey: BigInt
   ) {
     const inputCommitments: BigNumberish[] = inputs.map(
       (input) => input.hash
@@ -388,7 +398,7 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
     const encryptionNonce: BigNumberish = newEncryptionNonce() as BigNumberish;
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
-      inputOwnerPrivateKey: formatPrivKeyForBabyJub(signer.babyJubPrivateKey),
+      ecdhPrivateKey: formatPrivKeyForBabyJub(ephemeralPrivateKey),
     });
 
     let circuitToUse = circuit;
@@ -405,6 +415,7 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
         inputCommitments,
         inputValues,
         inputSalts,
+        inputOwnerPrivateKey: formatPrivKeyForBabyJub(signer.babyJubPrivateKey),
         outputCommitments,
         outputValues,
         outputSalts: outputs.map((output) => output.salt || 0n),
@@ -444,12 +455,14 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
     outputCommitments: BigNumberish[],
     encryptedValues: BigNumberish[],
     encryptionNonce: BigNumberish,
-    encodedProof: any
+    encodedProof: any,
+    ecdhPublicKey: BigInt[]
   ) {
     const tx = await zeto.connect(signer.signer).transfer(
       inputCommitments.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
       outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
       encryptionNonce,
+      ecdhPublicKey,
       encryptedValues,
       encodedProof,
       '0x'

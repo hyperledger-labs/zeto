@@ -40,6 +40,8 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   // must be properly hashed and trimmed to be compatible with the BabyJub curve.
   // Reference: https://github.com/iden3/circomlib/blob/master/test/babyjub.js#L103
   signal input inputOwnerPrivateKey;
+  // an ephemeral private key that is used to generated the shared ECDH key for encryption
+  signal input ecdhPrivateKey;
   signal input root;
   signal input merkleProof[nInputs][nSMTLevels];
   signal input enabled[nInputs];
@@ -58,6 +60,9 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   cLen++;
   signal output cipherText[cLen];
 
+  // the output for the public key of the ephemeral private key used in generating ECDH shared key
+  signal output ecdhPublicKey[2];
+  
   // the number of cipher text messages returned by
   // the encryption template will be 3n+1
   // input length: 
@@ -125,8 +130,7 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   // generate shared secret for the receiver
   var sharedSecretReceiver[2];
   component ecdh1 = Ecdh();
-  ecdh1.privKey <== inputOwnerPrivateKey;
-  // our circuit requires that the output UTXO for the receiver must be the first in the array
+  ecdh1.privKey <== ecdhPrivateKey;
   ecdh1.pubKey[0] <== outputOwnerPublicKeys[0][0];
   ecdh1.pubKey[1] <== outputOwnerPublicKeys[0][1];
   sharedSecretReceiver[0] = ecdh1.sharedKey[0];
@@ -147,17 +151,22 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   // generate shared secret for the authority
   var sharedSecretAuthority[2];
   component ecdh2 = Ecdh();
-  ecdh2.privKey <== inputOwnerPrivateKey;
-  // our circuit requires that the output UTXO for the receiver must be the first in the array
+  ecdh2.privKey <== ecdhPrivateKey;
   ecdh2.pubKey[0] <== authorityPublicKey[0];
   ecdh2.pubKey[1] <== authorityPublicKey[1];
   sharedSecretAuthority[0] = ecdh2.sharedKey[0];
   sharedSecretAuthority[1] = ecdh2.sharedKey[1];
 
+  component ecdhPub = BabyPbk();
+  ecdhPub.in <== ecdhPrivateKey;
+  ecdhPublicKey[0] <== ecdhPub.Ax;
+  ecdhPublicKey[1] <== ecdhPub.Ay;
+
   // encrypt the values for the authority
   component encrypt2 = SymmetricEncrypt(2 + 2 * nInputs + 4 * nOutputs);
   encrypt2.plainText[0] <== inputOwnerPublicKey[0];
   encrypt2.plainText[1] <== inputOwnerPublicKey[1];
+
   var idx1 = 2;
   for (var i = 0; i < nInputs; i++) {
     encrypt2.plainText[idx1] <== inputValues[i];
@@ -180,4 +189,6 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   encrypt2.key <== sharedSecretAuthority;
   encrypt2.nonce <== encryptionNonce;
   encrypt2.cipherText ==> cipherTextAuthority;
+
+
 }

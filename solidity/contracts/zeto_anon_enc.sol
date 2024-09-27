@@ -77,6 +77,7 @@ contract Zeto_AnonEnc is
         uint256[] memory inputs,
         uint256[] memory outputs,
         uint256 encryptionNonce,
+        uint256[2] memory ecdhPublicKey,
         uint256[] memory encryptedValues,
         Commonlib.Proof calldata proof,
         bytes calldata data
@@ -90,11 +91,15 @@ contract Zeto_AnonEnc is
 
         if (inputs.length > 2) {
             // construct the public inputs
-            uint256[43] memory publicInputs;
+            uint256[45] memory publicInputs;
             uint256 piIndex = 0;
             // copy the encrypted value, salt and parity bit
             for (uint256 i = 0; i < encryptedValues.length; ++i) {
                 publicInputs[piIndex++] = encryptedValues[i];
+            }
+            // copy the ecdh public key
+            for (uint256 i = 0; i < ecdhPublicKey.length; ++i) {
+                publicInputs[piIndex++] = ecdhPublicKey[i];
             }
             // copy input commitments
             for (uint256 i = 0; i < inputs.length; i++) {
@@ -121,11 +126,15 @@ contract Zeto_AnonEnc is
             );
         } else {
             // construct the public inputs
-            uint256[12] memory publicInputs;
+            uint256[14] memory publicInputs;
             uint256 piIndex = 0;
             // copy the encrypted value, salt and parity bit
             for (uint256 i = 0; i < encryptedValues.length; ++i) {
                 publicInputs[piIndex++] = encryptedValues[i];
+            }
+            // copy the ecdh public key
+            for (uint256 i = 0; i < ecdhPublicKey.length; ++i) {
+                publicInputs[piIndex++] = ecdhPublicKey[i];
             }
             // copy input commitments
             for (uint256 i = 0; i < inputs.length; i++) {
@@ -164,6 +173,7 @@ contract Zeto_AnonEnc is
             inputs,
             outputs,
             encryptionNonce,
+            ecdhPublicKey,
             encryptedValuesArray,
             msg.sender,
             data

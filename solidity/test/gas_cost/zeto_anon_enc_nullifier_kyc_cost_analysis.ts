@@ -550,6 +550,7 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
         outputCommitments,
         root,
         encryptionNonce,
+        ecdhPublicKey,
         encryptedValues,
         encodedProof,
         '0x'

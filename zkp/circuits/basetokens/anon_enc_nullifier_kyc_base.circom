@@ -40,6 +40,8 @@ template Zeto(nInputs, nOutputs, nUTXOSMTLevels, nIdentitiesSMTLevels) {
   // must be properly hashed and trimmed to be compatible with the BabyJub curve.
   // Reference: https://github.com/iden3/circomlib/blob/master/test/babyjub.js#L103
   signal input inputOwnerPrivateKey;
+  // an ephemeral private key that is used to generated the shared ECDH key for encryption
+  signal input ecdhPrivateKey;
   signal input utxosRoot;
   signal input utxosMerkleProof[nInputs][nUTXOSMTLevels];
   signal input enabled[nInputs];
@@ -59,6 +61,9 @@ template Zeto(nInputs, nOutputs, nUTXOSMTLevels, nIdentitiesSMTLevels) {
   cLen++;
   signal output cipherText[cLen];
 
+  // the output for the public key of the ephemeral private key used in generating ECDH shared key
+  signal output ecdhPublicKey[2];
+  
   // derive the sender's public key from the secret input
   // for the sender's private key. This step demonstrates
   // the sender really owns the private key for the input
@@ -138,8 +143,7 @@ template Zeto(nInputs, nOutputs, nUTXOSMTLevels, nIdentitiesSMTLevels) {
   // generate shared secret
   var sharedSecret[2];
   component ecdh = Ecdh();
-  ecdh.privKey <== inputOwnerPrivateKey;
-  // our circuit requires that the output UTXO for the receiver must be the first in the array
+  ecdh.privKey <== ecdhPrivateKey;
   ecdh.pubKey[0] <== outputOwnerPublicKeys[0][0];
   ecdh.pubKey[1] <== outputOwnerPublicKeys[0][1];
   sharedSecret[0] = ecdh.sharedKey[0];
@@ -156,4 +160,9 @@ template Zeto(nInputs, nOutputs, nUTXOSMTLevels, nIdentitiesSMTLevels) {
   for (var i = 0; i < cLen; i++) {
     encrypt.cipherText[i] ==> cipherText[i];
   }
+
+  component ecdhPub = BabyPbk();
+  ecdhPub.in <== ecdhPrivateKey;
+  ecdhPublicKey[0] <== ecdhPub.Ax;
+  ecdhPublicKey[1] <== ecdhPub.Ay;
 }
