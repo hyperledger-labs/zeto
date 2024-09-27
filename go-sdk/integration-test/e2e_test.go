@@ -499,6 +499,86 @@ func (s *E2ETestSuite) TestZeto_5_SuccessfulProving() {
 	assert.Equal(s.T(), 3, len(proof.Proof.B))
 	assert.Equal(s.T(), 3, len(proof.Proof.C))
 	assert.Equal(s.T(), 2, len(proof.PubSignals))
+
+}
+
+func (s *E2ETestSuite) TestZeto_5_SuccessfulProvingWithConcurrency() {
+	concurrency := 10
+	resultChan := make(chan struct{}, concurrency)
+
+	for i := 0; i < concurrency; i++ {
+		index := i
+		go func() {
+			defer func() {
+				resultChan <- struct{}{}
+			}()
+			calc, provingKey, err := loadCircuit("nf_anon")
+			assert.NoError(s.T(), err)
+			assert.NotNil(s.T(), calc)
+
+			sender := testutils.NewKeypair()
+			receiver := testutils.NewKeypair()
+
+			tokenId := big.NewInt(int64(index + 1)) // ensure different token uris for each run
+			tokenUri, err := utxo.HashTokenUri("https://example.com/token/" + tokenId.String())
+			assert.NoError(s.T(), err)
+
+			salt1 := crypto.NewSalt()
+			input1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt1, sender.PublicKey.X, sender.PublicKey.Y})
+			assert.NoError(s.T(), err)
+
+			salt3 := crypto.NewSalt()
+			output1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
+			assert.NoError(s.T(), err)
+
+			witnessInputs := map[string]interface{}{
+				"tokenIds":              []*big.Int{tokenId},
+				"tokenUris":             []*big.Int{tokenUri},
+				"inputCommitments":      []*big.Int{input1},
+				"inputSalts":            []*big.Int{salt1},
+				"inputOwnerPrivateKey":  sender.PrivateKeyBigInt,
+				"outputCommitments":     []*big.Int{output1},
+				"outputSalts":           []*big.Int{salt3},
+				"outputOwnerPublicKeys": [][]*big.Int{{receiver.PublicKey.X, receiver.PublicKey.Y}},
+			}
+			// calculate the witness object for checking correctness
+			witness, err := calc.CalculateWitness(witnessInputs, true)
+			assert.NoError(s.T(), err)
+			assert.NotNil(s.T(), witness)
+
+			assert.Equal(s.T(), 0, witness[0].Cmp(big.NewInt(1)))
+			assert.Equal(s.T(), 0, witness[1].Cmp(input1))
+			assert.Equal(s.T(), 0, witness[2].Cmp(output1))
+			assert.Equal(s.T(), 0, witness[3].Cmp(tokenId))
+			assert.Equal(s.T(), 0, witness[4].Cmp(tokenUri))
+
+			// generate the witness binary to feed into the prover
+			startTime := time.Now()
+			witnessBin, err := calc.CalculateWTNSBin(witnessInputs, true)
+			assert.NoError(s.T(), err)
+			assert.NotNil(s.T(), witnessBin)
+
+			proof, err := prover.Groth16Prover(provingKey, witnessBin)
+			elapsedTime := time.Since(startTime)
+			fmt.Printf("Proving time: %s\n", elapsedTime)
+			fmt.Printf("token uri from witness: %s\n", witness[3])
+			assert.NoError(s.T(), err)
+			assert.Equal(s.T(), 3, len(proof.Proof.A))
+			assert.Equal(s.T(), 3, len(proof.Proof.B))
+			assert.Equal(s.T(), 3, len(proof.Proof.C))
+			assert.Equal(s.T(), 2, len(proof.PubSignals))
+
+		}()
+	}
+	count := 0
+	for {
+		<-resultChan
+		count++
+		if count == concurrency {
+			break
+		}
+	}
+
 }
 
 func (s *E2ETestSuite) TestZeto_6_SuccessfulProving() {
