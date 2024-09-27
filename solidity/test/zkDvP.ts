@@ -445,5 +445,17 @@ describe('DvP flows between fungible and non-fungible tokens based on Zeto with 
           )
       ).rejectedWith('Payment outputs must be provided to accept the trade');
     });
+
+    it("test proof locking", async function () {
+      const circuit1 = await loadCircuit('anon');
+      const { provingKeyFile: provingKey1 } = loadProvingKeys('anon');
+      const utxo1 = newUTXO(100, Alice);
+      const proof = await zetoAnonTests.prepareProof(circuit1, provingKey1, Alice, [utxo1, ZERO_UTXO], [utxo1, ZERO_UTXO], [Alice, {}]);
+
+      await expect(zkPayment.connect(Alice.signer).lockProof(proof.encodedProof, await Alice.signer.getAddress())).fulfilled;
+      await expect(zkPayment.connect(Bob.signer).lockProof(proof.encodedProof, await Bob.signer.getAddress())).rejectedWith("Proof already locked by another party");
+      await expect(zkPayment.connect(Alice.signer).lockProof(proof.encodedProof, await Bob.signer.getAddress())).fulfilled;
+      await expect(zkPayment.connect(Bob.signer).lockProof(proof.encodedProof, "0x0000000000000000000000000000000000000000")).fulfilled;
+    });
   });
 }).timeout(600000);
