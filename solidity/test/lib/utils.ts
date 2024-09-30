@@ -125,7 +125,8 @@ export function parseUTXOEvents(zetoTokenContract: any, result: ContractTransact
         outputs: event?.args.outputs,
         encryptedValues: event?.args.encryptedValues,
         encryptionNonce: event?.args.encryptionNonce,
-        submitter: event?.args.submitter
+        submitter: event?.args.submitter,
+        ecdhPublicKey: event?.args.ecdhPublicKey
       };
       returnValues.push(transfer);
     } else if (event?.name === 'UTXOTransferNonRepudiation') {
@@ -135,7 +136,8 @@ export function parseUTXOEvents(zetoTokenContract: any, result: ContractTransact
         encryptedValuesForReceiver: event?.args.encryptedValuesForReceiver,
         encryptedValuesForAuthority: event?.args.encryptedValuesForAuthority,
         encryptionNonce: event?.args.encryptionNonce,
-        submitter: event?.args.submitter
+        submitter: event?.args.submitter,
+        ecdhPublicKey: event?.args.ecdhPublicKey
       };
       returnValues.push(transfer);
     } else if (event?.name === 'UTXOMint') {

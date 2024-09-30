@@ -90,9 +90,10 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     const outputCommitments = [output1, output2];
 
     const encryptionNonce = newEncryptionNonce();
+    const ephemeralKeypair = genKeypair();
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
-      inputOwnerPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
+      ecdhPrivateKey: formatPrivKeyForBabyJub(ephemeralKeypair.privKey),
     });
 
     const witness = await circuit.calculateWitness(
@@ -100,6 +101,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
         inputCommitments,
         inputValues,
         inputSalts: [salt1, salt2],
+        inputOwnerPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
         outputCommitments,
         outputValues,
         outputSalts: [salt3, salt4],
@@ -110,21 +112,26 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     );
 
     // console.log('witness', witness.slice(0, 15));
-    // console.log('salt3', salt3);
+    // console.log('senderPublicKey', sender.pubKey);
+    // console.log('receiverPublicKey', receiver.pubKey);
+    // console.log('ephemeralPubkey', ephemeralKeypair.pubKey);
     // console.log('inputCommitments', inputCommitments);
-    // console.log('senderPublicKey', senderPubKey);
-    // console.log('receiverPublicKey', receiverPubKey);
     // console.log('encryptionNonce', encryptionNonce);
 
-    expect(witness[8]).to.equal(BigInt(inputCommitments[0]));
-    expect(witness[9]).to.equal(BigInt(inputCommitments[1]));
-    expect(witness[10]).to.equal(BigInt(outputCommitments[0]));
-    expect(witness[11]).to.equal(BigInt(outputCommitments[1]));
+    expect(witness[8]).to.equal(BigInt(ephemeralKeypair.pubKey[0]));
+    expect(witness[9]).to.equal(BigInt(ephemeralKeypair.pubKey[1]));
+    expect(witness[10]).to.equal(BigInt(inputCommitments[0]));
+    expect(witness[11]).to.equal(BigInt(inputCommitments[1]));
+    expect(witness[12]).to.equal(BigInt(outputCommitments[0]));
+    expect(witness[13]).to.equal(BigInt(outputCommitments[1]));
 
     // take the output from the proof circuit and attempt to decrypt
     // as the receiver
     const cipherText = witness.slice(1, 8);
-    const recoveredKey = genEcdhSharedKey(receiver.privKey, sender.pubKey);
+    const recoveredKey = genEcdhSharedKey(
+      receiver.privKey,
+      ephemeralKeypair.pubKey
+    );
     const plainText = poseidonDecrypt(
       cipherText,
       recoveredKey,
@@ -173,9 +180,10 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     const outputCommitments = [output1, output2];
 
     const encryptionNonce = newEncryptionNonce();
+    const ephemeralKeypair = genKeypair();
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
-      inputOwnerPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
+      ecdhPrivateKey: formatPrivKeyForBabyJub(ephemeralKeypair.privKey),
     });
 
     let err;
@@ -185,6 +193,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
           inputCommitments,
           inputValues,
           inputSalts: [salt1, salt2],
+          inputOwnerPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
           outputCommitments,
           outputValues,
           outputSalts: [salt3, salt3],
@@ -197,7 +206,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
       err = e;
     }
     // console.log(err);
-    expect(err).to.match(/Error in template Zeto_105 line: 84/);
+    expect(err).to.match(/Error in template Zeto_105 line: 89/);
   });
 
   it('should failed to match output UTXO after decrypting the cipher texts from the events if using the wrong sender public keys', async () => {
@@ -235,9 +244,10 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     const outputCommitments = [output1, output2];
 
     const encryptionNonce = newEncryptionNonce();
+    const ephemeralKeypair = genKeypair();
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
-      inputOwnerPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
+      ecdhPrivateKey: formatPrivKeyForBabyJub(ephemeralKeypair.privKey),
     });
 
     const witness = await circuit.calculateWitness(
@@ -245,6 +255,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
         inputCommitments,
         inputValues,
         inputSalts: [salt1, salt2],
+        inputOwnerPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
         outputCommitments,
         outputValues,
         outputSalts: [salt3, salt4],

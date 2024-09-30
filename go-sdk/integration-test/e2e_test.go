@@ -217,6 +217,7 @@ func (s *E2ETestSuite) TestZeto_2_SuccessfulProving() {
 	outputCommitments := []*big.Int{output1, output2}
 
 	encryptionNonce := crypto.NewEncryptionNonce()
+	ephemeralKeypair := testutils.NewKeypair()
 
 	witnessInputs := map[string]interface{}{
 		"inputCommitments":      inputCommitments,
@@ -228,6 +229,7 @@ func (s *E2ETestSuite) TestZeto_2_SuccessfulProving() {
 		"outputSalts":           []*big.Int{salt3, salt4},
 		"outputOwnerPublicKeys": [][]*big.Int{{receiver.PublicKey.X, receiver.PublicKey.Y}, {sender.PublicKey.X, sender.PublicKey.Y}},
 		"encryptionNonce":       encryptionNonce,
+		"ecdhPrivateKey":        ephemeralKeypair.PrivateKey.Scalar().BigInt(),
 	}
 
 	startTime := time.Now()
@@ -242,7 +244,7 @@ func (s *E2ETestSuite) TestZeto_2_SuccessfulProving() {
 	assert.Equal(s.T(), 3, len(proof.Proof.A))
 	assert.Equal(s.T(), 3, len(proof.Proof.B))
 	assert.Equal(s.T(), 3, len(proof.Proof.C))
-	assert.Equal(s.T(), 12, len(proof.PubSignals))
+	assert.Equal(s.T(), 14, len(proof.PubSignals))
 
 	// the receiver would be able to get the encrypted values and salts
 	// from the transaction events
@@ -256,7 +258,7 @@ func (s *E2ETestSuite) TestZeto_2_SuccessfulProving() {
 	// the first two elements in the public signals are the encrypted value and salt
 	// for the first output. decrypt using the receiver's private key and compare with
 	// the UTXO hash
-	secret := crypto.GenerateECDHSharedSecret(receiver.PrivateKey, sender.PublicKey)
+	secret := crypto.GenerateECDHSharedSecret(receiver.PrivateKey, ephemeralKeypair.PublicKey)
 	decrypted, err := crypto.PoseidonDecrypt(encryptedValues, []*big.Int{secret.X, secret.Y}, encryptionNonce, 4)
 	assert.NoError(s.T(), err)
 	assert.Equal(s.T(), outputValues[0].String(), decrypted[0].String())
@@ -403,6 +405,7 @@ func (s *E2ETestSuite) TestZeto_4_SuccessfulProving() {
 	outputCommitments := []*big.Int{output1, output2}
 
 	encryptionNonce := crypto.NewEncryptionNonce()
+	ephemeralKeypair := testutils.NewKeypair()
 
 	proof1Siblings := make([]*big.Int, len(circomProof1.Siblings)-1)
 	for i, s := range circomProof1.Siblings[0 : len(circomProof1.Siblings)-1] {
@@ -426,6 +429,7 @@ func (s *E2ETestSuite) TestZeto_4_SuccessfulProving() {
 		"outputSalts":           []*big.Int{salt3, salt4},
 		"outputOwnerPublicKeys": [][]*big.Int{{receiver.PublicKey.X, receiver.PublicKey.Y}, {sender.PublicKey.X, sender.PublicKey.Y}},
 		"encryptionNonce":       encryptionNonce,
+		"ecdhPrivateKey":        ephemeralKeypair.PrivateKey.Scalar().BigInt(),
 	}
 
 	startTime := time.Now()
@@ -440,7 +444,7 @@ func (s *E2ETestSuite) TestZeto_4_SuccessfulProving() {
 	assert.Equal(s.T(), 3, len(proof.Proof.A))
 	assert.Equal(s.T(), 3, len(proof.Proof.B))
 	assert.Equal(s.T(), 3, len(proof.Proof.C))
-	assert.Equal(s.T(), 15, len(proof.PubSignals))
+	assert.Equal(s.T(), 17, len(proof.PubSignals))
 }
 
 func (s *E2ETestSuite) TestZeto_5_SuccessfulProving() {

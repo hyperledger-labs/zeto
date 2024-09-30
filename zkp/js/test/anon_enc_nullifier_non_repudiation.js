@@ -42,7 +42,7 @@ const poseidonHash = Poseidon.poseidon4;
 const poseidonHash3 = Poseidon.poseidon3;
 
 describe('main circuit tests for Zeto fungible tokens with encryption for non-repudiation and anonymity using nullifiers', () => {
-  let circuit, smtAlice, smtBob;
+  let circuit, smtAlice;
 
   const Alice = {};
   const Bob = {};
@@ -143,8 +143,10 @@ describe('main circuit tests for Zeto fungible tokens with encryption for non-re
     const outputCommitments = [output1, output2];
 
     const encryptionNonce = newEncryptionNonce();
+    const ephemeralKeypair = genKeypair();
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
+      ecdhPrivateKey: formatPrivKeyForBabyJub(ephemeralKeypair.privKey),
     });
 
     const witness = await circuit.calculateWitness(
@@ -182,14 +184,14 @@ describe('main circuit tests for Zeto fungible tokens with encryption for non-re
     // console.log('outputOwnerPublicKeys', [Bob.pubKey, Alice.pubKey]);
     // console.log('encryptionNonce', encryptionNonce);
 
-    expect(witness[24]).to.equal(BigInt(nullifiers[0]));
-    expect(witness[25]).to.equal(BigInt(nullifiers[1]));
-    expect(witness[26]).to.equal(proof1.root.bigInt());
+    expect(witness[26]).to.equal(BigInt(nullifiers[0]));
+    expect(witness[27]).to.equal(BigInt(nullifiers[1]));
+    expect(witness[28]).to.equal(proof1.root.bigInt());
 
     // take the output from the proof circuit and attempt to decrypt
     // as the receiver
     const cipherText = witness.slice(1, 8); // per the encryption scheme, the output has 7 elements
-    const recoveredKey = genEcdhSharedKey(Bob.privKey, Alice.pubKey);
+    const recoveredKey = genEcdhSharedKey(Bob.privKey, ephemeralKeypair.pubKey);
     const plainText = poseidonDecrypt(
       cipherText,
       recoveredKey,
@@ -200,8 +202,11 @@ describe('main circuit tests for Zeto fungible tokens with encryption for non-re
 
     // take the output from the proof circuit and attempt to decrypt
     // as the regulator
-    const recoveredKey2 = genEcdhSharedKey(Regulator.privKey, Alice.pubKey);
-    const cipherText2 = witness.slice(8, 24); // next 16 elements are the cipher text for the second encryption output
+    const recoveredKey2 = genEcdhSharedKey(
+      Regulator.privKey,
+      ephemeralKeypair.pubKey
+    );
+    const cipherText2 = witness.slice(10, 26); // next 16 elements are the cipher text for the second encryption output
     const plainText2 = poseidonDecrypt(
       cipherText2,
       recoveredKey2,
@@ -273,8 +278,10 @@ describe('main circuit tests for Zeto fungible tokens with encryption for non-re
     const outputCommitments = [output1, output2];
 
     const encryptionNonce = newEncryptionNonce();
+    const ephemeralKeypair = genKeypair();
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
+      ecdhPrivateKey: formatPrivKeyForBabyJub(ephemeralKeypair.privKey),
     });
 
     const witness = await circuit.calculateWitness(
@@ -312,14 +319,14 @@ describe('main circuit tests for Zeto fungible tokens with encryption for non-re
     // console.log('outputOwnerPublicKeys', [receiver.pubKey, sender.pubKey]);
     // console.log('encryptionNonce', encryptionNonce);
 
-    expect(witness[24]).to.equal(BigInt(nullifiers[0]));
-    expect(witness[25]).to.equal(BigInt(nullifiers[1]));
-    expect(witness[26]).to.equal(proof1.root.bigInt());
+    expect(witness[26]).to.equal(BigInt(nullifiers[0]));
+    expect(witness[27]).to.equal(BigInt(nullifiers[1]));
+    expect(witness[28]).to.equal(proof1.root.bigInt());
 
     // take the output from the proof circuit and attempt to decrypt
     // as the receiver
     const cipherText = witness.slice(1, 8); // first 7 elements are the cipher text for the first encryption output
-    const recoveredKey = genEcdhSharedKey(Bob.privKey, Alice.pubKey);
+    const recoveredKey = genEcdhSharedKey(Bob.privKey, ephemeralKeypair.pubKey);
     const plainText = poseidonDecrypt(
       cipherText,
       recoveredKey,
@@ -330,8 +337,11 @@ describe('main circuit tests for Zeto fungible tokens with encryption for non-re
 
     // take the output from the proof circuit and attempt to decrypt
     // as the regulator
-    const recoveredKey2 = genEcdhSharedKey(Regulator.privKey, Alice.pubKey);
-    const cipherText2 = witness.slice(8, 24); // next 16 elements are the cipher text for the second encryption output
+    const recoveredKey2 = genEcdhSharedKey(
+      Regulator.privKey,
+      ephemeralKeypair.pubKey
+    );
+    const cipherText2 = witness.slice(10, 26); // next 16 elements are the cipher text for the second encryption output
     const plainText2 = poseidonDecrypt(
       cipherText2,
       recoveredKey2,
@@ -417,8 +427,10 @@ describe('main circuit tests for Zeto fungible tokens with encryption for non-re
     const outputCommitments = [output1, output2];
 
     const encryptionNonce = newEncryptionNonce();
+    const ephemeralKeypair = genKeypair();
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
+      ecdhPrivateKey: formatPrivKeyForBabyJub(ephemeralKeypair.privKey),
     });
 
     let err;
@@ -450,6 +462,6 @@ describe('main circuit tests for Zeto fungible tokens with encryption for non-re
     }
     // console.log(err);
     expect(err).to.match(/Error in template CheckSum_161 line: 44/);
-    expect(err).to.match(/Error in template Zeto_264 line: 113/);
+    expect(err).to.match(/Error in template Zeto_264 line: 118/);
   });
 });
