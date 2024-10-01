@@ -19,6 +19,7 @@ import {
   SmtLibModule,
   DepositVerifierModule,
   WithdrawNullifierVerifierModule,
+  BatchWithdrawNullifierVerifierModule,
 } from "./lib/deps";
 
 const VerifierModule = buildModule(
@@ -51,12 +52,15 @@ export default buildModule("Zeto_AnonEncNullifierNonRepudiation", (m) => {
   const { verifier: withdrawVerifier } = m.useModule(
     WithdrawNullifierVerifierModule,
   );
-
+  const { verifier: batchWithdrawVerifier } = m.useModule(
+    BatchWithdrawNullifierVerifierModule,
+  );
   return {
     depositVerifier,
     withdrawVerifier,
     verifier,
     batchVerifier,
+    batchWithdrawVerifier,
     smtLib,
     poseidon3,
   };

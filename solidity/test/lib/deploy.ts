@@ -55,6 +55,7 @@ export async function deployZeto(tokenName: string) {
       depositVerifier,
       withdrawVerifier,
       batchVerifier,
+      batchWithdrawVerifier,
     ] = args;
 
     // we want to test the effectiveness of the factory contract
@@ -72,6 +73,8 @@ export async function deployZeto(tokenName: string) {
       verifier,
       batchVerifier:
         batchVerifier || "0x0000000000000000000000000000000000000000",
+      batchWithdrawVerifier:
+        batchWithdrawVerifier || "0x0000000000000000000000000000000000000000",
     };
     // console.log(implInfo);
     const tx1 = await factory

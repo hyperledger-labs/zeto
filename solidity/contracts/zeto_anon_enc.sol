@@ -18,6 +18,7 @@ pragma solidity ^0.8.20;
 import {IZetoEncrypted} from "./lib/interfaces/izeto_encrypted.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValue} from "./lib/verifier_check_inputs_outputs_value.sol";
+import {Groth16Verifier_CheckInputsOutputsValueBatch} from "./lib/verifier_check_inputs_outputs_value_batch.sol";
 import {Groth16Verifier_AnonEnc} from "./lib/verifier_anon_enc.sol";
 import {Groth16Verifier_AnonEncBatch} from "./lib/verifier_anon_enc_batch.sol";
 import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
@@ -55,11 +56,17 @@ contract Zeto_AnonEnc is
         Groth16Verifier_AnonEnc _verifier,
         Groth16Verifier_CheckHashesValue _depositVerifier,
         Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier,
-        Groth16Verifier_AnonEncBatch _batchVerifier
+        Groth16Verifier_AnonEncBatch _batchVerifier,
+        Groth16Verifier_CheckInputsOutputsValueBatch _batchWithdrawVerifier
     ) public initializer {
         __ZetoBase_init(initialOwner);
-        __ZetoFungibleWithdraw_init(_depositVerifier, _withdrawVerifier);
+        __ZetoFungibleWithdraw_init(
+            _depositVerifier,
+            _withdrawVerifier,
+            _batchWithdrawVerifier
+        );
         verifier = _verifier;
+        batchVerifier = _batchVerifier;
         batchVerifier = _batchVerifier;
     }
 
@@ -72,7 +79,7 @@ contract Zeto_AnonEnc is
         uint256[2] memory ecdhPublicKey,
         uint256[] memory encryptedValues,
         uint256 size
-    ) internal returns (uint256[] memory publicInputs) {
+    ) internal pure returns (uint256[] memory publicInputs) {
         publicInputs = new uint256[](size);
         uint256 piIndex = 0;
         // copy the encrypted value, salt and parity bit
@@ -136,9 +143,9 @@ contract Zeto_AnonEnc is
                 BATCH_INPUT_SIZE
             );
             // construct the public inputs for batchVerifier
-            uint256[BATCH_INPUT_SIZE] memory fixedSizeInput;
-            for (uint256 i = 0; i < fixedSizeInput.length; i++) {
-                fixedSizeInput[i] = publicInputs[i];
+            uint256[BATCH_INPUT_SIZE] memory fixedSizeInputs;
+            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
+                fixedSizeInputs[i] = publicInputs[i];
             }
 
             // Check the proof using batchVerifier
@@ -147,7 +154,7 @@ contract Zeto_AnonEnc is
                     proof.pA,
                     proof.pB,
                     proof.pC,
-                    fixedSizeInput
+                    fixedSizeInputs
                 ),
                 "Invalid proof"
             );
@@ -161,9 +168,9 @@ contract Zeto_AnonEnc is
                 INPUT_SIZE
             );
             // construct the public inputs for verifier
-            uint256[INPUT_SIZE] memory fixedSizeInput;
-            for (uint256 i = 0; i < fixedSizeInput.length; i++) {
-                fixedSizeInput[i] = publicInputs[i];
+            uint256[INPUT_SIZE] memory fixedSizeInputs;
+            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
+                fixedSizeInputs[i] = publicInputs[i];
             }
             // Check the proof
             require(
@@ -171,7 +178,7 @@ contract Zeto_AnonEnc is
                     proof.pA,
                     proof.pB,
                     proof.pC,
-                    fixedSizeInput
+                    fixedSizeInputs
                 ),
                 "Invalid proof"
             );

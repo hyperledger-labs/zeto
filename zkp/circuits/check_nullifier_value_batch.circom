@@ -13,15 +13,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pragma solidity ^0.8.20;
+pragma circom 2.1.4;
 
-interface IZetoFungibleInitializable {
-    function initialize(
-        address initialOwner,
-        address _depositVerifier,
-        address _withdrawVerifier,
-        address _verifier,
-        address _batchVerifier,
-        address _batchWithdrawVerifier
-    ) external;
-}
+include "./lib/check-nullifier-value-base.circom";
+
+component main { public [ nullifiers, outputCommitments, root, enabled ] } = Zeto(10, 1, 64);

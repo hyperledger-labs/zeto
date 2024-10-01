@@ -18,6 +18,8 @@ pragma solidity ^0.8.20;
 import {IZeto} from "./lib/interfaces/izeto.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValue} from "./lib/verifier_check_inputs_outputs_value.sol";
+import {Groth16Verifier_CheckInputsOutputsValueBatch} from "./lib/verifier_check_inputs_outputs_value_batch.sol";
+
 import {Groth16Verifier_Anon} from "./lib/verifier_anon.sol";
 import {Groth16Verifier_AnonBatch} from "./lib/verifier_anon_batch.sol";
 import {Registry} from "./lib/registry.sol";
@@ -48,10 +50,15 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         Groth16Verifier_Anon _verifier,
         Groth16Verifier_CheckHashesValue _depositVerifier,
         Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier,
-        Groth16Verifier_AnonBatch _batchVerifier
+        Groth16Verifier_AnonBatch _batchVerifier,
+        Groth16Verifier_CheckInputsOutputsValueBatch _batchWithdrawVerifier
     ) public initializer {
         __ZetoBase_init(initialOwner);
-        __ZetoFungibleWithdraw_init(_depositVerifier, _withdrawVerifier);
+        __ZetoFungibleWithdraw_init(
+            _depositVerifier,
+            _withdrawVerifier,
+            _batchWithdrawVerifier
+        );
         verifier = _verifier;
         batchVerifier = _batchVerifier;
     }
@@ -62,7 +69,7 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         uint256[] memory inputs,
         uint256[] memory outputs,
         uint256 size
-    ) internal returns (uint256[] memory publicInputs) {
+    ) internal pure returns (uint256[] memory publicInputs) {
         publicInputs = new uint256[](size);
         uint256 piIndex = 0;
         // copy input commitments
@@ -110,9 +117,9 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
                 BATCH_INPUT_SIZE
             );
             // construct the public inputs for batchVerifier
-            uint256[BATCH_INPUT_SIZE] memory fixedSizeInput;
-            for (uint256 i = 0; i < fixedSizeInput.length; i++) {
-                fixedSizeInput[i] = publicInputs[i];
+            uint256[BATCH_INPUT_SIZE] memory fixedSizeInputs;
+            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
+                fixedSizeInputs[i] = publicInputs[i];
             }
 
             // Check the proof using batchVerifier
@@ -121,7 +128,7 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
                     proof.pA,
                     proof.pB,
                     proof.pC,
-                    fixedSizeInput
+                    fixedSizeInputs
                 ),
                 "Invalid proof"
             );
@@ -132,9 +139,9 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
                 INPUT_SIZE
             );
             // construct the public inputs for verifier
-            uint256[INPUT_SIZE] memory fixedSizeInput;
-            for (uint256 i = 0; i < fixedSizeInput.length; i++) {
-                fixedSizeInput[i] = publicInputs[i];
+            uint256[INPUT_SIZE] memory fixedSizeInputs;
+            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
+                fixedSizeInputs[i] = publicInputs[i];
             }
             // Check the proof
             require(
@@ -142,7 +149,7 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
                     proof.pA,
                     proof.pB,
                     proof.pC,
-                    fixedSizeInput
+                    fixedSizeInputs
                 ),
                 "Invalid proof"
             );

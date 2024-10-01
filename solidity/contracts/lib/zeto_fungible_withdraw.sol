@@ -17,9 +17,13 @@ pragma solidity ^0.8.20;
 
 import {Groth16Verifier_CheckHashesValue} from "./verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValue} from "./verifier_check_inputs_outputs_value.sol";
+import {Groth16Verifier_CheckInputsOutputsValueBatch} from "./verifier_check_inputs_outputs_value_batch.sol";
 import {ZetoFungible} from "./zeto_fungible.sol";
 import {Commonlib} from "./common.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+uint256 constant WITHDRAW_INPUT_SIZE = 4;
+uint256 constant BATCH_WITHDRAW_INPUT_SIZE = 12;
 
 /// @title A sample implementation of a base Zeto fungible token contract
 /// @author Kaleido, Inc.
@@ -29,13 +33,39 @@ abstract contract ZetoFungibleWithdraw is ZetoFungible {
     // this can be used in the optional withdraw calls to verify that the nullifiers
     // match the withdrawn value
     Groth16Verifier_CheckInputsOutputsValue internal withdrawVerifier;
+    Groth16Verifier_CheckInputsOutputsValueBatch internal batchWithdrawVerifier;
 
     function __ZetoFungibleWithdraw_init(
         Groth16Verifier_CheckHashesValue _depositVerifier,
-        Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier
+        Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier,
+        Groth16Verifier_CheckInputsOutputsValueBatch _batchWithdrawVerifier
     ) public onlyInitializing {
         __ZetoFungible_init(_depositVerifier);
         withdrawVerifier = _withdrawVerifier;
+        batchWithdrawVerifier = _batchWithdrawVerifier;
+    }
+
+    function constructPublicInputs(
+        uint256 amount,
+        uint256[] memory inputs,
+        uint256 output,
+        uint256 size
+    ) internal pure returns (uint256[] memory publicInputs) {
+        publicInputs = new uint256[](size);
+        uint256 piIndex = 0;
+
+        // copy output amount
+        publicInputs[piIndex++] = amount;
+
+        // copy input commitments
+        for (uint256 i = 0; i < inputs.length; i++) {
+            publicInputs[piIndex++] = inputs[i];
+        }
+
+        // copy output commitment
+        publicInputs[piIndex++] = output;
+
+        return publicInputs;
     }
 
     function _withdraw(
@@ -44,25 +74,56 @@ abstract contract ZetoFungibleWithdraw is ZetoFungible {
         uint256 output,
         Commonlib.Proof calldata proof
     ) public virtual {
-        require((inputs.length == 2), "Withdraw must have 2 inputs");
-
-        // construct the public inputs
-        uint256[4] memory publicInputs;
-        publicInputs[0] = amount;
-        publicInputs[1] = inputs[0];
-        publicInputs[2] = inputs[1];
-        publicInputs[3] = output;
-
         // Check the proof
-        require(
-            withdrawVerifier.verifyProof(
-                proof.pA,
-                proof.pB,
-                proof.pC,
-                publicInputs
-            ),
-            "Invalid proof"
-        );
+        if (inputs.length > 2) {
+            // Check if inputs or outputs exceed batchMax and revert with custom error if necessary
+            if (inputs.length > BATCH_WITHDRAW_INPUT_SIZE) {
+                revert WithdrawArrayTooLarge(BATCH_WITHDRAW_INPUT_SIZE);
+            }
+            uint256[] memory publicInputs = constructPublicInputs(
+                amount,
+                inputs,
+                output,
+                BATCH_WITHDRAW_INPUT_SIZE
+            );
+            // construct the public inputs for verifier
+            uint256[BATCH_WITHDRAW_INPUT_SIZE] memory fixedSizeInputs;
+            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
+                fixedSizeInputs[i] = publicInputs[i];
+            }
+            // Check the proof
+            require(
+                batchWithdrawVerifier.verifyProof(
+                    proof.pA,
+                    proof.pB,
+                    proof.pC,
+                    fixedSizeInputs
+                ),
+                "Invalid proof"
+            );
+        } else {
+            uint256[] memory publicInputs = constructPublicInputs(
+                amount,
+                inputs,
+                output,
+                WITHDRAW_INPUT_SIZE
+            );
+            // construct the public inputs for verifier
+            uint256[WITHDRAW_INPUT_SIZE] memory fixedSizeInputs;
+            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
+                fixedSizeInputs[i] = publicInputs[i];
+            }
+            // Check the proof
+            require(
+                withdrawVerifier.verifyProof(
+                    proof.pA,
+                    proof.pB,
+                    proof.pC,
+                    fixedSizeInputs
+                ),
+                "Invalid proof"
+            );
+        }
 
         require(
             erc20.transfer(msg.sender, amount),

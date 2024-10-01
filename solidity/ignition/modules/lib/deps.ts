@@ -45,11 +45,28 @@ export const WithdrawNullifierVerifierModule = buildModule(
     return { verifier };
   },
 );
+export const BatchWithdrawNullifierVerifierModule = buildModule(
+  "Groth16Verifier_CheckNullifierValueBatch",
+  (m) => {
+    const verifier = m.contract("Groth16Verifier_CheckNullifierValueBatch", []);
+    return { verifier };
+  },
+);
 
 export const WithdrawVerifierModule = buildModule(
   "Groth16Verifier_CheckInputsOutputsValue",
   (m) => {
     const verifier = m.contract("Groth16Verifier_CheckInputsOutputsValue", []);
+    return { verifier };
+  },
+);
+export const BatchWithdrawVerifierModule = buildModule(
+  "Groth16Verifier_CheckInputsOutputsValueBatch",
+  (m) => {
+    const verifier = m.contract(
+      "Groth16Verifier_CheckInputsOutputsValueBatch",
+      [],
+    );
     return { verifier };
   },
 );
