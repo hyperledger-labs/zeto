@@ -14,23 +14,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { groth16 } = require('snarkjs');
-const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
+const { expect } = require("chai");
+const { groth16 } = require("snarkjs");
+const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
 const {
   Merkletree,
   InMemoryDB,
   str2Bytes,
   ZERO_HASH,
-} = require('@iden3/js-merkletree');
-const { Poseidon, newSalt, tokenUriHash, loadCircuit } = require('../index.js');
-const { loadProvingKeys } = require('./utils.js');
+} = require("@iden3/js-merkletree");
+const { Poseidon, newSalt, tokenUriHash, loadCircuit } = require("../index.js");
+const { loadProvingKeys } = require("./utils.js");
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon5;
 const poseidonHash4 = Poseidon.poseidon4;
 
-describe('main circuit tests for Zeto non-fungible tokens with anonymity using nullifiers and without encryption', () => {
+describe("main circuit tests for Zeto non-fungible tokens with anonymity using nullifiers and without encryption", () => {
   let circuit, provingKeyFile, verificationKey, smtAlice, smtBob;
 
   const Alice = {};
@@ -38,9 +38,9 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
   let senderPrivateKey;
 
   before(async () => {
-    circuit = await loadCircuit('nf_anon_nullifier');
+    circuit = await loadCircuit("nf_anon_nullifier");
     ({ provingKeyFile, verificationKey } =
-      loadProvingKeys('nf_anon_nullifier'));
+      loadProvingKeys("nf_anon_nullifier"));
 
     let keypair = genKeypair();
     Alice.privKey = keypair.privKey;
@@ -52,17 +52,17 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
     Bob.pubKey = keypair.pubKey;
 
     // initialize the local storage for Alice to manage her UTXOs in the Spart Merkle Tree
-    const storage1 = new InMemoryDB(str2Bytes(''));
+    const storage1 = new InMemoryDB(str2Bytes(""));
     smtAlice = new Merkletree(storage1, true, SMT_HEIGHT);
 
     // initialize the local storage for Bob to manage his UTXOs in the Spart Merkle Tree
-    const storage2 = new InMemoryDB(str2Bytes(''));
+    const storage2 = new InMemoryDB(str2Bytes(""));
     smtBob = new Merkletree(storage2, true, SMT_HEIGHT);
   });
 
-  it('should generate a valid proof that can be verified successfully', async () => {
+  it("should generate a valid proof that can be verified successfully", async () => {
     const tokenId = 1001;
-    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash("http://ipfs.io/some-file-hash");
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
@@ -121,7 +121,7 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
       provingKeyFile,
       witness,
     );
-    console.log('Proving time: ', (Date.now() - startTime) / 1000, 's');
+    console.log("Proving time: ", (Date.now() - startTime) / 1000, "s");
 
     const success = await groth16.verify(verificationKey, publicSignals, proof);
     // console.log('nullifiers', nullifier1);

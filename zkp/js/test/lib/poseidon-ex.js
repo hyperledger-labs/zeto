@@ -14,21 +14,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
-const { poseidon4 } = require('poseidon-lite');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
+const { poseidon4 } = require("poseidon-lite");
 
-describe('PoseidonEx circuit tests', () => {
+describe("PoseidonEx circuit tests", () => {
   let circuit;
   before(async function () {
     this.timeout(60000);
     circuit = await wasm_tester(
-      join(__dirname, '../circuits/poseidon-ex.circom'),
+      join(__dirname, "../circuits/poseidon-ex.circom"),
     );
   });
 
-  it('should generate the states matching JS lib', async () => {
+  it("should generate the states matching JS lib", async () => {
     const inputs = [1234567890, 2345678901, 3456789012, 4567890123];
     const witness = await circuit.calculateWitness({ inputs });
 

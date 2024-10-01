@@ -14,14 +14,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { buildModule } from '@nomicfoundation/hardhat-ignition/modules';
+import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-export default buildModule('zkDvP', (m) => {
-  const paymentTokenAddress = m.getParameter('paymentToken');
-  const paymentToken = m.contractAt('Zeto_Anon', paymentTokenAddress);
-  const assetTokenAddress = m.getParameter('assetToken');
-  const assetToken = m.contractAt('Zeto_NfAnon', assetTokenAddress);
+export default buildModule("zkDvP", (m) => {
+  const paymentTokenAddress = m.getParameter("paymentToken");
+  const paymentToken = m.contractAt("Zeto_Anon", paymentTokenAddress);
+  const assetTokenAddress = m.getParameter("assetToken");
+  const assetToken = m.contractAt("Zeto_NfAnon", assetTokenAddress);
 
-  const zkDvP = m.contract('zkDvP', [paymentToken, assetToken]);
+  const zkDvP = m.contract("zkDvP", [paymentToken, assetToken]);
   return { zkDvP };
 });

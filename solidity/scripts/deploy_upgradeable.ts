@@ -1,6 +1,6 @@
-import { ethers, ignition, upgrades } from 'hardhat';
-import erc20Module from '../ignition/modules/erc20';
-import { getLinkedContractFactory, deploy } from './lib/common';
+import { ethers, ignition, upgrades } from "hardhat";
+import erc20Module from "../ignition/modules/erc20";
+import { getLinkedContractFactory, deploy } from "./lib/common";
 
 export async function deployFungible(tokenName: string) {
   const { erc20 } = await ignition.deploy(erc20Module);
@@ -10,13 +10,13 @@ export async function deployFungible(tokenName: string) {
 
   let zetoFactory;
   const opts = {
-    kind: 'uups',
-    initializer: 'initialize',
-    unsafeAllow: ['delegatecall'],
+    kind: "uups",
+    initializer: "initialize",
+    unsafeAllow: ["delegatecall"],
   };
   if (libraries) {
     zetoFactory = await getLinkedContractFactory(tokenName, libraries);
-    opts.unsafeAllow.push('external-library-linking');
+    opts.unsafeAllow.push("external-library-linking");
   } else {
     zetoFactory = await ethers.getContractFactory(tokenName);
   }
@@ -42,13 +42,13 @@ export async function deployNonFungible(tokenName: string) {
 
   let zetoFactory;
   const opts = {
-    kind: 'uups',
-    initializer: 'initialize',
-    unsafeAllow: ['delegatecall'],
+    kind: "uups",
+    initializer: "initialize",
+    unsafeAllow: ["delegatecall"],
   };
   if (libraries) {
     zetoFactory = await getLinkedContractFactory(tokenName, libraries);
-    opts.unsafeAllow.push('external-library-linking');
+    opts.unsafeAllow.push("external-library-linking");
   } else {
     zetoFactory = await ethers.getContractFactory(tokenName);
   }
@@ -65,7 +65,7 @@ export async function deployNonFungible(tokenName: string) {
 
 deploy(deployFungible, deployNonFungible)
   .then(() => {
-    if (process.env.TEST_DEPLOY_SCRIPTS == 'true') {
+    if (process.env.TEST_DEPLOY_SCRIPTS == "true") {
       return;
     }
     process.exit(0);

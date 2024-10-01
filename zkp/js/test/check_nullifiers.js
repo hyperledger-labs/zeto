@@ -14,16 +14,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
-const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
-const { Poseidon, newSalt } = require('../index.js');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
+const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
+const { Poseidon, newSalt } = require("../index.js");
 
 const poseidonHash4 = Poseidon.poseidon4;
 const poseidonHash3 = Poseidon.poseidon3;
 
-describe('check_nullifiers circuit tests', () => {
+describe("check_nullifiers circuit tests", () => {
   let circuit;
   const sender = {};
   const receiver = {};
@@ -33,7 +33,7 @@ describe('check_nullifiers circuit tests', () => {
     this.timeout(60000);
 
     circuit = await wasm_tester(
-      join(__dirname, '../../circuits/check_nullifiers.circom'),
+      join(__dirname, "../../circuits/check_nullifiers.circom"),
     );
 
     let keypair = genKeypair();
@@ -46,7 +46,7 @@ describe('check_nullifiers circuit tests', () => {
     receiver.pubKey = keypair.pubKey;
   });
 
-  it('should return true for valid witness', async () => {
+  it("should return true for valid witness", async () => {
     const inputValues = [32, 40];
 
     // create two input UTXOs
@@ -103,7 +103,7 @@ describe('check_nullifiers circuit tests', () => {
     expect(witness[6]).to.equal(BigInt(inputValues[1]));
   });
 
-  it('should fail to generate a witness because incorrect values are not used', async () => {
+  it("should fail to generate a witness because incorrect values are not used", async () => {
     const inputValues = [15, 100];
 
     // create two input UTXOs, each has their own salt, but same owner

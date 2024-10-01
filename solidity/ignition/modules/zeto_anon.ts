@@ -14,20 +14,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { buildModule } from '@nomicfoundation/hardhat-ignition/modules';
-import { DepositVerifierModule, WithdrawVerifierModule } from './lib/deps';
+import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+import { DepositVerifierModule, WithdrawVerifierModule } from "./lib/deps";
 
-const VerifierModule = buildModule('Groth16Verifier_Anon', (m) => {
-  const verifier = m.contract('Groth16Verifier_Anon', []);
+const VerifierModule = buildModule("Groth16Verifier_Anon", (m) => {
+  const verifier = m.contract("Groth16Verifier_Anon", []);
   return { verifier };
 });
 
-const BatchVerifierModule = buildModule('Groth16Verifier_AnonBatch', (m) => {
-  const verifier = m.contract('Groth16Verifier_AnonBatch', []);
+const BatchVerifierModule = buildModule("Groth16Verifier_AnonBatch", (m) => {
+  const verifier = m.contract("Groth16Verifier_AnonBatch", []);
   return { verifier };
 });
 
-export default buildModule('Zeto_Anon', (m) => {
+export default buildModule("Zeto_Anon", (m) => {
   const { verifier } = m.useModule(VerifierModule);
   const { verifier: batchVerifier } = m.useModule(BatchVerifierModule);
   const { verifier: depositVerifier } = m.useModule(DepositVerifierModule);

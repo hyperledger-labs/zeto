@@ -14,23 +14,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
-const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
+const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
 const {
   Merkletree,
   InMemoryDB,
   str2Bytes,
   ZERO_HASH,
-} = require('@iden3/js-merkletree');
-const { Poseidon, newSalt } = require('../index.js');
+} = require("@iden3/js-merkletree");
+const { Poseidon, newSalt } = require("../index.js");
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
 const poseidonHash3 = Poseidon.poseidon3;
 
-describe('main circuit tests for Zeto fungible tokens with anonymity using nullifiers and without encryption', () => {
+describe("main circuit tests for Zeto fungible tokens with anonymity using nullifiers and without encryption", () => {
   let circuit, smtAlice, smtBob;
 
   const Alice = {};
@@ -41,7 +41,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
     this.timeout(60000);
 
     circuit = await wasm_tester(
-      join(__dirname, '../../circuits/anon_nullifier.circom'),
+      join(__dirname, "../../circuits/anon_nullifier.circom"),
     );
 
     let keypair = genKeypair();
@@ -54,15 +54,15 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
     Bob.pubKey = keypair.pubKey;
 
     // initialize the local storage for Alice to manage her UTXOs in the Spart Merkle Tree
-    const storage1 = new InMemoryDB(str2Bytes(''));
+    const storage1 = new InMemoryDB(str2Bytes(""));
     smtAlice = new Merkletree(storage1, true, SMT_HEIGHT);
 
     // initialize the local storage for Bob to manage his UTXOs in the Spart Merkle Tree
-    const storage2 = new InMemoryDB(str2Bytes(''));
+    const storage2 = new InMemoryDB(str2Bytes(""));
     smtBob = new Merkletree(storage2, true, SMT_HEIGHT);
   });
 
-  it('should succeed for valid witness', async () => {
+  it("should succeed for valid witness", async () => {
     const inputValues = [32, 40];
     const outputValues = [20, 52];
 
@@ -160,7 +160,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
     expect(witness[3]).to.equal(proof1.root.bigInt());
   });
 
-  it('should succeed for valid witness - single input', async () => {
+  it("should succeed for valid witness - single input", async () => {
     const inputValues = [72, 0];
     const outputValues = [20, 52];
 
@@ -232,7 +232,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
     expect(witness[3]).to.equal(proof1.root.bigInt());
   });
 
-  it('should fail to generate a witness because mass conservation is not obeyed', async () => {
+  it("should fail to generate a witness because mass conservation is not obeyed", async () => {
     const inputValues = [15, 100];
     const outputValues = [90, 35];
 

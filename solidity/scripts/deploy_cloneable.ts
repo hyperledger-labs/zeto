@@ -1,6 +1,6 @@
-import { ethers, ignition } from 'hardhat';
-import erc20Module from '../ignition/modules/erc20';
-import { getLinkedContractFactory, deploy } from './lib/common';
+import { ethers, ignition } from "hardhat";
+import erc20Module from "../ignition/modules/erc20";
+import { getLinkedContractFactory, deploy } from "./lib/common";
 
 export async function deployFungible(tokenName: string) {
   const { erc20 } = await ignition.deploy(erc20Module);
@@ -51,7 +51,7 @@ export async function deployNonFungible(tokenName: string) {
 
 deploy(deployFungible, deployNonFungible)
   .then(() => {
-    if (process.env.TEST_DEPLOY_SCRIPTS == 'true') {
+    if (process.env.TEST_DEPLOY_SCRIPTS == "true") {
       return;
     }
     process.exit(0);

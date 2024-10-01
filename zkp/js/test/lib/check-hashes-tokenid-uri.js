@@ -14,16 +14,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { readFileSync } = require('fs');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
-const { genKeypair } = require('maci-crypto');
-const { Poseidon, newSalt, tokenUriHash } = require('../../index.js');
+const { expect } = require("chai");
+const { readFileSync } = require("fs");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
+const { genKeypair } = require("maci-crypto");
+const { Poseidon, newSalt, tokenUriHash } = require("../../index.js");
 
 const poseidonHash = Poseidon.poseidon5;
 
-describe('check-hashes-tokenid-uri circuit tests', () => {
+describe("check-hashes-tokenid-uri circuit tests", () => {
   let circuit;
   const sender = {};
   const receiver = {};
@@ -32,7 +32,7 @@ describe('check-hashes-tokenid-uri circuit tests', () => {
     this.timeout(60000);
 
     circuit = await wasm_tester(
-      join(__dirname, '../circuits/check-hashes-tokenid-uri.circom'),
+      join(__dirname, "../circuits/check-hashes-tokenid-uri.circom"),
     );
 
     let keypair = genKeypair();
@@ -44,9 +44,9 @@ describe('check-hashes-tokenid-uri circuit tests', () => {
     receiver.pubKey = keypair.pubKey;
   });
 
-  it('should return true for valid witness', async () => {
+  it("should return true for valid witness", async () => {
     const tokenIds = [1001];
-    const tokenUris = [tokenUriHash('http://ipfs.io/some-file-hash')];
+    const tokenUris = [tokenUriHash("http://ipfs.io/some-file-hash")];
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
@@ -87,9 +87,9 @@ describe('check-hashes-tokenid-uri circuit tests', () => {
     expect(witness[6]).to.equal(salt1);
   });
 
-  it('should fail to generate a witness because of invalid commitments', async () => {
+  it("should fail to generate a witness because of invalid commitments", async () => {
     const tokenIds = [1001];
-    const tokenUris = [tokenUriHash('http://ipfs.io/some-file-hash')];
+    const tokenUris = [tokenUriHash("http://ipfs.io/some-file-hash")];
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();

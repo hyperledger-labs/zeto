@@ -14,24 +14,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { groth16 } = require('snarkjs');
-const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
-const { Poseidon, newSalt, loadCircuit } = require('../index.js');
-const { loadProvingKeys } = require('./utils.js');
+const { expect } = require("chai");
+const { groth16 } = require("snarkjs");
+const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
+const { Poseidon, newSalt, loadCircuit } = require("../index.js");
+const { loadProvingKeys } = require("./utils.js");
 
 const poseidonHash4 = Poseidon.poseidon4;
 const poseidonHash3 = Poseidon.poseidon3;
 
-describe('check-nullifiers circuit tests', () => {
+describe("check-nullifiers circuit tests", () => {
   let circuit, provingKeyFile, verificationKey;
   const sender = {};
   const receiver = {};
   let senderPrivateKey;
 
   before(async () => {
-    circuit = await loadCircuit('check_nullifiers');
-    ({ provingKeyFile, verificationKey } = loadProvingKeys('check_nullifiers'));
+    circuit = await loadCircuit("check_nullifiers");
+    ({ provingKeyFile, verificationKey } = loadProvingKeys("check_nullifiers"));
 
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;
@@ -43,7 +43,7 @@ describe('check-nullifiers circuit tests', () => {
     receiver.pubKey = keypair.pubKey;
   });
 
-  it('should generate a valid proof using groth16 that can be verified successfully', async () => {
+  it("should generate a valid proof using groth16 that can be verified successfully", async () => {
     const inputValues = [15, 100];
 
     // create two input UTXOs, each has their own salt, but same owner
@@ -90,7 +90,7 @@ describe('check-nullifiers circuit tests', () => {
       provingKeyFile,
       witness,
     );
-    console.log('Proving time: ', (Date.now() - startTime) / 1000, 's');
+    console.log("Proving time: ", (Date.now() - startTime) / 1000, "s");
     const success = await groth16.verify(verificationKey, publicSignals, proof);
     expect(success, true);
   }).timeout(20000);

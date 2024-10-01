@@ -14,27 +14,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { groth16 } = require('snarkjs');
+const { expect } = require("chai");
+const { groth16 } = require("snarkjs");
 const {
   genKeypair,
   formatPrivKeyForBabyJub,
   stringifyBigInts,
-} = require('maci-crypto');
-const { Poseidon, newSalt, loadCircuit, tokenUriHash } = require('../index.js');
-const { loadProvingKeys } = require('./utils.js');
+} = require("maci-crypto");
+const { Poseidon, newSalt, loadCircuit, tokenUriHash } = require("../index.js");
+const { loadProvingKeys } = require("./utils.js");
 
 const poseidonHash = Poseidon.poseidon5;
 
-describe('main circuit tests for Zeto non-fungible tokens with anonymity without encryption', () => {
+describe("main circuit tests for Zeto non-fungible tokens with anonymity without encryption", () => {
   let circuit, provingKeyFile, verificationKey;
 
   const sender = {};
   const receiver = {};
 
   before(async () => {
-    circuit = await loadCircuit('nf_anon');
-    ({ provingKeyFile, verificationKey } = loadProvingKeys('nf_anon'));
+    circuit = await loadCircuit("nf_anon");
+    ({ provingKeyFile, verificationKey } = loadProvingKeys("nf_anon"));
 
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;
@@ -45,9 +45,9 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity without
     receiver.pubKey = keypair.pubKey;
   });
 
-  it('should generate a valid proof that can be verified successfully', async () => {
+  it("should generate a valid proof that can be verified successfully", async () => {
     const tokenIds = [1001];
-    const tokenUris = [tokenUriHash('http://ipfs.io/some-file-hash')];
+    const tokenUris = [tokenUriHash("http://ipfs.io/some-file-hash")];
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
@@ -92,7 +92,7 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity without
       provingKeyFile,
       witness,
     );
-    console.log('Proving time: ', (Date.now() - startTime) / 1000, 's');
+    console.log("Proving time: ", (Date.now() - startTime) / 1000, "s");
 
     const success = await groth16.verify(verificationKey, publicSignals, proof);
     // console.log('inputCommitments', inputCommitments);

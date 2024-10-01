@@ -14,19 +14,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
 const {
   genKeypair,
   formatPrivKeyForBabyJub,
   stringifyBigInts,
-} = require('maci-crypto');
-const { Poseidon, newSalt } = require('../index.js');
+} = require("maci-crypto");
+const { Poseidon, newSalt } = require("../index.js");
 
 const poseidonHash = Poseidon.poseidon4;
 
-describe('main circuit tests for Zeto fungible tokens with anonymity without encryption', () => {
+describe("main circuit tests for Zeto fungible tokens with anonymity without encryption", () => {
   let circuit;
 
   const sender = {};
@@ -35,7 +35,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity without enc
   before(async function () {
     this.timeout(60000);
 
-    circuit = await wasm_tester(join(__dirname, '../../circuits/anon.circom'));
+    circuit = await wasm_tester(join(__dirname, "../../circuits/anon.circom"));
 
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;
@@ -46,7 +46,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity without enc
     receiver.pubKey = keypair.pubKey;
   });
 
-  it('should succeed for valid witness', async () => {
+  it("should succeed for valid witness", async () => {
     const inputValues = [32, 40];
     const outputValues = [20, 52];
 
@@ -110,7 +110,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity without enc
     expect(witness[4]).to.equal(BigInt(outputCommitments[1]));
   });
 
-  it('should fail to generate a witness because mass conservation is not obeyed', async () => {
+  it("should fail to generate a witness because mass conservation is not obeyed", async () => {
     const inputValues = [15, 100];
     const outputValues = [90, 35];
     // create two input UTXOs, each has their own salt, but same owner

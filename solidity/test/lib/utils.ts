@@ -19,13 +19,13 @@ import {
   Signer,
   BigNumberish,
   AddressLike,
-} from 'ethers';
+} from "ethers";
 import {
   genKeypair,
   formatPrivKeyForBabyJub,
   genEcdhSharedKey,
-} from 'maci-crypto';
-import { Poseidon, newSalt, tokenUriHash } from 'zeto-js';
+} from "maci-crypto";
+import { Poseidon, newSalt, tokenUriHash } from "zeto-js";
 
 const poseidonHash3 = Poseidon.poseidon3;
 const poseidonHash4 = Poseidon.poseidon4;
@@ -120,7 +120,7 @@ export async function doMint(
   ) as BigNumberish[];
   const tx = await zetoTokenContract
     .connect(minter)
-    .mint(outputCommitments, '0x');
+    .mint(outputCommitments, "0x");
   const result = await tx.wait();
   console.log(`Method mint() complete. Gas used: ${result?.gasUsed}`);
   if (result?.gasUsed && Array.isArray(gasHistories)) {
@@ -139,7 +139,7 @@ export async function doDeposit(
 ): Promise<ContractTransactionReceipt> {
   const tx = await zetoTokenContract
     .connect(depositUser)
-    .deposit(amount, commitment, proof, '0x');
+    .deposit(amount, commitment, proof, "0x");
   const result = await tx.wait();
   console.log(`Method deposit() complete. Gas used: ${result?.gasUsed}`);
   if (result?.gasUsed && Array.isArray(gasHistories)) {
@@ -176,14 +176,14 @@ export function parseUTXOEvents(
   let returnValues: any[] = [];
   for (const log of result.logs || []) {
     const event = zetoTokenContract.interface.parseLog(log as any);
-    if (event?.name === 'UTXOTransfer') {
+    if (event?.name === "UTXOTransfer") {
       const transfer = {
         inputs: event?.args.inputs,
         outputs: event?.args.outputs,
         submitter: event?.args.submitter,
       };
       returnValues.push(transfer);
-    } else if (event?.name === 'UTXOTransferWithEncryptedValues') {
+    } else if (event?.name === "UTXOTransferWithEncryptedValues") {
       const transfer = {
         inputs: event?.args.inputs,
         outputs: event?.args.outputs,
@@ -193,7 +193,7 @@ export function parseUTXOEvents(
         ecdhPublicKey: event?.args.ecdhPublicKey,
       };
       returnValues.push(transfer);
-    } else if (event?.name === 'UTXOTransferNonRepudiation') {
+    } else if (event?.name === "UTXOTransferNonRepudiation") {
       const transfer = {
         inputs: event?.args.inputs,
         outputs: event?.args.outputs,
@@ -204,14 +204,14 @@ export function parseUTXOEvents(
         ecdhPublicKey: event?.args.ecdhPublicKey,
       };
       returnValues.push(transfer);
-    } else if (event?.name === 'UTXOMint') {
+    } else if (event?.name === "UTXOMint") {
       const mint = {
         outputs: event?.args.outputs,
         receivers: event?.args.receivers,
         submitter: event?.args.submitter,
       };
       returnValues.push(mint);
-    } else if (event?.name === 'TradeCompleted') {
+    } else if (event?.name === "TradeCompleted") {
       const e = {
         tradeId: event?.args.tradeId,
         trade: event?.args.trade,
@@ -228,7 +228,7 @@ export function parseRegistryEvents(
 ) {
   for (const log of result.logs || []) {
     const event = registryContract.interface.parseLog(log as any);
-    if (event?.name === 'IdentityRegistered') {
+    if (event?.name === "IdentityRegistered") {
       return event?.args.publicKey;
     }
   }

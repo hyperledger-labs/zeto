@@ -14,12 +14,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ethers, network } from 'hardhat';
-import { ContractTransactionReceipt, Signer, BigNumberish } from 'ethers';
-import { expect } from 'chai';
-import { loadCircuit, Poseidon, encodeProof, tokenUriHash } from 'zeto-js';
-import { groth16 } from 'snarkjs';
-import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
+import { ethers, network } from "hardhat";
+import { ContractTransactionReceipt, Signer, BigNumberish } from "ethers";
+import { expect } from "chai";
+import { loadCircuit, Poseidon, encodeProof, tokenUriHash } from "zeto-js";
+import { groth16 } from "snarkjs";
+import { Merkletree, InMemoryDB, str2Bytes } from "@iden3/js-merkletree";
 import {
   UTXO,
   User,
@@ -28,11 +28,11 @@ import {
   newAssetNullifier,
   doMint,
   parseUTXOEvents,
-} from './lib/utils';
-import { loadProvingKeys } from './utils';
-import { deployZeto } from './lib/deploy';
+} from "./lib/utils";
+import { loadProvingKeys } from "./utils";
+import { deployZeto } from "./lib/deploy";
 
-describe('Zeto based non-fungible token with anonymity using nullifiers without encryption', function () {
+describe("Zeto based non-fungible token with anonymity using nullifiers without encryption", function () {
   let deployer: Signer;
   let Alice: User;
   let Bob: User;
@@ -45,7 +45,7 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
   let smtBob: Merkletree;
 
   before(async function () {
-    if (network.name !== 'hardhat') {
+    if (network.name !== "hardhat") {
       // accommodate for longer block times on public networks
       this.timeout(120000);
     }
@@ -55,29 +55,29 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
     Bob = await newUser(b);
     Charlie = await newUser(c);
 
-    ({ deployer, zeto } = await deployZeto('Zeto_NfAnonNullifier'));
+    ({ deployer, zeto } = await deployZeto("Zeto_NfAnonNullifier"));
 
-    circuit = await loadCircuit('nf_anon_nullifier');
-    ({ provingKeyFile: provingKey } = loadProvingKeys('nf_anon_nullifier'));
+    circuit = await loadCircuit("nf_anon_nullifier");
+    ({ provingKeyFile: provingKey } = loadProvingKeys("nf_anon_nullifier"));
 
-    const storage1 = new InMemoryDB(str2Bytes(''));
+    const storage1 = new InMemoryDB(str2Bytes(""));
     smtAlice = new Merkletree(storage1, true, 64);
 
-    const storage2 = new InMemoryDB(str2Bytes(''));
+    const storage2 = new InMemoryDB(str2Bytes(""));
     smtBob = new Merkletree(storage2, true, 64);
   });
 
-  it('onchain SMT root should be equal to the offchain SMT root', async function () {
+  it("onchain SMT root should be equal to the offchain SMT root", async function () {
     const root = await smtAlice.root();
     const onchainRoot = await zeto.getRoot();
     expect(onchainRoot).to.equal(0n);
     expect(root.string()).to.equal(onchainRoot.toString());
   });
 
-  it('mint to Alice and transfer UTXOs honestly to Bob should succeed', async function () {
+  it("mint to Alice and transfer UTXOs honestly to Bob should succeed", async function () {
     // The authority mints a new UTXO and assigns it to Alice
     const tokenId = 1001;
-    const uri = 'http://ipfs.io/file-hash-1';
+    const uri = "http://ipfs.io/file-hash-1";
     utxo1 = newAssetUTXO(tokenId, uri, Alice);
     const result1 = await doMint(zeto, deployer, [utxo1]);
 
@@ -146,7 +146,7 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
     utxo3 = newAssetUTXO(receivedTokenId, receivedUri, Bob, receivedSalt);
   }).timeout(600000);
 
-  it('Bob transfers UTXOs, previously received from Alice, honestly to Charlie should succeed', async function () {
+  it("Bob transfers UTXOs, previously received from Alice, honestly to Charlie should succeed", async function () {
     // Bob generates the nullifiers for the UTXO to be spent
     const nullifier1 = newAssetNullifier(utxo3, Bob);
 
@@ -177,27 +177,27 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
     await smtAlice.add(events[0].outputs[0], events[0].outputs[0]);
   }).timeout(600000);
 
-  describe('failure cases', function () {
+  describe("failure cases", function () {
     // the following failure cases rely on the hardhat network
     // to return the details of the errors. This is not possible
     // on non-hardhat networks
-    if (network.name !== 'hardhat') {
+    if (network.name !== "hardhat") {
       return;
     }
 
-    it('mint existing unspent UTXOs should fail', async function () {
+    it("mint existing unspent UTXOs should fail", async function () {
       await expect(doMint(zeto, deployer, [utxo3])).rejectedWith(
-        'UTXOAlreadyOwned',
+        "UTXOAlreadyOwned",
       );
     });
 
-    it('mint existing spent UTXOs should fail', async function () {
+    it("mint existing spent UTXOs should fail", async function () {
       await expect(doMint(zeto, deployer, [utxo1])).rejectedWith(
-        'UTXOAlreadyOwned',
+        "UTXOAlreadyOwned",
       );
     });
 
-    it('transfer spent UTXOs should fail (double spend protection)', async function () {
+    it("transfer spent UTXOs should fail (double spend protection)", async function () {
       // Alice create outputs in an attempt to send to Charlie an already spent asset
       const _utxo1 = newAssetUTXO(utxo1.tokenId!, utxo1.uri!, Charlie);
 
@@ -222,13 +222,13 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
           merkleProof,
           Charlie,
         ),
-      ).rejectedWith('UTXOAlreadySpent');
+      ).rejectedWith("UTXOAlreadySpent");
     }).timeout(600000);
 
-    it('transfer non-existing UTXOs should fail', async function () {
+    it("transfer non-existing UTXOs should fail", async function () {
       const nonExisting1 = newAssetUTXO(
         1002,
-        'http://ipfs.io/file-hash-2',
+        "http://ipfs.io/file-hash-2",
         Alice,
       );
 
@@ -263,7 +263,7 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
           merkleProof,
           Charlie,
         ),
-      ).rejectedWith('UTXORootNotFound');
+      ).rejectedWith("UTXORootNotFound");
     }).timeout(600000);
   });
 
@@ -367,7 +367,7 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
     const startTx = Date.now();
     const tx = await zeto
       .connect(signer.signer)
-      .transfer(nullifier, outputCommitment, root, encodedProof, '0x');
+      .transfer(nullifier, outputCommitment, root, encodedProof, "0x");
     const results: ContractTransactionReceipt | null = await tx.wait();
     console.log(
       `Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${

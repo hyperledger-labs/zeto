@@ -14,10 +14,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { buildModule } from '@nomicfoundation/hardhat-ignition/modules';
+import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-export default buildModule('SampleERC20', (m) => {
+export default buildModule("SampleERC20", (m) => {
   const owner = m.getAccount(0);
-  const erc20 = m.contract('SampleERC20', [owner], { from: owner });
+  const erc20 = m.contract("SampleERC20", [owner], { from: owner });
   return { erc20 };
 });

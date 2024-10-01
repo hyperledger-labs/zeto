@@ -14,8 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { artifacts, ethers } from 'hardhat';
-import fungibilities from '../tokens.json';
+import { artifacts, ethers } from "hardhat";
+import fungibilities from "../tokens.json";
 
 export async function getLinkedContractFactory(
   contractName: string,
@@ -31,22 +31,22 @@ export async function getLinkedContractFactory(
 }
 
 export function deploy(deployFungible: Function, deployNonFungible: Function) {
-  if (process.env.TEST_DEPLOY_SCRIPTS == 'true') {
-    console.log('Skipping the deploy command in test environment');
+  if (process.env.TEST_DEPLOY_SCRIPTS == "true") {
+    console.log("Skipping the deploy command in test environment");
     return Promise.resolve();
   }
 
   const zeto = process.env.ZETO_NAME;
   if (!zeto) {
     throw new Error(
-      'Please provide a Zeto token contract name with the environment variable ZETO_NAME',
+      "Please provide a Zeto token contract name with the environment variable ZETO_NAME",
     );
   }
   const fungibility = (fungibilities as any)[zeto];
   if (!fungibility) {
-    throw new Error('Invalid Zeto token contract name');
+    throw new Error("Invalid Zeto token contract name");
   }
-  if (fungibility === 'fungible') {
+  if (fungibility === "fungible") {
     console.log(`Deploying fungible Zeto token: ${zeto}`);
     return deployFungible(zeto);
   } else {

@@ -14,23 +14,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ethers, network } from 'hardhat';
-import { ContractTransactionReceipt, Signer, BigNumberish } from 'ethers';
-import { expect } from 'chai';
+import { ethers, network } from "hardhat";
+import { ContractTransactionReceipt, Signer, BigNumberish } from "ethers";
+import { expect } from "chai";
 import {
   loadCircuit,
   poseidonDecrypt,
   encodeProof,
   Poseidon,
   newEncryptionNonce,
-} from 'zeto-js';
-import { groth16 } from 'snarkjs';
+} from "zeto-js";
+import { groth16 } from "snarkjs";
 import {
   genKeypair,
   formatPrivKeyForBabyJub,
   genEcdhSharedKey,
   stringifyBigInts,
-} from 'maci-crypto';
+} from "maci-crypto";
 import {
   User,
   UTXO,
@@ -39,17 +39,17 @@ import {
   doMint,
   ZERO_UTXO,
   parseUTXOEvents,
-} from './lib/utils';
+} from "./lib/utils";
 import {
   loadProvingKeys,
   prepareDepositProof,
   prepareWithdrawProof,
-} from './utils';
-import { deployZeto } from './lib/deploy';
+} from "./utils";
+import { deployZeto } from "./lib/deploy";
 
 const poseidonHash = Poseidon.poseidon4;
 
-describe('Zeto based fungible token with anonymity and encryption', function () {
+describe("Zeto based fungible token with anonymity and encryption", function () {
   let deployer: Signer;
   let Alice: User;
   let Bob: User;
@@ -65,7 +65,7 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
   let batchCircuit: any, batchProvingKey: any;
 
   before(async function () {
-    if (network.name !== 'hardhat') {
+    if (network.name !== "hardhat") {
       // accommodate for longer block times on public networks
       this.timeout(120000);
     }
@@ -75,15 +75,15 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
     Bob = await newUser(b);
     Charlie = await newUser(c);
 
-    ({ deployer, zeto, erc20 } = await deployZeto('Zeto_AnonEnc'));
+    ({ deployer, zeto, erc20 } = await deployZeto("Zeto_AnonEnc"));
 
-    circuit = await loadCircuit('anon_enc');
-    ({ provingKeyFile: provingKey } = loadProvingKeys('anon_enc'));
-    batchCircuit = await loadCircuit('anon_enc_batch');
-    ({ provingKeyFile: batchProvingKey } = loadProvingKeys('anon_enc_batch'));
+    circuit = await loadCircuit("anon_enc");
+    ({ provingKeyFile: provingKey } = loadProvingKeys("anon_enc"));
+    batchCircuit = await loadCircuit("anon_enc_batch");
+    ({ provingKeyFile: batchProvingKey } = loadProvingKeys("anon_enc_batch"));
   });
 
-  it('(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob should succeed', async function () {
+  it("(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob should succeed", async function () {
     // first mint the tokens for batch testing
     const inputUtxos = [];
     for (let i = 0; i < 10; i++) {
@@ -148,7 +148,7 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
     }
   });
 
-  it('mint ERC20 tokens to Alice to deposit to Zeto should succeed', async function () {
+  it("mint ERC20 tokens to Alice to deposit to Zeto should succeed", async function () {
     const startingBalance = await erc20.balanceOf(Alice.ethAddress);
     const tx = await erc20.connect(deployer).mint(Alice.ethAddress, 100);
     await tx.wait();
@@ -165,11 +165,11 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
     );
     const tx2 = await zeto
       .connect(Alice.signer)
-      .deposit(100, outputCommitments[0], encodedProof, '0x');
+      .deposit(100, outputCommitments[0], encodedProof, "0x");
     await tx2.wait();
   });
 
-  it('mint to Alice and transfer UTXOs honestly to Bob should succeed', async function () {
+  it("mint to Alice and transfer UTXOs honestly to Bob should succeed", async function () {
     const startingBalance = await erc20.balanceOf(Alice.ethAddress);
     // first the authority mints UTXOs to Alice
     utxo1 = newUTXO(10, Alice);
@@ -227,7 +227,7 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
     utxo3 = newUTXO(Number(plainText[0]), Bob, plainText[1]);
   });
 
-  it('Bob transfers UTXOs, previously received from Alice, honestly to Charlie should succeed', async function () {
+  it("Bob transfers UTXOs, previously received from Alice, honestly to Charlie should succeed", async function () {
     // propose the output UTXOs
     const _utxo1 = newUTXO(25, Charlie);
     // Bob should be able to spend the UTXO that was reconstructed from the previous transaction
@@ -239,7 +239,7 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
     );
   });
 
-  it('Alice withdraws her UTXOs to ERC20 tokens should succeed', async function () {
+  it("Alice withdraws her UTXOs to ERC20 tokens should succeed", async function () {
     const startingBalance = await erc20.balanceOf(Alice.ethAddress);
     // Alice proposes the output ERC20 tokens
     const outputCommitment = newUTXO(20, Alice);
@@ -258,15 +258,15 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
     expect(endingBalance - startingBalance).to.be.equal(80);
   });
 
-  describe('failure cases', function () {
+  describe("failure cases", function () {
     // the following failure cases rely on the hardhat network
     // to return the details of the errors. This is not possible
     // on non-hardhat networks
-    if (network.name !== 'hardhat') {
+    if (network.name !== "hardhat") {
       return;
     }
 
-    it('Alice attempting to withdraw spent UTXOs should fail', async function () {
+    it("Alice attempting to withdraw spent UTXOs should fail", async function () {
       // Alice proposes the output ERC20 tokens
       const outputCommitment = newUTXO(90, Alice);
 
@@ -281,22 +281,22 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
         zeto
           .connect(Alice.signer)
           .withdraw(10, inputCommitments, outputCommitments[0], encodedProof),
-      ).rejectedWith('UTXOAlreadySpent');
+      ).rejectedWith("UTXOAlreadySpent");
     });
 
-    it('mint existing unspent UTXOs should fail', async function () {
+    it("mint existing unspent UTXOs should fail", async function () {
       await expect(doMint(zeto, deployer, [utxo4])).rejectedWith(
-        'UTXOAlreadyOwned',
+        "UTXOAlreadyOwned",
       );
     });
 
-    it('mint existing spent UTXOs should fail', async function () {
+    it("mint existing spent UTXOs should fail", async function () {
       await expect(doMint(zeto, deployer, [utxo1])).rejectedWith(
-        'UTXOAlreadySpent',
+        "UTXOAlreadySpent",
       );
     });
 
-    it('transfer non-existing UTXOs should fail', async function () {
+    it("transfer non-existing UTXOs should fail", async function () {
       const nonExisting1 = newUTXO(10, Alice);
       const nonExisting2 = newUTXO(20, Alice, nonExisting1.salt);
       await expect(
@@ -306,19 +306,19 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
           [nonExisting1, nonExisting2],
           [Alice, Alice],
         ),
-      ).rejectedWith('UTXONotMinted');
+      ).rejectedWith("UTXONotMinted");
     });
 
-    it('transfer spent UTXOs should fail (double spend protection)', async function () {
+    it("transfer spent UTXOs should fail (double spend protection)", async function () {
       // create outputs
       const _utxo1 = newUTXO(25, Bob);
       const _utxo2 = newUTXO(5, Alice);
       await expect(
         doTransfer(Alice, [utxo1, utxo2], [_utxo1, _utxo2], [Bob, Alice]),
-      ).rejectedWith('UTXOAlreadySpent');
+      ).rejectedWith("UTXOAlreadySpent");
     });
 
-    it('spend by using the same UTXO as both inputs should fail', async function () {
+    it("spend by using the same UTXO as both inputs should fail", async function () {
       // mint a new UTXO to Bob
       const _utxo1 = newUTXO(20, Bob);
       await doMint(zeto, deployer, [_utxo1]);
@@ -465,7 +465,7 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
       ecdhPublicKey,
       encryptedValues,
       encodedProof,
-      '0x',
+      "0x",
     );
     const results: ContractTransactionReceipt | null = await tx.wait();
 

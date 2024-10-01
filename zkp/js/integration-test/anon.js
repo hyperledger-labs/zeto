@@ -14,28 +14,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { groth16 } = require('snarkjs');
+const { expect } = require("chai");
+const { groth16 } = require("snarkjs");
 const {
   genKeypair,
   formatPrivKeyForBabyJub,
   stringifyBigInts,
-} = require('maci-crypto');
-const { Poseidon, newSalt, loadCircuit } = require('../index.js');
-const { loadProvingKeys } = require('./utils.js');
+} = require("maci-crypto");
+const { Poseidon, newSalt, loadCircuit } = require("../index.js");
+const { loadProvingKeys } = require("./utils.js");
 
 const ZERO_PUBKEY = [0, 0];
 const poseidonHash = Poseidon.poseidon4;
 
-describe('main circuit tests for Zeto fungible tokens with anonymity without encryption', () => {
+describe("main circuit tests for Zeto fungible tokens with anonymity without encryption", () => {
   let circuit, provingKeyFile, verificationKey;
 
   const sender = {};
   const receiver = {};
 
   before(async () => {
-    circuit = await loadCircuit('anon');
-    ({ provingKeyFile, verificationKey } = loadProvingKeys('anon'));
+    circuit = await loadCircuit("anon");
+    ({ provingKeyFile, verificationKey } = loadProvingKeys("anon"));
 
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;
@@ -46,7 +46,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity without enc
     receiver.pubKey = keypair.pubKey;
   });
 
-  it('should generate a valid proof that can be verified successfully', async () => {
+  it("should generate a valid proof that can be verified successfully", async () => {
     const inputValues = [15, 100];
     const outputValues = [115, 0];
     // create two input UTXOs, each has their own salt, but same owner
@@ -96,7 +96,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity without enc
       provingKeyFile,
       witness,
     );
-    console.log('Proving time: ', (Date.now() - startTime) / 1000, 's');
+    console.log("Proving time: ", (Date.now() - startTime) / 1000, "s");
 
     const success = await groth16.verify(verificationKey, publicSignals, proof);
     // console.log('inputCommitments', inputCommitments);

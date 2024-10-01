@@ -14,19 +14,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
 const {
   genKeypair,
   formatPrivKeyForBabyJub,
   stringifyBigInts,
-} = require('maci-crypto');
-const { Poseidon, newSalt, tokenUriHash } = require('../index.js');
+} = require("maci-crypto");
+const { Poseidon, newSalt, tokenUriHash } = require("../index.js");
 
 const poseidonHash = Poseidon.poseidon5;
 
-describe('main circuit tests for Zeto non-fungible tokens with anonymity without encryption', () => {
+describe("main circuit tests for Zeto non-fungible tokens with anonymity without encryption", () => {
   let circuit;
 
   const sender = {};
@@ -36,7 +36,7 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity without
     this.timeout(60000);
 
     circuit = await wasm_tester(
-      join(__dirname, '../../circuits/nf_anon.circom'),
+      join(__dirname, "../../circuits/nf_anon.circom"),
     );
 
     let keypair = genKeypair();
@@ -48,9 +48,9 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity without
     receiver.pubKey = keypair.pubKey;
   });
 
-  it('should succeed for valid witness and produce an encypted value', async () => {
+  it("should succeed for valid witness and produce an encypted value", async () => {
     const tokenIds = [1001];
-    const tokenUris = [tokenUriHash('http://ipfs.io/some-file-hash')];
+    const tokenUris = [tokenUriHash("http://ipfs.io/some-file-hash")];
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
@@ -106,10 +106,10 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity without
     expect(witness[4]).to.equal(tokenUris[0]);
   });
 
-  it('should fail to generate a witness because token Id changed', async () => {
+  it("should fail to generate a witness because token Id changed", async () => {
     const inputTokenIds = [1001];
     const outputTokenIds = [1002];
-    const tokenUris = [tokenUriHash('http://ipfs.io/some-file-hash')];
+    const tokenUris = [tokenUriHash("http://ipfs.io/some-file-hash")];
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
@@ -160,11 +160,11 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity without
     );
   });
 
-  it('should fail to generate a witness because token URI changed', async () => {
+  it("should fail to generate a witness because token URI changed", async () => {
     const tokenIds = [1001];
-    const inputTokenUris = [tokenUriHash('http://ipfs.io/some-file-hash')];
+    const inputTokenUris = [tokenUriHash("http://ipfs.io/some-file-hash")];
     const outputTokenUris = [
-      tokenUriHash('http://ipfs.io/some-other-file-hash'),
+      tokenUriHash("http://ipfs.io/some-other-file-hash"),
     ];
 
     // create two input UTXOs, each has their own salt, but same owner

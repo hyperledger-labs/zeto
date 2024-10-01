@@ -14,17 +14,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { readFileSync } from 'fs';
-import * as path from 'path';
-import { BigNumberish } from 'ethers';
-import { groth16 } from 'snarkjs';
-import { loadCircuit, encodeProof } from 'zeto-js';
-import { User, UTXO } from './lib/utils';
+import { readFileSync } from "fs";
+import * as path from "path";
+import { BigNumberish } from "ethers";
+import { groth16 } from "snarkjs";
+import { loadCircuit, encodeProof } from "zeto-js";
+import { User, UTXO } from "./lib/utils";
 
 function provingKeysRoot() {
   const PROVING_KEYS_ROOT = process.env.PROVING_KEYS_ROOT;
   if (!PROVING_KEYS_ROOT) {
-    throw new Error('PROVING_KEYS_ROOT env var is not set');
+    throw new Error("PROVING_KEYS_ROOT env var is not set");
   }
   return PROVING_KEYS_ROOT;
 }
@@ -56,8 +56,8 @@ export async function prepareDepositProof(signer: User, output: UTXO) {
     outputOwnerPublicKeys,
   };
 
-  const circuit = await loadCircuit('check_hashes_value');
-  const { provingKeyFile } = loadProvingKeys('check_hashes_value');
+  const circuit = await loadCircuit("check_hashes_value");
+  const { provingKeyFile } = loadProvingKeys("check_hashes_value");
 
   const startWitnessCalculation = Date.now();
   const witness = await circuit.calculateWTNSBin(inputObj, true);
@@ -118,8 +118,8 @@ export async function prepareNullifierWithdrawProof(
     outputSalts: [output.salt],
     outputOwnerPublicKeys,
   };
-  const circuit = await loadCircuit('check_nullifier_value');
-  const { provingKeyFile } = loadProvingKeys('check_nullifier_value');
+  const circuit = await loadCircuit("check_nullifier_value");
+  const { provingKeyFile } = loadProvingKeys("check_nullifier_value");
 
   const startWitnessCalculation = Date.now();
   const witness = await circuit.calculateWTNSBin(inputObj, true);
@@ -170,8 +170,8 @@ export async function prepareWithdrawProof(
     outputSalts: [output.salt],
     outputOwnerPublicKeys,
   };
-  const circuit = await loadCircuit('check_inputs_outputs_value');
-  const { provingKeyFile } = loadProvingKeys('check_inputs_outputs_value');
+  const circuit = await loadCircuit("check_inputs_outputs_value");
+  const { provingKeyFile } = loadProvingKeys("check_inputs_outputs_value");
 
   const startWitnessCalculation = Date.now();
   const witness = await circuit.calculateWTNSBin(inputObj, true);

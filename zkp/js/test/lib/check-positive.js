@@ -14,24 +14,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
 
 const MAX_VALUE = 2n ** 40n - 1n;
 
-describe('check-positive circuit tests', () => {
+describe("check-positive circuit tests", () => {
   let circuit;
 
   before(async function () {
     this.timeout(60000);
 
     circuit = await wasm_tester(
-      join(__dirname, '../circuits/check-positive.circom'),
+      join(__dirname, "../circuits/check-positive.circom"),
     );
   });
 
-  it('should succeed to generate a witness using the MAX_VALUE for output', async () => {
+  it("should succeed to generate a witness using the MAX_VALUE for output", async () => {
     const outputValues = [MAX_VALUE, 100];
 
     let error;
@@ -49,7 +49,7 @@ describe('check-positive circuit tests', () => {
     expect(error).to.be.undefined;
   });
 
-  it('should fail to generate a witness because of negative values in output commitments', async () => {
+  it("should fail to generate a witness because of negative values in output commitments", async () => {
     // in the finite field used in the Poseidion hash implementation, -100n is equivalent to
     // 21888242871839275222246405745257275088548364400416034343698204186575808495517n
     const outputValues = [-100, 225];
@@ -69,7 +69,7 @@ describe('check-positive circuit tests', () => {
     expect(error).to.match(/Error in template CheckPositive_3 line: 39/); // positive range check failed
   });
 
-  it('should fail to generate a witness because of using the inverse of a negative value in output commitments', async () => {
+  it("should fail to generate a witness because of using the inverse of a negative value in output commitments", async () => {
     // in the finite field used in the Poseidion hash implementation, -100n is equivalent to
     // 21888242871839275222246405745257275088548364400416034343698204186575808495517n. This number
     // is considered negative by the circuit, because we allow the range of 0 to (2**40 - 1)
@@ -93,7 +93,7 @@ describe('check-positive circuit tests', () => {
     expect(error).to.match(/Error in template CheckPositive_3 line: 39/); // positive range check failed
   });
 
-  it('should fail to generate a witness because a larger than MAX_VALUE is used in output', async () => {
+  it("should fail to generate a witness because a larger than MAX_VALUE is used in output", async () => {
     const outputValues = [MAX_VALUE + 1n, 99];
 
     let error;

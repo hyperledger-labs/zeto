@@ -14,25 +14,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { groth16 } = require('snarkjs');
-const { genKeypair } = require('maci-crypto');
-const { Poseidon, newSalt, loadCircuit } = require('../index.js');
-const { loadProvingKeys } = require('./utils.js');
+const { expect } = require("chai");
+const { groth16 } = require("snarkjs");
+const { genKeypair } = require("maci-crypto");
+const { Poseidon, newSalt, loadCircuit } = require("../index.js");
+const { loadProvingKeys } = require("./utils.js");
 
 const poseidonHash = Poseidon.poseidon4;
 
-describe('check-hashes-value circuit tests', () => {
+describe("check-hashes-value circuit tests", () => {
   let circuit;
   const sender = {};
   before(async () => {
-    circuit = await loadCircuit('check_hashes_value');
+    circuit = await loadCircuit("check_hashes_value");
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;
     sender.pubKey = keypair.pubKey;
   });
 
-  it('should return true for valid witness', async () => {
+  it("should return true for valid witness", async () => {
     const outputValues = [200];
 
     // create the output UTXO
@@ -66,13 +66,13 @@ describe('check-hashes-value circuit tests', () => {
       true,
     );
     const { provingKeyFile, verificationKey } =
-      loadProvingKeys('check_hashes_value');
+      loadProvingKeys("check_hashes_value");
     const startTime = Date.now();
     const { proof, publicSignals } = await groth16.prove(
       provingKeyFile,
       witness,
     );
-    console.log('Proving time: ', (Date.now() - startTime) / 1000, 's');
+    console.log("Proving time: ", (Date.now() - startTime) / 1000, "s");
     const success = await groth16.verify(verificationKey, publicSignals, proof);
     expect(success, true);
     // console.log('output commitments', outputCommitments);

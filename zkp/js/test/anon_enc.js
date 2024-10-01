@@ -14,26 +14,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
 const {
   genRandomSalt,
   genKeypair,
   genEcdhSharedKey,
   formatPrivKeyForBabyJub,
   stringifyBigInts,
-} = require('maci-crypto');
+} = require("maci-crypto");
 const {
   Poseidon,
   newSalt,
   poseidonDecrypt,
   newEncryptionNonce,
-} = require('../index.js');
+} = require("../index.js");
 
 const poseidonHash = Poseidon.poseidon4;
 
-describe('main circuit tests for Zeto fungible tokens with anonymity with encryption', () => {
+describe("main circuit tests for Zeto fungible tokens with anonymity with encryption", () => {
   let circuit;
 
   const sender = {};
@@ -43,7 +43,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     this.timeout(60000);
 
     circuit = await wasm_tester(
-      join(__dirname, '../../circuits/anon_enc.circom'),
+      join(__dirname, "../../circuits/anon_enc.circom"),
     );
 
     let keypair = genKeypair();
@@ -55,7 +55,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     receiver.pubKey = keypair.pubKey;
   });
 
-  it('should succeed for valid witness and produce an encypted value', async () => {
+  it("should succeed for valid witness and produce an encypted value", async () => {
     const inputValues = [32, 40];
     const outputValues = [20, 52];
 
@@ -147,7 +147,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     expect(calculatedHash).to.equal(outputCommitments[0]);
   });
 
-  it('should fail to generate a witness because mass conservation is not obeyed', async () => {
+  it("should fail to generate a witness because mass conservation is not obeyed", async () => {
     const inputValues = [15, 100];
     const outputValues = [90, 35];
     // create two input UTXOs, each has their own salt, but same owner
@@ -209,7 +209,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     expect(err).to.match(/Error in template Zeto_105 line: 89/);
   });
 
-  it('should failed to match output UTXO after decrypting the cipher texts from the events if using the wrong sender public keys', async () => {
+  it("should failed to match output UTXO after decrypting the cipher texts from the events if using the wrong sender public keys", async () => {
     const inputValues = [32, 40];
     const outputValues = [20, 52];
 
@@ -274,7 +274,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     expect(function () {
       poseidonDecrypt(cipherText, recoveredKey, encryptionNonce, 2);
     }).to.throw(
-      'The last ciphertext element must match the second item of the permuted state',
+      "The last ciphertext element must match the second item of the permuted state",
     );
   });
 });

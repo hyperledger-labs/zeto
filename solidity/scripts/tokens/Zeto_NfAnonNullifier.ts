@@ -14,8 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ethers, ignition } from 'hardhat';
-import zetoModule from '../../ignition/modules/zeto_nf_anon_nullifier';
+import { ethers, ignition } from "hardhat";
+import zetoModule from "../../ignition/modules/zeto_nf_anon_nullifier";
 
 export async function deployDependencies() {
   const [deployer] = await ethers.getSigners();

@@ -1,16 +1,16 @@
 // set this to turn off paramters checking in the deployment scripts
-process.env.TEST_DEPLOY_SCRIPTS = 'true';
+process.env.TEST_DEPLOY_SCRIPTS = "true";
 
 import {
   deployFungible as deployFungibleUpgradeable,
   deployNonFungible as deployNonFungibleUpgradeable,
-} from '../../scripts/deploy_upgradeable';
+} from "../../scripts/deploy_upgradeable";
 import {
   deployFungible as deployFungibleCloneable,
   deployNonFungible as deployNonFungibleCloneable,
-} from '../../scripts/deploy_cloneable';
-import fungibilities from '../../scripts/tokens.json';
-import { ethers } from 'hardhat';
+} from "../../scripts/deploy_cloneable";
+import fungibilities from "../../scripts/tokens.json";
+import { ethers } from "hardhat";
 
 export async function deployZeto(tokenName: string) {
   let zeto, erc20, deployer;
@@ -20,7 +20,7 @@ export async function deployZeto(tokenName: string) {
   if (process.env.ZETO_ADDRESS && process.env.ERC20_ADDRESS) {
     zeto = await ethers.getContractAt(tokenName, process.env.ZETO_ADDRESS);
     erc20 = await ethers.getContractAt(
-      'SampleERC20',
+      "SampleERC20",
       process.env.ERC20_ADDRESS,
     );
     deployer = (await ethers.getSigners())[0];
@@ -29,12 +29,12 @@ export async function deployZeto(tokenName: string) {
 
   let isFungible = false;
   const fungibility = (fungibilities as any)[tokenName];
-  if (fungibility === 'fungible') {
+  if (fungibility === "fungible") {
     isFungible = true;
   }
 
-  if (process.env.USE_FACTORY !== 'true') {
-    console.log('Deploying as upgradeable contracts');
+  if (process.env.USE_FACTORY !== "true") {
+    console.log("Deploying as upgradeable contracts");
     // setup via the deployment scripts
     const deployFunc = isFungible
       ? deployFungibleUpgradeable
@@ -59,19 +59,19 @@ export async function deployZeto(tokenName: string) {
 
     // we want to test the effectiveness of the factory contract
     // to create clones of the Zeto implementation contract
-    const Factory = await ethers.getContractFactory('ZetoTokenFactory');
+    const Factory = await ethers.getContractFactory("ZetoTokenFactory");
     const factory = await Factory.deploy();
     await factory.waitForDeployment();
 
     const implInfo = {
       implementation: zetoImpl.target,
       depositVerifier:
-        depositVerifier || '0x0000000000000000000000000000000000000000',
+        depositVerifier || "0x0000000000000000000000000000000000000000",
       withdrawVerifier:
-        withdrawVerifier || '0x0000000000000000000000000000000000000000',
+        withdrawVerifier || "0x0000000000000000000000000000000000000000",
       verifier,
       batchVerifier:
-        batchVerifier || '0x0000000000000000000000000000000000000000',
+        batchVerifier || "0x0000000000000000000000000000000000000000",
     };
     // console.log(implInfo);
     const tx1 = await factory
@@ -93,7 +93,7 @@ export async function deployZeto(tokenName: string) {
     let zetoAddress;
     for (const log of result1!.logs) {
       const event = factory.interface.parseLog(log as any);
-      if (event?.name === 'ZetoTokenDeployed') {
+      if (event?.name === "ZetoTokenDeployed") {
         zetoAddress = event!.args!.zetoToken;
       }
     }

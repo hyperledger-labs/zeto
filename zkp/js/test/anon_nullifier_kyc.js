@@ -14,17 +14,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
-const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
+const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
 const {
   Merkletree,
   InMemoryDB,
   str2Bytes,
   ZERO_HASH,
-} = require('@iden3/js-merkletree');
-const { Poseidon, newSalt, kycHash } = require('../index.js');
+} = require("@iden3/js-merkletree");
+const { Poseidon, newSalt, kycHash } = require("../index.js");
 
 const SMT_HEIGHT_UTXO = 64;
 const SMT_HEIGHT_IDENTITY = 10;
@@ -32,7 +32,7 @@ const poseidonHash = Poseidon.poseidon4;
 const poseidonHash2 = Poseidon.poseidon2;
 const poseidonHash3 = Poseidon.poseidon3;
 
-describe('main circuit tests for Zeto fungible tokens with anonymity, KYC, using nullifiers and without encryption', () => {
+describe("main circuit tests for Zeto fungible tokens with anonymity, KYC, using nullifiers and without encryption", () => {
   let circuit, smtAlice, smtKYC, smtBob;
 
   const Alice = {};
@@ -43,7 +43,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity, KYC, using
     this.timeout(60000);
 
     circuit = await wasm_tester(
-      join(__dirname, '../../circuits/anon_nullifier_kyc.circom'),
+      join(__dirname, "../../circuits/anon_nullifier_kyc.circom"),
     );
 
     let keypair = genKeypair();
@@ -56,15 +56,15 @@ describe('main circuit tests for Zeto fungible tokens with anonymity, KYC, using
     Bob.pubKey = keypair.pubKey;
 
     // initialize the local storage for Alice to manage her UTXOs in the Spart Merkle Tree
-    const storage1 = new InMemoryDB(str2Bytes('alice'));
+    const storage1 = new InMemoryDB(str2Bytes("alice"));
     smtAlice = new Merkletree(storage1, true, SMT_HEIGHT_UTXO);
 
     // initialize the local storage for Bob to manage his UTXOs in the Spart Merkle Tree
-    const storage2 = new InMemoryDB(str2Bytes('bob'));
+    const storage2 = new InMemoryDB(str2Bytes("bob"));
     smtBob = new Merkletree(storage2, true, SMT_HEIGHT_UTXO);
 
     // initialize the local storage for the sender to manage identities in the Spart Merkle Tree
-    const storage3 = new InMemoryDB(str2Bytes('kyc'));
+    const storage3 = new InMemoryDB(str2Bytes("kyc"));
     smtKYC = new Merkletree(storage3, true, SMT_HEIGHT_IDENTITY);
 
     // calculate the identity hash for Alice
@@ -76,7 +76,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity, KYC, using
     await smtKYC.add(identity2, identity2);
   });
 
-  it('should succeed for valid witness', async () => {
+  it("should succeed for valid witness", async () => {
     const inputValues = [32, 40];
     const outputValues = [20, 52];
 
@@ -194,7 +194,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity, KYC, using
     expect(witness[6]).to.equal(proof3.root.bigInt());
   });
 
-  it('should fail if not using the right identities merkle proofs', async () => {
+  it("should fail if not using the right identities merkle proofs", async () => {
     const inputValues = [32, 40];
     const outputValues = [20, 52];
 

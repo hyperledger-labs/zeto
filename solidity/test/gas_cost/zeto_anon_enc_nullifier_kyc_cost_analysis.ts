@@ -13,21 +13,21 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import fs from 'fs';
-import path from 'path';
-import { ethers, network } from 'hardhat';
-import { ContractTransactionReceipt, Signer, BigNumberish } from 'ethers';
-import { expect } from 'chai';
-import { loadCircuit, encodeProof, newEncryptionNonce, kycHash } from 'zeto-js';
-import { groth16 } from 'snarkjs';
+import fs from "fs";
+import path from "path";
+import { ethers, network } from "hardhat";
+import { ContractTransactionReceipt, Signer, BigNumberish } from "ethers";
+import { expect } from "chai";
+import { loadCircuit, encodeProof, newEncryptionNonce, kycHash } from "zeto-js";
+import { groth16 } from "snarkjs";
 import {
   genKeypair,
   formatPrivKeyForBabyJub,
   stringifyBigInts,
-} from 'maci-crypto';
-import AsyncLock from 'async-lock';
+} from "maci-crypto";
+import AsyncLock from "async-lock";
 const lock = new AsyncLock();
-import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
+import { Merkletree, InMemoryDB, str2Bytes } from "@iden3/js-merkletree";
 import {
   UTXO,
   User,
@@ -39,19 +39,19 @@ import {
   doWithdraw,
   ZERO_UTXO,
   parseRegistryEvents,
-} from '../lib/utils';
+} from "../lib/utils";
 import {
   loadProvingKeys,
   prepareDepositProof,
   prepareNullifierWithdrawProof,
-} from '../utils';
-import { deployZeto } from '../lib/deploy';
+} from "../utils";
+import { deployZeto } from "../lib/deploy";
 
-const TOTAL_AMOUNT = parseInt(process.env.TOTAL_ROUNDS || '1000');
-const TX_CONCURRENCY = parseInt(process.env.TX_CONCURRENCY || '1');
+const TOTAL_AMOUNT = parseInt(process.env.TOTAL_ROUNDS || "1000");
+const TX_CONCURRENCY = parseInt(process.env.TX_CONCURRENCY || "1");
 const UTXO_PER_TX = 10;
 
-describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity using nullifiers and encryption with KYC', function () {
+describe.skip("(Gas cost analysis) Zeto based fungible token with anonymity using nullifiers and encryption with KYC", function () {
   let deployer: Signer;
   let Alice: User;
   let Bob: User;
@@ -82,7 +82,7 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
   const reportPrefix = date.toISOString();
 
   before(async function () {
-    if (network.name !== 'hardhat') {
+    if (network.name !== "hardhat") {
       // accommodate for longer block times on public networks
       this.timeout(120000);
     }
@@ -92,7 +92,7 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
     Bob = await newUser(b);
     Charlie = await newUser(c);
 
-    ({ deployer, zeto, erc20 } = await deployZeto('Zeto_AnonEncNullifierKyc'));
+    ({ deployer, zeto, erc20 } = await deployZeto("Zeto_AnonEncNullifierKyc"));
 
     const tx2 = await zeto.connect(deployer).register(Alice.babyJubPublicKey);
     const result1 = await tx2.wait();
@@ -101,13 +101,13 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
     const tx4 = await zeto.connect(deployer).register(Charlie.babyJubPublicKey);
     const result3 = await tx4.wait();
 
-    const storage1 = new InMemoryDB(str2Bytes('alice'));
+    const storage1 = new InMemoryDB(str2Bytes("alice"));
     smtAlice = new Merkletree(storage1, true, 64);
 
-    const storage2 = new InMemoryDB(str2Bytes('bob'));
+    const storage2 = new InMemoryDB(str2Bytes("bob"));
     smtBob = new Merkletree(storage2, true, 64);
 
-    const storage3 = new InMemoryDB(str2Bytes('kyc'));
+    const storage3 = new InMemoryDB(str2Bytes("kyc"));
     smtKyc = new Merkletree(storage3, true, 10);
 
     const publicKey1 = parseRegistryEvents(zeto, result1);
@@ -117,13 +117,13 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
     const publicKey3 = parseRegistryEvents(zeto, result3);
     await smtKyc.add(kycHash(publicKey3), kycHash(publicKey3));
 
-    circuit = await loadCircuit('anon_enc_nullifier_kyc');
+    circuit = await loadCircuit("anon_enc_nullifier_kyc");
     ({ provingKeyFile: provingKey } = loadProvingKeys(
-      'anon_enc_nullifier_kyc',
+      "anon_enc_nullifier_kyc",
     ));
-    batchCircuit = await loadCircuit('anon_enc_nullifier_kyc_batch');
+    batchCircuit = await loadCircuit("anon_enc_nullifier_kyc_batch");
     ({ provingKeyFile: batchProvingKey } = loadProvingKeys(
-      'anon_enc_nullifier_kyc_batch',
+      "anon_enc_nullifier_kyc_batch",
     ));
   });
 
@@ -537,7 +537,7 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
       circuitToUse = batchCircuit;
       provingKeyToUse = batchProvingKey;
     }
-    const witness = await lock.acquire('proofGen', async () => {
+    const witness = await lock.acquire("proofGen", async () => {
       // this lock is added for https://github.com/hyperledger-labs/zeto/issues/80, which only happens for Transfer circuit, not deposit/mint
       return circuitToUse.calculateWTNSBin(inputObj, true);
     });
@@ -588,7 +588,7 @@ describe.skip('(Gas cost analysis) Zeto based fungible token with anonymity usin
         ecdhPublicKey,
         encryptedValues,
         encodedProof,
-        '0x',
+        "0x",
       );
     const result: ContractTransactionReceipt | null = await tx.wait();
     console.log(
@@ -604,10 +604,10 @@ function writeGasCostsToCSV(filename: string, gasCosts: number[]) {
   const filePath = path.join(__dirname, filename);
 
   // Prepare the CSV content
-  const csvData = gasCosts.join(',\n') + '\n'; // Each value in a new line
+  const csvData = gasCosts.join(",\n") + "\n"; // Each value in a new line
 
   // Write the CSV content to a file (overwrite if file exists)
-  fs.writeFileSync(filePath, 'gas_costs,\n' + csvData, 'utf8');
+  fs.writeFileSync(filePath, "gas_costs,\n" + csvData, "utf8");
 
   console.log(`Gas costs written to ${filePath}`);
 }

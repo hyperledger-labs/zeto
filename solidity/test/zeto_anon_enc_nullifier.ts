@@ -14,24 +14,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ethers, network } from 'hardhat';
-import { ContractTransactionReceipt, Signer, BigNumberish } from 'ethers';
-import { expect } from 'chai';
+import { ethers, network } from "hardhat";
+import { ContractTransactionReceipt, Signer, BigNumberish } from "ethers";
+import { expect } from "chai";
 import {
   loadCircuit,
   poseidonDecrypt,
   encodeProof,
   Poseidon,
   newEncryptionNonce,
-} from 'zeto-js';
-import { groth16 } from 'snarkjs';
+} from "zeto-js";
+import { groth16 } from "snarkjs";
 import {
   genKeypair,
   formatPrivKeyForBabyJub,
   genEcdhSharedKey,
   stringifyBigInts,
-} from 'maci-crypto';
-import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
+} from "maci-crypto";
+import { Merkletree, InMemoryDB, str2Bytes } from "@iden3/js-merkletree";
 import {
   UTXO,
   User,
@@ -41,16 +41,16 @@ import {
   doMint,
   ZERO_UTXO,
   parseUTXOEvents,
-} from './lib/utils';
+} from "./lib/utils";
 import {
   loadProvingKeys,
   prepareDepositProof,
   prepareNullifierWithdrawProof,
-} from './utils';
-import { deployZeto } from './lib/deploy';
+} from "./utils";
+import { deployZeto } from "./lib/deploy";
 const poseidonHash = Poseidon.poseidon4;
 
-describe('Zeto based fungible token with anonymity using nullifiers and encryption', function () {
+describe("Zeto based fungible token with anonymity using nullifiers and encryption", function () {
   let deployer: Signer;
   let Alice: User;
   let Bob: User;
@@ -69,7 +69,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
   let smtBob: Merkletree;
 
   before(async function () {
-    if (network.name !== 'hardhat') {
+    if (network.name !== "hardhat") {
       // accommodate for longer block times on public networks
       this.timeout(120000);
     }
@@ -79,30 +79,30 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     Bob = await newUser(b);
     Charlie = await newUser(c);
 
-    ({ deployer, zeto, erc20 } = await deployZeto('Zeto_AnonEncNullifier'));
+    ({ deployer, zeto, erc20 } = await deployZeto("Zeto_AnonEncNullifier"));
 
-    const storage1 = new InMemoryDB(str2Bytes(''));
+    const storage1 = new InMemoryDB(str2Bytes(""));
     smtAlice = new Merkletree(storage1, true, 64);
 
-    const storage2 = new InMemoryDB(str2Bytes(''));
+    const storage2 = new InMemoryDB(str2Bytes(""));
     smtBob = new Merkletree(storage2, true, 64);
 
-    circuit = await loadCircuit('anon_enc_nullifier');
-    ({ provingKeyFile: provingKey } = loadProvingKeys('anon_enc_nullifier'));
-    batchCircuit = await loadCircuit('anon_enc_nullifier_batch');
+    circuit = await loadCircuit("anon_enc_nullifier");
+    ({ provingKeyFile: provingKey } = loadProvingKeys("anon_enc_nullifier"));
+    batchCircuit = await loadCircuit("anon_enc_nullifier_batch");
     ({ provingKeyFile: batchProvingKey } = loadProvingKeys(
-      'anon_enc_nullifier_batch',
+      "anon_enc_nullifier_batch",
     ));
   });
 
-  it('onchain SMT root should be equal to the offchain SMT root', async function () {
+  it("onchain SMT root should be equal to the offchain SMT root", async function () {
     const root = await smtAlice.root();
     const onchainRoot = await zeto.getRoot();
     expect(onchainRoot).to.equal(0n);
     expect(root.string()).to.equal(onchainRoot.toString());
   });
 
-  it('(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob should succeed', async function () {
+  it("(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob should succeed", async function () {
     // first mint the tokens for batch testing
     const inputUtxos = [];
     const nullifiers = [];
@@ -197,7 +197,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     }
   });
 
-  it('mint ERC20 tokens to Alice to deposit to Zeto should succeed', async function () {
+  it("mint ERC20 tokens to Alice to deposit to Zeto should succeed", async function () {
     const startingBalance = await erc20.balanceOf(Alice.ethAddress);
     const tx = await erc20.connect(deployer).mint(Alice.ethAddress, 100);
     await tx.wait();
@@ -214,14 +214,14 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     );
     const tx2 = await zeto
       .connect(Alice.signer)
-      .deposit(100, outputCommitments[0], encodedProof, '0x');
+      .deposit(100, outputCommitments[0], encodedProof, "0x");
     await tx2.wait();
 
     await smtAlice.add(utxo100.hash, utxo100.hash);
     await smtBob.add(utxo100.hash, utxo100.hash);
   });
 
-  it('mint to Alice and transfer UTXOs honestly to Bob should succeed', async function () {
+  it("mint to Alice and transfer UTXOs honestly to Bob should succeed", async function () {
     const startingBalance = await erc20.balanceOf(Alice.ethAddress);
     // The authority mints a new UTXO and assigns it to Alice
     utxo1 = newUTXO(10, Alice);
@@ -309,7 +309,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     utxo3 = newUTXO(Number(plainText[0]), Bob, plainText[1]);
   }).timeout(600000);
 
-  it('Bob transfers UTXOs, previously received from Alice, honestly to Charlie should succeed', async function () {
+  it("Bob transfers UTXOs, previously received from Alice, honestly to Charlie should succeed", async function () {
     // Bob generates the nullifiers for the UTXO to be spent
     const nullifier1 = newNullifier(utxo3, Bob);
 
@@ -347,7 +347,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     await smtAlice.add(events[0].outputs[1], events[0].outputs[1]);
   }).timeout(600000);
 
-  it('Alice withdraws her UTXOs to ERC20 tokens should succeed', async function () {
+  it("Alice withdraws her UTXOs to ERC20 tokens should succeed", async function () {
     const startingBalance = await erc20.balanceOf(Alice.ethAddress);
 
     // Alice generates the nullifiers for the UTXOs to be spent
@@ -400,15 +400,15 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     expect(endingBalance - startingBalance).to.be.equal(80);
   });
 
-  describe('failure cases', function () {
+  describe("failure cases", function () {
     // the following failure cases rely on the hardhat network
     // to return the details of the errors. This is not possible
     // on non-hardhat networks
-    if (network.name !== 'hardhat') {
+    if (network.name !== "hardhat") {
       return;
     }
 
-    it('Alice attempting to withdraw spent UTXOs should fail', async function () {
+    it("Alice attempting to withdraw spent UTXOs should fail", async function () {
       // Alice generates the nullifiers for the UTXOs to be spent
       const nullifier1 = newNullifier(utxo100, Alice);
 
@@ -448,22 +448,22 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
             root.bigInt(),
             encodedProof,
           ),
-      ).rejectedWith('UTXOAlreadySpent');
+      ).rejectedWith("UTXOAlreadySpent");
     });
 
-    it('mint existing unspent UTXOs should fail', async function () {
+    it("mint existing unspent UTXOs should fail", async function () {
       await expect(doMint(zeto, deployer, [utxo4])).rejectedWith(
-        'UTXOAlreadyOwned',
+        "UTXOAlreadyOwned",
       );
     });
 
-    it('mint existing spent UTXOs should fail', async function () {
+    it("mint existing spent UTXOs should fail", async function () {
       await expect(doMint(zeto, deployer, [utxo1])).rejectedWith(
-        'UTXOAlreadyOwned',
+        "UTXOAlreadyOwned",
       );
     });
 
-    it('transfer spent UTXOs should fail (double spend protection)', async function () {
+    it("transfer spent UTXOs should fail (double spend protection)", async function () {
       // create outputs
       const _utxo1 = newUTXO(25, Bob);
       const _utxo2 = newUTXO(5, Alice);
@@ -497,10 +497,10 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
           merkleProofs,
           [Bob, Alice],
         ),
-      ).rejectedWith('UTXOAlreadySpent');
+      ).rejectedWith("UTXOAlreadySpent");
     }).timeout(600000);
 
-    it('transfer with existing UTXOs in the output should fail (mass conservation protection)', async function () {
+    it("transfer with existing UTXOs in the output should fail (mass conservation protection)", async function () {
       // give Bob another UTXO to be able to spend
       const _utxo1 = newUTXO(15, Bob);
       await doMint(zeto, deployer, [_utxo1]);
@@ -529,10 +529,10 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
           merkleProofs,
           [Alice, Alice],
         ),
-      ).rejectedWith('UTXOAlreadyOwned');
+      ).rejectedWith("UTXOAlreadyOwned");
     }).timeout(600000);
 
-    it('spend by using the same UTXO as both inputs should fail', async function () {
+    it("spend by using the same UTXO as both inputs should fail", async function () {
       const _utxo1 = newUTXO(20, Alice);
       const _utxo2 = newUTXO(10, Bob);
       const nullifier1 = newNullifier(utxo7, Bob);
@@ -559,7 +559,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       ).rejectedWith(`UTXODuplicate`);
     }).timeout(600000);
 
-    it('transfer non-existing UTXOs should fail', async function () {
+    it("transfer non-existing UTXOs should fail", async function () {
       const nonExisting1 = newUTXO(25, Alice);
       const nonExisting2 = newUTXO(20, Alice, nonExisting1.salt);
 
@@ -600,10 +600,10 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
           merkleProofs,
           [Bob, Charlie],
         ),
-      ).rejectedWith('UTXORootNotFound');
+      ).rejectedWith("UTXORootNotFound");
     }).timeout(600000);
 
-    it('repeated mint calls with single UTXO should not fail', async function () {
+    it("repeated mint calls with single UTXO should not fail", async function () {
       const utxo5 = newUTXO(10, Alice);
       await expect(doMint(zeto, deployer, [utxo5, ZERO_UTXO])).fulfilled;
       const utxo6 = newUTXO(20, Alice);
@@ -767,7 +767,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       ecdhPublicKey,
       encryptedValues,
       encodedProof,
-      '0x',
+      "0x",
     );
     const results: ContractTransactionReceipt | null = await tx.wait();
     console.log(

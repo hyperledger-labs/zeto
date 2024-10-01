@@ -14,23 +14,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
 const {
   genKeypair,
   genEcdhSharedKey,
   formatPrivKeyForBabyJub,
   stringifyBigInts,
-} = require('maci-crypto');
+} = require("maci-crypto");
 
-describe('Ecdh circuit tests', () => {
+describe("Ecdh circuit tests", () => {
   let circuit;
   let senderPrivKey, senderPubKey, receiverPrivKey, receiverPubKey;
   before(async function () {
     this.timeout(60000);
 
-    circuit = await wasm_tester(join(__dirname, '../circuits/ecdh.circom'));
+    circuit = await wasm_tester(join(__dirname, "../circuits/ecdh.circom"));
 
     let keypair = genKeypair();
     senderPrivKey = keypair.privKey;
@@ -41,7 +41,7 @@ describe('Ecdh circuit tests', () => {
     receiverPubKey = keypair.pubKey;
   });
 
-  it('should generate the shared secret in the proof circuit, which can be reproduced by the receiver', async () => {
+  it("should generate the shared secret in the proof circuit, which can be reproduced by the receiver", async () => {
     const circuitInputs = stringifyBigInts({
       privKey: formatPrivKeyForBabyJub(senderPrivKey),
       pubKey: receiverPubKey,

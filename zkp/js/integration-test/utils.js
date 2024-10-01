@@ -14,13 +14,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const path = require('path');
-const { readFileSync } = require('fs');
+const path = require("path");
+const { readFileSync } = require("fs");
 
 function provingKeysRoot() {
   const PROVING_KEYS_ROOT = process.env.PROVING_KEYS_ROOT;
   if (!PROVING_KEYS_ROOT) {
-    throw new Error('PROVING_KEYS_ROOT env var is not set');
+    throw new Error("PROVING_KEYS_ROOT env var is not set");
   }
   return PROVING_KEYS_ROOT;
 }

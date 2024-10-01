@@ -14,27 +14,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { buildModule } from '@nomicfoundation/hardhat-ignition/modules';
+import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import {
   SmtLibModule,
   DepositVerifierModule,
   WithdrawNullifierVerifierModule,
-} from './lib/deps';
+} from "./lib/deps";
 
-const VerifierModule = buildModule('Groth16Verifier_AnonEncNullifier', (m) => {
-  const verifier = m.contract('Groth16Verifier_AnonEncNullifier', []);
+const VerifierModule = buildModule("Groth16Verifier_AnonEncNullifier", (m) => {
+  const verifier = m.contract("Groth16Verifier_AnonEncNullifier", []);
   return { verifier };
 });
 
 const BatchVerifierModule = buildModule(
-  'Groth16Verifier_AnonEncNullifierBatch',
+  "Groth16Verifier_AnonEncNullifierBatch",
   (m) => {
-    const verifier = m.contract('Groth16Verifier_AnonEncNullifierBatch', []);
+    const verifier = m.contract("Groth16Verifier_AnonEncNullifierBatch", []);
     return { verifier };
   },
 );
 
-export default buildModule('Zeto_AnonEncNullifier', (m) => {
+export default buildModule("Zeto_AnonEncNullifier", (m) => {
   const { smtLib, poseidon3 } = m.useModule(SmtLibModule);
   const { verifier } = m.useModule(VerifierModule);
   const { verifier: batchVerifier } = m.useModule(BatchVerifierModule);

@@ -14,17 +14,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ethers, network } from 'hardhat';
-import { Signer, BigNumberish, AddressLike } from 'ethers';
-import { expect } from 'chai';
-import { loadCircuit, tokenUriHash, encodeProof } from 'zeto-js';
-import { groth16 } from 'snarkjs';
-import { formatPrivKeyForBabyJub, stringifyBigInts } from 'maci-crypto';
-import { User, UTXO, newUser, newAssetUTXO, doMint } from './lib/utils';
-import { loadProvingKeys } from './utils';
-import { deployZeto } from './lib/deploy';
+import { ethers, network } from "hardhat";
+import { Signer, BigNumberish, AddressLike } from "ethers";
+import { expect } from "chai";
+import { loadCircuit, tokenUriHash, encodeProof } from "zeto-js";
+import { groth16 } from "snarkjs";
+import { formatPrivKeyForBabyJub, stringifyBigInts } from "maci-crypto";
+import { User, UTXO, newUser, newAssetUTXO, doMint } from "./lib/utils";
+import { loadProvingKeys } from "./utils";
+import { deployZeto } from "./lib/deploy";
 
-describe('Zeto based non-fungible token with anonymity without encryption or nullifiers', function () {
+describe("Zeto based non-fungible token with anonymity without encryption or nullifiers", function () {
   let deployer: Signer;
   let Alice: User;
   let Bob: User;
@@ -36,7 +36,7 @@ describe('Zeto based non-fungible token with anonymity without encryption or nul
   let circuit: any, provingKey: any;
 
   before(async function () {
-    if (network.name !== 'hardhat') {
+    if (network.name !== "hardhat") {
       // accommodate for longer block times on public networks
       this.timeout(120000);
     }
@@ -46,15 +46,15 @@ describe('Zeto based non-fungible token with anonymity without encryption or nul
     Bob = await newUser(b);
     Charlie = await newUser(c);
 
-    ({ deployer, zeto } = await deployZeto('Zeto_NfAnon'));
+    ({ deployer, zeto } = await deployZeto("Zeto_NfAnon"));
 
-    circuit = await loadCircuit('nf_anon');
-    ({ provingKeyFile: provingKey } = loadProvingKeys('nf_anon'));
+    circuit = await loadCircuit("nf_anon");
+    ({ provingKeyFile: provingKey } = loadProvingKeys("nf_anon"));
   });
 
-  it('mint to Alice and transfer UTXOs honestly to Bob should succeed', async function () {
+  it("mint to Alice and transfer UTXOs honestly to Bob should succeed", async function () {
     const tokenId = 1001;
-    const uri = 'http://ipfs.io/file-hash-1';
+    const uri = "http://ipfs.io/file-hash-1";
     utxo1 = newAssetUTXO(tokenId, uri, Alice);
     await doMint(zeto, deployer, [utxo1]);
 
@@ -68,7 +68,7 @@ describe('Zeto based non-fungible token with anonymity without encryption or nul
     utxo2 = newAssetUTXO(_utxo3.tokenId!, _utxo3.uri!, Bob, _utxo3.salt);
   });
 
-  it('Bob transfers UTXOs, previously received from Alice, honestly to Charlie should succeed', async function () {
+  it("Bob transfers UTXOs, previously received from Alice, honestly to Charlie should succeed", async function () {
     // propose the output UTXOs
     utxo3 = newAssetUTXO(utxo2.tokenId!, utxo2.uri!, Charlie);
 
@@ -76,48 +76,48 @@ describe('Zeto based non-fungible token with anonymity without encryption or nul
     await doTransfer(Bob, utxo2, utxo3, Charlie);
   });
 
-  describe('failure cases', function () {
+  describe("failure cases", function () {
     // the following failure cases rely on the hardhat network
     // to return the details of the errors. This is not possible
     // on non-hardhat networks
-    if (network.name !== 'hardhat') {
+    if (network.name !== "hardhat") {
       return;
     }
 
-    it('mint existing unspent UTXOs should fail', async function () {
+    it("mint existing unspent UTXOs should fail", async function () {
       await expect(doMint(zeto, deployer, [utxo3])).rejectedWith(
-        'UTXOAlreadyOwned',
+        "UTXOAlreadyOwned",
       );
     });
 
-    it('mint existing spent UTXOs should fail', async function () {
+    it("mint existing spent UTXOs should fail", async function () {
       await expect(doMint(zeto, deployer, [utxo1])).rejectedWith(
-        'UTXOAlreadySpent',
+        "UTXOAlreadySpent",
       );
     });
 
-    it('transfer non-existing UTXOs should fail', async function () {
+    it("transfer non-existing UTXOs should fail", async function () {
       const nonExisting1 = newAssetUTXO(
         1002,
-        'http://ipfs.io/file-hash-2',
+        "http://ipfs.io/file-hash-2",
         Alice,
       );
       const nonExisting2 = newAssetUTXO(
         1002,
-        'http://ipfs.io/file-hash-2',
+        "http://ipfs.io/file-hash-2",
         Bob,
       );
 
       await expect(
         doTransfer(Alice, nonExisting1, nonExisting2, Bob),
-      ).rejectedWith('UTXONotMinted');
+      ).rejectedWith("UTXONotMinted");
     });
 
-    it('transfer spent UTXOs should fail (double spend protection)', async function () {
+    it("transfer spent UTXOs should fail (double spend protection)", async function () {
       // create outputs
       const _utxo4 = newAssetUTXO(utxo1.tokenId!, utxo1.uri!, Bob);
       await expect(doTransfer(Alice, utxo1, _utxo4, Bob)).rejectedWith(
-        'UTXOAlreadySpent',
+        "UTXOAlreadySpent",
       );
     });
   });
@@ -151,7 +151,7 @@ describe('Zeto based non-fungible token with anonymity without encryption or nul
   ) {
     const tx = await zeto
       .connect(signer.signer)
-      .transfer(inputCommitment, outputCommitment, encodedProof, '0x');
+      .transfer(inputCommitment, outputCommitment, encodedProof, "0x");
     const results = await tx.wait();
     console.log(`Method transfer() complete. Gas used: ${results?.gasUsed}`);
 

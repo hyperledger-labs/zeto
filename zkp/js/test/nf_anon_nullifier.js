@@ -14,23 +14,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
-const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
+const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
 const {
   Merkletree,
   InMemoryDB,
   str2Bytes,
   ZERO_HASH,
-} = require('@iden3/js-merkletree');
-const { Poseidon, newSalt, tokenUriHash } = require('../index.js');
+} = require("@iden3/js-merkletree");
+const { Poseidon, newSalt, tokenUriHash } = require("../index.js");
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon5;
 const poseidonHash4 = Poseidon.poseidon4;
 
-describe('main circuit tests for Zeto non-fungible tokens with anonymity using nullifiers and without encryption', () => {
+describe("main circuit tests for Zeto non-fungible tokens with anonymity using nullifiers and without encryption", () => {
   let circuit, smtAlice, smtBob;
 
   const Alice = {};
@@ -41,7 +41,7 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
     this.timeout(60000);
 
     circuit = await wasm_tester(
-      join(__dirname, '../../circuits/nf_anon_nullifier.circom'),
+      join(__dirname, "../../circuits/nf_anon_nullifier.circom"),
     );
 
     let keypair = genKeypair();
@@ -54,17 +54,17 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
     Bob.pubKey = keypair.pubKey;
 
     // initialize the local storage for Alice to manage her UTXOs in the Spart Merkle Tree
-    const storage1 = new InMemoryDB(str2Bytes(''));
+    const storage1 = new InMemoryDB(str2Bytes(""));
     smtAlice = new Merkletree(storage1, true, SMT_HEIGHT);
 
     // initialize the local storage for Bob to manage his UTXOs in the Spart Merkle Tree
-    const storage2 = new InMemoryDB(str2Bytes(''));
+    const storage2 = new InMemoryDB(str2Bytes(""));
     smtBob = new Merkletree(storage2, true, SMT_HEIGHT);
   });
 
-  it('should succeed for valid witness', async () => {
+  it("should succeed for valid witness", async () => {
     const tokenId = 1001;
-    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash("http://ipfs.io/some-file-hash");
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
@@ -133,9 +133,9 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
     expect(witness[3]).to.equal(BigInt(output1));
   });
 
-  it('should fail to generate a witness because token ID changed', async () => {
+  it("should fail to generate a witness because token ID changed", async () => {
     const tokenId = 1001;
-    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash("http://ipfs.io/some-file-hash");
 
     // create two input UTXOs
     const salt1 = newSalt();
@@ -200,9 +200,9 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
     );
   });
 
-  it('should fail to generate a witness because token URI changed', async () => {
+  it("should fail to generate a witness because token URI changed", async () => {
     const tokenId = 1001;
-    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash("http://ipfs.io/some-file-hash");
 
     // create two input UTXOs
     const salt1 = newSalt();
@@ -232,7 +232,7 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const tokenUriBad = tokenUriHash('http://ipfs.io/some-other-file-hash');
+    const tokenUriBad = tokenUriHash("http://ipfs.io/some-other-file-hash");
     const output1 = poseidonHash([
       BigInt(tokenId),
       tokenUriBad,
@@ -268,9 +268,9 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
     );
   });
 
-  it('should fail to generate a witness because of invalid input commitments', async () => {
+  it("should fail to generate a witness because of invalid input commitments", async () => {
     const tokenId = 1001;
-    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash("http://ipfs.io/some-file-hash");
 
     // create two input UTXOs
     const salt1 = newSalt();
@@ -300,7 +300,7 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const tokenUriBad = tokenUriHash('http://ipfs.io/some-other-file-hash');
+    const tokenUriBad = tokenUriHash("http://ipfs.io/some-other-file-hash");
     const output1 = poseidonHash([
       BigInt(tokenId),
       tokenUriBad,
@@ -335,9 +335,9 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
     );
   });
 
-  it('should fail to generate a witness because of invalid output commitments', async () => {
+  it("should fail to generate a witness because of invalid output commitments", async () => {
     const tokenId = 1001;
-    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash("http://ipfs.io/some-file-hash");
 
     // create two input UTXOs
     const salt1 = newSalt();
@@ -367,7 +367,7 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const tokenUriBad = tokenUriHash('http://ipfs.io/some-other-file-hash');
+    const tokenUriBad = tokenUriHash("http://ipfs.io/some-other-file-hash");
     const output1 = poseidonHash([
       BigInt(tokenId),
       tokenUriBad,

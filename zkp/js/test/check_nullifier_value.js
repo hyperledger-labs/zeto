@@ -14,23 +14,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
-const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
+const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
 const {
   Merkletree,
   InMemoryDB,
   str2Bytes,
   ZERO_HASH,
-} = require('@iden3/js-merkletree');
-const { Poseidon, newSalt } = require('../index.js');
+} = require("@iden3/js-merkletree");
+const { Poseidon, newSalt } = require("../index.js");
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
 const poseidonHash3 = Poseidon.poseidon3;
 
-describe('check_nullifier_value circuit tests', () => {
+describe("check_nullifier_value circuit tests", () => {
   let circuit, smtAlice;
 
   const Alice = {};
@@ -40,7 +40,7 @@ describe('check_nullifier_value circuit tests', () => {
     this.timeout(60000);
 
     circuit = await wasm_tester(
-      join(__dirname, '../../circuits/check_nullifier_value.circom'),
+      join(__dirname, "../../circuits/check_nullifier_value.circom"),
     );
 
     let keypair = genKeypair();
@@ -49,11 +49,11 @@ describe('check_nullifier_value circuit tests', () => {
     senderPrivateKey = formatPrivKeyForBabyJub(Alice.privKey);
 
     // initialize the local storage for Alice to manage her UTXOs in the Spart Merkle Tree
-    const storage1 = new InMemoryDB(str2Bytes(''));
+    const storage1 = new InMemoryDB(str2Bytes(""));
     smtAlice = new Merkletree(storage1, true, SMT_HEIGHT);
   });
 
-  it('should succeed for valid witness', async () => {
+  it("should succeed for valid witness", async () => {
     const inputValues = [32, 40];
     const outputValues = [2];
 
@@ -146,7 +146,7 @@ describe('check_nullifier_value circuit tests', () => {
     expect(witness[4]).to.equal(proof1.root.bigInt());
   });
 
-  it('should succeed for valid witness - single input', async () => {
+  it("should succeed for valid witness - single input", async () => {
     const inputValues = [72, 0];
     const outputValues = [10];
 

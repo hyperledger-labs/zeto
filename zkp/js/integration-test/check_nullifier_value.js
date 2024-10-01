@@ -14,32 +14,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { groth16 } = require('snarkjs');
-const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
+const { expect } = require("chai");
+const { groth16 } = require("snarkjs");
+const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
 const {
   Merkletree,
   InMemoryDB,
   str2Bytes,
   ZERO_HASH,
-} = require('@iden3/js-merkletree');
-const { Poseidon, newSalt, loadCircuit } = require('../index.js');
-const { loadProvingKeys } = require('./utils.js');
+} = require("@iden3/js-merkletree");
+const { Poseidon, newSalt, loadCircuit } = require("../index.js");
+const { loadProvingKeys } = require("./utils.js");
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
 const poseidonHash3 = Poseidon.poseidon3;
 
-describe('check_nullifier_value circuit tests', () => {
+describe("check_nullifier_value circuit tests", () => {
   let circuit, provingKeyFile, verificationKey, smtAlice;
 
   const Alice = {};
   let senderPrivateKey;
 
   before(async () => {
-    circuit = await loadCircuit('check_nullifier_value');
+    circuit = await loadCircuit("check_nullifier_value");
     ({ provingKeyFile, verificationKey } = loadProvingKeys(
-      'check_nullifier_value',
+      "check_nullifier_value",
     ));
 
     let keypair = genKeypair();
@@ -48,11 +48,11 @@ describe('check_nullifier_value circuit tests', () => {
     senderPrivateKey = formatPrivKeyForBabyJub(Alice.privKey);
 
     // initialize the local storage for Alice to manage her UTXOs in the Spart Merkle Tree
-    const storage1 = new InMemoryDB(str2Bytes(''));
+    const storage1 = new InMemoryDB(str2Bytes(""));
     smtAlice = new Merkletree(storage1, true, SMT_HEIGHT);
   });
 
-  it('should generate a valid proof that can be verified successfully', async () => {
+  it("should generate a valid proof that can be verified successfully", async () => {
     const inputValues = [15, 100];
     const outputValues = [35];
 
@@ -134,7 +134,7 @@ describe('check_nullifier_value circuit tests', () => {
       provingKeyFile,
       witness,
     );
-    console.log('Proving time: ', (Date.now() - startTime) / 1000, 's');
+    console.log("Proving time: ", (Date.now() - startTime) / 1000, "s");
 
     const success = await groth16.verify(verificationKey, publicSignals, proof);
     // console.log('nullifiers', nullifiers);
