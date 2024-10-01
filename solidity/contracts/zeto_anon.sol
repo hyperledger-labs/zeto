@@ -29,6 +29,8 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 uint256 constant MAX_BATCH = 10;
+uint256 constant INPUT_SIZE = 4;
+uint256 constant BATCH_INPUT_SIZE = 20;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and no encryption
 /// @author Kaleido, Inc.
@@ -56,6 +58,26 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
+    function constructPublicInputs(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        uint256 size
+    ) internal returns (uint256[] memory publicInputs) {
+        publicInputs = new uint256[](size);
+        uint256 piIndex = 0;
+        // copy input commitments
+        for (uint256 i = 0; i < inputs.length; i++) {
+            publicInputs[piIndex++] = inputs[i];
+        }
+
+        // copy output commitments
+        for (uint256 i = 0; i < outputs.length; i++) {
+            publicInputs[piIndex++] = outputs[i];
+        }
+
+        return publicInputs;
+    }
+
     /**
      * @dev the main function of the contract.
      *
@@ -81,48 +103,46 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         );
 
         // Check the proof
-        if (inputs.length > 2) {
-            // construct the public inputs
-            uint256[20] memory publicInputs;
-            uint256 piIndex = 0;
-            // copy input commitments
-            for (uint256 i = 0; i < inputs.length; i++) {
-                publicInputs[piIndex++] = inputs[i];
+        if (inputs.length > 2 || outputs.length > 2) {
+            uint256[] memory publicInputs = constructPublicInputs(
+                inputs,
+                outputs,
+                BATCH_INPUT_SIZE
+            );
+            // construct the public inputs for batchVerifier
+            uint256[BATCH_INPUT_SIZE] memory fixedSizeInput;
+            for (uint256 i = 0; i < fixedSizeInput.length; i++) {
+                fixedSizeInput[i] = publicInputs[i];
             }
 
-            // copy output commitments
-            for (uint256 i = 0; i < outputs.length; i++) {
-                publicInputs[piIndex++] = outputs[i];
-            }
-
+            // Check the proof using batchVerifier
             require(
                 batchVerifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,
-                    publicInputs
+                    fixedSizeInput
                 ),
                 "Invalid proof"
             );
         } else {
-            // construct the public inputs
-            uint256[4] memory publicInputs;
-            uint256 piIndex = 0;
-            // copy input commitments
-            for (uint256 i = 0; i < inputs.length; i++) {
-                publicInputs[piIndex++] = inputs[i];
+            uint256[] memory publicInputs = constructPublicInputs(
+                inputs,
+                outputs,
+                INPUT_SIZE
+            );
+            // construct the public inputs for verifier
+            uint256[INPUT_SIZE] memory fixedSizeInput;
+            for (uint256 i = 0; i < fixedSizeInput.length; i++) {
+                fixedSizeInput[i] = publicInputs[i];
             }
-
-            // copy output commitments
-            for (uint256 i = 0; i < outputs.length; i++) {
-                publicInputs[piIndex++] = outputs[i];
-            }
+            // Check the proof
             require(
                 verifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,
-                    publicInputs
+                    fixedSizeInput
                 ),
                 "Invalid proof"
             );

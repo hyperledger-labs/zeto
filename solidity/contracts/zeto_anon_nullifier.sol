@@ -31,6 +31,8 @@ import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
 
 uint256 constant MAX_SMT_DEPTH = 64;
 uint256 constant MAX_BATCH = 10;
+uint256 constant INPUT_SIZE = 7;
+uint256 constant BATCH_INPUT_SIZE = 31;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and history masking
 /// @author Kaleido, Inc.
@@ -67,6 +69,34 @@ contract Zeto_AnonNullifier is
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
+    function constructPublicInputs(
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
+        uint256 root,
+        uint256 size
+    ) internal returns (uint256[] memory publicInputs) {
+        publicInputs = new uint256[](size);
+        uint256 piIndex = 0;
+        // copy input commitments
+        for (uint256 i = 0; i < nullifiers.length; i++) {
+            publicInputs[piIndex++] = nullifiers[i];
+        }
+        // copy root
+        publicInputs[piIndex++] = root;
+
+        // populate enables
+        for (uint256 i = 0; i < nullifiers.length; i++) {
+            publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
+        }
+
+        // copy output commitments
+        for (uint256 i = 0; i < outputs.length; i++) {
+            publicInputs[piIndex++] = outputs[i];
+        }
+
+        return publicInputs;
+    }
+
     /**
      * @dev the main function of the contract.
      *
@@ -97,62 +127,49 @@ contract Zeto_AnonNullifier is
             "Invalid transaction proposal"
         );
 
-        if (nullifiers.length > 2) {
-            // construct the public nullifiers
-            uint256[31] memory publicInputs;
-            uint256 piIndex = 0;
-            // copy input commitments
-            for (uint256 i = 0; i < nullifiers.length; i++) {
-                publicInputs[piIndex++] = nullifiers[i];
-            }
-            // copy root
-            publicInputs[piIndex++] = root;
-
-            // populate enables
-            for (uint256 i = 0; i < nullifiers.length; i++) {
-                publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
+        // Check the proof
+        if (nullifiers.length > 2 || outputs.length > 2) {
+            uint256[] memory publicInputs = constructPublicInputs(
+                nullifiers,
+                outputs,
+                root,
+                BATCH_INPUT_SIZE
+            );
+            // construct the public inputs for batchVerifier
+            uint256[BATCH_INPUT_SIZE] memory fixedSizeInput;
+            for (uint256 i = 0; i < fixedSizeInput.length; i++) {
+                fixedSizeInput[i] = publicInputs[i];
             }
 
-            // copy output commitments
-            for (uint256 i = 0; i < outputs.length; i++) {
-                publicInputs[piIndex++] = outputs[i];
-            }
-
+            // Check the proof using batchVerifier
             require(
                 batchVerifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,
-                    publicInputs
+                    fixedSizeInput
                 ),
                 "Invalid proof"
             );
         } else {
-            // construct the public nullifiers
-            uint256[7] memory publicInputs;
-            uint256 piIndex = 0;
-            // copy input commitments
-            for (uint256 i = 0; i < nullifiers.length; i++) {
-                publicInputs[piIndex++] = nullifiers[i];
+            uint256[] memory publicInputs = constructPublicInputs(
+                nullifiers,
+                outputs,
+                root,
+                INPUT_SIZE
+            );
+            // construct the public inputs for verifier
+            uint256[INPUT_SIZE] memory fixedSizeInput;
+            for (uint256 i = 0; i < fixedSizeInput.length; i++) {
+                fixedSizeInput[i] = publicInputs[i];
             }
-            // copy root
-            publicInputs[piIndex++] = root;
-
-            // populate enables
-            for (uint256 i = 0; i < nullifiers.length; i++) {
-                publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
-            }
-
-            // copy output commitments
-            for (uint256 i = 0; i < outputs.length; i++) {
-                publicInputs[piIndex++] = outputs[i];
-            }
+            // Check the proof
             require(
                 verifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,
-                    publicInputs
+                    fixedSizeInput
                 ),
                 "Invalid proof"
             );

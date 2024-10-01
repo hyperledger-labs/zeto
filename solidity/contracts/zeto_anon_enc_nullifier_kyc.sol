@@ -27,6 +27,8 @@ import {Commonlib} from "./lib/common.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 uint256 constant MAX_BATCH = 10;
+uint256 constant INPUT_SIZE = 18;
+uint256 constant BATCH_INPUT_SIZE = 57;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity, encryption and history masking
 /// @author Kaleido, Inc.
@@ -69,6 +71,52 @@ contract Zeto_AnonEncNullifierKyc is
     function register(uint256[2] memory publicKey) public onlyOwner {
         _register(publicKey);
     }
+
+    function constructPublicInputs(
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
+        uint256 root,
+        uint256 encryptionNonce,
+        uint256[2] memory ecdhPublicKey,
+        uint256[] memory encryptedValues,
+        uint256 size
+    ) internal returns (uint256[] memory publicInputs) {
+        publicInputs = new uint256[](size);
+        uint256 piIndex = 0;
+        // copy the encrypted value, salt and parity bit
+        for (uint256 i = 0; i < encryptedValues.length; ++i) {
+            publicInputs[piIndex++] = encryptedValues[i];
+        }
+        // copy the ecdh public key
+        for (uint256 i = 0; i < ecdhPublicKey.length; ++i) {
+            publicInputs[piIndex++] = ecdhPublicKey[i];
+        }
+        // copy input commitments
+        for (uint256 i = 0; i < nullifiers.length; i++) {
+            publicInputs[piIndex++] = nullifiers[i];
+        }
+
+        // copy root
+        publicInputs[piIndex++] = root;
+
+        // populate enables
+        for (uint256 i = 0; i < nullifiers.length; i++) {
+            publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
+        }
+
+        // copy identities root
+        publicInputs[piIndex++] = getIdentitiesRoot();
+        // copy output commitments
+        for (uint256 i = 0; i < outputs.length; i++) {
+            publicInputs[piIndex++] = outputs[i];
+        }
+
+        // copy encryption nonce
+        publicInputs[piIndex++] = encryptionNonce;
+
+        return publicInputs;
+    }
+
     /**
      * @dev the main function of the contract, which transfers values from one account (represented by Babyjubjub public keys)
      *      to one or more receiver accounts (also represented by Babyjubjub public keys). One of the two nullifiers may be zero
@@ -103,93 +151,56 @@ contract Zeto_AnonEncNullifierKyc is
             validateTransactionProposal(nullifiers, outputs, root),
             "Invalid transaction proposal"
         );
-        if (nullifiers.length > 2) {
-            // construct the public inputs
-            uint256[57] memory publicInputs;
-            uint256 piIndex = 0;
-            // copy the encrypted value, salt and parity bit
-            for (uint256 i = 0; i < encryptedValues.length; ++i) {
-                publicInputs[piIndex++] = encryptedValues[i];
-            }
-            // copy the ecdh public key
-            for (uint256 i = 0; i < ecdhPublicKey.length; ++i) {
-                publicInputs[piIndex++] = ecdhPublicKey[i];
-            }
-            // copy input commitments
-            for (uint256 i = 0; i < nullifiers.length; i++) {
-                publicInputs[piIndex++] = nullifiers[i];
-            }
 
-            // copy root
-            publicInputs[piIndex++] = root;
-
-            // populate enables
-            for (uint256 i = 0; i < nullifiers.length; i++) {
-                publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
+        // Check the proof
+        if (nullifiers.length > 2 || outputs.length > 2) {
+            uint256[] memory publicInputs = constructPublicInputs(
+                nullifiers,
+                outputs,
+                root,
+                encryptionNonce,
+                ecdhPublicKey,
+                encryptedValues,
+                BATCH_INPUT_SIZE
+            );
+            // construct the public inputs for batchVerifier
+            uint256[BATCH_INPUT_SIZE] memory fixedSizeInput;
+            for (uint256 i = 0; i < fixedSizeInput.length; i++) {
+                fixedSizeInput[i] = publicInputs[i];
             }
 
-            // copy identities root
-            publicInputs[piIndex++] = getIdentitiesRoot();
-            // copy output commitments
-            for (uint256 i = 0; i < outputs.length; i++) {
-                publicInputs[piIndex++] = outputs[i];
-            }
-
-            // copy encryption nonce
-            publicInputs[piIndex++] = encryptionNonce;
-
-            // Check the proof
+            // Check the proof using batchVerifier
             require(
                 batchVerifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,
-                    publicInputs
+                    fixedSizeInput
                 ),
                 "Invalid proof"
             );
         } else {
-            // construct the public inputs
-            uint256[18] memory publicInputs;
-            uint256 piIndex = 0;
-            // copy the encrypted value, salt and parity bit
-            for (uint256 i = 0; i < encryptedValues.length; ++i) {
-                publicInputs[piIndex++] = encryptedValues[i];
+            uint256[] memory publicInputs = constructPublicInputs(
+                nullifiers,
+                outputs,
+                root,
+                encryptionNonce,
+                ecdhPublicKey,
+                encryptedValues,
+                INPUT_SIZE
+            );
+            // construct the public inputs for verifier
+            uint256[INPUT_SIZE] memory fixedSizeInput;
+            for (uint256 i = 0; i < fixedSizeInput.length; i++) {
+                fixedSizeInput[i] = publicInputs[i];
             }
-            // copy the ecdh public key
-            for (uint256 i = 0; i < ecdhPublicKey.length; ++i) {
-                publicInputs[piIndex++] = ecdhPublicKey[i];
-            }
-            // copy input commitments
-            for (uint256 i = 0; i < nullifiers.length; i++) {
-                publicInputs[piIndex++] = nullifiers[i];
-            }
-
-            // copy root
-            publicInputs[piIndex++] = root;
-
-            // populate enables
-            for (uint256 i = 0; i < nullifiers.length; i++) {
-                publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
-            }
-
-            // copy identities root
-            publicInputs[piIndex++] = getIdentitiesRoot();
-            // copy output commitments
-            for (uint256 i = 0; i < outputs.length; i++) {
-                publicInputs[piIndex++] = outputs[i];
-            }
-
-            // copy encryption nonce
-            publicInputs[piIndex++] = encryptionNonce;
-
             // Check the proof
             require(
                 verifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,
-                    publicInputs
+                    fixedSizeInput
                 ),
                 "Invalid proof"
             );
