@@ -14,13 +14,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { artifacts, ethers } from "hardhat";
+import { artifacts, ethers } from 'hardhat';
 import fungibilities from '../tokens.json';
 
-export async function getLinkedContractFactory(contractName: string, libraries: any) {
+export async function getLinkedContractFactory(
+  contractName: string,
+  libraries: any,
+) {
   const cArtifact = await artifacts.readArtifact(contractName);
   const linkedBytecode = linkBytecode(cArtifact, libraries);
-  const ContractFactory = await ethers.getContractFactory(cArtifact.abi, linkedBytecode);
+  const ContractFactory = await ethers.getContractFactory(
+    cArtifact.abi,
+    linkedBytecode,
+  );
   return ContractFactory;
 }
 
@@ -32,7 +38,9 @@ export function deploy(deployFungible: Function, deployNonFungible: Function) {
 
   const zeto = process.env.ZETO_NAME;
   if (!zeto) {
-    throw new Error('Please provide a Zeto token contract name with the environment variable ZETO_NAME');
+    throw new Error(
+      'Please provide a Zeto token contract name with the environment variable ZETO_NAME',
+    );
   }
   const fungibility = (fungibilities as any)[zeto];
   if (!fungibility) {
@@ -45,7 +53,7 @@ export function deploy(deployFungible: Function, deployNonFungible: Function) {
     console.log(`Deploying non-fungible Zeto token: ${zeto}`);
     return deployNonFungible(zeto);
   }
-};
+}
 
 // linkBytecode: performs linking by replacing placeholders with deployed addresses
 // Recommended workaround from Hardhat team until linking feature is implemented

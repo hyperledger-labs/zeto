@@ -26,7 +26,7 @@ const VerifierModule = buildModule(
   (m) => {
     const verifier = m.contract('Groth16Verifier_AnonEncNullifierKyc', []);
     return { verifier };
-  }
+  },
 );
 
 const BatchVerifierModule = buildModule(
@@ -34,7 +34,7 @@ const BatchVerifierModule = buildModule(
   (m) => {
     const verifier = m.contract('Groth16Verifier_AnonEncNullifierKycBatch', []);
     return { verifier };
-  }
+  },
 );
 
 export default buildModule('Zeto_AnonEncNullifierKyc', (m) => {
@@ -43,7 +43,7 @@ export default buildModule('Zeto_AnonEncNullifierKyc', (m) => {
   const { verifier: batchVerifier } = m.useModule(BatchVerifierModule);
   const { verifier: depositVerifier } = m.useModule(DepositVerifierModule);
   const { verifier: withdrawVerifier } = m.useModule(
-    WithdrawNullifierVerifierModule
+    WithdrawNullifierVerifierModule,
   );
 
   return {

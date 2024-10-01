@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ethers, ignition } from "hardhat";
+import { ethers, ignition } from 'hardhat';
 import zetoModule from '../../ignition/modules/zeto_nf_anon_nullifier';
 
 export async function deployDependencies() {
@@ -23,13 +23,10 @@ export async function deployDependencies() {
   const { verifier, smtLib, poseidon3 } = await ignition.deploy(zetoModule);
   return {
     deployer,
-    args: [
-      await deployer.getAddress(),
-      verifier.target
-    ],
+    args: [await deployer.getAddress(), verifier.target],
     libraries: {
       SmtLib: smtLib.target,
-      PoseidonUnit3L: poseidon3.target
-    }
+      PoseidonUnit3L: poseidon3.target,
+    },
   };
 }

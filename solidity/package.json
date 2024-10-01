@@ -4,7 +4,7 @@
   "description": "Zero knowledge proof based UTXO tokens toolkit for fungible or non-fungible assets",
   "main": "index.js",
   "scripts": {   
-    "prettier": "npx prettier test --check",
+    "prettier": "npx prettier scripts ignition test --check",
     "prettier:fix": "npm run prettier -- --write",
     "pretest": "npm run prettier:fix",
     "test": "npx hardhat test"
