@@ -54,7 +54,7 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     this.timeout(60000);
 
     circuit = await wasm_tester(
-      join(__dirname, '../../circuits/anon_enc_nullifier_kyc.circom')
+      join(__dirname, '../../circuits/anon_enc_nullifier_kyc.circom'),
     );
 
     let keypair = genKeypair();
@@ -126,11 +126,11 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     // generate the merkle proof for the inputs
     const proof1 = await smtAlice.generateCircomVerifierProof(
       input1,
-      ZERO_HASH
+      ZERO_HASH,
     );
     const proof2 = await smtAlice.generateCircomVerifierProof(
       input2,
-      ZERO_HASH
+      ZERO_HASH,
     );
     const utxosRoot = proof1.root.bigInt();
 
@@ -159,11 +159,11 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     // generate the merkle proof for the transacting identities
     const proof3 = await smtKYC.generateCircomVerifierProof(
       poseidonHash2(Alice.pubKey),
-      ZERO_HASH
+      ZERO_HASH,
     );
     const proof4 = await smtKYC.generateCircomVerifierProof(
       poseidonHash2(Bob.pubKey),
-      ZERO_HASH
+      ZERO_HASH,
     );
     const identitiesRoot = proof3.root.bigInt();
 
@@ -192,7 +192,7 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
         outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
         ...encryptInputs,
       },
-      true
+      true,
     );
 
     // console.log('witness', witness.slice(0, 25));
@@ -221,7 +221,7 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
       cipherText,
       recoveredKey,
       encryptionNonce,
-      4
+      4,
     );
     expect(plainText).to.deep.equal([20n, salt3, 52n, salt4]);
   });
@@ -265,11 +265,11 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     // generate the merkle proof for the inputs
     const proof1 = await smtAlice.generateCircomVerifierProof(
       input1,
-      ZERO_HASH
+      ZERO_HASH,
     );
     const proof2 = await smtAlice.generateCircomVerifierProof(
       input2,
-      ZERO_HASH
+      ZERO_HASH,
     );
     const utxosRoot = proof1.root.bigInt();
 
@@ -290,11 +290,11 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     // generate the merkle proof for the transacting identities
     const proof3 = await smtKYC.generateCircomVerifierProof(
       poseidonHash2(Alice.pubKey),
-      ZERO_HASH
+      ZERO_HASH,
     );
     const proof4 = await smtKYC.generateCircomVerifierProof(
       poseidonHash2(Bob.pubKey),
-      ZERO_HASH
+      ZERO_HASH,
     );
     const identitiesRoot = proof3.root.bigInt();
 
@@ -332,7 +332,7 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
           outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
           ...encryptInputs,
         },
-        true
+        true,
       );
     } catch (e) {
       err = e;

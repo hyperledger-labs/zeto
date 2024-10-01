@@ -79,7 +79,7 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
     ({ provingKeyFile: provingKey } = loadProvingKeys('anon_nullifier'));
     batchCircuit = await loadCircuit('anon_nullifier_batch');
     ({ provingKeyFile: batchProvingKey } = loadProvingKeys(
-      'anon_nullifier_batch'
+      'anon_nullifier_batch',
     ));
   });
   it('onchain SMT root should be equal to the offchain SMT root', async function () {
@@ -115,7 +115,7 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
     for (let i = 0; i < inputUtxos.length; i++) {
       const p = await smtAlice.generateCircomVerifierProof(
         inputUtxos[i].hash,
-        root
+        root,
       );
       mtps.push(p.siblings.map((s) => s.bigInt()));
     }
@@ -140,7 +140,7 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
       inflatedOutputUtxos,
       root.bigInt(),
       mtps,
-      inflatedOutputOwners
+      inflatedOutputOwners,
     );
 
     const signerAddress = await Alice.signer.getAddress();
@@ -184,7 +184,7 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
     utxo100 = newUTXO(100, Alice);
     const { outputCommitments, encodedProof } = await prepareDepositProof(
       Alice,
-      utxo100
+      utxo100,
     );
     const tx2 = await zeto
       .connect(Alice.signer)
@@ -243,7 +243,7 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
       [_utxo3, utxo4],
       root.bigInt(),
       merkleProofs,
-      [Bob, Alice]
+      [Bob, Alice],
     );
 
     // check the private transfer activity is not exposed in the ERC20 contract
@@ -308,7 +308,7 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
       [utxo6, utxo7],
       root.bigInt(),
       merkleProofs,
-      [Charlie, Bob]
+      [Charlie, Bob],
     );
 
     // Bob keeps the local SMT in sync
@@ -331,7 +331,7 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
     let root = await smtAlice.root();
     const proof1 = await smtAlice.generateCircomVerifierProof(
       utxo100.hash,
-      root
+      root,
     );
     const proof2 = await smtAlice.generateCircomVerifierProof(0n, root);
     const merkleProofs = [
@@ -349,7 +349,7 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
         [nullifier1, ZERO_UTXO],
         withdrawChangesUTXO,
         root.bigInt(),
-        merkleProofs
+        merkleProofs,
       );
 
     // Alice withdraws her UTXOs to ERC20 tokens
@@ -360,7 +360,7 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
         nullifiers,
         outputCommitments[0],
         root.bigInt(),
-        encodedProof
+        encodedProof,
       );
     await tx.wait();
 
@@ -390,7 +390,7 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
       let root = await smtAlice.root();
       const proof1 = await smtAlice.generateCircomVerifierProof(
         utxo100.hash,
-        root
+        root,
       );
       const proof2 = await smtAlice.generateCircomVerifierProof(0n, root);
       const merkleProofs = [
@@ -408,7 +408,7 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
           [nullifier1, ZERO_UTXO],
           outputCommitment,
           root.bigInt(),
-          merkleProofs
+          merkleProofs,
         );
 
       await expect(
@@ -419,20 +419,20 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
             nullifiers,
             outputCommitments[0],
             root.bigInt(),
-            encodedProof
-          )
+            encodedProof,
+          ),
       ).rejectedWith('UTXOAlreadySpent');
     });
 
     it('mint existing unspent UTXOs should fail', async function () {
       await expect(doMint(zeto, deployer, [utxo4])).rejectedWith(
-        'UTXOAlreadyOwned'
+        'UTXOAlreadyOwned',
       );
     });
 
     it('mint existing spent UTXOs should fail', async function () {
       await expect(doMint(zeto, deployer, [utxo1])).rejectedWith(
-        'UTXOAlreadyOwned'
+        'UTXOAlreadyOwned',
       );
     });
 
@@ -449,11 +449,11 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
       let root = await smtAlice.root();
       const proof1 = await smtAlice.generateCircomVerifierProof(
         utxo1.hash,
-        root
+        root,
       );
       const proof2 = await smtAlice.generateCircomVerifierProof(
         utxo2.hash,
-        root
+        root,
       );
       const merkleProofs = [
         proof1.siblings.map((s) => s.bigInt()),
@@ -468,8 +468,8 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
           [_utxo1, _utxo2],
           root.bigInt(),
           merkleProofs,
-          [Bob, Alice]
-        )
+          [Bob, Alice],
+        ),
       ).rejectedWith('UTXOAlreadySpent');
     }).timeout(600000);
 
@@ -485,7 +485,7 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
       const proof1 = await smtBob.generateCircomVerifierProof(utxo7.hash, root);
       const proof2 = await smtBob.generateCircomVerifierProof(
         _utxo1.hash,
-        root
+        root,
       );
       const merkleProofs = [
         proof1.siblings.map((s) => s.bigInt()),
@@ -500,8 +500,8 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
           [utxo1, utxo2],
           root.bigInt(),
           merkleProofs,
-          [Alice, Alice]
-        )
+          [Alice, Alice],
+        ),
       ).rejectedWith('UTXOAlreadyOwned');
     }).timeout(600000);
 
@@ -527,8 +527,8 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
           [_utxo1, _utxo2],
           root.bigInt(),
           merkleProofs,
-          [Alice, Bob]
-        )
+          [Alice, Bob],
+        ),
       ).rejectedWith(`UTXODuplicate`);
     }).timeout(600000);
 
@@ -548,11 +548,11 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
       let root = await smtAlice.root();
       const proof1 = await smtAlice.generateCircomVerifierProof(
         nonExisting1.hash,
-        root
+        root,
       );
       const proof2 = await smtAlice.generateCircomVerifierProof(
         nonExisting2.hash,
-        root
+        root,
       );
       const merkleProofs = [
         proof1.siblings.map((s) => s.bigInt()),
@@ -571,8 +571,8 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
           [utxo7, _utxo1],
           root.bigInt(),
           merkleProofs,
-          [Bob, Charlie]
-        )
+          [Bob, Charlie],
+        ),
       ).rejectedWith('UTXORootNotFound');
     }).timeout(600000);
 
@@ -591,7 +591,7 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
     outputs: UTXO[],
     root: BigInt,
     merkleProofs: BigInt[][],
-    owners: User[]
+    owners: User[],
   ) {
     let nullifiers: BigNumberish[];
     let outputCommitments: BigNumberish[];
@@ -603,10 +603,10 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
       outputs,
       root,
       merkleProofs,
-      owners
+      owners,
     );
     nullifiers = _nullifiers.map(
-      (nullifier) => nullifier.hash
+      (nullifier) => nullifier.hash,
     ) as BigNumberish[];
     outputCommitments = result.outputCommitments;
     encodedProof = result.encodedProof;
@@ -616,7 +616,7 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
       nullifiers,
       outputCommitments,
       root,
-      encodedProof
+      encodedProof,
     );
     // add the clear text value so that it can be used by tests to compare with the decrypted value
     return {
@@ -636,23 +636,23 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
     outputs: UTXO[],
     root: BigInt,
     merkleProof: BigInt[][],
-    owners: User[]
+    owners: User[],
   ) {
     const nullifiers = _nullifiers.map((nullifier) => nullifier.hash) as [
       BigNumberish,
-      BigNumberish
+      BigNumberish,
     ];
     const inputCommitments: BigNumberish[] = inputs.map(
-      (input) => input.hash
+      (input) => input.hash,
     ) as BigNumberish[];
     const inputValues = inputs.map((input) => BigInt(input.value || 0n));
     const inputSalts = inputs.map((input) => input.salt || 0n);
     const outputCommitments: BigNumberish[] = outputs.map(
-      (output) => output.hash
+      (output) => output.hash,
     ) as BigNumberish[];
     const outputValues = outputs.map((output) => BigInt(output.value || 0n));
     const outputOwnerPublicKeys: BigNumberish[][] = owners.map(
-      (owner) => owner.babyJubPublicKey
+      (owner) => owner.babyJubPublicKey,
     ) as BigNumberish[][];
 
     const startWitnessCalculation = Date.now();
@@ -684,12 +684,12 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
     const startProofGeneration = Date.now();
     const { proof, publicSignals } = (await groth16.prove(
       provingKeyToUse,
-      witness
+      witness,
     )) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
     const timeProofGeneration = Date.now() - startProofGeneration;
 
     console.log(
-      `Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`
+      `Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`,
     );
 
     const encodedProof = encodeProof(proof);
@@ -705,7 +705,7 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
     nullifiers: BigNumberish[],
     outputCommitments: BigNumberish[],
     root: BigNumberish,
-    encodedProof: any
+    encodedProof: any,
   ) {
     const startTx = Date.now();
     const tx = await zeto.connect(signer.signer).transfer(
@@ -713,13 +713,13 @@ describe('Zeto based fungible token with anonymity using nullifiers without encr
       outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
       root,
       encodedProof,
-      '0x'
+      '0x',
     );
     const results: ContractTransactionReceipt | null = await tx.wait();
     console.log(
       `Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${
         results?.gasUsed
-      }`
+      }`,
     );
     return results;
   }

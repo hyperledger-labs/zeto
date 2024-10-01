@@ -110,7 +110,7 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
       _utxo3,
       root.bigInt(),
       merkleProof,
-      Bob
+      Bob,
     );
 
     // Alice locally tracks the UTXOs inside the Sparse Merkle Tree
@@ -166,7 +166,7 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
       utxo6,
       root.bigInt(),
       merkleProof,
-      Charlie
+      Charlie,
     );
 
     // Bob keeps the local SMT in sync
@@ -187,13 +187,13 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
 
     it('mint existing unspent UTXOs should fail', async function () {
       await expect(doMint(zeto, deployer, [utxo3])).rejectedWith(
-        'UTXOAlreadyOwned'
+        'UTXOAlreadyOwned',
       );
     });
 
     it('mint existing spent UTXOs should fail', async function () {
       await expect(doMint(zeto, deployer, [utxo1])).rejectedWith(
-        'UTXOAlreadyOwned'
+        'UTXOAlreadyOwned',
       );
     });
 
@@ -208,7 +208,7 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
       let root = await smtAlice.root();
       const proof1 = await smtAlice.generateCircomVerifierProof(
         utxo1.hash,
-        root
+        root,
       );
       const merkleProof = proof1.siblings.map((s) => s.bigInt());
 
@@ -220,8 +220,8 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
           _utxo1,
           root.bigInt(),
           merkleProof,
-          Charlie
-        )
+          Charlie,
+        ),
       ).rejectedWith('UTXOAlreadySpent');
     }).timeout(600000);
 
@@ -229,7 +229,7 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
       const nonExisting1 = newAssetUTXO(
         1002,
         'http://ipfs.io/file-hash-2',
-        Alice
+        Alice,
       );
 
       // add to our local SMT (but they don't exist on the chain)
@@ -242,7 +242,7 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
       let root = await smtAlice.root();
       const proof1 = await smtAlice.generateCircomVerifierProof(
         nonExisting1.hash,
-        root
+        root,
       );
       const merkleProof = proof1.siblings.map((s) => s.bigInt());
 
@@ -250,7 +250,7 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
       const _utxo1 = newAssetUTXO(
         nonExisting1.tokenId!,
         nonExisting1.uri!,
-        Charlie
+        Charlie,
       );
 
       await expect(
@@ -261,8 +261,8 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
           _utxo1,
           root.bigInt(),
           merkleProof,
-          Charlie
-        )
+          Charlie,
+        ),
       ).rejectedWith('UTXORootNotFound');
     }).timeout(600000);
   });
@@ -274,7 +274,7 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
     output: UTXO,
     root: BigInt,
     merkleProof: BigInt[],
-    owner: User
+    owner: User,
   ) {
     let nullifier: BigNumberish;
     let outputCommitment: BigNumberish;
@@ -286,7 +286,7 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
       output,
       root,
       merkleProof,
-      owner
+      owner,
     );
     nullifier = _nullifier.hash as BigNumberish;
     outputCommitment = result.outputCommitment;
@@ -297,7 +297,7 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
       nullifier,
       outputCommitment,
       root,
-      encodedProof
+      encodedProof,
     );
     return { txResult };
   }
@@ -309,7 +309,7 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
     output: UTXO,
     root: BigInt,
     merkleProof: BigInt[],
-    owner: User
+    owner: User,
   ) {
     const nullifier = _nullifier.hash as BigNumberish;
     const inputCommitment: BigNumberish = input.hash as BigNumberish;
@@ -341,12 +341,12 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
     const startProofGeneration = Date.now();
     const { proof, publicSignals } = (await groth16.prove(
       provingKey,
-      witness
+      witness,
     )) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
     const timeProofGeneration = Date.now() - startProofGeneration;
 
     console.log(
-      `Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`
+      `Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`,
     );
 
     const encodedProof = encodeProof(proof);
@@ -362,7 +362,7 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
     nullifier: BigNumberish,
     outputCommitment: BigNumberish,
     root: BigNumberish,
-    encodedProof: any
+    encodedProof: any,
   ) {
     const startTx = Date.now();
     const tx = await zeto
@@ -372,7 +372,7 @@ describe('Zeto based non-fungible token with anonymity using nullifiers without 
     console.log(
       `Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${
         results?.gasUsed
-      }`
+      }`,
     );
     return results;
   }

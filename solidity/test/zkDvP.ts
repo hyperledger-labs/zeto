@@ -117,8 +117,8 @@ describe('DvP flows between fungible and non-fungible tokens based on Zeto with 
           ZeroHash,
           0,
           0,
-          ZeroHash
-        )
+          ZeroHash,
+        ),
     ).fulfilled;
   });
 
@@ -134,8 +134,8 @@ describe('DvP flows between fungible and non-fungible tokens based on Zeto with 
           ZeroHash,
           utxo1.hash,
           utxo2.hash,
-          ZeroHash
-        )
+          ZeroHash,
+        ),
     ).fulfilled;
   });
 
@@ -160,7 +160,7 @@ describe('DvP flows between fungible and non-fungible tokens based on Zeto with 
       Alice,
       [_utxo1, ZERO_UTXO],
       [utxo2, ZERO_UTXO],
-      [Bob, {}]
+      [Bob, {}],
     );
     const hash1 = getProofHash(proof1.encodedProof);
 
@@ -185,7 +185,7 @@ describe('DvP flows between fungible and non-fungible tokens based on Zeto with 
       Bob,
       utxo3,
       utxo4,
-      Alice
+      Alice,
     );
     const hash2 = getProofHash(proof2.encodedProof);
 
@@ -199,8 +199,8 @@ describe('DvP flows between fungible and non-fungible tokens based on Zeto with 
           ZeroHash,
           utxo3.hash,
           utxo4.hash,
-          hash2
-        )
+          hash2,
+        ),
     ).fulfilled;
 
     // 3. Alice sends her proof to complete the trade (the trade will still be pending completion)
@@ -232,9 +232,9 @@ describe('DvP flows between fungible and non-fungible tokens based on Zeto with 
       await expect(
         zkDvP
           .connect(Alice.signer)
-          .initiateTrade([0, 0], [0, 0], ZeroHash, 0, 0, ZeroHash)
+          .initiateTrade([0, 0], [0, 0], ZeroHash, 0, 0, ZeroHash),
       ).rejectedWith(
-        'Payment inputs and asset input cannot be zero at the same time'
+        'Payment inputs and asset input cannot be zero at the same time',
       );
     });
 
@@ -250,10 +250,10 @@ describe('DvP flows between fungible and non-fungible tokens based on Zeto with 
             ZeroHash,
             0,
             0,
-            ZeroHash
-          )
+            ZeroHash,
+          ),
       ).rejectedWith(
-        'Payment outputs cannot be zero when payment inputs are non-zero'
+        'Payment outputs cannot be zero when payment inputs are non-zero',
       );
     });
 
@@ -271,10 +271,10 @@ describe('DvP flows between fungible and non-fungible tokens based on Zeto with 
             ZeroHash,
             utxo3.hash,
             0,
-            ZeroHash
-          )
+            ZeroHash,
+          ),
       ).rejectedWith(
-        'Payment inputs and asset input cannot be provided at the same time'
+        'Payment inputs and asset input cannot be provided at the same time',
       );
     });
 
@@ -283,9 +283,9 @@ describe('DvP flows between fungible and non-fungible tokens based on Zeto with 
       await expect(
         zkDvP
           .connect(Alice.signer)
-          .initiateTrade([0, 0], [0, 0], ZeroHash, utxo1.hash, 0, ZeroHash)
+          .initiateTrade([0, 0], [0, 0], ZeroHash, utxo1.hash, 0, ZeroHash),
       ).rejectedWith(
-        'Asset output cannot be zero when asset input is non-zero'
+        'Asset output cannot be zero when asset input is non-zero',
       );
     });
 
@@ -293,7 +293,7 @@ describe('DvP flows between fungible and non-fungible tokens based on Zeto with 
       await expect(
         zkDvP
           .connect(Bob.signer)
-          .acceptTrade(1000, [0, 0], [0, 0], ZeroHash, 0, 0, ZeroHash)
+          .acceptTrade(1000, [0, 0], [0, 0], ZeroHash, 0, 0, ZeroHash),
       ).rejectedWith('Trade does not exist');
     });
 
@@ -309,7 +309,7 @@ describe('DvP flows between fungible and non-fungible tokens based on Zeto with 
           mockProofHash,
           0,
           0,
-          mockProofHash
+          mockProofHash,
         );
       const result = await tx1.wait();
       const event = zkDvP.interface.parseLog(result.logs[0]);
@@ -326,8 +326,8 @@ describe('DvP flows between fungible and non-fungible tokens based on Zeto with 
             mockProofHash,
             0,
             0,
-            mockProofHash
-          )
+            mockProofHash,
+          ),
       ).rejectedWith('Payment inputs already provided by the trade initiator');
       await expect(
         zkDvP
@@ -339,8 +339,8 @@ describe('DvP flows between fungible and non-fungible tokens based on Zeto with 
             mockProofHash,
             0,
             0,
-            mockProofHash
-          )
+            mockProofHash,
+          ),
       ).rejectedWith('Payment outputs already provided by the trade initiator');
       await expect(
         zkDvP
@@ -352,8 +352,8 @@ describe('DvP flows between fungible and non-fungible tokens based on Zeto with 
             mockProofHash,
             0,
             0,
-            mockProofHash
-          )
+            mockProofHash,
+          ),
       ).rejectedWith('Asset input must be provided to accept the trade');
       await expect(
         zkDvP
@@ -365,8 +365,8 @@ describe('DvP flows between fungible and non-fungible tokens based on Zeto with 
             mockProofHash,
             utxo3.hash,
             0,
-            mockProofHash
-          )
+            mockProofHash,
+          ),
       ).rejectedWith('Asset output must be provided to accept the trade');
     });
 
@@ -382,7 +382,7 @@ describe('DvP flows between fungible and non-fungible tokens based on Zeto with 
           ZeroHash,
           utxo1.hash,
           utxo2.hash,
-          mockProofHash
+          mockProofHash,
         );
       const result = await tx1.wait();
       const event = zkDvP.interface.parseLog(result.logs[0]);
@@ -402,8 +402,8 @@ describe('DvP flows between fungible and non-fungible tokens based on Zeto with 
             mockProofHash,
             utxo1.hash,
             utxo2.hash,
-            mockProofHash
-          )
+            mockProofHash,
+          ),
       ).rejectedWith('Asset inputs already provided by the trade initiator');
       await expect(
         zkDvP
@@ -415,8 +415,8 @@ describe('DvP flows between fungible and non-fungible tokens based on Zeto with 
             mockProofHash,
             0,
             utxo2.hash,
-            mockProofHash
-          )
+            mockProofHash,
+          ),
       ).rejectedWith('Asset outputs already provided by the trade initiator');
       await expect(
         zkDvP
@@ -428,8 +428,8 @@ describe('DvP flows between fungible and non-fungible tokens based on Zeto with 
             mockProofHash,
             0,
             0,
-            mockProofHash
-          )
+            mockProofHash,
+          ),
       ).rejectedWith('Payment inputs must be provided to accept the trade');
       await expect(
         zkDvP
@@ -441,21 +441,47 @@ describe('DvP flows between fungible and non-fungible tokens based on Zeto with 
             mockProofHash,
             0,
             0,
-            mockProofHash
-          )
+            mockProofHash,
+          ),
       ).rejectedWith('Payment outputs must be provided to accept the trade');
     });
 
-    it("test proof locking", async function () {
+    it('test proof locking', async function () {
       const circuit1 = await loadCircuit('anon');
       const { provingKeyFile: provingKey1 } = loadProvingKeys('anon');
       const utxo1 = newUTXO(100, Alice);
-      const proof = await zetoAnonTests.prepareProof(circuit1, provingKey1, Alice, [utxo1, ZERO_UTXO], [utxo1, ZERO_UTXO], [Alice, {}]);
+      const proof = await zetoAnonTests.prepareProof(
+        circuit1,
+        provingKey1,
+        Alice,
+        [utxo1, ZERO_UTXO],
+        [utxo1, ZERO_UTXO],
+        [Alice, {}],
+      );
 
-      await expect(zkPayment.connect(Alice.signer).lockProof(proof.encodedProof, await Alice.signer.getAddress())).fulfilled;
-      await expect(zkPayment.connect(Bob.signer).lockProof(proof.encodedProof, await Bob.signer.getAddress())).rejectedWith("Proof already locked by another party");
-      await expect(zkPayment.connect(Alice.signer).lockProof(proof.encodedProof, await Bob.signer.getAddress())).fulfilled;
-      await expect(zkPayment.connect(Bob.signer).lockProof(proof.encodedProof, "0x0000000000000000000000000000000000000000")).fulfilled;
+      await expect(
+        zkPayment
+          .connect(Alice.signer)
+          .lockProof(proof.encodedProof, await Alice.signer.getAddress()),
+      ).fulfilled;
+      await expect(
+        zkPayment
+          .connect(Bob.signer)
+          .lockProof(proof.encodedProof, await Bob.signer.getAddress()),
+      ).rejectedWith('Proof already locked by another party');
+      await expect(
+        zkPayment
+          .connect(Alice.signer)
+          .lockProof(proof.encodedProof, await Bob.signer.getAddress()),
+      ).fulfilled;
+      await expect(
+        zkPayment
+          .connect(Bob.signer)
+          .lockProof(
+            proof.encodedProof,
+            '0x0000000000000000000000000000000000000000',
+          ),
+      ).fulfilled;
     });
   });
 }).timeout(600000);

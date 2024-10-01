@@ -33,8 +33,8 @@ export function loadProvingKeys(type: string) {
   const provingKeyFile = path.join(provingKeysRoot(), `${type}.zkey`);
   const verificationKey = JSON.parse(
     new TextDecoder().decode(
-      readFileSync(path.join(provingKeysRoot(), `${type}-vkey.json`))
-    )
+      readFileSync(path.join(provingKeysRoot(), `${type}-vkey.json`)),
+    ),
   );
   return {
     provingKeyFile,
@@ -66,12 +66,12 @@ export async function prepareDepositProof(signer: User, output: UTXO) {
   const startProofGeneration = Date.now();
   const { proof, publicSignals } = (await groth16.prove(
     provingKeyFile,
-    witness
+    witness,
   )) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
   const timeProofGeneration = Date.now() - startProofGeneration;
 
   console.log(
-    `Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`
+    `Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`,
   );
 
   const encodedProof = encodeProof(proof);
@@ -87,14 +87,14 @@ export async function prepareNullifierWithdrawProof(
   _nullifiers: UTXO[],
   output: UTXO,
   root: BigInt,
-  merkleProof: BigInt[][]
+  merkleProof: BigInt[][],
 ) {
   const nullifiers = _nullifiers.map((nullifier) => nullifier.hash) as [
     BigNumberish,
-    BigNumberish
+    BigNumberish,
   ];
   const inputCommitments: BigNumberish[] = inputs.map(
-    (input) => input.hash
+    (input) => input.hash,
   ) as BigNumberish[];
   const inputValues = inputs.map((input) => BigInt(input.value || 0n));
   const inputSalts = inputs.map((input) => input.salt || 0n);
@@ -128,12 +128,12 @@ export async function prepareNullifierWithdrawProof(
   const startProofGeneration = Date.now();
   const { proof, publicSignals } = (await groth16.prove(
     provingKeyFile,
-    witness
+    witness,
   )) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
   const timeProofGeneration = Date.now() - startProofGeneration;
 
   console.log(
-    `Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`
+    `Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`,
   );
 
   const encodedProof = encodeProof(proof);
@@ -147,10 +147,10 @@ export async function prepareNullifierWithdrawProof(
 export async function prepareWithdrawProof(
   signer: User,
   inputs: UTXO[],
-  output: UTXO
+  output: UTXO,
 ) {
   const inputCommitments: BigNumberish[] = inputs.map(
-    (input) => input.hash
+    (input) => input.hash,
   ) as BigNumberish[];
   const inputValues = inputs.map((input) => BigInt(input.value || 0n));
   const inputSalts = inputs.map((input) => input.salt || 0n);
@@ -180,12 +180,12 @@ export async function prepareWithdrawProof(
   const startProofGeneration = Date.now();
   const { proof, publicSignals } = (await groth16.prove(
     provingKeyFile,
-    witness
+    witness,
   )) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
   const timeProofGeneration = Date.now() - startProofGeneration;
 
   console.log(
-    `Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`
+    `Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`,
   );
 
   const encodedProof = encodeProof(proof);

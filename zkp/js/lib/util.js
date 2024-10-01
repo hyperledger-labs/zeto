@@ -33,7 +33,9 @@ function newEncryptionNonce() {
 
 const two128 = BigInt('340282366920938463463374607431768211456');
 // Field modulus for BN254
-const F = BigInt('21888242871839275222246405745257275088548364400416034343698204186575808495617');
+const F = BigInt(
+  '21888242871839275222246405745257275088548364400416034343698204186575808495617',
+);
 
 // Implements the encryption and decryption functions using Poseidon hash
 // as described: https://drive.google.com/file/d/1EVrP3DzoGbmzkRmYnyEDcIQcXVU7GlOd/view
@@ -109,10 +111,22 @@ function poseidonDecrypt(ciphertext, key, nonce, length) {
   // If length > 3, check if the last (3 - (l mod 3)) elements of the message are 0
   if (length > 3) {
     if (length % 3 === 2) {
-      checkEqual(message[message.length - 1], 0n, 'The last element of the message must be 0');
+      checkEqual(
+        message[message.length - 1],
+        0n,
+        'The last element of the message must be 0',
+      );
     } else if (length % 3 === 1) {
-      checkEqual(message[message.length - 1], 0n, 'The last element of the message must be 0');
-      checkEqual(message[message.length - 2], 0n, 'The second to last element of the message must be 0');
+      checkEqual(
+        message[message.length - 1],
+        0n,
+        'The last element of the message must be 0',
+      );
+      checkEqual(
+        message[message.length - 2],
+        0n,
+        'The second to last element of the message must be 0',
+      );
     }
   }
 
@@ -120,7 +134,11 @@ function poseidonDecrypt(ciphertext, key, nonce, length) {
   state = poseidon(state, 4);
 
   // Check the last ciphertext element
-  checkEqual(ciphertext[ciphertext.length - 1], state[1], 'The last ciphertext element must match the second item of the permuted state');
+  checkEqual(
+    ciphertext[ciphertext.length - 1],
+    state[1],
+    'The last ciphertext element must match the second item of the permuted state',
+  );
 
   return message.slice(0, length);
 }

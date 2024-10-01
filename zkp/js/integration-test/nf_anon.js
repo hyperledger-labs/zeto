@@ -16,7 +16,11 @@
 
 const { expect } = require('chai');
 const { groth16 } = require('snarkjs');
-const { genKeypair, formatPrivKeyForBabyJub, stringifyBigInts } = require('maci-crypto');
+const {
+  genKeypair,
+  formatPrivKeyForBabyJub,
+  stringifyBigInts,
+} = require('maci-crypto');
 const { Poseidon, newSalt, loadCircuit, tokenUriHash } = require('../index.js');
 const { loadProvingKeys } = require('./utils.js');
 
@@ -47,12 +51,22 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity without
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(tokenIds[0]), tokenUris[0], salt1, ...sender.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(tokenIds[0]),
+      tokenUris[0],
+      salt1,
+      ...sender.pubKey,
+    ]);
     const inputCommitments = [input1];
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(tokenIds[0]), tokenUris[0], salt3, ...receiver.pubKey]);
+    const output1 = poseidonHash([
+      BigInt(tokenIds[0]),
+      tokenUris[0],
+      salt3,
+      ...receiver.pubKey,
+    ]);
     const outputCommitments = [output1];
 
     const otherInputs = stringifyBigInts({
@@ -71,10 +85,13 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity without
         outputOwnerPublicKeys: [receiver.pubKey],
         ...otherInputs,
       },
-      true
+      true,
     );
 
-    const { proof, publicSignals } = await groth16.prove(provingKeyFile, witness);
+    const { proof, publicSignals } = await groth16.prove(
+      provingKeyFile,
+      witness,
+    );
     console.log('Proving time: ', (Date.now() - startTime) / 1000, 's');
 
     const success = await groth16.verify(verificationKey, publicSignals, proof);

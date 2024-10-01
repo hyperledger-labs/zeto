@@ -26,7 +26,9 @@ describe('check-positive circuit tests', () => {
   before(async function () {
     this.timeout(60000);
 
-    circuit = await wasm_tester(join(__dirname, '../circuits/check-positive.circom'));
+    circuit = await wasm_tester(
+      join(__dirname, '../circuits/check-positive.circom'),
+    );
   });
 
   it('should succeed to generate a witness using the MAX_VALUE for output', async () => {
@@ -38,7 +40,7 @@ describe('check-positive circuit tests', () => {
         {
           outputValues,
         },
-        true
+        true,
       );
     } catch (e) {
       error = e;
@@ -58,7 +60,7 @@ describe('check-positive circuit tests', () => {
         {
           outputValues,
         },
-        true
+        true,
       );
     } catch (e) {
       error = e;
@@ -71,7 +73,10 @@ describe('check-positive circuit tests', () => {
     // in the finite field used in the Poseidion hash implementation, -100n is equivalent to
     // 21888242871839275222246405745257275088548364400416034343698204186575808495517n. This number
     // is considered negative by the circuit, because we allow the range of 0 to (2**40 - 1)
-    const outputValues = [21888242871839275222246405745257275088548364400416034343698204186575808495518n, 225];
+    const outputValues = [
+      21888242871839275222246405745257275088548364400416034343698204186575808495518n,
+      225,
+    ];
 
     let error;
     try {
@@ -79,7 +84,7 @@ describe('check-positive circuit tests', () => {
         {
           outputValues,
         },
-        true
+        true,
       );
     } catch (e) {
       error = e;
@@ -97,7 +102,7 @@ describe('check-positive circuit tests', () => {
         {
           outputValues,
         },
-        true
+        true,
       );
     } catch (e) {
       error = e;

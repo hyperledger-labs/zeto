@@ -43,7 +43,7 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
       withdrawVerifier: '0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1',
     };
     await expect(
-      factory.connect(nonOwner).registerImplementation('test', implInfo as any)
+      factory.connect(nonOwner).registerImplementation('test', implInfo as any),
     ).rejectedWith(`reverted with custom error 'OwnableUnauthorizedAccount(`);
   });
 
@@ -62,7 +62,7 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
       withdrawVerifier: '0x0000000000000000000000000000000000000000',
     };
     await expect(
-      factory.connect(deployer).registerImplementation('test', implInfo as any)
+      factory.connect(deployer).registerImplementation('test', implInfo as any),
     ).rejectedWith('Factory: implementation address is required');
   });
 
@@ -81,7 +81,7 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
       withdrawVerifier: '0x0000000000000000000000000000000000000000',
     };
     await expect(
-      factory.connect(deployer).registerImplementation('test', implInfo as any)
+      factory.connect(deployer).registerImplementation('test', implInfo as any),
     ).rejectedWith('Factory: verifier address is required');
   });
 
@@ -100,7 +100,7 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
       withdrawVerifier: '0x0000000000000000000000000000000000000000',
     };
     await expect(
-      factory.connect(deployer).registerImplementation('test', implInfo as any)
+      factory.connect(deployer).registerImplementation('test', implInfo as any),
     ).fulfilled;
   });
 
@@ -126,7 +126,7 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
     await expect(
       factory
         .connect(deployer)
-        .deployZetoFungibleToken('test', await deployer.getAddress())
+        .deployZetoFungibleToken('test', await deployer.getAddress()),
     ).rejectedWith('Factory: depositVerifier address is required');
   });
   it('attempting to deploy a fungible token but with a registered implementation that misses required depositVerifier should fail', async function () {
@@ -151,7 +151,7 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
     await expect(
       factory
         .connect(deployer)
-        .deployZetoFungibleToken('test', await deployer.getAddress())
+        .deployZetoFungibleToken('test', await deployer.getAddress()),
     ).rejectedWith('Factory: depositVerifier address is required');
   });
 
@@ -177,7 +177,7 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
     await expect(
       factory
         .connect(deployer)
-        .deployZetoFungibleToken('test', await deployer.getAddress())
+        .deployZetoFungibleToken('test', await deployer.getAddress()),
     ).rejectedWith('Factory: withdrawVerifier address is required');
   });
 
@@ -203,7 +203,7 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
     await expect(
       factory
         .connect(deployer)
-        .deployZetoFungibleToken('test', await deployer.getAddress())
+        .deployZetoFungibleToken('test', await deployer.getAddress()),
     ).fulfilled;
   });
 });

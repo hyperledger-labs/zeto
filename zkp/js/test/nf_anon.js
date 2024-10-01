@@ -17,7 +17,11 @@
 const { expect } = require('chai');
 const { join } = require('path');
 const { wasm: wasm_tester } = require('circom_tester');
-const { genKeypair, formatPrivKeyForBabyJub, stringifyBigInts } = require('maci-crypto');
+const {
+  genKeypair,
+  formatPrivKeyForBabyJub,
+  stringifyBigInts,
+} = require('maci-crypto');
 const { Poseidon, newSalt, tokenUriHash } = require('../index.js');
 
 const poseidonHash = Poseidon.poseidon5;
@@ -31,7 +35,9 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity without
   before(async function () {
     this.timeout(60000);
 
-    circuit = await wasm_tester(join(__dirname, '../../circuits/nf_anon.circom'));
+    circuit = await wasm_tester(
+      join(__dirname, '../../circuits/nf_anon.circom'),
+    );
 
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;
@@ -48,12 +54,22 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity without
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(tokenIds[0]), tokenUris[0], salt1, ...sender.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(tokenIds[0]),
+      tokenUris[0],
+      salt1,
+      ...sender.pubKey,
+    ]);
     const inputCommitments = [input1];
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(tokenIds[0]), tokenUris[0], salt3, ...receiver.pubKey]);
+    const output1 = poseidonHash([
+      BigInt(tokenIds[0]),
+      tokenUris[0],
+      salt3,
+      ...receiver.pubKey,
+    ]);
     const outputCommitments = [output1];
 
     const otherInputs = stringifyBigInts({
@@ -71,7 +87,7 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity without
         outputOwnerPublicKeys: [receiver.pubKey],
         ...otherInputs,
       },
-      true
+      true,
     );
 
     // console.log('witness', witness.slice(0, 15));
@@ -97,12 +113,22 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity without
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(inputTokenIds[0]), tokenUris, salt1, ...sender.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(inputTokenIds[0]),
+      tokenUris,
+      salt1,
+      ...sender.pubKey,
+    ]);
     const inputCommitments = [input1];
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(outputTokenIds[0]), tokenUris, salt3, ...receiver.pubKey]);
+    const output1 = poseidonHash([
+      BigInt(outputTokenIds[0]),
+      tokenUris,
+      salt3,
+      ...receiver.pubKey,
+    ]);
     const outputCommitments = [output1];
 
     const otherInputs = stringifyBigInts({
@@ -122,29 +148,43 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity without
           outputOwnerPublicKeys: [receiver.pubKey],
           ...otherInputs,
         },
-        true
+        true,
       );
     } catch (e) {
       error = e;
     }
     // console.log(error);
     expect(error).to.match(/Error in template Zeto_87 line: 66/);
-    expect(error).to.match(/Error in template CheckHashesForTokenIdAndUri_86 line: 58/);
+    expect(error).to.match(
+      /Error in template CheckHashesForTokenIdAndUri_86 line: 58/,
+    );
   });
 
   it('should fail to generate a witness because token URI changed', async () => {
     const tokenIds = [1001];
     const inputTokenUris = [tokenUriHash('http://ipfs.io/some-file-hash')];
-    const outputTokenUris = [tokenUriHash('http://ipfs.io/some-other-file-hash')];
+    const outputTokenUris = [
+      tokenUriHash('http://ipfs.io/some-other-file-hash'),
+    ];
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(tokenIds[0]), inputTokenUris, salt1, ...sender.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(tokenIds[0]),
+      inputTokenUris,
+      salt1,
+      ...sender.pubKey,
+    ]);
     const inputCommitments = [input1];
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(tokenIds[0]), outputTokenUris, salt3, ...receiver.pubKey]);
+    const output1 = poseidonHash([
+      BigInt(tokenIds[0]),
+      outputTokenUris,
+      salt3,
+      ...receiver.pubKey,
+    ]);
     const outputCommitments = [output1];
 
     const otherInputs = stringifyBigInts({
@@ -164,13 +204,15 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity without
           outputOwnerPublicKeys: [receiver.pubKey],
           ...otherInputs,
         },
-        true
+        true,
       );
     } catch (e) {
       error = e;
     }
     // console.log(error);
     expect(error).to.match(/Error in template Zeto_87 line: 66/);
-    expect(error).to.match(/Error in template CheckHashesForTokenIdAndUri_86 line: 58/);
+    expect(error).to.match(
+      /Error in template CheckHashesForTokenIdAndUri_86 line: 58/,
+    );
   });
 });

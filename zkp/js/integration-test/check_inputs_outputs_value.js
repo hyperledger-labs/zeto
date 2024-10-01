@@ -32,7 +32,9 @@ describe('check_inputs_outputs_value circuit tests', () => {
 
   before(async () => {
     circuit = await loadCircuit('check_inputs_outputs_value');
-    ({ provingKeyFile, verificationKey } = loadProvingKeys('check_inputs_outputs_value'));
+    ({ provingKeyFile, verificationKey } = loadProvingKeys(
+      'check_inputs_outputs_value',
+    ));
 
     let keypair = genKeypair();
     Alice.privKey = keypair.privKey;
@@ -51,14 +53,26 @@ describe('check_inputs_outputs_value circuit tests', () => {
     // create two input UTXOs, each has their own salt, but same owner
     const senderPrivateKey = formatPrivKeyForBabyJub(Alice.privKey);
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(inputValues[0]), salt1, ...Alice.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(inputValues[0]),
+      salt1,
+      ...Alice.pubKey,
+    ]);
     const salt2 = newSalt();
-    const input2 = poseidonHash([BigInt(inputValues[1]), salt2, ...Alice.pubKey]);
+    const input2 = poseidonHash([
+      BigInt(inputValues[1]),
+      salt2,
+      ...Alice.pubKey,
+    ]);
     const inputCommitments = [input1, input2];
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(outputValues[0]), salt3, ...Alice.pubKey]);
+    const output1 = poseidonHash([
+      BigInt(outputValues[0]),
+      salt3,
+      ...Alice.pubKey,
+    ]);
     const outputCommitments = [output1];
 
     const startTime = Date.now();
@@ -73,10 +87,13 @@ describe('check_inputs_outputs_value circuit tests', () => {
         outputSalts: [salt3],
         outputOwnerPublicKeys: [Alice.pubKey],
       },
-      true
+      true,
     );
 
-    const { proof, publicSignals } = await groth16.prove(provingKeyFile, witness);
+    const { proof, publicSignals } = await groth16.prove(
+      provingKeyFile,
+      witness,
+    );
     console.log('Proving time: ', (Date.now() - startTime) / 1000, 's');
 
     const success = await groth16.verify(verificationKey, publicSignals, proof);

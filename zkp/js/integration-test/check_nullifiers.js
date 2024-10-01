@@ -48,14 +48,30 @@ describe('check-nullifiers circuit tests', () => {
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash4([BigInt(inputValues[0]), salt1, ...sender.pubKey]);
+    const input1 = poseidonHash4([
+      BigInt(inputValues[0]),
+      salt1,
+      ...sender.pubKey,
+    ]);
     const salt2 = newSalt();
-    const input2 = poseidonHash4([BigInt(inputValues[1]), salt2, ...sender.pubKey]);
+    const input2 = poseidonHash4([
+      BigInt(inputValues[1]),
+      salt2,
+      ...sender.pubKey,
+    ]);
     const inputCommitments = [input1, input2];
 
     // create the nullifiers for the input UTXOs
-    const nullifier1 = poseidonHash3([BigInt(inputValues[0]), salt1, senderPrivateKey]);
-    const nullifier2 = poseidonHash3([BigInt(inputValues[1]), salt2, senderPrivateKey]);
+    const nullifier1 = poseidonHash3([
+      BigInt(inputValues[0]),
+      salt1,
+      senderPrivateKey,
+    ]);
+    const nullifier2 = poseidonHash3([
+      BigInt(inputValues[1]),
+      salt2,
+      senderPrivateKey,
+    ]);
     const nullifiers = [nullifier1, nullifier2];
 
     const witness = await circuit.calculateWTNSBin(
@@ -66,11 +82,14 @@ describe('check-nullifiers circuit tests', () => {
         inputSalts: [salt1, salt2],
         inputOwnerPrivateKey: senderPrivateKey,
       },
-      true
+      true,
     );
 
     const startTime = Date.now();
-    const { proof, publicSignals } = await groth16.prove(provingKeyFile, witness);
+    const { proof, publicSignals } = await groth16.prove(
+      provingKeyFile,
+      witness,
+    );
     console.log('Proving time: ', (Date.now() - startTime) / 1000, 's');
     const success = await groth16.verify(verificationKey, publicSignals, proof);
     expect(success, true);

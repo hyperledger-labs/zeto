@@ -16,8 +16,18 @@
 
 const { expect } = require('chai');
 const { groth16 } = require('snarkjs');
-const { genRandomSalt, genKeypair, formatPrivKeyForBabyJub, stringifyBigInts } = require('maci-crypto');
-const { Poseidon, newSalt, loadCircuit, newEncryptionNonce } = require('../index.js');
+const {
+  genRandomSalt,
+  genKeypair,
+  formatPrivKeyForBabyJub,
+  stringifyBigInts,
+} = require('maci-crypto');
+const {
+  Poseidon,
+  newSalt,
+  loadCircuit,
+  newEncryptionNonce,
+} = require('../index.js');
 const { loadProvingKeys } = require('./utils.js');
 
 const ZERO_PUBKEY = [0, 0];
@@ -47,18 +57,27 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     const outputValues = [115, 0];
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(inputValues[0]), salt1, ...sender.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(inputValues[0]),
+      salt1,
+      ...sender.pubKey,
+    ]);
     const inputCommitments = [input1, 0];
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(outputValues[0]), salt3, ...receiver.pubKey]);
+    const output1 = poseidonHash([
+      BigInt(outputValues[0]),
+      salt3,
+      ...receiver.pubKey,
+    ]);
     const outputCommitments = [output1, 0];
 
     const encryptionNonce = newEncryptionNonce();
+    const ephemeralKeypair = genKeypair();
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
-      inputOwnerPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
+      ecdhPrivateKey: formatPrivKeyForBabyJub(ephemeralKeypair.privKey),
     });
 
     const startTime = Date.now();
@@ -67,16 +86,20 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
         inputCommitments,
         inputValues,
         inputSalts: [salt1, 0],
+        inputOwnerPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
         outputCommitments,
         outputValues,
         outputSalts: [salt3, 0],
         outputOwnerPublicKeys: [receiver.pubKey, ZERO_PUBKEY],
         ...encryptInputs,
       },
-      true
+      true,
     );
 
-    const { proof, publicSignals } = await groth16.prove(provingKeyFile, witness);
+    const { proof, publicSignals } = await groth16.prove(
+      provingKeyFile,
+      witness,
+    );
     console.log('Proving time: ', (Date.now() - startTime) / 1000, 's');
 
     const success = await groth16.verify(verificationKey, publicSignals, proof);

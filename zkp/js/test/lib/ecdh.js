@@ -17,7 +17,12 @@
 const { expect } = require('chai');
 const { join } = require('path');
 const { wasm: wasm_tester } = require('circom_tester');
-const { genKeypair, genEcdhSharedKey, formatPrivKeyForBabyJub, stringifyBigInts } = require('maci-crypto');
+const {
+  genKeypair,
+  genEcdhSharedKey,
+  formatPrivKeyForBabyJub,
+  stringifyBigInts,
+} = require('maci-crypto');
 
 describe('Ecdh circuit tests', () => {
   let circuit;

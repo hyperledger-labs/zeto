@@ -24,7 +24,9 @@ describe('check-sum circuit tests', () => {
   before(async function () {
     this.timeout(60000);
 
-    circuit = await wasm_tester(join(__dirname, '../circuits/check-sum.circom'));
+    circuit = await wasm_tester(
+      join(__dirname, '../circuits/check-sum.circom'),
+    );
   });
 
   it('should return true for valid witness', async () => {
@@ -36,7 +38,7 @@ describe('check-sum circuit tests', () => {
         inputValues,
         outputValues,
       },
-      true
+      true,
     );
     // console.log(witness.slice(0, 5));
     expect(witness[0]).to.equal(BigInt(1));
@@ -53,7 +55,7 @@ describe('check-sum circuit tests', () => {
           inputValues,
           outputValues,
         },
-        true
+        true,
       );
     } catch (e) {
       error = e;

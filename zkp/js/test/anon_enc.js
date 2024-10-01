@@ -43,7 +43,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     this.timeout(60000);
 
     circuit = await wasm_tester(
-      join(__dirname, '../../circuits/anon_enc.circom')
+      join(__dirname, '../../circuits/anon_enc.circom'),
     );
 
     let keypair = genKeypair();
@@ -108,7 +108,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
         outputOwnerPublicKeys: [receiver.pubKey, sender.pubKey],
         ...encryptInputs,
       },
-      true
+      true,
     );
 
     // console.log('witness', witness.slice(0, 15));
@@ -130,13 +130,13 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     const cipherText = witness.slice(1, 8);
     const recoveredKey = genEcdhSharedKey(
       receiver.privKey,
-      ephemeralKeypair.pubKey
+      ephemeralKeypair.pubKey,
     );
     const plainText = poseidonDecrypt(
       cipherText,
       recoveredKey,
       encryptionNonce,
-      4
+      4,
     );
     // use the recovered value (plainText[0]) and salt (plainText[1]) to verify the output commitment
     const calculatedHash = poseidonHash([
@@ -200,7 +200,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
           outputOwnerPublicKeys: [receiver.pubKey, sender.pubKey],
           ...encryptInputs,
         },
-        true
+        true,
       );
     } catch (e) {
       err = e;
@@ -262,7 +262,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
         outputOwnerPublicKeys: [receiver.pubKey, sender.pubKey],
         ...encryptInputs,
       },
-      true
+      true,
     );
 
     // take the output from the proof circuit and attempt to decrypt
@@ -274,7 +274,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity with encryp
     expect(function () {
       poseidonDecrypt(cipherText, recoveredKey, encryptionNonce, 2);
     }).to.throw(
-      'The last ciphertext element must match the second item of the permuted state'
+      'The last ciphertext element must match the second item of the permuted state',
     );
   });
 });

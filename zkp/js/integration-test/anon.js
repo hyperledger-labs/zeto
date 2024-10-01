@@ -16,7 +16,11 @@
 
 const { expect } = require('chai');
 const { groth16 } = require('snarkjs');
-const { genKeypair, formatPrivKeyForBabyJub, stringifyBigInts } = require('maci-crypto');
+const {
+  genKeypair,
+  formatPrivKeyForBabyJub,
+  stringifyBigInts,
+} = require('maci-crypto');
 const { Poseidon, newSalt, loadCircuit } = require('../index.js');
 const { loadProvingKeys } = require('./utils.js');
 
@@ -47,14 +51,26 @@ describe('main circuit tests for Zeto fungible tokens with anonymity without enc
     const outputValues = [115, 0];
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(inputValues[0]), salt1, ...sender.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(inputValues[0]),
+      salt1,
+      ...sender.pubKey,
+    ]);
     const salt2 = newSalt();
-    const input2 = poseidonHash([BigInt(inputValues[1]), salt2, ...sender.pubKey]);
+    const input2 = poseidonHash([
+      BigInt(inputValues[1]),
+      salt2,
+      ...sender.pubKey,
+    ]);
     const inputCommitments = [input1, input2];
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(outputValues[0]), salt3, ...receiver.pubKey]);
+    const output1 = poseidonHash([
+      BigInt(outputValues[0]),
+      salt3,
+      ...receiver.pubKey,
+    ]);
     const outputCommitments = [output1, 0];
 
     const otherInputs = stringifyBigInts({
@@ -73,10 +89,13 @@ describe('main circuit tests for Zeto fungible tokens with anonymity without enc
         outputOwnerPublicKeys: [receiver.pubKey, ZERO_PUBKEY],
         ...otherInputs,
       },
-      true
+      true,
     );
 
-    const { proof, publicSignals } = await groth16.prove(provingKeyFile, witness);
+    const { proof, publicSignals } = await groth16.prove(
+      provingKeyFile,
+      witness,
+    );
     console.log('Proving time: ', (Date.now() - startTime) / 1000, 's');
 
     const success = await groth16.verify(verificationKey, publicSignals, proof);

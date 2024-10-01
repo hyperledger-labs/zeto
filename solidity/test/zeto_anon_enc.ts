@@ -110,7 +110,7 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
       Alice,
       inputUtxos,
       inflatedOutputUtxos,
-      inflatedOutputOwners
+      inflatedOutputOwners,
     );
 
     const events = parseUTXOEvents(zeto, result.txResult!);
@@ -124,7 +124,7 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
       events[0].encryptedValues,
       sharedKey,
       events[0].encryptionNonce,
-      20
+      20,
     );
     expect(plainText).to.deep.equal(result.expectedPlainText);
 
@@ -161,7 +161,7 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
     utxo100 = newUTXO(100, Alice);
     const { outputCommitments, encodedProof } = await prepareDepositProof(
       Alice,
-      utxo100
+      utxo100,
     );
     const tx2 = await zeto
       .connect(Alice.signer)
@@ -189,7 +189,7 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
       Alice,
       [utxo1, utxo2],
       [_utxo1, utxo4],
-      [Bob, Alice]
+      [Bob, Alice],
     );
 
     // check the private transfer activity is not exposed in the ERC20 contract
@@ -211,7 +211,7 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
       events[0].encryptedValues,
       sharedKey,
       events[0].encryptionNonce,
-      4
+      4,
     );
     expect(plainText).to.deep.equal(result.expectedPlainText);
     // Bob verifies that the UTXO constructed from the decrypted values matches the UTXO from the event
@@ -235,7 +235,7 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
       Bob,
       [utxo3, ZERO_UTXO],
       [_utxo1, ZERO_UTXO],
-      [Charlie, Bob]
+      [Charlie, Bob],
     );
   });
 
@@ -274,25 +274,25 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
         await prepareWithdrawProof(
           Alice,
           [utxo100, ZERO_UTXO],
-          outputCommitment
+          outputCommitment,
         );
 
       await expect(
         zeto
           .connect(Alice.signer)
-          .withdraw(10, inputCommitments, outputCommitments[0], encodedProof)
+          .withdraw(10, inputCommitments, outputCommitments[0], encodedProof),
       ).rejectedWith('UTXOAlreadySpent');
     });
 
     it('mint existing unspent UTXOs should fail', async function () {
       await expect(doMint(zeto, deployer, [utxo4])).rejectedWith(
-        'UTXOAlreadyOwned'
+        'UTXOAlreadyOwned',
       );
     });
 
     it('mint existing spent UTXOs should fail', async function () {
       await expect(doMint(zeto, deployer, [utxo1])).rejectedWith(
-        'UTXOAlreadySpent'
+        'UTXOAlreadySpent',
       );
     });
 
@@ -304,8 +304,8 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
           Alice,
           [nonExisting1, nonExisting2],
           [nonExisting1, nonExisting2],
-          [Alice, Alice]
-        )
+          [Alice, Alice],
+        ),
       ).rejectedWith('UTXONotMinted');
     });
 
@@ -314,7 +314,7 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
       const _utxo1 = newUTXO(25, Bob);
       const _utxo2 = newUTXO(5, Alice);
       await expect(
-        doTransfer(Alice, [utxo1, utxo2], [_utxo1, _utxo2], [Bob, Alice])
+        doTransfer(Alice, [utxo1, utxo2], [_utxo1, _utxo2], [Bob, Alice]),
       ).rejectedWith('UTXOAlreadySpent');
     });
 
@@ -326,7 +326,7 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
       const _utxo2 = newUTXO(25, Alice);
       const _utxo3 = newUTXO(15, Bob);
       await expect(
-        doTransfer(Bob, [_utxo1, _utxo1], [_utxo2, _utxo3], [Alice, Bob])
+        doTransfer(Bob, [_utxo1, _utxo1], [_utxo2, _utxo3], [Alice, Bob]),
       ).rejectedWith(`UTXODuplicate(${_utxo1.hash.toString()}`);
     });
   });
@@ -335,7 +335,7 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
     signer: User,
     inputs: UTXO[],
     outputs: UTXO[],
-    owners: User[]
+    owners: User[],
   ) {
     let inputCommitments: BigNumberish[];
     let outputCommitments: BigNumberish[];
@@ -348,7 +348,7 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
       inputs,
       outputs,
       owners,
-      ephemeralKeypair.privKey
+      ephemeralKeypair.privKey,
     );
     inputCommitments = result.inputCommitments;
     outputCommitments = result.outputCommitments;
@@ -363,7 +363,7 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
       encryptedValues,
       encryptionNonce,
       encodedProof,
-      ephemeralKeypair.pubKey
+      ephemeralKeypair.pubKey,
     );
     // add the clear text value so that it can be used by tests to compare with the decrypted value
     return {
@@ -381,19 +381,19 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
     inputs: UTXO[],
     outputs: UTXO[],
     owners: User[],
-    ephemeralPrivateKey: BigInt
+    ephemeralPrivateKey: BigInt,
   ) {
     const inputCommitments: BigNumberish[] = inputs.map(
-      (input) => input.hash
+      (input) => input.hash,
     ) as BigNumberish[];
     const inputValues = inputs.map((input) => BigInt(input.value || 0n));
     const inputSalts = inputs.map((input) => input.salt || 0n);
     const outputCommitments: BigNumberish[] = outputs.map(
-      (output) => output.hash
+      (output) => output.hash,
     ) as BigNumberish[];
     const outputValues = outputs.map((output) => BigInt(output.value || 0n));
     const outputOwnerPublicKeys: BigNumberish[][] = owners.map(
-      (owner) => owner.babyJubPublicKey
+      (owner) => owner.babyJubPublicKey,
     ) as BigNumberish[][];
     const encryptionNonce: BigNumberish = newEncryptionNonce() as BigNumberish;
     const encryptInputs = stringifyBigInts({
@@ -422,18 +422,18 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
         outputOwnerPublicKeys,
         ...encryptInputs,
       },
-      true
+      true,
     );
     const timeWitnessCalculation = Date.now() - startWitnessCalculation;
 
     const startProofGeneration = Date.now();
     const { proof, publicSignals } = (await groth16.prove(
       provingKeyToUse,
-      witness
+      witness,
     )) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
     const timeProofGeneration = Date.now() - startProofGeneration;
     console.log(
-      `Witness calculation time: ${timeWitnessCalculation}ms, Proof generation time: ${timeProofGeneration}ms`
+      `Witness calculation time: ${timeWitnessCalculation}ms, Proof generation time: ${timeProofGeneration}ms`,
     );
 
     const encodedProof = encodeProof(proof);
@@ -456,7 +456,7 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
     encryptedValues: BigNumberish[],
     encryptionNonce: BigNumberish,
     encodedProof: any,
-    ecdhPublicKey: BigInt[]
+    ecdhPublicKey: BigInt[],
   ) {
     const tx = await zeto.connect(signer.signer).transfer(
       inputCommitments.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
@@ -465,7 +465,7 @@ describe('Zeto based fungible token with anonymity and encryption', function () 
       ecdhPublicKey,
       encryptedValues,
       encodedProof,
-      '0x'
+      '0x',
     );
     const results: ContractTransactionReceipt | null = await tx.wait();
 

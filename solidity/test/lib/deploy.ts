@@ -21,7 +21,7 @@ export async function deployZeto(tokenName: string) {
     zeto = await ethers.getContractAt(tokenName, process.env.ZETO_ADDRESS);
     erc20 = await ethers.getContractAt(
       'SampleERC20',
-      process.env.ERC20_ADDRESS
+      process.env.ERC20_ADDRESS,
     );
     deployer = (await ethers.getSigners())[0];
     return { deployer, zeto, erc20 };

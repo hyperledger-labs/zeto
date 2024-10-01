@@ -33,7 +33,9 @@ describe('check-hashes circuit tests', () => {
   before(async function () {
     this.timeout(60000);
 
-    circuit = await wasm_tester(join(__dirname, '../circuits/check-hashes.circom'));
+    circuit = await wasm_tester(
+      join(__dirname, '../circuits/check-hashes.circom'),
+    );
 
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;
@@ -61,7 +63,7 @@ describe('check-hashes circuit tests', () => {
         salts: [salt1, salt2],
         ownerPublicKeys: [sender.pubKey, sender.pubKey],
       },
-      true
+      true,
     );
 
     // console.log(witness.slice(0, 10));
@@ -88,7 +90,7 @@ describe('check-hashes circuit tests', () => {
         salts: [salt1, 0],
         ownerPublicKeys: [sender.pubKey, [0n, 0n]],
       },
-      true
+      true,
     );
 
     expect(witness[1]).to.equal(BigInt(commitments[0]));
@@ -112,7 +114,7 @@ describe('check-hashes circuit tests', () => {
         salts: [0, salt1],
         ownerPublicKeys: [[0n, 0n], sender.pubKey],
       },
-      true
+      true,
     );
 
     expect(witness[1]).to.equal(BigInt(commitments[0]));
@@ -128,9 +130,17 @@ describe('check-hashes circuit tests', () => {
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(inputValues[0]), salt1, ...sender.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(inputValues[0]),
+      salt1,
+      ...sender.pubKey,
+    ]);
     const salt2 = newSalt();
-    const input2 = poseidonHash([BigInt(inputValues[1]), salt2, ...sender.pubKey]);
+    const input2 = poseidonHash([
+      BigInt(inputValues[1]),
+      salt2,
+      ...sender.pubKey,
+    ]);
     const inputCommitments = [input1 + BigInt(1), input2];
 
     let error;
@@ -142,7 +152,7 @@ describe('check-hashes circuit tests', () => {
           salts: [salt1, salt2],
           ownerPublicKeys: [sender.pubKey, sender.pubKey],
         },
-        true
+        true,
       );
     } catch (e) {
       error = e;

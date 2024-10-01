@@ -16,9 +16,24 @@
 
 const { expect } = require('chai');
 const { groth16 } = require('snarkjs');
-const { genRandomSalt, genKeypair, formatPrivKeyForBabyJub, stringifyBigInts } = require('maci-crypto');
-const { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } = require('@iden3/js-merkletree');
-const { Poseidon, newSalt, loadCircuit, newEncryptionNonce } = require('../index.js');
+const {
+  genRandomSalt,
+  genKeypair,
+  formatPrivKeyForBabyJub,
+  stringifyBigInts,
+} = require('maci-crypto');
+const {
+  Merkletree,
+  InMemoryDB,
+  str2Bytes,
+  ZERO_HASH,
+} = require('@iden3/js-merkletree');
+const {
+  Poseidon,
+  newSalt,
+  loadCircuit,
+  newEncryptionNonce,
+} = require('../index.js');
 const { loadProvingKeys } = require('./utils.js');
 
 const SMT_HEIGHT = 64;
@@ -34,7 +49,8 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
 
   before(async () => {
     circuit = await loadCircuit('anon_enc_nullifier');
-    ({ provingKeyFile, verificationKey } = loadProvingKeys('anon_enc_nullifier'));
+    ({ provingKeyFile, verificationKey } =
+      loadProvingKeys('anon_enc_nullifier'));
 
     let keypair = genKeypair();
     Alice.privKey = keypair.privKey;
@@ -60,14 +76,30 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     // create two input UTXOs, each has their own salt, but same owner
     const senderPrivateKey = formatPrivKeyForBabyJub(Alice.privKey);
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(inputValues[0]), salt1, ...Alice.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(inputValues[0]),
+      salt1,
+      ...Alice.pubKey,
+    ]);
     const salt2 = newSalt();
-    const input2 = poseidonHash([BigInt(inputValues[1]), salt2, ...Alice.pubKey]);
+    const input2 = poseidonHash([
+      BigInt(inputValues[1]),
+      salt2,
+      ...Alice.pubKey,
+    ]);
     const inputCommitments = [input1, input2];
 
     // create the nullifiers for the input UTXOs
-    const nullifier1 = poseidonHash3([BigInt(inputValues[0]), salt1, senderPrivateKey]);
-    const nullifier2 = poseidonHash3([BigInt(inputValues[1]), salt2, senderPrivateKey]);
+    const nullifier1 = poseidonHash3([
+      BigInt(inputValues[0]),
+      salt1,
+      senderPrivateKey,
+    ]);
+    const nullifier2 = poseidonHash3([
+      BigInt(inputValues[1]),
+      salt2,
+      senderPrivateKey,
+    ]);
     const nullifiers = [nullifier1, nullifier2];
 
     // calculate the root of the SMT
@@ -75,18 +107,34 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     await smtAlice.add(input2, input2);
 
     // generate the merkle proof for the inputs
-    const proof1 = await smtAlice.generateCircomVerifierProof(input1, ZERO_HASH);
-    const proof2 = await smtAlice.generateCircomVerifierProof(input2, ZERO_HASH);
+    const proof1 = await smtAlice.generateCircomVerifierProof(
+      input1,
+      ZERO_HASH,
+    );
+    const proof2 = await smtAlice.generateCircomVerifierProof(
+      input2,
+      ZERO_HASH,
+    );
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(outputValues[0]), salt3, ...Bob.pubKey]);
-    const output2 = poseidonHash([BigInt(outputValues[1]), salt3, ...Alice.pubKey]);
+    const output1 = poseidonHash([
+      BigInt(outputValues[0]),
+      salt3,
+      ...Bob.pubKey,
+    ]);
+    const output2 = poseidonHash([
+      BigInt(outputValues[1]),
+      salt3,
+      ...Alice.pubKey,
+    ]);
     const outputCommitments = [output1, output2];
 
     const encryptionNonce = newEncryptionNonce();
+    const ephemeralKeypair = genKeypair();
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
+      ecdhPrivateKey: formatPrivKeyForBabyJub(ephemeralKeypair.privKey),
     });
 
     const startTime = Date.now();
@@ -98,7 +146,10 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
         inputSalts: [salt1, salt2],
         inputOwnerPrivateKey: senderPrivateKey,
         root: proof1.root.bigInt(),
-        merkleProof: [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())],
+        merkleProof: [
+          proof1.siblings.map((s) => s.bigInt()),
+          proof2.siblings.map((s) => s.bigInt()),
+        ],
         enabled: [1, 1],
         outputCommitments,
         outputValues,
@@ -106,10 +157,13 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
         outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
         ...encryptInputs,
       },
-      true
+      true,
     );
 
-    const { proof, publicSignals } = await groth16.prove(provingKeyFile, witness);
+    const { proof, publicSignals } = await groth16.prove(
+      provingKeyFile,
+      witness,
+    );
     console.log('Proving time: ', (Date.now() - startTime) / 1000, 's');
 
     const success = await groth16.verify(verificationKey, publicSignals, proof);

@@ -17,7 +17,12 @@
 const { expect } = require('chai');
 const { groth16 } = require('snarkjs');
 const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
-const { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } = require('@iden3/js-merkletree');
+const {
+  Merkletree,
+  InMemoryDB,
+  str2Bytes,
+  ZERO_HASH,
+} = require('@iden3/js-merkletree');
 const { Poseidon, newSalt, tokenUriHash, loadCircuit } = require('../index.js');
 const { loadProvingKeys } = require('./utils.js');
 
@@ -34,7 +39,8 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
 
   before(async () => {
     circuit = await loadCircuit('nf_anon_nullifier');
-    ({ provingKeyFile, verificationKey } = loadProvingKeys('nf_anon_nullifier'));
+    ({ provingKeyFile, verificationKey } =
+      loadProvingKeys('nf_anon_nullifier'));
 
     let keypair = genKeypair();
     Alice.privKey = keypair.privKey;
@@ -60,20 +66,38 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(tokenId), tokenUri, salt1, ...Alice.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(tokenId),
+      tokenUri,
+      salt1,
+      ...Alice.pubKey,
+    ]);
 
     // create the nullifiers for the inputs
-    const nullifier1 = poseidonHash4([BigInt(tokenId), tokenUri, salt1, senderPrivateKey]);
+    const nullifier1 = poseidonHash4([
+      BigInt(tokenId),
+      tokenUri,
+      salt1,
+      senderPrivateKey,
+    ]);
 
     // calculate the root of the SMT
     await smtAlice.add(input1, input1);
 
     // generate the merkle proof for the inputs
-    const proof1 = await smtAlice.generateCircomVerifierProof(input1, ZERO_HASH);
+    const proof1 = await smtAlice.generateCircomVerifierProof(
+      input1,
+      ZERO_HASH,
+    );
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(tokenId), tokenUri, salt3, ...Bob.pubKey]);
+    const output1 = poseidonHash([
+      BigInt(tokenId),
+      tokenUri,
+      salt3,
+      ...Bob.pubKey,
+    ]);
 
     const startTime = Date.now();
     const witness = await circuit.calculateWTNSBin(
@@ -90,10 +114,13 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
         outputSalt: salt3,
         outputOwnerPublicKey: Bob.pubKey,
       },
-      true
+      true,
     );
 
-    const { proof, publicSignals } = await groth16.prove(provingKeyFile, witness);
+    const { proof, publicSignals } = await groth16.prove(
+      provingKeyFile,
+      witness,
+    );
     console.log('Proving time: ', (Date.now() - startTime) / 1000, 's');
 
     const success = await groth16.verify(verificationKey, publicSignals, proof);

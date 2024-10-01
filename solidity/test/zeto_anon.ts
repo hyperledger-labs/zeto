@@ -103,7 +103,7 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
       Alice,
       inputUtxos,
       inflatedOutputUtxos,
-      inflatedOutputOwners
+      inflatedOutputOwners,
     );
 
     const events = parseUTXOEvents(zeto, result);
@@ -141,7 +141,7 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
     utxo100 = newUTXO(100, Alice);
     const { outputCommitments, encodedProof } = await prepareDepositProof(
       Alice,
-      utxo100
+      utxo100,
     );
     const tx2 = await zeto
       .connect(Alice.signer)
@@ -169,7 +169,7 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
       Alice,
       [utxo1, utxo2],
       [_txo3, utxo4],
-      [Bob, Alice]
+      [Bob, Alice],
     );
 
     // check the private transfer activity is not exposed in the ERC20 contract
@@ -254,25 +254,25 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
         await prepareWithdrawProof(
           Alice,
           [utxo100, ZERO_UTXO],
-          outputCommitment
+          outputCommitment,
         );
 
       await expect(
         zeto
           .connect(Alice.signer)
-          .withdraw(10, inputCommitments, outputCommitments[0], encodedProof)
+          .withdraw(10, inputCommitments, outputCommitments[0], encodedProof),
       ).rejectedWith('UTXOAlreadySpent');
     });
 
     it('mint existing unspent UTXOs should fail', async function () {
       await expect(doMint(zeto, deployer, [utxo4])).rejectedWith(
-        'UTXOAlreadyOwned'
+        'UTXOAlreadyOwned',
       );
     });
 
     it('mint existing spent UTXOs should fail', async function () {
       await expect(doMint(zeto, deployer, [utxo1])).rejectedWith(
-        'UTXOAlreadySpent'
+        'UTXOAlreadySpent',
       );
     });
 
@@ -284,8 +284,8 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
           Alice,
           [nonExisting1, nonExisting2],
           [nonExisting1, nonExisting2],
-          [Alice, Alice]
-        )
+          [Alice, Alice],
+        ),
       ).rejectedWith('UTXONotMinted');
     });
 
@@ -294,7 +294,7 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
       const utxo5 = newUTXO(25, Bob);
       const utxo6 = newUTXO(5, Alice, utxo5.salt);
       await expect(
-        doTransfer(Alice, [utxo1, utxo2], [utxo5, utxo6], [Bob, Alice])
+        doTransfer(Alice, [utxo1, utxo2], [utxo5, utxo6], [Bob, Alice]),
       ).rejectedWith('UTXOAlreadySpent');
     });
 
@@ -302,7 +302,7 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
       const utxo5 = newUTXO(20, Alice);
       const utxo6 = newUTXO(10, Bob, utxo5.salt);
       await expect(
-        doTransfer(Bob, [utxo7, utxo7], [utxo5, utxo6], [Alice, Bob])
+        doTransfer(Bob, [utxo7, utxo7], [utxo5, utxo6], [Alice, Bob]),
       ).rejectedWith(`UTXODuplicate(${utxo7.hash.toString()}`);
     });
   });
@@ -311,7 +311,7 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
     signer: User,
     inputs: UTXO[],
     outputs: UTXO[],
-    owners: User[]
+    owners: User[],
   ) {
     let inputCommitments: BigNumberish[];
     let outputCommitments: BigNumberish[];
@@ -329,12 +329,12 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
       signer,
       inputs,
       outputs,
-      owners
+      owners,
     );
     inputCommitments = result.inputCommitments;
     outputCommitments = result.outputCommitments;
     outputOwnerAddresses = owners.map(
-      (owner) => owner.ethAddress || ZeroAddress
+      (owner) => owner.ethAddress || ZeroAddress,
     ) as [AddressLike, AddressLike];
     encodedProof = result.encodedProof;
 
@@ -343,7 +343,7 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
       inputCommitments,
       outputCommitments,
       outputOwnerAddresses,
-      encodedProof
+      encodedProof,
     );
   }
 
@@ -352,14 +352,14 @@ describe('Zeto based fungible token with anonymity without encryption or nullifi
     inputCommitments: BigNumberish[],
     outputCommitments: BigNumberish[],
     outputOwnerAddresses: AddressLike[],
-    encodedProof: any
+    encodedProof: any,
   ) {
     const signerAddress = await signer.signer.getAddress();
     const tx = await zeto.connect(signer.signer).transfer(
       inputCommitments.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
       outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
       encodedProof,
-      '0x'
+      '0x',
     );
     const results = await tx.wait();
     console.log(`Method transfer() complete. Gas used: ${results?.gasUsed}`);
@@ -382,20 +382,20 @@ async function prepareProof(
   signer: User,
   inputs: UTXO[],
   outputs: UTXO[],
-  owners: User[]
+  owners: User[],
 ) {
   const inputCommitments: BigNumberish[] = inputs.map(
-    (input) => input.hash
+    (input) => input.hash,
   ) as BigNumberish[];
   const inputValues = inputs.map((input) => BigInt(input.value || 0n));
   const inputSalts = inputs.map((input) => input.salt || 0n);
   const outputCommitments: BigNumberish[] = outputs.map(
-    (output) => output.hash
+    (output) => output.hash,
   ) as BigNumberish[];
   const outputValues = outputs.map((output) => BigInt(output.value || 0n));
   const outputSalts = outputs.map((o) => o.salt || 0n);
   const outputOwnerPublicKeys: BigNumberish[][] = owners.map(
-    (owner) => owner.babyJubPublicKey || ZERO_PUBKEY
+    (owner) => owner.babyJubPublicKey || ZERO_PUBKEY,
   ) as BigNumberish[][];
   const otherInputs = stringifyBigInts({
     inputOwnerPrivateKey: formatPrivKeyForBabyJub(signer.babyJubPrivateKey),
@@ -413,18 +413,18 @@ async function prepareProof(
       outputOwnerPublicKeys,
       ...otherInputs,
     },
-    true
+    true,
   );
   const timeWitnessCalculation = Date.now() - startWitnessCalculation;
 
   const startProofGeneration = Date.now();
   const { proof, publicSignals } = (await groth16.prove(
     provingKey,
-    witness
+    witness,
   )) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
   const timeProofGeneration = Date.now() - startProofGeneration;
   console.log(
-    `Witness calculation time: ${timeWitnessCalculation}ms, Proof generation time: ${timeProofGeneration}ms`
+    `Witness calculation time: ${timeWitnessCalculation}ms, Proof generation time: ${timeProofGeneration}ms`,
   );
   const encodedProof = encodeProof(proof);
   return {

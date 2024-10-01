@@ -18,7 +18,12 @@ const { expect } = require('chai');
 const { join } = require('path');
 const { wasm: wasm_tester } = require('circom_tester');
 const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
-const { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } = require('@iden3/js-merkletree');
+const {
+  Merkletree,
+  InMemoryDB,
+  str2Bytes,
+  ZERO_HASH,
+} = require('@iden3/js-merkletree');
 const { Poseidon, newSalt, kycHash } = require('../index.js');
 
 const SMT_HEIGHT_UTXO = 64;
@@ -37,7 +42,9 @@ describe('main circuit tests for Zeto fungible tokens with anonymity, KYC, using
   before(async function () {
     this.timeout(60000);
 
-    circuit = await wasm_tester(join(__dirname, '../../circuits/anon_nullifier_kyc.circom'));
+    circuit = await wasm_tester(
+      join(__dirname, '../../circuits/anon_nullifier_kyc.circom'),
+    );
 
     let keypair = genKeypair();
     Alice.privKey = keypair.privKey;
@@ -75,14 +82,30 @@ describe('main circuit tests for Zeto fungible tokens with anonymity, KYC, using
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(inputValues[0]), salt1, ...Alice.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(inputValues[0]),
+      salt1,
+      ...Alice.pubKey,
+    ]);
     const salt2 = newSalt();
-    const input2 = poseidonHash([BigInt(inputValues[1]), salt2, ...Alice.pubKey]);
+    const input2 = poseidonHash([
+      BigInt(inputValues[1]),
+      salt2,
+      ...Alice.pubKey,
+    ]);
     const inputCommitments = [input1, input2];
 
     // create the nullifiers for the inputs
-    const nullifier1 = poseidonHash3([BigInt(inputValues[0]), salt1, senderPrivateKey]);
-    const nullifier2 = poseidonHash3([BigInt(inputValues[1]), salt2, senderPrivateKey]);
+    const nullifier1 = poseidonHash3([
+      BigInt(inputValues[0]),
+      salt1,
+      senderPrivateKey,
+    ]);
+    const nullifier2 = poseidonHash3([
+      BigInt(inputValues[1]),
+      salt2,
+      senderPrivateKey,
+    ]);
     const nullifiers = [nullifier1, nullifier2];
 
     // calculate the root of the SMT
@@ -90,20 +113,40 @@ describe('main circuit tests for Zeto fungible tokens with anonymity, KYC, using
     await smtAlice.add(input2, input2);
 
     // generate the merkle proof for the inputs
-    const proof1 = await smtAlice.generateCircomVerifierProof(input1, ZERO_HASH);
-    const proof2 = await smtAlice.generateCircomVerifierProof(input2, ZERO_HASH);
+    const proof1 = await smtAlice.generateCircomVerifierProof(
+      input1,
+      ZERO_HASH,
+    );
+    const proof2 = await smtAlice.generateCircomVerifierProof(
+      input2,
+      ZERO_HASH,
+    );
     const utxosRoot = proof1.root.bigInt();
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(outputValues[0]), salt3, ...Bob.pubKey]);
+    const output1 = poseidonHash([
+      BigInt(outputValues[0]),
+      salt3,
+      ...Bob.pubKey,
+    ]);
     const salt4 = newSalt();
-    const output2 = poseidonHash([BigInt(outputValues[1]), salt4, ...Alice.pubKey]);
+    const output2 = poseidonHash([
+      BigInt(outputValues[1]),
+      salt4,
+      ...Alice.pubKey,
+    ]);
     const outputCommitments = [output1, output2];
 
     // generate the merkle proof for the transacting identities
-    const proof3 = await smtKYC.generateCircomVerifierProof(poseidonHash2(Alice.pubKey), ZERO_HASH);
-    const proof4 = await smtKYC.generateCircomVerifierProof(poseidonHash2(Bob.pubKey), ZERO_HASH);
+    const proof3 = await smtKYC.generateCircomVerifierProof(
+      poseidonHash2(Alice.pubKey),
+      ZERO_HASH,
+    );
+    const proof4 = await smtKYC.generateCircomVerifierProof(
+      poseidonHash2(Bob.pubKey),
+      ZERO_HASH,
+    );
     const identitiesRoot = proof3.root.bigInt();
 
     const witness = await circuit.calculateWitness(
@@ -114,16 +157,23 @@ describe('main circuit tests for Zeto fungible tokens with anonymity, KYC, using
         inputSalts: [salt1, salt2],
         inputOwnerPrivateKey: senderPrivateKey,
         utxosRoot,
-        utxosMerkleProof: [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())],
+        utxosMerkleProof: [
+          proof1.siblings.map((s) => s.bigInt()),
+          proof2.siblings.map((s) => s.bigInt()),
+        ],
         enabled: [1, 1],
         identitiesRoot,
-        identitiesMerkleProof: [proof3.siblings.map((s) => s.bigInt()), proof4.siblings.map((s) => s.bigInt()), proof3.siblings.map((s) => s.bigInt())],
+        identitiesMerkleProof: [
+          proof3.siblings.map((s) => s.bigInt()),
+          proof4.siblings.map((s) => s.bigInt()),
+          proof3.siblings.map((s) => s.bigInt()),
+        ],
         outputCommitments,
         outputValues,
         outputSalts: [salt3, salt4],
         outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
       },
-      true
+      true,
     );
 
     // console.log('witness', witness.slice(0, 20));
@@ -150,14 +200,30 @@ describe('main circuit tests for Zeto fungible tokens with anonymity, KYC, using
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(inputValues[0]), salt1, ...Alice.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(inputValues[0]),
+      salt1,
+      ...Alice.pubKey,
+    ]);
     const salt2 = newSalt();
-    const input2 = poseidonHash([BigInt(inputValues[1]), salt2, ...Alice.pubKey]);
+    const input2 = poseidonHash([
+      BigInt(inputValues[1]),
+      salt2,
+      ...Alice.pubKey,
+    ]);
     const inputCommitments = [input1, input2];
 
     // create the nullifiers for the inputs
-    const nullifier1 = poseidonHash3([BigInt(inputValues[0]), salt1, senderPrivateKey]);
-    const nullifier2 = poseidonHash3([BigInt(inputValues[1]), salt2, senderPrivateKey]);
+    const nullifier1 = poseidonHash3([
+      BigInt(inputValues[0]),
+      salt1,
+      senderPrivateKey,
+    ]);
+    const nullifier2 = poseidonHash3([
+      BigInt(inputValues[1]),
+      salt2,
+      senderPrivateKey,
+    ]);
     const nullifiers = [nullifier1, nullifier2];
 
     // calculate the root of the SMT
@@ -165,20 +231,40 @@ describe('main circuit tests for Zeto fungible tokens with anonymity, KYC, using
     await smtAlice.add(input2, input2);
 
     // generate the merkle proof for the inputs
-    const proof1 = await smtAlice.generateCircomVerifierProof(input1, ZERO_HASH);
-    const proof2 = await smtAlice.generateCircomVerifierProof(input2, ZERO_HASH);
+    const proof1 = await smtAlice.generateCircomVerifierProof(
+      input1,
+      ZERO_HASH,
+    );
+    const proof2 = await smtAlice.generateCircomVerifierProof(
+      input2,
+      ZERO_HASH,
+    );
     const utxosRoot = proof1.root.bigInt();
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(outputValues[0]), salt3, ...Bob.pubKey]);
+    const output1 = poseidonHash([
+      BigInt(outputValues[0]),
+      salt3,
+      ...Bob.pubKey,
+    ]);
     const salt4 = newSalt();
-    const output2 = poseidonHash([BigInt(outputValues[1]), salt4, ...Alice.pubKey]);
+    const output2 = poseidonHash([
+      BigInt(outputValues[1]),
+      salt4,
+      ...Alice.pubKey,
+    ]);
     const outputCommitments = [output1, output2];
 
     // generate the merkle proof for the transacting identities
-    const proof3 = await smtKYC.generateCircomVerifierProof(poseidonHash2(Alice.pubKey), ZERO_HASH);
-    const proof4 = await smtKYC.generateCircomVerifierProof(poseidonHash2(Bob.pubKey), ZERO_HASH);
+    const proof3 = await smtKYC.generateCircomVerifierProof(
+      poseidonHash2(Alice.pubKey),
+      ZERO_HASH,
+    );
+    const proof4 = await smtKYC.generateCircomVerifierProof(
+      poseidonHash2(Bob.pubKey),
+      ZERO_HASH,
+    );
     const identitiesRoot = proof3.root.bigInt();
 
     let error;
@@ -191,7 +277,10 @@ describe('main circuit tests for Zeto fungible tokens with anonymity, KYC, using
           inputSalts: [salt1, salt2],
           inputOwnerPrivateKey: senderPrivateKey,
           utxosRoot,
-          utxosMerkleProof: [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())],
+          utxosMerkleProof: [
+            proof1.siblings.map((s) => s.bigInt()),
+            proof2.siblings.map((s) => s.bigInt()),
+          ],
           enabled: [1, 1],
           identitiesRoot,
           identitiesMerkleProof: [
@@ -204,7 +293,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity, KYC, using
           outputSalts: [salt3, salt4],
           outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
         },
-        true
+        true,
       );
     } catch (e) {
       error = e;

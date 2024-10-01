@@ -86,13 +86,13 @@ describe('Zeto based non-fungible token with anonymity without encryption or nul
 
     it('mint existing unspent UTXOs should fail', async function () {
       await expect(doMint(zeto, deployer, [utxo3])).rejectedWith(
-        'UTXOAlreadyOwned'
+        'UTXOAlreadyOwned',
       );
     });
 
     it('mint existing spent UTXOs should fail', async function () {
       await expect(doMint(zeto, deployer, [utxo1])).rejectedWith(
-        'UTXOAlreadySpent'
+        'UTXOAlreadySpent',
       );
     });
 
@@ -100,16 +100,16 @@ describe('Zeto based non-fungible token with anonymity without encryption or nul
       const nonExisting1 = newAssetUTXO(
         1002,
         'http://ipfs.io/file-hash-2',
-        Alice
+        Alice,
       );
       const nonExisting2 = newAssetUTXO(
         1002,
         'http://ipfs.io/file-hash-2',
-        Bob
+        Bob,
       );
 
       await expect(
-        doTransfer(Alice, nonExisting1, nonExisting2, Bob)
+        doTransfer(Alice, nonExisting1, nonExisting2, Bob),
       ).rejectedWith('UTXONotMinted');
     });
 
@@ -117,7 +117,7 @@ describe('Zeto based non-fungible token with anonymity without encryption or nul
       // create outputs
       const _utxo4 = newAssetUTXO(utxo1.tokenId!, utxo1.uri!, Bob);
       await expect(doTransfer(Alice, utxo1, _utxo4, Bob)).rejectedWith(
-        'UTXOAlreadySpent'
+        'UTXOAlreadySpent',
       );
     });
   });
@@ -133,7 +133,7 @@ describe('Zeto based non-fungible token with anonymity without encryption or nul
       signer,
       input,
       output,
-      to
+      to,
     );
     inputCommitment = result.inputCommitment;
     outputCommitment = result.outputCommitment;
@@ -147,7 +147,7 @@ describe('Zeto based non-fungible token with anonymity without encryption or nul
     signer: User,
     inputCommitment: BigNumberish,
     outputCommitment: BigNumberish,
-    encodedProof: any
+    encodedProof: any,
   ) {
     const tx = await zeto
       .connect(signer.signer)
@@ -166,7 +166,7 @@ async function prepareProof(
   signer: User,
   input: UTXO,
   output: UTXO,
-  to: User
+  to: User,
 ) {
   const tokenId = input.tokenId;
   const inputCommitment: BigNumberish = input.hash as BigNumberish;
@@ -190,18 +190,18 @@ async function prepareProof(
       outputOwnerPublicKeys: [outputOwnerPublicKey],
       ...otherInputs,
     },
-    true
+    true,
   );
   const timeWitnessCalculation = Date.now() - startWitnessCalculation;
 
   const startProofGeneration = Date.now();
   const { proof, publicSignals } = (await groth16.prove(
     provingKey,
-    witness
+    witness,
   )) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
   const timeProofGeneration = Date.now() - startProofGeneration;
   console.log(
-    `Witness calculation time: ${timeWitnessCalculation}ms, Proof generation time: ${timeProofGeneration}ms`
+    `Witness calculation time: ${timeWitnessCalculation}ms, Proof generation time: ${timeProofGeneration}ms`,
   );
   const encodedProof = encodeProof(proof);
   return {

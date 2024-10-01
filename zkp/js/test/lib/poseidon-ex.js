@@ -23,7 +23,9 @@ describe('PoseidonEx circuit tests', () => {
   let circuit;
   before(async function () {
     this.timeout(60000);
-    circuit = await wasm_tester(join(__dirname, '../circuits/poseidon-ex.circom'));
+    circuit = await wasm_tester(
+      join(__dirname, '../circuits/poseidon-ex.circom'),
+    );
   });
 
   it('should generate the states matching JS lib', async () => {

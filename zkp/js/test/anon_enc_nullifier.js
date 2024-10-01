@@ -52,7 +52,7 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     this.timeout(60000);
 
     circuit = await wasm_tester(
-      join(__dirname, '../../circuits/anon_enc_nullifier.circom')
+      join(__dirname, '../../circuits/anon_enc_nullifier.circom'),
     );
 
     let keypair = genKeypair();
@@ -112,11 +112,11 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     // generate the merkle proof for the inputs
     const proof1 = await smtAlice.generateCircomVerifierProof(
       input1,
-      ZERO_HASH
+      ZERO_HASH,
     );
     const proof2 = await smtAlice.generateCircomVerifierProof(
       input2,
-      ZERO_HASH
+      ZERO_HASH,
     );
 
     // create two output UTXOs, they share the same salt, and different owner
@@ -160,7 +160,7 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
         outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
         ...encryptInputs,
       },
-      true
+      true,
     );
 
     // console.log('witness', witness.slice(0, 15));
@@ -187,7 +187,7 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
       cipherText,
       recoveredKey,
       encryptionNonce,
-      4
+      4,
     );
     expect(plainText).to.deep.equal([20n, salt3, 52n, salt4]);
   });
@@ -219,7 +219,7 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     // generate the merkle proof for the inputs
     const proof1 = await smtAlice.generateCircomVerifierProof(
       input1,
-      ZERO_HASH
+      ZERO_HASH,
     );
     const proof2 = await smtAlice.generateCircomVerifierProof(0, ZERO_HASH);
 
@@ -264,7 +264,7 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
         outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
         ...encryptInputs,
       },
-      true
+      true,
     );
 
     // console.log('witness', witness);
@@ -291,7 +291,7 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
       cipherText,
       recoveredKey,
       encryptionNonce,
-      4
+      4,
     );
     expect(plainText).to.deep.equal([20n, salt3, 52n, salt4]);
   });
@@ -335,11 +335,11 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     // generate the merkle proof for the inputs
     const proof1 = await smtAlice.generateCircomVerifierProof(
       input1,
-      ZERO_HASH
+      ZERO_HASH,
     );
     const proof2 = await smtAlice.generateCircomVerifierProof(
       input2,
-      ZERO_HASH
+      ZERO_HASH,
     );
 
     // create two output UTXOs, they share the same salt, and different owner
@@ -384,7 +384,7 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
           outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
           ...encryptInputs,
         },
-        true
+        true,
       );
     } catch (e) {
       err = e;

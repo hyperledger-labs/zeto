@@ -14,9 +14,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ContractTransactionReceipt, Signer, BigNumberish, AddressLike } from 'ethers';
-import { genKeypair, formatPrivKeyForBabyJub, genEcdhSharedKey } from 'maci-crypto';
-import { Poseidon, newSalt, tokenUriHash } from "zeto-js";
+import {
+  ContractTransactionReceipt,
+  Signer,
+  BigNumberish,
+  AddressLike,
+} from 'ethers';
+import {
+  genKeypair,
+  formatPrivKeyForBabyJub,
+  genEcdhSharedKey,
+} from 'maci-crypto';
+import { Poseidon, newSalt, tokenUriHash } from 'zeto-js';
 
 const poseidonHash3 = Poseidon.poseidon3;
 const poseidonHash4 = Poseidon.poseidon4;
@@ -55,60 +64,115 @@ export async function newUser(signer: Signer) {
 
 export function newUTXO(value: number, owner: User, salt?: BigInt): UTXO {
   if (!salt) salt = newSalt();
-  const hash = poseidonHash4([BigInt(value), salt, owner.babyJubPublicKey[0], owner.babyJubPublicKey[1]]);
+  const hash = poseidonHash4([
+    BigInt(value),
+    salt,
+    owner.babyJubPublicKey[0],
+    owner.babyJubPublicKey[1],
+  ]);
   return { value, hash, salt };
 }
 
-export function newAssetUTXO(tokenId: number, uri: string, owner: User, salt?: BigInt): UTXO {
+export function newAssetUTXO(
+  tokenId: number,
+  uri: string,
+  owner: User,
+  salt?: BigInt,
+): UTXO {
   if (!salt) salt = newSalt();
-  const hash = poseidonHash5([BigInt(tokenId), tokenUriHash(uri), salt, owner.babyJubPublicKey[0], owner.babyJubPublicKey[1]]);
+  const hash = poseidonHash5([
+    BigInt(tokenId),
+    tokenUriHash(uri),
+    salt,
+    owner.babyJubPublicKey[0],
+    owner.babyJubPublicKey[1],
+  ]);
   return { tokenId, uri, hash, salt };
 }
 
 export function newNullifier(utxo: UTXO, owner: User): UTXO {
-  const hash = poseidonHash3([BigInt(utxo.value!), utxo.salt, owner.formattedPrivateKey]);
+  const hash = poseidonHash3([
+    BigInt(utxo.value!),
+    utxo.salt,
+    owner.formattedPrivateKey,
+  ]);
   return { value: utxo.value, hash, salt: utxo.salt };
 }
 
 export function newAssetNullifier(utxo: UTXO, owner: User): UTXO {
-  const hash = poseidonHash4([BigInt(utxo.tokenId!), tokenUriHash(utxo.uri), utxo.salt, owner.formattedPrivateKey]);
+  const hash = poseidonHash4([
+    BigInt(utxo.tokenId!),
+    tokenUriHash(utxo.uri),
+    utxo.salt,
+    owner.formattedPrivateKey,
+  ]);
   return { tokenId: utxo.tokenId, uri: utxo.uri, hash, salt: utxo.salt };
 }
 
-export async function doMint(zetoTokenContract: any, minter: Signer, outputs: UTXO[], gasHistories?:number[]): Promise<ContractTransactionReceipt> {
-  const outputCommitments = outputs.map((output) => output.hash) as BigNumberish[];
+export async function doMint(
+  zetoTokenContract: any,
+  minter: Signer,
+  outputs: UTXO[],
+  gasHistories?: number[],
+): Promise<ContractTransactionReceipt> {
+  const outputCommitments = outputs.map(
+    (output) => output.hash,
+  ) as BigNumberish[];
   const tx = await zetoTokenContract
     .connect(minter)
-    .mint(outputCommitments, "0x");
+    .mint(outputCommitments, '0x');
   const result = await tx.wait();
   console.log(`Method mint() complete. Gas used: ${result?.gasUsed}`);
   if (result?.gasUsed && Array.isArray(gasHistories)) {
-    gasHistories.push(result?.gasUsed)
+    gasHistories.push(result?.gasUsed);
   }
   return result;
 }
 
-export async function doDeposit(zetoTokenContract: any, depositUser: Signer, amount:any, commitment: any, proof: any, gasHistories?:number[]): Promise<ContractTransactionReceipt> {
-  const tx = await zetoTokenContract.connect(depositUser).deposit(amount, commitment, proof, "0x");
+export async function doDeposit(
+  zetoTokenContract: any,
+  depositUser: Signer,
+  amount: any,
+  commitment: any,
+  proof: any,
+  gasHistories?: number[],
+): Promise<ContractTransactionReceipt> {
+  const tx = await zetoTokenContract
+    .connect(depositUser)
+    .deposit(amount, commitment, proof, '0x');
   const result = await tx.wait();
   console.log(`Method deposit() complete. Gas used: ${result?.gasUsed}`);
   if (result?.gasUsed && Array.isArray(gasHistories)) {
-    gasHistories.push(result?.gasUsed)
+    gasHistories.push(result?.gasUsed);
   }
   return result;
 }
 
-export async function doWithdraw(zetoTokenContract: any, withdrawUser: Signer, amount:any, nullifiers:any, commitment: any, root:any, proof: any, gasHistories?:number[]): Promise<ContractTransactionReceipt> {
-  const tx = await zetoTokenContract.connect(withdrawUser).withdraw(amount, nullifiers, commitment, root, proof);
+export async function doWithdraw(
+  zetoTokenContract: any,
+  withdrawUser: Signer,
+  amount: any,
+  nullifiers: any,
+  commitment: any,
+  root: any,
+  proof: any,
+  gasHistories?: number[],
+): Promise<ContractTransactionReceipt> {
+  const tx = await zetoTokenContract
+    .connect(withdrawUser)
+    .withdraw(amount, nullifiers, commitment, root, proof);
   const result = await tx.wait();
   console.log(`Method withdraw() complete. Gas used: ${result?.gasUsed}`);
   if (result?.gasUsed && Array.isArray(gasHistories)) {
-    gasHistories.push(result?.gasUsed)
+    gasHistories.push(result?.gasUsed);
   }
   return result;
 }
 
-export function parseUTXOEvents(zetoTokenContract: any, result: ContractTransactionReceipt) {
+export function parseUTXOEvents(
+  zetoTokenContract: any,
+  result: ContractTransactionReceipt,
+) {
   let returnValues: any[] = [];
   for (const log of result.logs || []) {
     const event = zetoTokenContract.interface.parseLog(log as any);
@@ -116,7 +180,7 @@ export function parseUTXOEvents(zetoTokenContract: any, result: ContractTransact
       const transfer = {
         inputs: event?.args.inputs,
         outputs: event?.args.outputs,
-        submitter: event?.args.submitter
+        submitter: event?.args.submitter,
       };
       returnValues.push(transfer);
     } else if (event?.name === 'UTXOTransferWithEncryptedValues') {
@@ -126,7 +190,7 @@ export function parseUTXOEvents(zetoTokenContract: any, result: ContractTransact
         encryptedValues: event?.args.encryptedValues,
         encryptionNonce: event?.args.encryptionNonce,
         submitter: event?.args.submitter,
-        ecdhPublicKey: event?.args.ecdhPublicKey
+        ecdhPublicKey: event?.args.ecdhPublicKey,
       };
       returnValues.push(transfer);
     } else if (event?.name === 'UTXOTransferNonRepudiation') {
@@ -137,14 +201,14 @@ export function parseUTXOEvents(zetoTokenContract: any, result: ContractTransact
         encryptedValuesForAuthority: event?.args.encryptedValuesForAuthority,
         encryptionNonce: event?.args.encryptionNonce,
         submitter: event?.args.submitter,
-        ecdhPublicKey: event?.args.ecdhPublicKey
+        ecdhPublicKey: event?.args.ecdhPublicKey,
       };
       returnValues.push(transfer);
     } else if (event?.name === 'UTXOMint') {
       const mint = {
         outputs: event?.args.outputs,
         receivers: event?.args.receivers,
-        submitter: event?.args.submitter
+        submitter: event?.args.submitter,
       };
       returnValues.push(mint);
     } else if (event?.name === 'TradeCompleted') {
@@ -158,7 +222,10 @@ export function parseUTXOEvents(zetoTokenContract: any, result: ContractTransact
   return returnValues;
 }
 
-export function parseRegistryEvents(registryContract: any, result: ContractTransactionReceipt) {
+export function parseRegistryEvents(
+  registryContract: any,
+  result: ContractTransactionReceipt,
+) {
   for (const log of result.logs || []) {
     const event = registryContract.interface.parseLog(log as any);
     if (event?.name === 'IdentityRegistered') {

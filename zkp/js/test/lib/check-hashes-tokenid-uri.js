@@ -31,7 +31,9 @@ describe('check-hashes-tokenid-uri circuit tests', () => {
   before(async function () {
     this.timeout(60000);
 
-    circuit = await wasm_tester(join(__dirname, '../circuits/check-hashes-tokenid-uri.circom'));
+    circuit = await wasm_tester(
+      join(__dirname, '../circuits/check-hashes-tokenid-uri.circom'),
+    );
 
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;
@@ -48,7 +50,12 @@ describe('check-hashes-tokenid-uri circuit tests', () => {
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(tokenIds[0]), tokenUris[0], salt1, ...sender.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(tokenIds[0]),
+      tokenUris[0],
+      salt1,
+      ...sender.pubKey,
+    ]);
     const commitments = [input1];
 
     const witness = await circuit.calculateWitness(
@@ -59,7 +66,7 @@ describe('check-hashes-tokenid-uri circuit tests', () => {
         salts: [salt1],
         ownerPublicKeys: [sender.pubKey],
       },
-      true
+      true,
     );
 
     // console.log(witness.slice(0, 20));
@@ -86,7 +93,12 @@ describe('check-hashes-tokenid-uri circuit tests', () => {
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(tokenIds[0]), tokenUris, salt1, ...sender.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(tokenIds[0]),
+      tokenUris,
+      salt1,
+      ...sender.pubKey,
+    ]);
     const commitments = [input1 + BigInt(1)];
 
     let error;
@@ -99,12 +111,14 @@ describe('check-hashes-tokenid-uri circuit tests', () => {
           salts: [salt1],
           ownerPublicKeys: [sender.pubKey],
         },
-        true
+        true,
       );
     } catch (e) {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckHashesForTokenIdAndUri_74 line: 58/);
+    expect(error).to.match(
+      /Error in template CheckHashesForTokenIdAndUri_74 line: 58/,
+    );
   });
 });

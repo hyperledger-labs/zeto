@@ -52,7 +52,7 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
   before(async () => {
     circuit = await loadCircuit('anon_enc_nullifier_kyc');
     ({ provingKeyFile, verificationKey } = loadProvingKeys(
-      'anon_enc_nullifier_kyc'
+      'anon_enc_nullifier_kyc',
     ));
 
     let keypair = genKeypair();
@@ -125,11 +125,11 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     // generate the merkle proof for the inputs
     const proof1 = await smtAlice.generateCircomVerifierProof(
       input1,
-      ZERO_HASH
+      ZERO_HASH,
     );
     const proof2 = await smtAlice.generateCircomVerifierProof(
       input2,
-      ZERO_HASH
+      ZERO_HASH,
     );
     const utxosRoot = proof1.root.bigInt();
 
@@ -151,17 +151,19 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
     // generate the merkle proof for the transacting identities
     const proof3 = await smtKYC.generateCircomVerifierProof(
       kycHash(Alice.pubKey),
-      ZERO_HASH
+      ZERO_HASH,
     );
     const proof4 = await smtKYC.generateCircomVerifierProof(
       kycHash(Bob.pubKey),
-      ZERO_HASH
+      ZERO_HASH,
     );
     const identitiesRoot = proof3.root.bigInt();
 
     const encryptionNonce = newEncryptionNonce();
+    const ephemeralKeypair = genKeypair();
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
+      ecdhPrivateKey: formatPrivKeyForBabyJub(ephemeralKeypair.privKey),
     });
 
     const startTime = Date.now();
@@ -190,12 +192,12 @@ describe('main circuit tests for Zeto fungible tokens with encryption and anonym
         outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
         ...encryptInputs,
       },
-      true
+      true,
     );
 
     const { proof, publicSignals } = await groth16.prove(
       provingKeyFile,
-      witness
+      witness,
     );
     console.log('Proving time: ', (Date.now() - startTime) / 1000, 's');
 
