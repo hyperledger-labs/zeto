@@ -28,7 +28,7 @@ abstract contract ZetoCommon is OwnableUpgradeable {
     error UTXOAlreadySpent(uint256 utxo);
     error UTXODuplicate(uint256 utxo);
     error IdentityNotRegistered(address addr);
-    error UTXOCommitmentsExceededMaximumNumber(uint256 maxAllowed);
+    error UTXOArrayTooLarge(uint256 maxAllowed);
 
     // used for multi-step transaction flows that require counterparties
     // to upload proofs. To protect the party that uploads their proof first,
@@ -66,13 +66,18 @@ abstract contract ZetoCommon is OwnableUpgradeable {
 
         // Check if inputs or outputs exceed batchMax and revert with custom error if necessary
         if (inputLen > batchMax || outputLen > batchMax) {
-            revert UTXOCommitmentsExceededMaximumNumber(batchMax);
+            revert UTXOArrayTooLarge(batchMax);
         }
 
         // Ensure both arrays are padded to the same length
         uint256 maxLength;
 
+        // By default all tokens supports at least a circuit with 2 inputs and 2 outputs
+        // which has a shorter proof generation time and should cover most use cases.
+        // In addition, tokens can support circuits with bigger inputs
         if (inputLen > 2 || outputLen > 2) {
+            // check whether a batch circuit is required
+
             maxLength = batchMax; // Pad both to batchMax if one has more than 2 items
         } else {
             maxLength = 2; // Otherwise, pad both to 2
