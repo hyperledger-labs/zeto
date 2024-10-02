@@ -19,11 +19,10 @@ lint: ${LINT}
 		GOGC=20 $(LINT) run -v --timeout 5m
 ${LINT}:
 		$(VGO) install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.54.0
-
 go-mod-tidy: .ALWAYS
 		$(VGO) mod tidy
 e2e: test
-		$(VGO) test -v ./integration-test
+		$(VGO) test -count=1  -v ./integration-test
 .ALWAYS: ;
 clean:
 		$(VGO) clean
