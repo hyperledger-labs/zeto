@@ -244,13 +244,13 @@ func (s *E2ETestSuite) TestZeto_2_SuccessfulProving() {
 	assert.Equal(s.T(), 3, len(proof.Proof.A))
 	assert.Equal(s.T(), 3, len(proof.Proof.B))
 	assert.Equal(s.T(), 3, len(proof.Proof.C))
-	assert.Equal(s.T(), 14, len(proof.PubSignals))
+	assert.Equal(s.T(), 15, len(proof.PubSignals))
 
 	// the receiver would be able to get the encrypted values and salts
 	// from the transaction events
-	encryptedValues := make([]*big.Int, 7)
-	for i := 0; i < 7; i++ {
-		v, ok := new(big.Int).SetString(proof.PubSignals[i], 10)
+	encryptedValues := make([]*big.Int, 4)
+	for i := 0; i < 4; i++ {
+		v, ok := new(big.Int).SetString(proof.PubSignals[i+2], 10)
 		assert.True(s.T(), ok)
 		encryptedValues[i] = v
 	}
@@ -259,13 +259,10 @@ func (s *E2ETestSuite) TestZeto_2_SuccessfulProving() {
 	// for the first output. decrypt using the receiver's private key and compare with
 	// the UTXO hash
 	secret := crypto.GenerateECDHSharedSecret(receiver.PrivateKey, ephemeralKeypair.PublicKey)
-	decrypted, err := crypto.PoseidonDecrypt(encryptedValues, []*big.Int{secret.X, secret.Y}, encryptionNonce, 4)
+	decrypted, err := crypto.PoseidonDecrypt(encryptedValues, []*big.Int{secret.X, secret.Y}, encryptionNonce, 2)
 	assert.NoError(s.T(), err)
 	assert.Equal(s.T(), outputValues[0].String(), decrypted[0].String())
 	assert.Equal(s.T(), salt3.String(), decrypted[1].String())
-
-	assert.Equal(s.T(), outputValues[1].String(), decrypted[2].String())
-	assert.Equal(s.T(), salt4.String(), decrypted[3].String())
 
 	// as the receiver, to check if the decryption was successful, we hash the decrypted
 	// value and salt and compare with the output commitment
@@ -444,7 +441,7 @@ func (s *E2ETestSuite) TestZeto_4_SuccessfulProving() {
 	assert.Equal(s.T(), 3, len(proof.Proof.A))
 	assert.Equal(s.T(), 3, len(proof.Proof.B))
 	assert.Equal(s.T(), 3, len(proof.Proof.C))
-	assert.Equal(s.T(), 17, len(proof.PubSignals))
+	assert.Equal(s.T(), 18, len(proof.PubSignals))
 }
 
 func (s *E2ETestSuite) TestZeto_5_SuccessfulProving() {
