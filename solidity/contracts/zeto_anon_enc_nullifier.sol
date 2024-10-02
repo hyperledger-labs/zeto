@@ -27,8 +27,8 @@ import {Commonlib} from "./lib/common.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 uint256 constant MAX_BATCH = 10;
-uint256 constant INPUT_SIZE = 17;
-uint256 constant BATCH_INPUT_SIZE = 56;
+uint256 constant INPUT_SIZE = 18;
+uint256 constant BATCH_INPUT_SIZE = 74;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity, encryption and history masking
 /// @author Kaleido, Inc.
@@ -77,13 +77,13 @@ contract Zeto_AnonEncNullifier is
     ) internal returns (uint256[] memory publicInputs) {
         publicInputs = new uint256[](size);
         uint256 piIndex = 0;
-        // copy the encrypted value, salt and parity bit
-        for (uint256 i = 0; i < encryptedValues.length; ++i) {
-            publicInputs[piIndex++] = encryptedValues[i];
-        }
         // copy the ecdh public key
         for (uint256 i = 0; i < ecdhPublicKey.length; ++i) {
             publicInputs[piIndex++] = ecdhPublicKey[i];
+        }
+        // copy the encrypted value, salt and parity bit
+        for (uint256 i = 0; i < encryptedValues.length; ++i) {
+            publicInputs[piIndex++] = encryptedValues[i];
         }
         // copy input commitments
         for (uint256 i = 0; i < nullifiers.length; i++) {

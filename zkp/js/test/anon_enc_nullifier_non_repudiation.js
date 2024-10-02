@@ -55,8 +55,8 @@ describe("main circuit tests for Zeto fungible tokens with encryption for non-re
     circuit = await wasm_tester(
       join(
         __dirname,
-        "../../circuits/anon_enc_nullifier_non_repudiation.circom",
-      ),
+        "../../circuits/anon_enc_nullifier_non_repudiation.circom"
+      )
     );
 
     let keypair = genKeypair();
@@ -120,11 +120,11 @@ describe("main circuit tests for Zeto fungible tokens with encryption for non-re
     // generate the merkle proof for the inputs
     const proof1 = await smtAlice.generateCircomVerifierProof(
       input1,
-      ZERO_HASH,
+      ZERO_HASH
     );
     const proof2 = await smtAlice.generateCircomVerifierProof(
       input2,
-      ZERO_HASH,
+      ZERO_HASH
     );
 
     // create two output UTXOs, they share the same salt, and different owner
@@ -169,7 +169,7 @@ describe("main circuit tests for Zeto fungible tokens with encryption for non-re
         authorityPublicKey: Regulator.pubKey,
         ...encryptInputs,
       },
-      true,
+      true
     );
 
     // console.log('witness', witness.slice(0, 25));
@@ -184,34 +184,48 @@ describe("main circuit tests for Zeto fungible tokens with encryption for non-re
     // console.log('outputOwnerPublicKeys', [Bob.pubKey, Alice.pubKey]);
     // console.log('encryptionNonce', encryptionNonce);
 
-    expect(witness[26]).to.equal(BigInt(nullifiers[0]));
-    expect(witness[27]).to.equal(BigInt(nullifiers[1]));
-    expect(witness[28]).to.equal(proof1.root.bigInt());
+    expect(witness[27]).to.equal(BigInt(nullifiers[0]));
+    expect(witness[28]).to.equal(BigInt(nullifiers[1]));
+    expect(witness[29]).to.equal(proof1.root.bigInt());
 
     // take the output from the proof circuit and attempt to decrypt
     // as the receiver
-    const cipherText = witness.slice(1, 8); // per the encryption scheme, the output has 7 elements
-    const recoveredKey = genEcdhSharedKey(Bob.privKey, ephemeralKeypair.pubKey);
-    const plainText = poseidonDecrypt(
+    let cipherText = witness.slice(3, 7);
+    let recoveredKey = genEcdhSharedKey(Bob.privKey, ephemeralKeypair.pubKey);
+    let plainText = poseidonDecrypt(
       cipherText,
       recoveredKey,
       encryptionNonce,
-      4,
+      2
     );
-    expect(plainText).to.deep.equal([20n, salt3, 52n, salt4]);
+    expect(plainText).to.deep.equal([20n, salt3]);
+
+    // decrypting the second utxo should fail as it belongs to the sender
+    cipherText = witness.slice(7, 11);
+    recoveredKey = genEcdhSharedKey(Bob.privKey, ephemeralKeypair.pubKey);
+    expect(function () {
+      plainText = poseidonDecrypt(cipherText, recoveredKey, encryptionNonce, 2);
+    }).to.throw(
+      "The last ciphertext element must match the second item of the permuted state"
+    );
+
+    // decrypt using the sender's key should success
+    recoveredKey = genEcdhSharedKey(Alice.privKey, ephemeralKeypair.pubKey);
+    plainText = poseidonDecrypt(cipherText, recoveredKey, encryptionNonce, 2);
+    expect(plainText).to.deep.equal([52n, salt4]);
 
     // take the output from the proof circuit and attempt to decrypt
     // as the regulator
     const recoveredKey2 = genEcdhSharedKey(
       Regulator.privKey,
-      ephemeralKeypair.pubKey,
+      ephemeralKeypair.pubKey
     );
-    const cipherText2 = witness.slice(10, 26); // next 16 elements are the cipher text for the second encryption output
+    const cipherText2 = witness.slice(11, 27); // next 16 elements are the cipher text for the second encryption output
     const plainText2 = poseidonDecrypt(
       cipherText2,
       recoveredKey2,
       encryptionNonce,
-      14,
+      14
     );
     expect(plainText2).to.deep.equal([
       Alice.pubKey[0], // input owner public key
@@ -258,7 +272,7 @@ describe("main circuit tests for Zeto fungible tokens with encryption for non-re
     // generate the merkle proof for the inputs
     const proof1 = await smtAlice.generateCircomVerifierProof(
       input1,
-      ZERO_HASH,
+      ZERO_HASH
     );
     const proof2 = await smtAlice.generateCircomVerifierProof(0, ZERO_HASH);
 
@@ -304,7 +318,7 @@ describe("main circuit tests for Zeto fungible tokens with encryption for non-re
         authorityPublicKey: Regulator.pubKey,
         ...encryptInputs,
       },
-      true,
+      true
     );
 
     // console.log('witness', witness);
@@ -319,34 +333,34 @@ describe("main circuit tests for Zeto fungible tokens with encryption for non-re
     // console.log('outputOwnerPublicKeys', [receiver.pubKey, sender.pubKey]);
     // console.log('encryptionNonce', encryptionNonce);
 
-    expect(witness[26]).to.equal(BigInt(nullifiers[0]));
-    expect(witness[27]).to.equal(BigInt(nullifiers[1]));
-    expect(witness[28]).to.equal(proof1.root.bigInt());
+    expect(witness[27]).to.equal(BigInt(nullifiers[0]));
+    expect(witness[28]).to.equal(BigInt(nullifiers[1]));
+    expect(witness[29]).to.equal(proof1.root.bigInt());
 
     // take the output from the proof circuit and attempt to decrypt
     // as the receiver
-    const cipherText = witness.slice(1, 8); // first 7 elements are the cipher text for the first encryption output
+    const cipherText = witness.slice(3, 7);
     const recoveredKey = genEcdhSharedKey(Bob.privKey, ephemeralKeypair.pubKey);
     const plainText = poseidonDecrypt(
       cipherText,
       recoveredKey,
       encryptionNonce,
-      4,
+      2
     );
-    expect(plainText).to.deep.equal([20n, salt3, 52n, salt4]);
+    expect(plainText).to.deep.equal([20n, salt3]);
 
     // take the output from the proof circuit and attempt to decrypt
     // as the regulator
     const recoveredKey2 = genEcdhSharedKey(
       Regulator.privKey,
-      ephemeralKeypair.pubKey,
+      ephemeralKeypair.pubKey
     );
-    const cipherText2 = witness.slice(10, 26); // next 16 elements are the cipher text for the second encryption output
+    const cipherText2 = witness.slice(11, 27); // next 16 elements are the cipher text for the second encryption output
     const plainText2 = poseidonDecrypt(
       cipherText2,
       recoveredKey2,
       encryptionNonce,
-      14,
+      14
     );
     expect(plainText2).to.deep.equal([
       Alice.pubKey[0],
@@ -405,11 +419,11 @@ describe("main circuit tests for Zeto fungible tokens with encryption for non-re
     // generate the merkle proof for the inputs
     const proof1 = await smtAlice.generateCircomVerifierProof(
       input1,
-      ZERO_HASH,
+      ZERO_HASH
     );
     const proof2 = await smtAlice.generateCircomVerifierProof(
       input2,
-      ZERO_HASH,
+      ZERO_HASH
     );
 
     // create two output UTXOs, they share the same salt, and different owner
@@ -455,13 +469,13 @@ describe("main circuit tests for Zeto fungible tokens with encryption for non-re
           authorityPublicKey: Regulator.pubKey,
           ...encryptInputs,
         },
-        true,
+        true
       );
     } catch (e) {
       err = e;
     }
     // console.log(err);
     expect(err).to.match(/Error in template CheckSum_161 line: 44/);
-    expect(err).to.match(/Error in template Zeto_264 line: 118/);
+    expect(err).to.match(/Error in template Zeto_265 line: 112/);
   });
 });

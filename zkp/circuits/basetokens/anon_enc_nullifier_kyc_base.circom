@@ -20,8 +20,7 @@ include "../lib/check-hashes.circom";
 include "../lib/check-sum.circom";
 include "../lib/check-nullifiers.circom";
 include "../lib/check-smt-proof.circom";
-include "../lib/ecdh.circom";
-include "../lib/encrypt.circom";
+include "../lib/encrypt-outputs.circom";
 include "../node_modules/circomlib/circuits/babyjub.circom";
 
 // This version of the circuit performs the following operations:
@@ -53,16 +52,11 @@ template Zeto(nInputs, nOutputs, nUTXOSMTLevels, nIdentitiesSMTLevels) {
   signal input outputSalts[nOutputs];
   signal input encryptionNonce;
 
-  // the output for encrypted output values and salts
-  var cLen = 2 * nOutputs;
-  if (cLen % 3 != 0) {
-    cLen += (3 - (cLen % 3));
-  }
-  cLen++;
-  signal output cipherText[cLen];
-
   // the output for the public key of the ephemeral private key used in generating ECDH shared key
   signal output ecdhPublicKey[2];
+
+  // the output for the list of encrypted output UTXOs cipher texts
+  signal output cipherTexts[nOutputs][4];
   
   // derive the sender's public key from the secret input
   // for the sender's private key. This step demonstrates
@@ -140,29 +134,13 @@ template Zeto(nInputs, nOutputs, nUTXOSMTLevels, nIdentitiesSMTLevels) {
   checkIdentitiesSMTProof.enabled <== identitiesMTPCheckEnabled;
   checkIdentitiesSMTProof.leafNodeIndexes <== ownerPublicKeyHashes;
 
-  // generate shared secret
-  var sharedSecret[2];
-  component ecdh = Ecdh();
-  ecdh.privKey <== ecdhPrivateKey;
-  ecdh.pubKey[0] <== outputOwnerPublicKeys[0][0];
-  ecdh.pubKey[1] <== outputOwnerPublicKeys[0][1];
-  sharedSecret[0] = ecdh.sharedKey[0];
-  sharedSecret[1] = ecdh.sharedKey[1];
-
-  // encrypt the value for the output utxos
-  component encrypt = SymmetricEncrypt(2 * nOutputs);
-  for (var i = 0; i < nOutputs; i++) {
-    encrypt.plainText[2 * i] <== outputValues[i];
-    encrypt.plainText[2 * i + 1] <== outputSalts[i];
-  }
-  encrypt.key <== sharedSecret;
-  encrypt.nonce <== encryptionNonce;
-  for (var i = 0; i < cLen; i++) {
-    encrypt.cipherText[i] ==> cipherText[i];
-  }
-
-  component ecdhPub = BabyPbk();
-  ecdhPub.in <== ecdhPrivateKey;
-  ecdhPublicKey[0] <== ecdhPub.Ax;
-  ecdhPublicKey[1] <== ecdhPub.Ay;
+  component encryptOutputs = EncryptOutputs(nOutputs);
+  encryptOutputs.ecdhPrivateKey <== ecdhPrivateKey;
+  encryptOutputs.encryptionNonce <== encryptionNonce;
+  encryptOutputs.outputValues <== outputValues;
+  encryptOutputs.outputSalts <== outputSalts;
+  encryptOutputs.outputOwnerPublicKeys <== outputOwnerPublicKeys;
+  
+  encryptOutputs.ecdhPublicKey ==> ecdhPublicKey;
+  encryptOutputs.cipherTexts ==> cipherTexts;
 }

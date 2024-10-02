@@ -20,8 +20,7 @@ include "../lib/check-hashes.circom";
 include "../lib/check-sum.circom";
 include "../lib/check-nullifiers.circom";
 include "../lib/check-smt-proof.circom";
-include "../lib/ecdh.circom";
-include "../lib/encrypt.circom";
+include "../lib/encrypt-outputs.circom";
 include "../node_modules/circomlib/circuits/babyjub.circom";
 
 // This version of the circuit performs the following operations:
@@ -52,16 +51,11 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   signal input encryptionNonce;
   signal input authorityPublicKey[2];
 
-  // the output for encrypted output values and salts
-  var cLen = 2 * nOutputs;
-  if (cLen % 3 != 0) {
-    cLen += (3 - (cLen % 3));
-  }
-  cLen++;
-  signal output cipherText[cLen];
-
   // the output for the public key of the ephemeral private key used in generating ECDH shared key
   signal output ecdhPublicKey[2];
+
+  // the output for the list of encrypted output UTXOs cipher texts
+  signal output cipherTexts[nOutputs][4];
   
   // the number of cipher text messages returned by
   // the encryption template will be 3n+1
@@ -127,68 +121,52 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   checkSMTProof.enabled <== enabled;
   checkSMTProof.leafNodeIndexes <== inputCommitments;
 
-  // generate shared secret for the receiver
-  var sharedSecretReceiver[2];
-  component ecdh1 = Ecdh();
-  ecdh1.privKey <== ecdhPrivateKey;
-  ecdh1.pubKey[0] <== outputOwnerPublicKeys[0][0];
-  ecdh1.pubKey[1] <== outputOwnerPublicKeys[0][1];
-  sharedSecretReceiver[0] = ecdh1.sharedKey[0];
-  sharedSecretReceiver[1] = ecdh1.sharedKey[1];
-
-    // encrypt the value for the output utxos
-  component encrypt1 = SymmetricEncrypt(2 * nOutputs);
-  for (var i = 0; i < nOutputs; i++) {
-    encrypt1.plainText[2 * i] <== outputValues[i];
-    encrypt1.plainText[2 * i + 1] <== outputSalts[i];
-  }
-  encrypt1.key <== sharedSecretReceiver;
-  encrypt1.nonce <== encryptionNonce;
-  for (var i = 0; i < cLen; i++) {
-    encrypt1.cipherText[i] ==> cipherText[i];
-  }
+  // Generate cipher text for output utxos
+  component encryptOutputs = EncryptOutputs(nOutputs);
+  encryptOutputs.ecdhPrivateKey <== ecdhPrivateKey;
+  encryptOutputs.encryptionNonce <== encryptionNonce;
+  encryptOutputs.outputValues <== outputValues;
+  encryptOutputs.outputSalts <== outputSalts;
+  encryptOutputs.outputOwnerPublicKeys <== outputOwnerPublicKeys;
+  
+  encryptOutputs.ecdhPublicKey ==> ecdhPublicKey;
+  encryptOutputs.cipherTexts ==> cipherTexts;
 
   // generate shared secret for the authority
   var sharedSecretAuthority[2];
-  component ecdh2 = Ecdh();
-  ecdh2.privKey <== ecdhPrivateKey;
-  ecdh2.pubKey[0] <== authorityPublicKey[0];
-  ecdh2.pubKey[1] <== authorityPublicKey[1];
-  sharedSecretAuthority[0] = ecdh2.sharedKey[0];
-  sharedSecretAuthority[1] = ecdh2.sharedKey[1];
+  component ecdhAuth = Ecdh();
+  ecdhAuth.privKey <== ecdhPrivateKey;
+  ecdhAuth.pubKey[0] <== authorityPublicKey[0];
+  ecdhAuth.pubKey[1] <== authorityPublicKey[1];
+  sharedSecretAuthority[0] = ecdhAuth.sharedKey[0];
+  sharedSecretAuthority[1] = ecdhAuth.sharedKey[1];
 
-  component ecdhPub = BabyPbk();
-  ecdhPub.in <== ecdhPrivateKey;
-  ecdhPublicKey[0] <== ecdhPub.Ax;
-  ecdhPublicKey[1] <== ecdhPub.Ay;
 
   // encrypt the values for the authority
-  component encrypt2 = SymmetricEncrypt(2 + 2 * nInputs + 4 * nOutputs);
-  encrypt2.plainText[0] <== inputOwnerPublicKey[0];
-  encrypt2.plainText[1] <== inputOwnerPublicKey[1];
+  component encryptAuth = SymmetricEncrypt(2 + 2 * nInputs + 4 * nOutputs);
+  encryptAuth.plainText[0] <== inputOwnerPublicKey[0];
+  encryptAuth.plainText[1] <== inputOwnerPublicKey[1];
 
   var idx1 = 2;
   for (var i = 0; i < nInputs; i++) {
-    encrypt2.plainText[idx1] <== inputValues[i];
+    encryptAuth.plainText[idx1] <== inputValues[i];
     idx1++;
-    encrypt2.plainText[idx1] <== inputSalts[i];
-    idx1++;
-  }
-  for (var i = 0; i < nOutputs; i++) {
-    encrypt2.plainText[idx1] <== outputOwnerPublicKeys[i][0];
-    idx1++;
-    encrypt2.plainText[idx1] <== outputOwnerPublicKeys[i][1];
+    encryptAuth.plainText[idx1] <== inputSalts[i];
     idx1++;
   }
   for (var i = 0; i < nOutputs; i++) {
-    encrypt2.plainText[idx1] <== outputValues[i];
+    encryptAuth.plainText[idx1] <== outputOwnerPublicKeys[i][0];
     idx1++;
-    encrypt2.plainText[idx1] <== outputSalts[i];
+    encryptAuth.plainText[idx1] <== outputOwnerPublicKeys[i][1];
     idx1++;
   }
-  encrypt2.key <== sharedSecretAuthority;
-  encrypt2.nonce <== encryptionNonce;
-  encrypt2.cipherText ==> cipherTextAuthority;
-
-
+  for (var i = 0; i < nOutputs; i++) {
+    encryptAuth.plainText[idx1] <== outputValues[i];
+    idx1++;
+    encryptAuth.plainText[idx1] <== outputSalts[i];
+    idx1++;
+  }
+  encryptAuth.key <== sharedSecretAuthority;
+  encryptAuth.nonce <== encryptionNonce;
+  encryptAuth.cipherText ==> cipherTextAuthority;
 }

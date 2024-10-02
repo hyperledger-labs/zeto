@@ -175,21 +175,36 @@ describe("main circuit tests for Zeto fungible tokens with encryption and anonym
     // console.log('outputOwnerPublicKeys', [Bob.pubKey, Alice.pubKey]);
     // console.log('encryptionNonce', encryptionNonce);
 
-    expect(witness[10]).to.equal(BigInt(nullifiers[0]));
-    expect(witness[11]).to.equal(BigInt(nullifiers[1]));
-    expect(witness[12]).to.equal(proof1.root.bigInt());
+    expect(witness[11]).to.equal(BigInt(nullifiers[0]));
+    expect(witness[12]).to.equal(BigInt(nullifiers[1]));
+    expect(witness[13]).to.equal(proof1.root.bigInt());
 
     // take the output from the proof circuit and attempt to decrypt
     // as the receiver
-    const cipherText = witness.slice(1, 8); // first 7 elements are the cipher text for the encryption output
-    const recoveredKey = genEcdhSharedKey(Bob.privKey, ephemeralKeypair.pubKey);
-    const plainText = poseidonDecrypt(
+    // decrypting the first utxo should succeed
+    let cipherText = witness.slice(3, 7);
+    let recoveredKey = genEcdhSharedKey(Bob.privKey, ephemeralKeypair.pubKey);
+    let plainText = poseidonDecrypt(
       cipherText,
       recoveredKey,
       encryptionNonce,
-      4,
+      2,
     );
-    expect(plainText).to.deep.equal([20n, salt3, 52n, salt4]);
+    expect(plainText).to.deep.equal([20n, salt3]);
+
+    // decrypting the second utxo should fail as it belongs to the sender
+    cipherText = witness.slice(7, 11);
+    recoveredKey = genEcdhSharedKey(Bob.privKey, ephemeralKeypair.pubKey);
+    expect(function () {
+      plainText = poseidonDecrypt(cipherText, recoveredKey, encryptionNonce, 2);
+    }).to.throw(
+      "The last ciphertext element must match the second item of the permuted state",
+    );
+
+    // decrypt using the sender's key should success
+    recoveredKey = genEcdhSharedKey(Alice.privKey, ephemeralKeypair.pubKey);
+    plainText = poseidonDecrypt(cipherText, recoveredKey, encryptionNonce, 2);
+    expect(plainText).to.deep.equal([52n, salt4]);
   });
 
   it("should succeed for valid witness and produce an encypted value - single input", async () => {
@@ -279,21 +294,22 @@ describe("main circuit tests for Zeto fungible tokens with encryption and anonym
     // console.log('outputOwnerPublicKeys', [receiver.pubKey, sender.pubKey]);
     // console.log('encryptionNonce', encryptionNonce);
 
-    expect(witness[10]).to.equal(BigInt(nullifiers[0]));
-    expect(witness[11]).to.equal(BigInt(nullifiers[1]));
-    expect(witness[12]).to.equal(proof1.root.bigInt());
+    expect(witness[11]).to.equal(BigInt(nullifiers[0]));
+    expect(witness[12]).to.equal(BigInt(nullifiers[1]));
+    expect(witness[13]).to.equal(proof1.root.bigInt());
 
     // take the output from the proof circuit and attempt to decrypt
     // as the receiver
-    const cipherText = witness.slice(1, 8); // first 7 elements are the cipher text for the encryption output
-    const recoveredKey = genEcdhSharedKey(Bob.privKey, ephemeralKeypair.pubKey);
-    const plainText = poseidonDecrypt(
+    // decrypting the first utxo should succeed
+    let cipherText = witness.slice(3, 7);
+    let recoveredKey = genEcdhSharedKey(Bob.privKey, ephemeralKeypair.pubKey);
+    let plainText = poseidonDecrypt(
       cipherText,
       recoveredKey,
       encryptionNonce,
-      4,
+      2,
     );
-    expect(plainText).to.deep.equal([20n, salt3, 52n, salt4]);
+    expect(plainText).to.deep.equal([20n, salt3]);
   });
 
   it("should fail to generate a witness because mass conservation is not obeyed", async () => {
@@ -389,8 +405,8 @@ describe("main circuit tests for Zeto fungible tokens with encryption and anonym
     } catch (e) {
       err = e;
     }
-    // console.log(err);
+    console.log(err);
     expect(err).to.match(/Error in template CheckSum_161 line: 44/);
-    expect(err).to.match(/Error in template Zeto_263 line: 102/);
+    expect(err).to.match(/Error in template Zeto_264 line: 96/);
   });
 });
