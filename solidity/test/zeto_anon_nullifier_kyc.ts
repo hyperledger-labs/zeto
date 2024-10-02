@@ -117,7 +117,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
     expect(root.string()).to.equal(onchainRoot.toString());
   });
 
-  it("(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob should succeed", async function () {
+  it("(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob and Charlie should succeed", async function () {
     // first mint the tokens for batch testing
     const inputUtxos = [];
     const nullifiers = [];
@@ -161,13 +161,24 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
       identitiesRoot,
     );
     const bobProof = bProof.siblings.map((s) => s.bigInt());
-    // Alice proposes the output UTXOs, 1 utxo to bob, 2 utxos to alice
+
+    const cProof = await smtKyc.generateCircomVerifierProof(
+      kycHash(Charlie.babyJubPublicKey),
+      identitiesRoot,
+    );
+    const charlieProof = cProof.siblings.map((s) => s.bigInt());
+    // Alice proposes the output UTXOs, 1 utxo to bob, 1 utxo to charlie and 1 utxo to alice
     const _bOut1 = newUTXO(8, Bob);
-    const _bOut2 = newUTXO(1, Alice);
+    const _bOut2 = newUTXO(1, Charlie);
     const _bOut3 = newUTXO(1, Alice);
     const outputUtxos = [_bOut1, _bOut2, _bOut3];
-    const outputOwners = [Bob, Alice, Alice];
-    const identityMerkleProofs = [aliceProof, bobProof, aliceProof, aliceProof];
+    const outputOwners = [Bob, Charlie, Alice];
+    const identityMerkleProofs = [
+      aliceProof,
+      bobProof,
+      charlieProof,
+      aliceProof,
+    ];
     const inflatedOutputUtxos = [...outputUtxos];
     const inflatedOutputOwners = [...outputOwners];
     for (let i = 0; i < 10 - outputUtxos.length; i++) {

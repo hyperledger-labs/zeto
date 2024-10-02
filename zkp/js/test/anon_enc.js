@@ -111,40 +111,60 @@ describe("main circuit tests for Zeto fungible tokens with anonymity with encryp
       true,
     );
 
-    // console.log('witness', witness.slice(0, 15));
+    // console.log("witness", witness.slice(0, 15));
     // console.log('senderPublicKey', sender.pubKey);
     // console.log('receiverPublicKey', receiver.pubKey);
     // console.log('ephemeralPubkey', ephemeralKeypair.pubKey);
     // console.log('inputCommitments', inputCommitments);
     // console.log('encryptionNonce', encryptionNonce);
 
-    expect(witness[8]).to.equal(BigInt(ephemeralKeypair.pubKey[0]));
-    expect(witness[9]).to.equal(BigInt(ephemeralKeypair.pubKey[1]));
-    expect(witness[10]).to.equal(BigInt(inputCommitments[0]));
-    expect(witness[11]).to.equal(BigInt(inputCommitments[1]));
-    expect(witness[12]).to.equal(BigInt(outputCommitments[0]));
-    expect(witness[13]).to.equal(BigInt(outputCommitments[1]));
+    expect(witness[1]).to.equal(BigInt(ephemeralKeypair.pubKey[0]));
+    expect(witness[2]).to.equal(BigInt(ephemeralKeypair.pubKey[1]));
+    expect(witness[11]).to.equal(BigInt(inputCommitments[0]));
+    expect(witness[12]).to.equal(BigInt(inputCommitments[1]));
+    expect(witness[13]).to.equal(BigInt(outputCommitments[0]));
+    expect(witness[14]).to.equal(BigInt(outputCommitments[1]));
 
     // take the output from the proof circuit and attempt to decrypt
     // as the receiver
-    const cipherText = witness.slice(1, 8);
-    const recoveredKey = genEcdhSharedKey(
+    // decrypting the first utxo should succeed
+    let cipherText = witness.slice(3, 7);
+    let recoveredKey = genEcdhSharedKey(
       receiver.privKey,
       ephemeralKeypair.pubKey,
     );
-    const plainText = poseidonDecrypt(
+    let plainText = poseidonDecrypt(
       cipherText,
       recoveredKey,
       encryptionNonce,
-      4,
+      2,
     );
     // use the recovered value (plainText[0]) and salt (plainText[1]) to verify the output commitment
-    const calculatedHash = poseidonHash([
+    let calculatedHash = poseidonHash([
       BigInt(plainText[0]),
       BigInt(plainText[1]),
       ...receiver.pubKey,
     ]);
     expect(calculatedHash).to.equal(outputCommitments[0]);
+
+    // decrypting the second utxo should fail as it belongs to the sender
+    cipherText = witness.slice(7, 11);
+    recoveredKey = genEcdhSharedKey(receiver.privKey, ephemeralKeypair.pubKey);
+    expect(function () {
+      plainText = poseidonDecrypt(cipherText, recoveredKey, encryptionNonce, 2);
+    }).to.throw(
+      "The last ciphertext element must match the second item of the permuted state",
+    );
+
+    // decrypt using the sender's key should success
+    recoveredKey = genEcdhSharedKey(sender.privKey, ephemeralKeypair.pubKey);
+    plainText = poseidonDecrypt(cipherText, recoveredKey, encryptionNonce, 2);
+    calculatedHash = poseidonHash([
+      BigInt(plainText[0]),
+      BigInt(plainText[1]),
+      ...sender.pubKey,
+    ]);
+    expect(calculatedHash).to.equal(outputCommitments[1]);
   });
 
   it("should fail to generate a witness because mass conservation is not obeyed", async () => {
@@ -206,7 +226,7 @@ describe("main circuit tests for Zeto fungible tokens with anonymity with encryp
       err = e;
     }
     // console.log(err);
-    expect(err).to.match(/Error in template Zeto_105 line: 89/);
+    expect(err).to.match(/Error in template Zeto_106 line: 82/);
   });
 
   it("should failed to match output UTXO after decrypting the cipher texts from the events if using the wrong sender public keys", async () => {
@@ -268,7 +288,7 @@ describe("main circuit tests for Zeto fungible tokens with anonymity with encryp
     // take the output from the proof circuit and attempt to decrypt
     // as the receiver, but without using the correct sender public key
     const wrongSender = genKeypair();
-    const cipherText = witness.slice(1, 5);
+    const cipherText = witness.slice(3, 7);
     const recoveredKey = genEcdhSharedKey(receiver.privKey, wrongSender.pubKey);
     // the decryption scheme has self-checking mechanism, so it should throw an error
     expect(function () {

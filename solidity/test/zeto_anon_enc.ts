@@ -83,7 +83,7 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     ({ provingKeyFile: batchProvingKey } = loadProvingKeys("anon_enc_batch"));
   });
 
-  it("(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob should succeed", async function () {
+  it("(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob and Charlie should succeed", async function () {
     // first mint the tokens for batch testing
     const inputUtxos = [];
     for (let i = 0; i < 10; i++) {
@@ -92,12 +92,12 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     }
     await doMint(zeto, deployer, inputUtxos);
 
-    // Alice proposes the output UTXOs, 1 utxo to bob, 2 utxos to alice
+    // Alice proposes the output UTXOs, 1 utxo to bob, 1 utxo to charlie and 1 utxo to alice
     const _bOut1 = newUTXO(8, Bob);
-    const _bOut2 = newUTXO(1, Alice);
+    const _bOut2 = newUTXO(1, Charlie);
     const _bOut3 = newUTXO(1, Alice);
     const outputUtxos = [_bOut1, _bOut2, _bOut3];
-    const outputOwners = [Bob, Alice, Alice];
+    const outputOwners = [Bob, Charlie, Alice];
     const inflatedOutputUtxos = [...outputUtxos];
     const inflatedOutputOwners = [...outputOwners];
     for (let i = 0; i < 10 - outputUtxos.length; i++) {
@@ -117,25 +117,28 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     expect(events[0].inputs).to.deep.equal(inputUtxos.map((i) => i.hash));
     const incomingUTXOs: any = events[0].outputs;
     const ecdhPublicKey = events[0].ecdhPublicKey;
-    // Bob reconstructs the shared key using his private key and ephemeral public key
-
-    const sharedKey = genEcdhSharedKey(Bob.babyJubPrivateKey, ecdhPublicKey);
-    const plainText = poseidonDecrypt(
-      events[0].encryptedValues,
-      sharedKey,
-      events[0].encryptionNonce,
-      20,
-    );
-    expect(plainText).to.deep.equal(result.expectedPlainText);
 
     // check the non-empty output hashes are correct
     for (let i = 0; i < outputUtxos.length; i++) {
-      // Bob uses the information received from Alice to reconstruct the UTXO sent to him
+      const utxoOwner = outputOwners[i];
+      const sharedKey = genEcdhSharedKey(
+        utxoOwner.babyJubPrivateKey,
+        ecdhPublicKey,
+      );
+      const plainText = poseidonDecrypt(
+        events[0].encryptedValues.slice(4 * i, 4 * i + 4),
+        sharedKey,
+        events[0].encryptionNonce,
+        2,
+      );
+      expect(plainText).to.deep.equal(
+        result.expectedPlainText.slice(2 * i, 2 * i + 2),
+      );
       const hash = poseidonHash([
-        BigInt(plainText[2 * i]),
-        plainText[2 * i + 1],
-        outputOwners[i].babyJubPublicKey[0],
-        outputOwners[i].babyJubPublicKey[1],
+        BigInt(plainText[0]),
+        plainText[1],
+        utxoOwner.babyJubPublicKey[0],
+        utxoOwner.babyJubPublicKey[1],
       ]);
       expect(incomingUTXOs[i]).to.equal(hash);
     }
@@ -143,8 +146,6 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     // check empty values, salt and hashes are empty
     for (let i = outputUtxos.length; i < 10; i++) {
       expect(incomingUTXOs[i]).to.equal(0);
-      expect(plainText[2 * i]).to.equal(0);
-      expect(plainText[2 * i + 1]).to.equal(0);
     }
   });
 
@@ -208,12 +209,12 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
 
     const sharedKey = genEcdhSharedKey(Bob.babyJubPrivateKey, ecdhPublicKey);
     const plainText = poseidonDecrypt(
-      events[0].encryptedValues,
+      events[0].encryptedValues.slice(0, 4),
       sharedKey,
       events[0].encryptionNonce,
-      4,
+      2,
     );
-    expect(plainText).to.deep.equal(result.expectedPlainText);
+    expect(plainText).to.deep.equal(result.expectedPlainText.slice(0, 2));
     // Bob verifies that the UTXO constructed from the decrypted values matches the UTXO from the event
     const hash = poseidonHash([
       BigInt(plainText[0]),
@@ -436,10 +437,11 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
       `Witness calculation time: ${timeWitnessCalculation}ms, Proof generation time: ${timeProofGeneration}ms`,
     );
 
+    // console.log(publicSignals);
     const encodedProof = encodeProof(proof);
     const encryptedValues = isBatch
-      ? publicSignals.slice(0, 22)
-      : publicSignals.slice(0, 7);
+      ? publicSignals.slice(2, 42)
+      : publicSignals.slice(2, 10);
     return {
       inputCommitments,
       outputCommitments,
