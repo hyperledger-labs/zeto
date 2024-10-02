@@ -55,8 +55,8 @@ describe("main circuit tests for Zeto fungible tokens with encryption for non-re
     circuit = await wasm_tester(
       join(
         __dirname,
-        "../../circuits/anon_enc_nullifier_non_repudiation.circom"
-      )
+        "../../circuits/anon_enc_nullifier_non_repudiation.circom",
+      ),
     );
 
     let keypair = genKeypair();
@@ -120,11 +120,11 @@ describe("main circuit tests for Zeto fungible tokens with encryption for non-re
     // generate the merkle proof for the inputs
     const proof1 = await smtAlice.generateCircomVerifierProof(
       input1,
-      ZERO_HASH
+      ZERO_HASH,
     );
     const proof2 = await smtAlice.generateCircomVerifierProof(
       input2,
-      ZERO_HASH
+      ZERO_HASH,
     );
 
     // create two output UTXOs, they share the same salt, and different owner
@@ -169,7 +169,7 @@ describe("main circuit tests for Zeto fungible tokens with encryption for non-re
         authorityPublicKey: Regulator.pubKey,
         ...encryptInputs,
       },
-      true
+      true,
     );
 
     // console.log('witness', witness.slice(0, 25));
@@ -196,7 +196,7 @@ describe("main circuit tests for Zeto fungible tokens with encryption for non-re
       cipherText,
       recoveredKey,
       encryptionNonce,
-      2
+      2,
     );
     expect(plainText).to.deep.equal([20n, salt3]);
 
@@ -206,7 +206,7 @@ describe("main circuit tests for Zeto fungible tokens with encryption for non-re
     expect(function () {
       plainText = poseidonDecrypt(cipherText, recoveredKey, encryptionNonce, 2);
     }).to.throw(
-      "The last ciphertext element must match the second item of the permuted state"
+      "The last ciphertext element must match the second item of the permuted state",
     );
 
     // decrypt using the sender's key should success
@@ -218,14 +218,14 @@ describe("main circuit tests for Zeto fungible tokens with encryption for non-re
     // as the regulator
     const recoveredKey2 = genEcdhSharedKey(
       Regulator.privKey,
-      ephemeralKeypair.pubKey
+      ephemeralKeypair.pubKey,
     );
     const cipherText2 = witness.slice(11, 27); // next 16 elements are the cipher text for the second encryption output
     const plainText2 = poseidonDecrypt(
       cipherText2,
       recoveredKey2,
       encryptionNonce,
-      14
+      14,
     );
     expect(plainText2).to.deep.equal([
       Alice.pubKey[0], // input owner public key
@@ -272,7 +272,7 @@ describe("main circuit tests for Zeto fungible tokens with encryption for non-re
     // generate the merkle proof for the inputs
     const proof1 = await smtAlice.generateCircomVerifierProof(
       input1,
-      ZERO_HASH
+      ZERO_HASH,
     );
     const proof2 = await smtAlice.generateCircomVerifierProof(0, ZERO_HASH);
 
@@ -318,7 +318,7 @@ describe("main circuit tests for Zeto fungible tokens with encryption for non-re
         authorityPublicKey: Regulator.pubKey,
         ...encryptInputs,
       },
-      true
+      true,
     );
 
     // console.log('witness', witness);
@@ -345,7 +345,7 @@ describe("main circuit tests for Zeto fungible tokens with encryption for non-re
       cipherText,
       recoveredKey,
       encryptionNonce,
-      2
+      2,
     );
     expect(plainText).to.deep.equal([20n, salt3]);
 
@@ -353,14 +353,14 @@ describe("main circuit tests for Zeto fungible tokens with encryption for non-re
     // as the regulator
     const recoveredKey2 = genEcdhSharedKey(
       Regulator.privKey,
-      ephemeralKeypair.pubKey
+      ephemeralKeypair.pubKey,
     );
     const cipherText2 = witness.slice(11, 27); // next 16 elements are the cipher text for the second encryption output
     const plainText2 = poseidonDecrypt(
       cipherText2,
       recoveredKey2,
       encryptionNonce,
-      14
+      14,
     );
     expect(plainText2).to.deep.equal([
       Alice.pubKey[0],
@@ -419,11 +419,11 @@ describe("main circuit tests for Zeto fungible tokens with encryption for non-re
     // generate the merkle proof for the inputs
     const proof1 = await smtAlice.generateCircomVerifierProof(
       input1,
-      ZERO_HASH
+      ZERO_HASH,
     );
     const proof2 = await smtAlice.generateCircomVerifierProof(
       input2,
-      ZERO_HASH
+      ZERO_HASH,
     );
 
     // create two output UTXOs, they share the same salt, and different owner
@@ -469,7 +469,7 @@ describe("main circuit tests for Zeto fungible tokens with encryption for non-re
           authorityPublicKey: Regulator.pubKey,
           ...encryptInputs,
         },
-        true
+        true,
       );
     } catch (e) {
       err = e;
