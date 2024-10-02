@@ -15,23 +15,31 @@
 // limitations under the License.
 
 import { ethers, ignition } from "hardhat";
-import zetoModule from '../../ignition/modules/zeto_anon_enc_nullifier_non_repudiation';
+import zetoModule from "../../ignition/modules/zeto_anon_enc_nullifier_non_repudiation";
 
 export async function deployDependencies() {
   const [deployer] = await ethers.getSigners();
 
-  const { depositVerifier, withdrawVerifier, verifier, smtLib, poseidon3 } = await ignition.deploy(zetoModule);
+  const {
+    depositVerifier,
+    withdrawVerifier,
+    verifier,
+    batchVerifier,
+    smtLib,
+    poseidon3,
+  } = await ignition.deploy(zetoModule);
   return {
     deployer,
     args: [
       await deployer.getAddress(),
       verifier.target,
       depositVerifier.target,
-      withdrawVerifier.target
+      withdrawVerifier.target,
+      batchVerifier.target,
     ],
     libraries: {
       SmtLib: smtLib.target,
-      PoseidonUnit3L: poseidon3.target
-    }
+      PoseidonUnit3L: poseidon3.target,
+    },
   };
 }

@@ -29,8 +29,8 @@ function loadProvingKeys(type) {
   const provingKeyFile = path.join(provingKeysRoot(), `${type}.zkey`);
   const verificationKey = JSON.parse(
     new TextDecoder().decode(
-      readFileSync(path.join(provingKeysRoot(), `${type}-vkey.json`))
-    )
+      readFileSync(path.join(provingKeysRoot(), `${type}-vkey.json`)),
+    ),
   );
   return {
     provingKeyFile,

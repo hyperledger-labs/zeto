@@ -14,19 +14,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ethers, network } from 'hardhat';
-import { ContractTransactionReceipt, Signer, BigNumberish } from 'ethers';
-import { expect } from 'chai';
+import { ethers, network } from "hardhat";
+import { ContractTransactionReceipt, Signer, BigNumberish } from "ethers";
+import { expect } from "chai";
 import {
   loadCircuit,
   poseidonDecrypt,
   encodeProof,
+  Poseidon,
   newEncryptionNonce,
   kycHash,
-} from 'zeto-js';
-import { groth16 } from 'snarkjs';
-import { genEcdhSharedKey, stringifyBigInts } from 'maci-crypto';
-import { Merkletree, InMemoryDB, str2Bytes } from '@iden3/js-merkletree';
+} from "zeto-js";
+import { groth16 } from "snarkjs";
+import {
+  genKeypair,
+  formatPrivKeyForBabyJub,
+  genEcdhSharedKey,
+  stringifyBigInts,
+} from "maci-crypto";
+import { Merkletree, InMemoryDB, str2Bytes } from "@iden3/js-merkletree";
 import {
   UTXO,
   User,
@@ -37,15 +43,16 @@ import {
   ZERO_UTXO,
   parseUTXOEvents,
   parseRegistryEvents,
-} from './lib/utils';
+} from "./lib/utils";
 import {
   loadProvingKeys,
   prepareDepositProof,
   prepareNullifierWithdrawProof,
-} from './utils';
-import { deployZeto } from './lib/deploy';
+} from "./utils";
+import { deployZeto } from "./lib/deploy";
+const poseidonHash = Poseidon.poseidon4;
 
-describe('Zeto based fungible token with anonymity using nullifiers and encryption with KYC', function () {
+describe("Zeto based fungible token with anonymity using nullifiers and encryption with KYC", function () {
   let deployer: Signer;
   let Alice: User;
   let Bob: User;
@@ -63,12 +70,14 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
   let utxo7: UTXO;
   let withdrawChangeUTXO: UTXO;
   let circuit: any, provingKey: any;
+  let batchCircuit: any, batchProvingKey: any;
   let smtAlice: Merkletree;
   let smtBob: Merkletree;
   let smtKyc: Merkletree;
+  let smtUnregistered: Merkletree;
 
   before(async function () {
-    if (network.name !== 'hardhat') {
+    if (network.name !== "hardhat") {
       // accommodate for longer block times on public networks
       this.timeout(120000);
     }
@@ -79,7 +88,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     Charlie = await newUser(c);
     unregistered = await newUser(e);
 
-    ({ deployer, zeto, erc20 } = await deployZeto('Zeto_AnonEncNullifierKyc'));
+    ({ deployer, zeto, erc20 } = await deployZeto("Zeto_AnonEncNullifierKyc"));
 
     const tx2 = await zeto.connect(deployer).register(Alice.babyJubPublicKey);
     const result1 = await tx2.wait();
@@ -88,19 +97,17 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     const tx4 = await zeto.connect(deployer).register(Charlie.babyJubPublicKey);
     const result3 = await tx4.wait();
 
-    circuit = await loadCircuit('anon_enc_nullifier_kyc');
-    ({ provingKeyFile: provingKey } = loadProvingKeys(
-      'anon_enc_nullifier_kyc'
-    ));
-
-    const storage1 = new InMemoryDB(str2Bytes('alice'));
+    const storage1 = new InMemoryDB(str2Bytes("alice"));
     smtAlice = new Merkletree(storage1, true, 64);
 
-    const storage2 = new InMemoryDB(str2Bytes('bob'));
+    const storage2 = new InMemoryDB(str2Bytes("bob"));
     smtBob = new Merkletree(storage2, true, 64);
 
-    const storage3 = new InMemoryDB(str2Bytes('kyc'));
+    const storage3 = new InMemoryDB(str2Bytes("kyc"));
     smtKyc = new Merkletree(storage3, true, 10);
+
+    const storage4 = new InMemoryDB(str2Bytes("unregistered"));
+    smtUnregistered = new Merkletree(storage4, true, 64);
 
     const publicKey1 = parseRegistryEvents(zeto, result1);
     await smtKyc.add(kycHash(publicKey1), kycHash(publicKey1));
@@ -108,16 +115,150 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     await smtKyc.add(kycHash(publicKey2), kycHash(publicKey2));
     const publicKey3 = parseRegistryEvents(zeto, result3);
     await smtKyc.add(kycHash(publicKey3), kycHash(publicKey3));
+
+    circuit = await loadCircuit("anon_enc_nullifier_kyc");
+    ({ provingKeyFile: provingKey } = loadProvingKeys(
+      "anon_enc_nullifier_kyc",
+    ));
+    batchCircuit = await loadCircuit("anon_enc_nullifier_kyc_batch");
+    ({ provingKeyFile: batchProvingKey } = loadProvingKeys(
+      "anon_enc_nullifier_kyc_batch",
+    ));
   });
 
-  it('onchain SMT root should be equal to the offchain SMT root', async function () {
+  it("onchain SMT root should be equal to the offchain SMT root", async function () {
     const root = await smtAlice.root();
     const onchainRoot = await zeto.getRoot();
     expect(onchainRoot).to.equal(0n);
     expect(root.string()).to.equal(onchainRoot.toString());
   });
 
-  it('mint ERC20 tokens to Alice to deposit to Zeto should succeed', async function () {
+  it("(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob and Charlie should succeed", async function () {
+    // first mint the tokens for batch testing
+    const inputUtxos = [];
+    const nullifiers = [];
+    for (let i = 0; i < 10; i++) {
+      // mint 10 utxos
+      const _utxo = newUTXO(1, Alice);
+      nullifiers.push(newNullifier(_utxo, Alice));
+      inputUtxos.push(_utxo);
+    }
+    const mintResult = await doMint(zeto, deployer, inputUtxos);
+
+    const mintEvents = parseUTXOEvents(zeto, mintResult);
+    const mintedHashes = mintEvents[0].outputs;
+    for (let i = 0; i < mintedHashes.length; i++) {
+      if (mintedHashes[i] !== 0) {
+        await smtAlice.add(mintedHashes[i], mintedHashes[i]);
+        await smtBob.add(mintedHashes[i], mintedHashes[i]);
+        await smtUnregistered.add(mintedHashes[i], mintedHashes[i]);
+      }
+    }
+    // Alice generates inclusion proofs for the UTXOs to be spent
+    let root = await smtAlice.root();
+    const mtps = [];
+    for (let i = 0; i < inputUtxos.length; i++) {
+      const p = await smtAlice.generateCircomVerifierProof(
+        inputUtxos[i].hash,
+        root,
+      );
+      mtps.push(p.siblings.map((s) => s.bigInt()));
+    }
+
+    // Alice generates inclusion proofs for the identities in the transaction
+    const identitiesRoot = await smtKyc.root();
+    const aProof = await smtKyc.generateCircomVerifierProof(
+      kycHash(Alice.babyJubPublicKey),
+      identitiesRoot,
+    );
+    const aliceProof = aProof.siblings.map((s) => s.bigInt());
+    const bProof = await smtKyc.generateCircomVerifierProof(
+      kycHash(Bob.babyJubPublicKey),
+      identitiesRoot,
+    );
+    const bobProof = bProof.siblings.map((s) => s.bigInt());
+
+    const cProof = await smtKyc.generateCircomVerifierProof(
+      kycHash(Charlie.babyJubPublicKey),
+      identitiesRoot,
+    );
+    const charlieProof = cProof.siblings.map((s) => s.bigInt());
+
+    // Alice proposes the output UTXOs, 1 utxo to bob, 1 utxo to charlie and 1 utxo to alice
+    const _bOut1 = newUTXO(8, Bob);
+    const _bOut2 = newUTXO(1, Charlie);
+    const _bOut3 = newUTXO(1, Alice);
+    const outputUtxos = [_bOut1, _bOut2, _bOut3];
+    const outputOwners = [Bob, Charlie, Alice];
+    const identityMerkleProofs = [
+      aliceProof,
+      bobProof,
+      charlieProof,
+      aliceProof,
+    ];
+    const inflatedOutputUtxos = [...outputUtxos];
+    const inflatedOutputOwners = [...outputOwners];
+    for (let i = 0; i < 10 - outputUtxos.length; i++) {
+      inflatedOutputUtxos.push(ZERO_UTXO);
+      inflatedOutputOwners.push(Bob);
+      identityMerkleProofs.push(bobProof);
+    }
+    // Alice transfers her UTXOs to Bob
+    const result = await doTransfer(
+      Alice,
+      inputUtxos,
+      nullifiers,
+      inflatedOutputUtxos,
+      root.bigInt(),
+      mtps,
+      identitiesRoot.bigInt(),
+      identityMerkleProofs,
+      inflatedOutputOwners,
+    );
+
+    const signerAddress = await Alice.signer.getAddress();
+    const events = parseUTXOEvents(zeto, result.txResult!);
+    expect(events[0].submitter).to.equal(signerAddress);
+    expect(events[0].inputs).to.deep.equal(nullifiers.map((n) => n.hash));
+
+    const incomingUTXOs: any = events[0].outputs;
+
+    const ecdhPublicKey = events[0].ecdhPublicKey;
+    // check the non-empty output hashes are correct
+    for (let i = 0; i < outputUtxos.length; i++) {
+      const utxoOwner = outputOwners[i];
+      const sharedKey = genEcdhSharedKey(
+        utxoOwner.babyJubPrivateKey,
+        ecdhPublicKey,
+      );
+      const plainText = poseidonDecrypt(
+        events[0].encryptedValues.slice(4 * i, 4 * i + 4),
+        sharedKey,
+        events[0].encryptionNonce,
+        2,
+      );
+      expect(plainText).to.deep.equal(
+        result.expectedPlainText.slice(2 * i, 2 * i + 2),
+      );
+      const hash = poseidonHash([
+        BigInt(plainText[0]),
+        plainText[1],
+        utxoOwner.babyJubPublicKey[0],
+        utxoOwner.babyJubPublicKey[1],
+      ]);
+      expect(incomingUTXOs[i]).to.equal(hash);
+      await smtAlice.add(incomingUTXOs[i], incomingUTXOs[i]);
+      await smtBob.add(incomingUTXOs[i], incomingUTXOs[i]);
+      await smtUnregistered.add(incomingUTXOs[i], incomingUTXOs[i]);
+    }
+
+    // check empty values, salt and hashes are empty
+    for (let i = outputUtxos.length; i < 10; i++) {
+      expect(incomingUTXOs[i]).to.equal(0);
+    }
+  });
+
+  it("mint ERC20 tokens to Alice to deposit to Zeto should succeed", async function () {
     const startingBalance = await erc20.balanceOf(Alice.ethAddress);
     const tx = await erc20.connect(deployer).mint(Alice.ethAddress, 100);
     await tx.wait();
@@ -130,7 +271,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     utxo100 = newUTXO(100, Alice);
     const { outputCommitments, encodedProof } = await prepareDepositProof(
       Alice,
-      utxo100
+      utxo100,
     );
     const tx2 = await zeto
       .connect(Alice.signer)
@@ -141,7 +282,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     await smtBob.add(utxo100.hash, utxo100.hash);
   });
 
-  it('mint to Alice and transfer UTXOs honestly to Bob should succeed', async function () {
+  it("mint to Alice and transfer UTXOs honestly to Bob should succeed", async function () {
     const startingBalance = await erc20.balanceOf(Alice.ethAddress);
     // The authority mints a new UTXO and assigns it to Alice
     utxo1 = newUTXO(10, Alice);
@@ -176,11 +317,11 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     // Alice generates inclusion proofs for the UTXOs to be spent
     const proof1 = await smtAlice.generateCircomVerifierProof(
       utxo1.hash,
-      utxosRoot
+      utxosRoot,
     );
     const proof2 = await smtAlice.generateCircomVerifierProof(
       utxo2.hash,
-      utxosRoot
+      utxosRoot,
     );
     const utxoMerkleProofs = [
       proof1.siblings.map((s) => s.bigInt()),
@@ -191,11 +332,11 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     const identitiesRoot = await smtKyc.root();
     const proof3 = await smtKyc.generateCircomVerifierProof(
       kycHash(Alice.babyJubPublicKey),
-      identitiesRoot
+      identitiesRoot,
     );
     const proof4 = await smtKyc.generateCircomVerifierProof(
       kycHash(Bob.babyJubPublicKey),
-      identitiesRoot
+      identitiesRoot,
     );
     const identityMerkleProofs = [
       proof3.siblings.map((s) => s.bigInt()), // identity proof for the sender (Alice)
@@ -213,7 +354,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       utxoMerkleProofs,
       identitiesRoot.bigInt(),
       identityMerkleProofs,
-      [Bob, Alice]
+      [Bob, Alice],
     );
 
     // check the private transfer activity is not exposed in the ERC20 contract
@@ -237,24 +378,23 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     await smtBob.add(events[0].outputs[0], events[0].outputs[0]);
     await smtBob.add(events[0].outputs[1], events[0].outputs[1]);
 
-    // Bob uses the encrypted values in the event to decrypt and recover the UTXO value and salt
-    const sharedKey = genEcdhSharedKey(
-      Bob.babyJubPrivateKey,
-      Alice.babyJubPublicKey
-    );
+    const ecdhPublicKey = events[0].ecdhPublicKey;
+    // Bob reconstructs the shared key using his private key and ephemeral public key
+
+    const sharedKey = genEcdhSharedKey(Bob.babyJubPrivateKey, ecdhPublicKey);
     const plainText = poseidonDecrypt(
-      events[0].encryptedValues,
+      events[0].encryptedValues.slice(0, 4),
       sharedKey,
       events[0].encryptionNonce,
-      2
+      2,
     );
-    expect(plainText).to.deep.equal([25n, result2.plainTextSalt]);
+    expect(plainText).to.deep.equal(result2.expectedPlainText.slice(0, 2));
 
     // Bob uses the decrypted values to construct the UTXO received from the transaction
     utxo3 = newUTXO(Number(plainText[0]), Bob, plainText[1]);
   }).timeout(600000);
 
-  it('Bob transfers UTXOs, previously received from Alice, honestly to Charlie should succeed', async function () {
+  it("Bob transfers UTXOs, previously received from Alice, honestly to Charlie should succeed", async function () {
     // Bob generates the nullifiers for the UTXO to be spent
     const nullifier1 = newNullifier(utxo3, Bob);
 
@@ -262,7 +402,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     const utxosRoot = await smtBob.root();
     const proof1 = await smtBob.generateCircomVerifierProof(
       utxo3.hash,
-      utxosRoot
+      utxosRoot,
     );
     const proof2 = await smtBob.generateCircomVerifierProof(0n, utxosRoot);
     const utxosMerkleProofs = [
@@ -279,11 +419,11 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     const identitiesRoot = await smtKyc.root();
     const proof3 = await smtKyc.generateCircomVerifierProof(
       kycHash(Bob.babyJubPublicKey),
-      identitiesRoot
+      identitiesRoot,
     );
     const proof4 = await smtKyc.generateCircomVerifierProof(
       kycHash(Charlie.babyJubPublicKey),
-      identitiesRoot
+      identitiesRoot,
     );
     const identitiesMerkleProofs = [
       proof3.siblings.map((s) => s.bigInt()), // identity proof for the sender (Bob)
@@ -301,7 +441,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       utxosMerkleProofs,
       identitiesRoot.bigInt(),
       identitiesMerkleProofs,
-      [Charlie, Bob]
+      [Charlie, Bob],
     );
 
     // Bob keeps the local SMT in sync
@@ -314,7 +454,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     await smtAlice.add(events[0].outputs[1], events[0].outputs[1]);
   }).timeout(600000);
 
-  it('Alice withdraws her UTXOs to ERC20 tokens should succeed', async function () {
+  it("Alice withdraws her UTXOs to ERC20 tokens should succeed", async function () {
     const startingBalance = await erc20.balanceOf(Alice.ethAddress);
 
     // Alice generates the nullifiers for the UTXOs to be spent
@@ -324,7 +464,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     let root = await smtAlice.root();
     const proof1 = await smtAlice.generateCircomVerifierProof(
       utxo100.hash,
-      root
+      root,
     );
     const proof2 = await smtAlice.generateCircomVerifierProof(0n, root);
     const merkleProofs = [
@@ -342,7 +482,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
         [nullifier1, ZERO_UTXO],
         withdrawChangeUTXO,
         root.bigInt(),
-        merkleProofs
+        merkleProofs,
       );
 
     // Alice withdraws her UTXOs to ERC20 tokens
@@ -353,7 +493,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
         nullifiers,
         outputCommitments[0],
         root.bigInt(),
-        encodedProof
+        encodedProof,
       );
     await tx.wait();
 
@@ -367,17 +507,10 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     expect(endingBalance - startingBalance).to.be.equal(80);
   });
 
-  describe('unregistered user cases', function () {
-    let storage3;
-    let smtUnregistered: Merkletree;
+  describe("unregistered user cases", function () {
     let unregisteredUtxo100: UTXO;
 
-    before(() => {
-      storage3 = new InMemoryDB(str2Bytes('unregistered'));
-      smtUnregistered = new Merkletree(storage3, true, 64);
-    });
-
-    it('deposit by an unregistered user should succeed', async function () {
+    it("deposit by an unregistered user should succeed", async function () {
       const tx = await erc20
         .connect(deployer)
         .mint(unregistered.ethAddress, 100);
@@ -390,7 +523,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       unregisteredUtxo100 = newUTXO(100, unregistered);
       const { outputCommitments, encodedProof } = await prepareDepositProof(
         unregistered,
-        unregisteredUtxo100
+        unregisteredUtxo100,
       );
       const tx2 = await zeto
         .connect(unregistered.signer)
@@ -403,7 +536,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       await smtBob.add(unregisteredUtxo100.hash, unregisteredUtxo100.hash);
     });
 
-    it('transfer from an unregistered user should fail', async function () {
+    it("transfer from an unregistered user should fail", async function () {
       // catch up the local SMT for the unregistered user
       await smtUnregistered.add(utxo100.hash, utxo100.hash);
       await smtUnregistered.add(utxo1.hash, utxo1.hash);
@@ -414,11 +547,11 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       await smtUnregistered.add(utxo7.hash, utxo7.hash);
       await smtUnregistered.add(
         withdrawChangeUTXO.hash,
-        withdrawChangeUTXO.hash
+        withdrawChangeUTXO.hash,
       );
       await smtUnregistered.add(
         unregisteredUtxo100.hash,
-        unregisteredUtxo100.hash
+        unregisteredUtxo100.hash,
       );
       const utxosRoot = await smtUnregistered.root();
 
@@ -427,7 +560,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       const output2 = newUTXO(0, unregistered);
       const proof = await smtUnregistered.generateCircomVerifierProof(
         unregisteredUtxo100.hash,
-        utxosRoot
+        utxosRoot,
       );
       const merkleProofs = [
         proof.siblings.map((s) => s.bigInt()),
@@ -437,16 +570,16 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       // add the unregistered user to the local KYC SMT, but not to the onchain SMT
       await smtKyc.add(
         kycHash(unregistered.babyJubPublicKey),
-        kycHash(unregistered.babyJubPublicKey)
+        kycHash(unregistered.babyJubPublicKey),
       );
       const identitiesRoot = await smtKyc.root();
       const proof3 = await smtKyc.generateCircomVerifierProof(
         kycHash(unregistered.babyJubPublicKey),
-        identitiesRoot
+        identitiesRoot,
       );
       const proof4 = await smtKyc.generateCircomVerifierProof(
         kycHash(Bob.babyJubPublicKey),
-        identitiesRoot
+        identitiesRoot,
       );
       const identitiesMerkleProofs = [
         proof3.siblings.map((s) => s.bigInt()), // identity proof for the sender (unregistered)
@@ -463,12 +596,12 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
           merkleProofs,
           identitiesRoot.bigInt(),
           identitiesMerkleProofs,
-          [Bob, unregistered]
-        )
-      ).rejectedWith('Invalid proof');
+          [Bob, unregistered],
+        ),
+      ).rejectedWith("Invalid proof");
     });
 
-    it('the unregistered user can still withdraw their UTXOs to ERC20 tokens', async function () {
+    it("the unregistered user can still withdraw their UTXOs to ERC20 tokens", async function () {
       const startingBalance = await erc20.balanceOf(unregistered.ethAddress);
       // unregistered user generates the nullifiers for the UTXOs to be spent
       const nullifier1 = newNullifier(unregisteredUtxo100, unregistered);
@@ -477,11 +610,11 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       let root = await smtUnregistered.root();
       const proof1 = await smtUnregistered.generateCircomVerifierProof(
         unregisteredUtxo100.hash,
-        root
+        root,
       );
       const proof2 = await smtUnregistered.generateCircomVerifierProof(
         0n,
-        root
+        root,
       );
       const merkleProofs = [
         proof1.siblings.map((s) => s.bigInt()),
@@ -498,7 +631,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
           [nullifier1, ZERO_UTXO],
           unregisteredWithdrawChangeUTXO,
           root.bigInt(),
-          merkleProofs
+          merkleProofs,
         );
 
       // unregistered user withdraws her UTXOs to ERC20 tokens
@@ -509,19 +642,19 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
           nullifiers,
           outputCommitments[0],
           root.bigInt(),
-          encodedProof
+          encodedProof,
         );
       await tx.wait();
 
       // Alice tracks the UTXO inside the SMT
       await smtAlice.add(
         unregisteredWithdrawChangeUTXO.hash,
-        unregisteredWithdrawChangeUTXO.hash
+        unregisteredWithdrawChangeUTXO.hash,
       );
       // Bob also locally tracks the UTXOs inside the SMT
       await smtBob.add(
         unregisteredWithdrawChangeUTXO.hash,
-        unregisteredWithdrawChangeUTXO.hash
+        unregisteredWithdrawChangeUTXO.hash,
       );
 
       // unregistered user checks her ERC20 balance
@@ -530,15 +663,15 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     });
   });
 
-  describe('failure cases', function () {
+  describe("failure cases", function () {
     // the following failure cases rely on the hardhat network
     // to return the details of the errors. This is not possible
     // on non-hardhat networks
-    if (network.name !== 'hardhat') {
+    if (network.name !== "hardhat") {
       return;
     }
 
-    it('Alice attempting to withdraw spent UTXOs should fail', async function () {
+    it("Alice attempting to withdraw spent UTXOs should fail", async function () {
       // Alice generates the nullifiers for the UTXOs to be spent
       const nullifier1 = newNullifier(utxo100, Alice);
 
@@ -546,7 +679,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       let root = await smtAlice.root();
       const proof1 = await smtAlice.generateCircomVerifierProof(
         utxo100.hash,
-        root
+        root,
       );
       const proof2 = await smtAlice.generateCircomVerifierProof(0n, root);
       const merkleProofs = [
@@ -564,7 +697,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
           [nullifier1, ZERO_UTXO],
           withdrawChangeUTXO,
           root.bigInt(),
-          merkleProofs
+          merkleProofs,
         );
 
       // Alice withdraws her UTXOs to ERC20 tokens
@@ -576,24 +709,24 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
             nullifiers,
             outputCommitments[0],
             root.bigInt(),
-            encodedProof
-          )
-      ).rejectedWith('UTXOAlreadySpent');
+            encodedProof,
+          ),
+      ).rejectedWith("UTXOAlreadySpent");
     });
 
-    it('mint existing unspent UTXOs should fail', async function () {
+    it("mint existing unspent UTXOs should fail", async function () {
       await expect(doMint(zeto, deployer, [utxo4])).rejectedWith(
-        'UTXOAlreadyOwned'
+        "UTXOAlreadyOwned",
       );
     });
 
-    it('mint existing spent UTXOs should fail', async function () {
+    it("mint existing spent UTXOs should fail", async function () {
       await expect(doMint(zeto, deployer, [utxo1])).rejectedWith(
-        'UTXOAlreadyOwned'
+        "UTXOAlreadyOwned",
       );
     });
 
-    it('transfer spent UTXOs should fail (double spend protection)', async function () {
+    it("transfer spent UTXOs should fail (double spend protection)", async function () {
       // create outputs
       const _utxo1 = newUTXO(25, Bob);
       const _utxo2 = newUTXO(5, Alice);
@@ -606,11 +739,11 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       let root = await smtAlice.root();
       const proof1 = await smtAlice.generateCircomVerifierProof(
         utxo1.hash,
-        root
+        root,
       );
       const proof2 = await smtAlice.generateCircomVerifierProof(
         utxo2.hash,
-        root
+        root,
       );
       const merkleProofs = [
         proof1.siblings.map((s) => s.bigInt()),
@@ -620,11 +753,11 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       const identitiesRoot = await smtKyc.root();
       const proof3 = await smtKyc.generateCircomVerifierProof(
         kycHash(Alice.babyJubPublicKey),
-        identitiesRoot
+        identitiesRoot,
       );
       const proof4 = await smtKyc.generateCircomVerifierProof(
         kycHash(Bob.babyJubPublicKey),
-        identitiesRoot
+        identitiesRoot,
       );
       const identitiesMerkleProofs = [
         proof3.siblings.map((s) => s.bigInt()), // identity proof for the sender (Alice)
@@ -642,12 +775,12 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
           merkleProofs,
           identitiesRoot.bigInt(),
           identitiesMerkleProofs,
-          [Bob, Alice]
-        )
-      ).rejectedWith('UTXOAlreadySpent');
+          [Bob, Alice],
+        ),
+      ).rejectedWith("UTXOAlreadySpent");
     }).timeout(600000);
 
-    it('transfer with existing UTXOs in the output should fail (mass conservation protection)', async function () {
+    it("transfer with existing UTXOs in the output should fail (mass conservation protection)", async function () {
       // give Bob another UTXO to be able to spend
       const _utxo1 = newUTXO(15, Bob);
       await doMint(zeto, deployer, [_utxo1]);
@@ -659,7 +792,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       const proof1 = await smtBob.generateCircomVerifierProof(utxo7.hash, root);
       const proof2 = await smtBob.generateCircomVerifierProof(
         _utxo1.hash,
-        root
+        root,
       );
       const merkleProofs = [
         proof1.siblings.map((s) => s.bigInt()),
@@ -669,11 +802,11 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       const identitiesRoot = await smtKyc.root();
       const proof3 = await smtKyc.generateCircomVerifierProof(
         kycHash(Bob.babyJubPublicKey),
-        identitiesRoot
+        identitiesRoot,
       );
       const proof4 = await smtKyc.generateCircomVerifierProof(
         kycHash(Alice.babyJubPublicKey),
-        identitiesRoot
+        identitiesRoot,
       );
       const identitiesMerkleProofs = [
         proof3.siblings.map((s) => s.bigInt()), // identity proof for the sender (Bob)
@@ -691,12 +824,12 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
           merkleProofs,
           identitiesRoot.bigInt(),
           identitiesMerkleProofs,
-          [Alice, Alice]
-        )
-      ).rejectedWith('UTXOAlreadyOwned');
+          [Alice, Alice],
+        ),
+      ).rejectedWith("UTXOAlreadyOwned");
     }).timeout(600000);
 
-    it('spend by using the same UTXO as both inputs should fail', async function () {
+    it("spend by using the same UTXO as both inputs should fail", async function () {
       const _utxo1 = newUTXO(20, Alice);
       const _utxo2 = newUTXO(10, Bob);
       const nullifier1 = newNullifier(utxo7, Bob);
@@ -713,11 +846,11 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       const identitiesRoot = await smtKyc.root();
       const proof3 = await smtKyc.generateCircomVerifierProof(
         kycHash(Bob.babyJubPublicKey),
-        identitiesRoot
+        identitiesRoot,
       );
       const proof4 = await smtKyc.generateCircomVerifierProof(
         kycHash(Alice.babyJubPublicKey),
-        identitiesRoot
+        identitiesRoot,
       );
       const identitiesMerkleProofs = [
         proof3.siblings.map((s) => s.bigInt()), // identity proof for the sender (Bob)
@@ -735,12 +868,12 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
           merkleProofs,
           identitiesRoot.bigInt(),
           identitiesMerkleProofs,
-          [Alice, Bob]
-        )
+          [Alice, Bob],
+        ),
       ).rejectedWith(`UTXODuplicate`);
     }).timeout(600000);
 
-    it('transfer non-existing UTXOs should fail', async function () {
+    it("transfer non-existing UTXOs should fail", async function () {
       const nonExisting1 = newUTXO(25, Alice);
       const nonExisting2 = newUTXO(20, Alice, nonExisting1.salt);
 
@@ -756,11 +889,11 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       let root = await smtAlice.root();
       const proof1 = await smtAlice.generateCircomVerifierProof(
         nonExisting1.hash,
-        root
+        root,
       );
       const proof2 = await smtAlice.generateCircomVerifierProof(
         nonExisting2.hash,
-        root
+        root,
       );
       const merkleProofs = [
         proof1.siblings.map((s) => s.bigInt()),
@@ -774,15 +907,15 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       const identitiesRoot = await smtKyc.root();
       const proof3 = await smtKyc.generateCircomVerifierProof(
         kycHash(Alice.babyJubPublicKey),
-        identitiesRoot
+        identitiesRoot,
       );
       const proof4 = await smtKyc.generateCircomVerifierProof(
         kycHash(Bob.babyJubPublicKey),
-        identitiesRoot
+        identitiesRoot,
       );
       const proof5 = await smtKyc.generateCircomVerifierProof(
         kycHash(Charlie.babyJubPublicKey),
-        identitiesRoot
+        identitiesRoot,
       );
       const identitiesMerkleProofs = [
         proof3.siblings.map((s) => s.bigInt()), // identity proof for the sender (Alice)
@@ -800,9 +933,9 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
           merkleProofs,
           identitiesRoot.bigInt(),
           identitiesMerkleProofs,
-          [Bob, Charlie]
-        )
-      ).rejectedWith('UTXORootNotFound');
+          [Bob, Charlie],
+        ),
+      ).rejectedWith("UTXORootNotFound");
     }).timeout(600000);
   });
 
@@ -815,13 +948,14 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     utxosMerkleProof: BigInt[][],
     identitiesRoot: BigInt,
     identitiesMerkleProof: BigInt[][],
-    owners: User[]
+    owners: User[],
   ) {
-    let nullifiers: [BigNumberish, BigNumberish];
-    let outputCommitments: [BigNumberish, BigNumberish];
+    let nullifiers: BigNumberish[];
+    let outputCommitments: BigNumberish[];
     let encryptedValues: BigNumberish[];
     let encryptionNonce: BigNumberish;
     let encodedProof: any;
+    const ephemeralKeypair = genKeypair();
     const result = await prepareProof(
       signer,
       inputs,
@@ -831,12 +965,13 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       utxosMerkleProof,
       identitiesRoot,
       identitiesMerkleProof,
-      owners
+      owners,
+      ephemeralKeypair.privKey,
     );
 
     nullifiers = _nullifiers.map((nullifier) => nullifier.hash) as [
       BigNumberish,
-      BigNumberish
+      BigNumberish,
     ];
     outputCommitments = result.outputCommitments;
     encodedProof = result.encodedProof;
@@ -850,10 +985,18 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       utxosRoot,
       encryptedValues,
       encryptionNonce,
-      encodedProof
+      encodedProof,
+      ephemeralKeypair.pubKey,
     );
     // add the clear text value so that it can be used by tests to compare with the decrypted value
-    return { txResult, plainTextSalt: outputs[0].salt };
+    return {
+      txResult,
+      expectedPlainText: outputs.reduce((acc, o, i) => {
+        acc.push(BigInt(o.value || 0n) as BigNumberish);
+        acc.push((o.salt || 0n) as BigNumberish);
+        return acc;
+      }, [] as BigNumberish[]),
+    };
   }
 
   async function prepareProof(
@@ -865,33 +1008,38 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
     utxosMerkleProof: BigInt[][],
     identitiesRoot: BigInt,
     identitiesMerkleProof: BigInt[][],
-    owners: User[]
+    owners: User[],
+    ephemeralPrivateKey: BigInt,
   ) {
     const nullifiers = _nullifiers.map((nullifier) => nullifier.hash) as [
       BigNumberish,
-      BigNumberish
+      BigNumberish,
     ];
-    const inputCommitments: [BigNumberish, BigNumberish] = inputs.map(
-      (input) => input.hash
-    ) as [BigNumberish, BigNumberish];
+    const inputCommitments: BigNumberish[] = inputs.map(
+      (input) => input.hash,
+    ) as BigNumberish[];
     const inputValues = inputs.map((input) => BigInt(input.value || 0n));
     const inputSalts = inputs.map((input) => input.salt || 0n);
-    const outputCommitments: [BigNumberish, BigNumberish] = outputs.map(
-      (output) => output.hash
-    ) as [BigNumberish, BigNumberish];
+    const outputCommitments: BigNumberish[] = outputs.map(
+      (output) => output.hash,
+    ) as BigNumberish[];
     const outputValues = outputs.map((output) => BigInt(output.value || 0n));
-    const outputOwnerPublicKeys: [
-      [BigNumberish, BigNumberish],
-      [BigNumberish, BigNumberish]
-    ] = owners.map((owner) => owner.babyJubPublicKey) as [
-      [BigNumberish, BigNumberish],
-      [BigNumberish, BigNumberish]
-    ];
+    const outputOwnerPublicKeys: BigNumberish[][] = owners.map(
+      (owner) => owner.babyJubPublicKey,
+    ) as BigNumberish[][];
     const encryptionNonce: BigNumberish = newEncryptionNonce() as BigNumberish;
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
+      ecdhPrivateKey: formatPrivKeyForBabyJub(ephemeralPrivateKey),
     });
-
+    let circuitToUse = circuit;
+    let provingKeyToUse = provingKey;
+    let isBatch = false;
+    if (inputCommitments.length > 2 || outputCommitments.length > 2) {
+      isBatch = true;
+      circuitToUse = batchCircuit;
+      provingKeyToUse = batchProvingKey;
+    }
     const startWitnessCalculation = Date.now();
     const inputObj = {
       nullifiers,
@@ -900,7 +1048,7 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       inputSalts,
       inputOwnerPrivateKey: signer.formattedPrivateKey,
       utxosRoot,
-      enabled: [nullifiers[0] !== 0n ? 1 : 0, nullifiers[1] !== 0n ? 1 : 0],
+      enabled: nullifiers.map((n) => (n !== 0n ? 1 : 0)),
       utxosMerkleProof,
       identitiesRoot,
       identitiesMerkleProof,
@@ -910,22 +1058,25 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
       outputOwnerPublicKeys,
       ...encryptInputs,
     };
-    const witness = await circuit.calculateWTNSBin(inputObj, true);
+    const witness = await circuitToUse.calculateWTNSBin(inputObj, true);
     const timeWithnessCalculation = Date.now() - startWitnessCalculation;
 
     const startProofGeneration = Date.now();
     const { proof, publicSignals } = (await groth16.prove(
-      provingKey,
-      witness
+      provingKeyToUse,
+      witness,
     )) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
     const timeProofGeneration = Date.now() - startProofGeneration;
 
     console.log(
-      `Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`
+      `Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`,
     );
 
+    // console.log(publicSignals);
     const encodedProof = encodeProof(proof);
-    const encryptedValues = publicSignals.slice(0, 4);
+    const encryptedValues = isBatch
+      ? publicSignals.slice(2, 42)
+      : publicSignals.slice(2, 10);
     return {
       inputCommitments,
       outputCommitments,
@@ -937,30 +1088,30 @@ describe('Zeto based fungible token with anonymity using nullifiers and encrypti
 
   async function sendTx(
     signer: User,
-    nullifiers: [BigNumberish, BigNumberish],
-    outputCommitments: [BigNumberish, BigNumberish],
+    nullifiers: BigNumberish[],
+    outputCommitments: BigNumberish[],
     root: BigNumberish,
     encryptedValues: BigNumberish[],
     encryptionNonce: BigNumberish,
-    encodedProof: any
+    encodedProof: any,
+    ecdhPublicKey: BigInt[],
   ) {
     const startTx = Date.now();
-    const tx = await zeto
-      .connect(signer.signer)
-      .transfer(
-        nullifiers,
-        outputCommitments,
-        root,
-        encryptionNonce,
-        encryptedValues,
-        encodedProof,
-        "0x"
-      );
+    const tx = await zeto.connect(signer.signer).transfer(
+      nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
+      outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
+      root,
+      encryptionNonce,
+      ecdhPublicKey,
+      encryptedValues,
+      encodedProof,
+      "0x",
+    );
     const results: ContractTransactionReceipt | null = await tx.wait();
     console.log(
       `Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${
         results?.gasUsed
-      }`
+      }`,
     );
     return results;
   }

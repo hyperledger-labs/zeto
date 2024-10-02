@@ -14,18 +14,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
-const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
-const { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } = require('@iden3/js-merkletree');
-const { Poseidon, newSalt, tokenUriHash } = require('../index.js');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
+const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
+const {
+  Merkletree,
+  InMemoryDB,
+  str2Bytes,
+  ZERO_HASH,
+} = require("@iden3/js-merkletree");
+const { Poseidon, newSalt, tokenUriHash } = require("../index.js");
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon5;
 const poseidonHash4 = Poseidon.poseidon4;
 
-describe('main circuit tests for Zeto non-fungible tokens with anonymity using nullifiers and without encryption', () => {
+describe("main circuit tests for Zeto non-fungible tokens with anonymity using nullifiers and without encryption", () => {
   let circuit, smtAlice, smtBob;
 
   const Alice = {};
@@ -35,7 +40,9 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
   before(async function () {
     this.timeout(60000);
 
-    circuit = await wasm_tester(join(__dirname, '../../circuits/nf_anon_nullifier.circom'));
+    circuit = await wasm_tester(
+      join(__dirname, "../../circuits/nf_anon_nullifier.circom"),
+    );
 
     let keypair = genKeypair();
     Alice.privKey = keypair.privKey;
@@ -47,34 +54,52 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
     Bob.pubKey = keypair.pubKey;
 
     // initialize the local storage for Alice to manage her UTXOs in the Spart Merkle Tree
-    const storage1 = new InMemoryDB(str2Bytes(''));
+    const storage1 = new InMemoryDB(str2Bytes(""));
     smtAlice = new Merkletree(storage1, true, SMT_HEIGHT);
 
     // initialize the local storage for Bob to manage his UTXOs in the Spart Merkle Tree
-    const storage2 = new InMemoryDB(str2Bytes(''));
+    const storage2 = new InMemoryDB(str2Bytes(""));
     smtBob = new Merkletree(storage2, true, SMT_HEIGHT);
   });
 
-  it('should succeed for valid witness', async () => {
+  it("should succeed for valid witness", async () => {
     const tokenId = 1001;
-    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash("http://ipfs.io/some-file-hash");
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(tokenId), tokenUri, salt1, ...Alice.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(tokenId),
+      tokenUri,
+      salt1,
+      ...Alice.pubKey,
+    ]);
 
     // create the nullifiers for the inputs
-    const nullifier1 = poseidonHash4([BigInt(tokenId), tokenUri, salt1, senderPrivateKey]);
+    const nullifier1 = poseidonHash4([
+      BigInt(tokenId),
+      tokenUri,
+      salt1,
+      senderPrivateKey,
+    ]);
 
     // calculate the root of the SMT
     await smtAlice.add(input1, input1);
 
     // generate the merkle proof for the inputs
-    const proof1 = await smtAlice.generateCircomVerifierProof(input1, ZERO_HASH);
+    const proof1 = await smtAlice.generateCircomVerifierProof(
+      input1,
+      ZERO_HASH,
+    );
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(tokenId), tokenUri, salt3, ...Bob.pubKey]);
+    const output1 = poseidonHash([
+      BigInt(tokenId),
+      tokenUri,
+      salt3,
+      ...Bob.pubKey,
+    ]);
 
     const witness = await circuit.calculateWitness(
       {
@@ -90,7 +115,7 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
         outputSalt: salt3,
         outputOwnerPublicKey: Bob.pubKey,
       },
-      true
+      true,
     );
 
     // console.log('witness', witness.slice(0, 15));
@@ -108,26 +133,44 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
     expect(witness[3]).to.equal(BigInt(output1));
   });
 
-  it('should fail to generate a witness because token ID changed', async () => {
+  it("should fail to generate a witness because token ID changed", async () => {
     const tokenId = 1001;
-    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash("http://ipfs.io/some-file-hash");
 
     // create two input UTXOs
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(tokenId), tokenUri, salt1, ...Alice.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(tokenId),
+      tokenUri,
+      salt1,
+      ...Alice.pubKey,
+    ]);
 
     // create two input nullifiers, corresponding to the input UTXOs
-    const nullifier1 = poseidonHash4([BigInt(tokenId), tokenUri, salt1, senderPrivateKey]);
+    const nullifier1 = poseidonHash4([
+      BigInt(tokenId),
+      tokenUri,
+      salt1,
+      senderPrivateKey,
+    ]);
 
     // calculate the root of the SMT
     await smtAlice.add(input1, input1);
 
     // generate the merkle proof for the inputs
-    const proof1 = await smtAlice.generateCircomVerifierProof(input1, ZERO_HASH);
+    const proof1 = await smtAlice.generateCircomVerifierProof(
+      input1,
+      ZERO_HASH,
+    );
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(tokenId + 1), tokenUri, salt3, ...Bob.pubKey]);
+    const output1 = poseidonHash([
+      BigInt(tokenId + 1),
+      tokenUri,
+      salt3,
+      ...Bob.pubKey,
+    ]);
 
     let err;
     try {
@@ -145,37 +188,57 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
           outputSalt: salt3,
           outputOwnerPublicKey: Bob.pubKey,
         },
-        true
+        true,
       );
     } catch (e) {
       err = e;
     }
     // console.log(err);
     expect(err).to.match(/Error in template Zeto_319 line: 76/);
-    expect(err).to.match(/Error in template CheckHashesForTokenIdAndUri_86 line: 58/);
+    expect(err).to.match(
+      /Error in template CheckHashesForTokenIdAndUri_86 line: 58/,
+    );
   });
 
-  it('should fail to generate a witness because token URI changed', async () => {
+  it("should fail to generate a witness because token URI changed", async () => {
     const tokenId = 1001;
-    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash("http://ipfs.io/some-file-hash");
 
     // create two input UTXOs
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(tokenId), tokenUri, salt1, ...Alice.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(tokenId),
+      tokenUri,
+      salt1,
+      ...Alice.pubKey,
+    ]);
 
     // create two input nullifiers, corresponding to the input UTXOs
-    const nullifier1 = poseidonHash4([BigInt(tokenId), tokenUri, salt1, senderPrivateKey]);
+    const nullifier1 = poseidonHash4([
+      BigInt(tokenId),
+      tokenUri,
+      salt1,
+      senderPrivateKey,
+    ]);
 
     // calculate the root of the SMT
     await smtAlice.add(input1, input1);
 
     // generate the merkle proof for the inputs
-    const proof1 = await smtAlice.generateCircomVerifierProof(input1, ZERO_HASH);
+    const proof1 = await smtAlice.generateCircomVerifierProof(
+      input1,
+      ZERO_HASH,
+    );
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const tokenUriBad = tokenUriHash('http://ipfs.io/some-other-file-hash');
-    const output1 = poseidonHash([BigInt(tokenId), tokenUriBad, salt3, ...Bob.pubKey]);
+    const tokenUriBad = tokenUriHash("http://ipfs.io/some-other-file-hash");
+    const output1 = poseidonHash([
+      BigInt(tokenId),
+      tokenUriBad,
+      salt3,
+      ...Bob.pubKey,
+    ]);
 
     let err;
     try {
@@ -193,37 +256,57 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
           outputSalt: salt3,
           outputOwnerPublicKey: Bob.pubKey,
         },
-        true
+        true,
       );
     } catch (e) {
       err = e;
     }
     // console.log(err);
     expect(err).to.match(/Error in template Zeto_319 line: 76/);
-    expect(err).to.match(/Error in template CheckHashesForTokenIdAndUri_86 line: 58/);
+    expect(err).to.match(
+      /Error in template CheckHashesForTokenIdAndUri_86 line: 58/,
+    );
   });
 
-  it('should fail to generate a witness because of invalid input commitments', async () => {
+  it("should fail to generate a witness because of invalid input commitments", async () => {
     const tokenId = 1001;
-    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash("http://ipfs.io/some-file-hash");
 
     // create two input UTXOs
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(tokenId), tokenUri, salt1, ...Alice.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(tokenId),
+      tokenUri,
+      salt1,
+      ...Alice.pubKey,
+    ]);
 
     // create two input nullifiers, corresponding to the input UTXOs
-    const nullifier1 = poseidonHash4([BigInt(tokenId), tokenUri, salt1, senderPrivateKey]);
+    const nullifier1 = poseidonHash4([
+      BigInt(tokenId),
+      tokenUri,
+      salt1,
+      senderPrivateKey,
+    ]);
 
     // calculate the root of the SMT
     await smtAlice.add(input1, input1);
 
     // generate the merkle proof for the inputs
-    const proof1 = await smtAlice.generateCircomVerifierProof(input1, ZERO_HASH);
+    const proof1 = await smtAlice.generateCircomVerifierProof(
+      input1,
+      ZERO_HASH,
+    );
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const tokenUriBad = tokenUriHash('http://ipfs.io/some-other-file-hash');
-    const output1 = poseidonHash([BigInt(tokenId), tokenUriBad, salt3, ...Bob.pubKey]);
+    const tokenUriBad = tokenUriHash("http://ipfs.io/some-other-file-hash");
+    const output1 = poseidonHash([
+      BigInt(tokenId),
+      tokenUriBad,
+      salt3,
+      ...Bob.pubKey,
+    ]);
 
     let err;
     try {
@@ -241,36 +324,56 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
           outputSalt: salt3,
           outputOwnerPublicKey: Bob.pubKey,
         },
-        true
+        true,
       );
     } catch (e) {
       err = e;
     }
     // console.log(err);
-    expect(err).to.match(/Error in template CheckHashesForTokenIdAndUri_86 line: 58/);
+    expect(err).to.match(
+      /Error in template CheckHashesForTokenIdAndUri_86 line: 58/,
+    );
   });
 
-  it('should fail to generate a witness because of invalid output commitments', async () => {
+  it("should fail to generate a witness because of invalid output commitments", async () => {
     const tokenId = 1001;
-    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash("http://ipfs.io/some-file-hash");
 
     // create two input UTXOs
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(tokenId), tokenUri, salt1, ...Alice.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(tokenId),
+      tokenUri,
+      salt1,
+      ...Alice.pubKey,
+    ]);
 
     // create two input nullifiers, corresponding to the input UTXOs
-    const nullifier1 = poseidonHash4([BigInt(tokenId), tokenUri, salt1, senderPrivateKey]);
+    const nullifier1 = poseidonHash4([
+      BigInt(tokenId),
+      tokenUri,
+      salt1,
+      senderPrivateKey,
+    ]);
 
     // calculate the root of the SMT
     await smtAlice.add(input1, input1);
 
     // generate the merkle proof for the inputs
-    const proof1 = await smtAlice.generateCircomVerifierProof(input1, ZERO_HASH);
+    const proof1 = await smtAlice.generateCircomVerifierProof(
+      input1,
+      ZERO_HASH,
+    );
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const tokenUriBad = tokenUriHash('http://ipfs.io/some-other-file-hash');
-    const output1 = poseidonHash([BigInt(tokenId), tokenUriBad, salt3, ...Bob.pubKey]);
+    const tokenUriBad = tokenUriHash("http://ipfs.io/some-other-file-hash");
+    const output1 = poseidonHash([
+      BigInt(tokenId),
+      tokenUriBad,
+      salt3,
+      ...Bob.pubKey,
+    ]);
 
     let err;
     try {
@@ -288,12 +391,14 @@ describe('main circuit tests for Zeto non-fungible tokens with anonymity using n
           outputSalt: salt3,
           outputOwnerPublicKey: Bob.pubKey,
         },
-        true
+        true,
       );
     } catch (e) {
       err = e;
     }
     // console.log(err);
-    expect(err).to.match(/Error in template CheckHashesForTokenIdAndUri_86 line: 58/);
+    expect(err).to.match(
+      /Error in template CheckHashesForTokenIdAndUri_86 line: 58/,
+    );
   });
 });

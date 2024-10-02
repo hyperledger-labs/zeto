@@ -18,14 +18,19 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { DepositVerifierModule, WithdrawVerifierModule } from "./lib/deps";
 
 const VerifierModule = buildModule("Groth16Verifier_AnonEnc", (m) => {
-  const verifier = m.contract('Groth16Verifier_AnonEnc', []);
+  const verifier = m.contract("Groth16Verifier_AnonEnc", []);
+  return { verifier };
+});
+
+const BatchVerifierModule = buildModule("Groth16Verifier_AnonEncBatch", (m) => {
+  const verifier = m.contract("Groth16Verifier_AnonEncBatch", []);
   return { verifier };
 });
 
 export default buildModule("Zeto_AnonEnc", (m) => {
   const { verifier } = m.useModule(VerifierModule);
+  const { verifier: batchVerifier } = m.useModule(BatchVerifierModule);
   const { verifier: depositVerifier } = m.useModule(DepositVerifierModule);
   const { verifier: withdrawVerifier } = m.useModule(WithdrawVerifierModule);
-
-  return { depositVerifier, withdrawVerifier, verifier };
+  return { depositVerifier, withdrawVerifier, verifier, batchVerifier };
 });

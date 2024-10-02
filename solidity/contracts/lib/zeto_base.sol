@@ -47,8 +47,8 @@ abstract contract ZetoBase is IZetoBase, ZetoCommon {
     }
 
     function validateTransactionProposal(
-        uint256[2] memory inputs,
-        uint256[2] memory outputs,
+        uint256[] memory inputs,
+        uint256[] memory outputs,
         Commonlib.Proof calldata proof
     ) internal view returns (bool) {
         // sort the inputs and outputs to detect duplicates
@@ -101,8 +101,8 @@ abstract contract ZetoBase is IZetoBase, ZetoCommon {
     }
 
     function processInputsAndOutputs(
-        uint256[2] memory inputs,
-        uint256[2] memory outputs
+        uint256[] memory inputs,
+        uint256[] memory outputs
     ) internal {
         // accept the transaction to consume the input UTXOs and produce new UTXOs
         for (uint256 i = 0; i < inputs.length; ++i) {
@@ -115,7 +115,10 @@ abstract contract ZetoBase is IZetoBase, ZetoCommon {
 
     // This function is used to mint new UTXOs, as an example implementation,
     // which is only callable by the owner.
-    function _mint(uint256[] memory utxos, bytes calldata data) internal virtual {
+    function _mint(
+        uint256[] memory utxos,
+        bytes calldata data
+    ) internal virtual {
         for (uint256 i = 0; i < utxos.length; ++i) {
             uint256 utxo = utxos[i];
             if (_utxos[utxo] == UTXOStatus.UNSPENT) {

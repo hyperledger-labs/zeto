@@ -14,18 +14,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
-const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
-const { Poseidon, newSalt, tokenUriHash } = require('../../index.js');
-const { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } = require('@iden3/js-merkletree');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
+const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
+const { Poseidon, newSalt, tokenUriHash } = require("../../index.js");
+const {
+  Merkletree,
+  InMemoryDB,
+  str2Bytes,
+  ZERO_HASH,
+} = require("@iden3/js-merkletree");
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon5;
 const poseidonHash4 = Poseidon.poseidon4;
 
-describe('check-nullifier-tokenid-uri circuit tests', () => {
+describe("check-nullifier-tokenid-uri circuit tests", () => {
   let circuit, smt;
   const sender = {};
   const receiver = {};
@@ -34,7 +39,9 @@ describe('check-nullifier-tokenid-uri circuit tests', () => {
   before(async function () {
     this.timeout(60000);
 
-    circuit = await wasm_tester(join(__dirname, '../circuits/check-nullifier-tokenid-uri.circom'));
+    circuit = await wasm_tester(
+      join(__dirname, "../circuits/check-nullifier-tokenid-uri.circom"),
+    );
 
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;
@@ -45,16 +52,21 @@ describe('check-nullifier-tokenid-uri circuit tests', () => {
     receiver.privKey = keypair.privKey;
     receiver.pubKey = keypair.pubKey;
 
-    const storage = new InMemoryDB(str2Bytes(''));
+    const storage = new InMemoryDB(str2Bytes(""));
     smt = new Merkletree(storage, true, SMT_HEIGHT);
   });
 
-  it('should return true for valid witness', async () => {
+  it("should return true for valid witness", async () => {
     const tokenId = 1001;
-    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash("http://ipfs.io/some-file-hash");
 
     const salt1 = newSalt();
-    const nullifier1 = poseidonHash4([BigInt(tokenId), tokenUri, salt1, senderPrivateKey]);
+    const nullifier1 = poseidonHash4([
+      BigInt(tokenId),
+      tokenUri,
+      salt1,
+      senderPrivateKey,
+    ]);
 
     const witness = await circuit.calculateWitness(
       {
@@ -64,7 +76,7 @@ describe('check-nullifier-tokenid-uri circuit tests', () => {
         salts: [salt1],
         ownerPrivateKey: senderPrivateKey,
       },
-      true
+      true,
     );
 
     // console.log('tokenUri', tokenUri);
@@ -78,12 +90,17 @@ describe('check-nullifier-tokenid-uri circuit tests', () => {
     expect(witness[4]).to.equal(salt1);
   });
 
-  it('should fail to calculate witness due to invalid nullifier', async () => {
+  it("should fail to calculate witness due to invalid nullifier", async () => {
     const tokenId = 1001;
-    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash("http://ipfs.io/some-file-hash");
 
     const salt1 = newSalt();
-    const nullifier1 = poseidonHash4([BigInt(tokenId), tokenUri, salt1, senderPrivateKey]);
+    const nullifier1 = poseidonHash4([
+      BigInt(tokenId),
+      tokenUri,
+      salt1,
+      senderPrivateKey,
+    ]);
 
     let error;
     try {
@@ -95,12 +112,14 @@ describe('check-nullifier-tokenid-uri circuit tests', () => {
           salts: [salt1],
           ownerPrivateKey: senderPrivateKey,
         },
-        true
+        true,
       );
     } catch (e) {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckNullifierForTokenIdAndUri_74 line: 58/);
+    expect(error).to.match(
+      /Error in template CheckNullifierForTokenIdAndUri_74 line: 58/,
+    );
   });
 });

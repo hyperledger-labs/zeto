@@ -19,9 +19,9 @@ import { poseidonContract } from "circomlibjs";
 import { Artifact } from "hardhat/types";
 
 export const SmtLibModule = buildModule("SmtLib", (m) => {
-  const poseidon2 = m.library('Poseidon2', PoseidonArtifact(2));
-  const poseidon3 = m.library('Poseidon3', PoseidonArtifact(3));
-  const smtLib = m.contract('SmtLib', [], {
+  const poseidon2 = m.library("Poseidon2", PoseidonArtifact(2));
+  const poseidon3 = m.library("Poseidon3", PoseidonArtifact(3));
+  const smtLib = m.contract("SmtLib", [], {
     libraries: {
       PoseidonUnit2L: poseidon2,
       PoseidonUnit3L: poseidon3,
@@ -30,20 +30,29 @@ export const SmtLibModule = buildModule("SmtLib", (m) => {
   return { smtLib, poseidon2, poseidon3 };
 });
 
-export const DepositVerifierModule = buildModule("Groth16Verifier_CheckHashesValue", (m) => {
-  const verifier = m.contract('Groth16Verifier_CheckHashesValue', []);
-  return { verifier };
-});
+export const DepositVerifierModule = buildModule(
+  "Groth16Verifier_CheckHashesValue",
+  (m) => {
+    const verifier = m.contract("Groth16Verifier_CheckHashesValue", []);
+    return { verifier };
+  },
+);
 
-export const WithdrawNullifierVerifierModule = buildModule("Groth16Verifier_CheckNullifierValue", (m) => {
-  const verifier = m.contract('Groth16Verifier_CheckNullifierValue', []);
-  return { verifier };
-});
+export const WithdrawNullifierVerifierModule = buildModule(
+  "Groth16Verifier_CheckNullifierValue",
+  (m) => {
+    const verifier = m.contract("Groth16Verifier_CheckNullifierValue", []);
+    return { verifier };
+  },
+);
 
-export const WithdrawVerifierModule = buildModule("Groth16Verifier_CheckInputsOutputsValue", (m) => {
-  const verifier = m.contract('Groth16Verifier_CheckInputsOutputsValue', []);
-  return { verifier };
-});
+export const WithdrawVerifierModule = buildModule(
+  "Groth16Verifier_CheckInputsOutputsValue",
+  (m) => {
+    const verifier = m.contract("Groth16Verifier_CheckInputsOutputsValue", []);
+    return { verifier };
+  },
+);
 
 function PoseidonArtifact(param: number): Artifact {
   const abi = poseidonContract.generateABI(param);
@@ -56,7 +65,7 @@ function PoseidonArtifact(param: number): Artifact {
     bytecode: bytecode,
     deployedBytecode: "", // "0x"-prefixed hex string
     linkReferences: {},
-    deployedLinkReferences: {}
+    deployedLinkReferences: {},
   };
   return artifact;
 }

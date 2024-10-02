@@ -43,8 +43,8 @@ abstract contract ZetoNullifier is IZetoBase, ZetoCommon {
     }
 
     function validateTransactionProposal(
-        uint256[2] memory nullifiers,
-        uint256[2] memory outputs,
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
         uint256 root
     ) internal view returns (bool) {
         // sort the inputs and outputs to detect duplicates
@@ -94,8 +94,8 @@ abstract contract ZetoNullifier is IZetoBase, ZetoCommon {
     }
 
     function processInputsAndOutputs(
-        uint256[2] memory nullifiers,
-        uint256[2] memory outputs
+        uint256[] memory nullifiers,
+        uint256[] memory outputs
     ) internal {
         for (uint256 i = 0; i < nullifiers.length; ++i) {
             if (nullifiers[i] != 0) {
@@ -111,7 +111,10 @@ abstract contract ZetoNullifier is IZetoBase, ZetoCommon {
 
     // This function is used to mint new UTXOs, as an example implementation,
     // which is only callable by the owner.
-    function _mint(uint256[] memory utxos, bytes calldata data) internal virtual {
+    function _mint(
+        uint256[] memory utxos,
+        bytes calldata data
+    ) internal virtual {
         for (uint256 i = 0; i < utxos.length; ++i) {
             uint256 utxo = utxos[i];
             if (utxo == 0) {

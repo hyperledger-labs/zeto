@@ -25,6 +25,24 @@ library Commonlib {
         uint[2] pC;
     }
 
+    function padUintArray(
+        uint256[] memory arr,
+        uint256 targetLength,
+        uint256 padValue
+    ) internal pure returns (uint256[] memory) {
+        if (arr.length == targetLength) {
+            return arr;
+        }
+        uint256[] memory paddedArray = new uint256[](targetLength);
+        for (uint256 i = 0; i < arr.length; i++) {
+            paddedArray[i] = arr[i];
+        }
+        for (uint256 i = arr.length; i < targetLength; i++) {
+            paddedArray[i] = padValue;
+        }
+        return paddedArray;
+    }
+
     function getProofHash(
         Proof calldata proof
     ) internal pure returns (bytes32) {

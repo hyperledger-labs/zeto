@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import { ethers, ignition } from "hardhat";
-import zetoModule from '../../ignition/modules/zeto_nf_anon';
+import zetoModule from "../../ignition/modules/zeto_nf_anon";
 
 export async function deployDependencies() {
   const [deployer] = await ethers.getSigners();
@@ -23,9 +23,6 @@ export async function deployDependencies() {
   const { verifier } = await ignition.deploy(zetoModule);
   return {
     deployer,
-    args: [
-      await deployer.getAddress(),
-      verifier.target
-    ]
+    args: [await deployer.getAddress(), verifier.target],
   };
 }

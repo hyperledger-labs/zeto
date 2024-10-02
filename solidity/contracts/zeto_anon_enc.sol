@@ -19,6 +19,7 @@ import {IZetoEncrypted} from "./lib/interfaces/izeto_encrypted.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValue} from "./lib/verifier_check_inputs_outputs_value.sol";
 import {Groth16Verifier_AnonEnc} from "./lib/verifier_anon_enc.sol";
+import {Groth16Verifier_AnonEncBatch} from "./lib/verifier_anon_enc_batch.sol";
 import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
 import {ZetoFungible} from "./lib/zeto_fungible.sol";
@@ -26,6 +27,10 @@ import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+
+uint256 constant MAX_BATCH = 10;
+uint256 constant INPUT_SIZE = 15;
+uint256 constant BATCH_INPUT_SIZE = 63;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity, and encryption
 /// @author Kaleido, Inc.
@@ -36,21 +41,64 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
 ///        - the encrypted value in the input is derived from the receiver's UTXO value and encrypted with a shared secret using
 ///          the ECDH protocol between the sender and receiver (this guarantees data availability for the receiver)
-contract Zeto_AnonEnc is IZetoEncrypted, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
+contract Zeto_AnonEnc is
+    IZetoEncrypted,
+    ZetoBase,
+    ZetoFungibleWithdraw,
+    UUPSUpgradeable
+{
     Groth16Verifier_AnonEnc internal verifier;
+    Groth16Verifier_AnonEncBatch internal batchVerifier;
 
     function initialize(
         address initialOwner,
         Groth16Verifier_AnonEnc _verifier,
         Groth16Verifier_CheckHashesValue _depositVerifier,
-        Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier
+        Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier,
+        Groth16Verifier_AnonEncBatch _batchVerifier
     ) public initializer {
         __ZetoBase_init(initialOwner);
         __ZetoFungibleWithdraw_init(_depositVerifier, _withdrawVerifier);
         verifier = _verifier;
+        batchVerifier = _batchVerifier;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
+
+    function constructPublicInputs(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        uint256 encryptionNonce,
+        uint256[2] memory ecdhPublicKey,
+        uint256[] memory encryptedValues,
+        uint256 size
+    ) internal returns (uint256[] memory publicInputs) {
+        publicInputs = new uint256[](size);
+        uint256 piIndex = 0;
+        // copy the ecdh public key
+        for (uint256 i = 0; i < ecdhPublicKey.length; ++i) {
+            publicInputs[piIndex++] = ecdhPublicKey[i];
+        }
+
+        // copy the encrypted value, salt and parity bit
+        for (uint256 i = 0; i < encryptedValues.length; ++i) {
+            publicInputs[piIndex++] = encryptedValues[i];
+        }
+        // copy input commitments
+        for (uint256 i = 0; i < inputs.length; i++) {
+            publicInputs[piIndex++] = inputs[i];
+        }
+
+        // copy output commitments
+        for (uint256 i = 0; i < outputs.length; i++) {
+            publicInputs[piIndex++] = outputs[i];
+        }
+
+        // copy encryption nonce
+        publicInputs[piIndex++] = encryptionNonce;
+
+        return publicInputs;
+    }
 
     /**
      * @dev the main function of the contract.
@@ -63,55 +111,87 @@ contract Zeto_AnonEnc is IZetoEncrypted, ZetoBase, ZetoFungibleWithdraw, UUPSUpg
      * Emits a {UTXOTransferWithEncryptedValues} event.
      */
     function transfer(
-        uint256[2] memory inputs,
-        uint256[2] memory outputs,
+        uint256[] memory inputs,
+        uint256[] memory outputs,
         uint256 encryptionNonce,
-        uint256[4] memory encryptedValues,
+        uint256[2] memory ecdhPublicKey,
+        uint256[] memory encryptedValues,
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public returns (bool) {
+        // Check and pad commitments
+        (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
         require(
             validateTransactionProposal(inputs, outputs, proof),
             "Invalid transaction proposal"
         );
 
-        // construct the public inputs
-        uint256[9] memory publicInputs;
-        publicInputs[0] = encryptedValues[0]; // encrypted value for the receiver UTXO
-        publicInputs[1] = encryptedValues[1]; // encrypted salt for the receiver UTXO
-        publicInputs[2] = encryptedValues[2]; // parity bit for the cipher text
-        publicInputs[3] = encryptedValues[3]; // parity bit for the cipher text
-        publicInputs[4] = inputs[0];
-        publicInputs[5] = inputs[1];
-        publicInputs[6] = outputs[0];
-        publicInputs[7] = outputs[1];
-        publicInputs[8] = encryptionNonce;
-
         // Check the proof
-        require(
-            verifier.verifyProof(proof.pA, proof.pB, proof.pC, publicInputs),
-            "Invalid proof"
-        );
+        if (inputs.length > 2 || outputs.length > 2) {
+            uint256[] memory publicInputs = constructPublicInputs(
+                inputs,
+                outputs,
+                encryptionNonce,
+                ecdhPublicKey,
+                encryptedValues,
+                BATCH_INPUT_SIZE
+            );
+            // construct the public inputs for batchVerifier
+            uint256[BATCH_INPUT_SIZE] memory fixedSizeInput;
+            for (uint256 i = 0; i < fixedSizeInput.length; i++) {
+                fixedSizeInput[i] = publicInputs[i];
+            }
+
+            // Check the proof using batchVerifier
+            require(
+                batchVerifier.verifyProof(
+                    proof.pA,
+                    proof.pB,
+                    proof.pC,
+                    fixedSizeInput
+                ),
+                "Invalid proof"
+            );
+        } else {
+            uint256[] memory publicInputs = constructPublicInputs(
+                inputs,
+                outputs,
+                encryptionNonce,
+                ecdhPublicKey,
+                encryptedValues,
+                INPUT_SIZE
+            );
+            // construct the public inputs for verifier
+            uint256[INPUT_SIZE] memory fixedSizeInput;
+            for (uint256 i = 0; i < fixedSizeInput.length; i++) {
+                fixedSizeInput[i] = publicInputs[i];
+            }
+            // Check the proof
+            require(
+                verifier.verifyProof(
+                    proof.pA,
+                    proof.pB,
+                    proof.pC,
+                    fixedSizeInput
+                ),
+                "Invalid proof"
+            );
+        }
 
         processInputsAndOutputs(inputs, outputs);
 
-        uint256[] memory inputArray = new uint256[](inputs.length);
-        uint256[] memory outputArray = new uint256[](outputs.length);
         uint256[] memory encryptedValuesArray = new uint256[](
             encryptedValues.length
         );
-        for (uint256 i = 0; i < inputs.length; ++i) {
-            inputArray[i] = inputs[i];
-            outputArray[i] = outputs[i];
-        }
         for (uint256 i = 0; i < encryptedValues.length; ++i) {
             encryptedValuesArray[i] = encryptedValues[i];
         }
 
         emit UTXOTransferWithEncryptedValues(
-            inputArray,
-            outputArray,
+            inputs,
+            outputs,
             encryptionNonce,
+            ecdhPublicKey,
             encryptedValuesArray,
             msg.sender,
             data
@@ -133,16 +213,23 @@ contract Zeto_AnonEnc is IZetoEncrypted, ZetoBase, ZetoFungibleWithdraw, UUPSUpg
 
     function withdraw(
         uint256 amount,
-        uint256[2] memory inputs,
+        uint256[] memory inputs,
         uint256 output,
         Commonlib.Proof calldata proof
     ) public {
-        validateTransactionProposal(inputs, [output, 0], proof);
+        uint256[] memory outputs = new uint256[](inputs.length);
+        outputs[0] = output;
+        // Check and pad commitments
+        (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
+        validateTransactionProposal(inputs, outputs, proof);
         _withdraw(amount, inputs, output, proof);
-        processInputsAndOutputs(inputs, [output, 0]);
+        processInputsAndOutputs(inputs, outputs);
     }
 
-    function mint(uint256[] memory utxos, bytes calldata data) public onlyOwner {
+    function mint(
+        uint256[] memory utxos,
+        bytes calldata data
+    ) public onlyOwner {
         _mint(utxos, data);
     }
 }

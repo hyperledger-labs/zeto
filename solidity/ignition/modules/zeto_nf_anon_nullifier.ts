@@ -18,7 +18,7 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { SmtLibModule } from "./lib/deps";
 
 const VerifierModule = buildModule("Groth16Verifier_NfAnonNullifier", (m) => {
-  const verifier = m.contract('Groth16Verifier_NfAnonNullifier', []);
+  const verifier = m.contract("Groth16Verifier_NfAnonNullifier", []);
   return { verifier };
 });
 

@@ -14,30 +14,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { groth16 } = require('snarkjs');
-const { genKeypair } = require('maci-crypto');
-const { Poseidon, newSalt, loadCircuit } = require('../index.js');
-const { loadProvingKeys } = require('./utils.js');
+const { expect } = require("chai");
+const { groth16 } = require("snarkjs");
+const { genKeypair } = require("maci-crypto");
+const { Poseidon, newSalt, loadCircuit } = require("../index.js");
+const { loadProvingKeys } = require("./utils.js");
 
 const poseidonHash = Poseidon.poseidon4;
 
-describe('check-hashes-value circuit tests', () => {
+describe("check-hashes-value circuit tests", () => {
   let circuit;
   const sender = {};
   before(async () => {
-    circuit = await loadCircuit('check_hashes_value');
+    circuit = await loadCircuit("check_hashes_value");
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;
     sender.pubKey = keypair.pubKey;
   });
 
-  it('should return true for valid witness', async () => {
+  it("should return true for valid witness", async () => {
     const outputValues = [200];
 
     // create the output UTXO
     const salt1 = newSalt();
-    const output1 = poseidonHash([BigInt(outputValues[0]), salt1, ...sender.pubKey]);
+    const output1 = poseidonHash([
+      BigInt(outputValues[0]),
+      salt1,
+      ...sender.pubKey,
+    ]);
     const outputCommitments = [output1];
 
     let witness = await circuit.calculateWitness(
@@ -47,7 +51,7 @@ describe('check-hashes-value circuit tests', () => {
         outputSalts: [salt1],
         outputOwnerPublicKeys: [sender.pubKey],
       },
-      true
+      true,
     );
 
     expect(witness[1]).to.equal(BigInt(200)); // index 1 is the output, for the calculated value
@@ -59,12 +63,16 @@ describe('check-hashes-value circuit tests', () => {
         outputSalts: [salt1],
         outputOwnerPublicKeys: [sender.pubKey],
       },
-      true
+      true,
     );
-    const { provingKeyFile, verificationKey } = loadProvingKeys('check_hashes_value');
+    const { provingKeyFile, verificationKey } =
+      loadProvingKeys("check_hashes_value");
     const startTime = Date.now();
-    const { proof, publicSignals } = await groth16.prove(provingKeyFile, witness);
-    console.log('Proving time: ', (Date.now() - startTime) / 1000, 's');
+    const { proof, publicSignals } = await groth16.prove(
+      provingKeyFile,
+      witness,
+    );
+    console.log("Proving time: ", (Date.now() - startTime) / 1000, "s");
     const success = await groth16.verify(verificationKey, publicSignals, proof);
     expect(success, true);
     // console.log('output commitments', outputCommitments);

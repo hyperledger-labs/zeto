@@ -14,15 +14,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ethers, network } from 'hardhat';
-import { Signer, BigNumberish, AddressLike } from 'ethers';
-import { expect } from 'chai';
+import { ethers, network } from "hardhat";
+import { Signer, BigNumberish, AddressLike } from "ethers";
+import { expect } from "chai";
 import { loadCircuit, tokenUriHash, encodeProof } from "zeto-js";
-import { groth16 } from 'snarkjs';
-import { formatPrivKeyForBabyJub, stringifyBigInts } from 'maci-crypto';
-import { User, UTXO, newUser, newAssetUTXO, doMint } from './lib/utils';
-import { loadProvingKeys } from './utils';
-import { deployZeto } from './lib/deploy';
+import { groth16 } from "snarkjs";
+import { formatPrivKeyForBabyJub, stringifyBigInts } from "maci-crypto";
+import { User, UTXO, newUser, newAssetUTXO, doMint } from "./lib/utils";
+import { loadProvingKeys } from "./utils";
+import { deployZeto } from "./lib/deploy";
 
 describe("Zeto based non-fungible token with anonymity without encryption or nullifiers", function () {
   let deployer: Signer;
@@ -36,7 +36,7 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
   let circuit: any, provingKey: any;
 
   before(async function () {
-    if (network.name !== 'hardhat') {
+    if (network.name !== "hardhat") {
       // accommodate for longer block times on public networks
       this.timeout(120000);
     }
@@ -46,15 +46,15 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
     Bob = await newUser(b);
     Charlie = await newUser(c);
 
-    ({ deployer, zeto } = await deployZeto('Zeto_NfAnon'));
+    ({ deployer, zeto } = await deployZeto("Zeto_NfAnon"));
 
-    circuit = await loadCircuit('nf_anon');
-    ({ provingKeyFile: provingKey } = loadProvingKeys('nf_anon'));
+    circuit = await loadCircuit("nf_anon");
+    ({ provingKeyFile: provingKey } = loadProvingKeys("nf_anon"));
   });
 
   it("mint to Alice and transfer UTXOs honestly to Bob should succeed", async function () {
     const tokenId = 1001;
-    const uri = 'http://ipfs.io/file-hash-1';
+    const uri = "http://ipfs.io/file-hash-1";
     utxo1 = newAssetUTXO(tokenId, uri, Alice);
     await doMint(zeto, deployer, [utxo1]);
 
@@ -80,29 +80,45 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
     // the following failure cases rely on the hardhat network
     // to return the details of the errors. This is not possible
     // on non-hardhat networks
-    if (network.name !== 'hardhat') {
+    if (network.name !== "hardhat") {
       return;
     }
 
     it("mint existing unspent UTXOs should fail", async function () {
-      await expect(doMint(zeto, deployer, [utxo3])).rejectedWith("UTXOAlreadyOwned");
+      await expect(doMint(zeto, deployer, [utxo3])).rejectedWith(
+        "UTXOAlreadyOwned",
+      );
     });
 
     it("mint existing spent UTXOs should fail", async function () {
-      await expect(doMint(zeto, deployer, [utxo1])).rejectedWith("UTXOAlreadySpent");
+      await expect(doMint(zeto, deployer, [utxo1])).rejectedWith(
+        "UTXOAlreadySpent",
+      );
     });
 
     it("transfer non-existing UTXOs should fail", async function () {
-      const nonExisting1 = newAssetUTXO(1002, 'http://ipfs.io/file-hash-2', Alice);
-      const nonExisting2 = newAssetUTXO(1002, 'http://ipfs.io/file-hash-2', Bob);
+      const nonExisting1 = newAssetUTXO(
+        1002,
+        "http://ipfs.io/file-hash-2",
+        Alice,
+      );
+      const nonExisting2 = newAssetUTXO(
+        1002,
+        "http://ipfs.io/file-hash-2",
+        Bob,
+      );
 
-      await expect(doTransfer(Alice, nonExisting1, nonExisting2, Bob)).rejectedWith("UTXONotMinted");
+      await expect(
+        doTransfer(Alice, nonExisting1, nonExisting2, Bob),
+      ).rejectedWith("UTXONotMinted");
     });
 
     it("transfer spent UTXOs should fail (double spend protection)", async function () {
       // create outputs
       const _utxo4 = newAssetUTXO(utxo1.tokenId!, utxo1.uri!, Bob);
-      await expect(doTransfer(Alice, utxo1, _utxo4, Bob)).rejectedWith("UTXOAlreadySpent")
+      await expect(doTransfer(Alice, utxo1, _utxo4, Bob)).rejectedWith(
+        "UTXOAlreadySpent",
+      );
     });
   });
 
@@ -111,7 +127,14 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
     let outputCommitment: BigNumberish;
     let outputOwnerAddress: AddressLike;
     let encodedProof: any;
-    const result = await prepareProof(circuit, provingKey, signer, input, output, to);
+    const result = await prepareProof(
+      circuit,
+      provingKey,
+      signer,
+      input,
+      output,
+      to,
+    );
     inputCommitment = result.inputCommitment;
     outputCommitment = result.outputCommitment;
     outputOwnerAddress = to.ethAddress as AddressLike;
@@ -124,7 +147,7 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
     signer: User,
     inputCommitment: BigNumberish,
     outputCommitment: BigNumberish,
-    encodedProof: any
+    encodedProof: any,
   ) {
     const tx = await zeto
       .connect(signer.signer)
@@ -137,12 +160,20 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
   }
 });
 
-async function prepareProof(circuit: any, provingKey: any, signer: User, input: UTXO, output: UTXO, to: User) {
+async function prepareProof(
+  circuit: any,
+  provingKey: any,
+  signer: User,
+  input: UTXO,
+  output: UTXO,
+  to: User,
+) {
   const tokenId = input.tokenId;
   const inputCommitment: BigNumberish = input.hash as BigNumberish;
   const inputSalt = input.salt;
   const outputCommitment: BigNumberish = output.hash as BigNumberish;
-  const outputOwnerPublicKey: [BigNumberish, BigNumberish] = to.babyJubPublicKey as [BigNumberish, BigNumberish];
+  const outputOwnerPublicKey: [BigNumberish, BigNumberish] =
+    to.babyJubPublicKey as [BigNumberish, BigNumberish];
   const otherInputs = stringifyBigInts({
     inputOwnerPrivateKey: formatPrivKeyForBabyJub(signer.babyJubPrivateKey),
   });
@@ -157,21 +188,26 @@ async function prepareProof(circuit: any, provingKey: any, signer: User, input: 
       outputCommitments: [outputCommitment],
       outputSalts: [output.salt],
       outputOwnerPublicKeys: [outputOwnerPublicKey],
-      ...otherInputs
+      ...otherInputs,
     },
-    true
+    true,
   );
   const timeWitnessCalculation = Date.now() - startWitnessCalculation;
 
   const startProofGeneration = Date.now();
-  const { proof, publicSignals } = await groth16.prove(provingKey, witness) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
+  const { proof, publicSignals } = (await groth16.prove(
+    provingKey,
+    witness,
+  )) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
   const timeProofGeneration = Date.now() - startProofGeneration;
-  console.log(`Witness calculation time: ${timeWitnessCalculation}ms, Proof generation time: ${timeProofGeneration}ms`);
+  console.log(
+    `Witness calculation time: ${timeWitnessCalculation}ms, Proof generation time: ${timeProofGeneration}ms`,
+  );
   const encodedProof = encodeProof(proof);
   return {
     inputCommitment,
     outputCommitment,
-    encodedProof
+    encodedProof,
   };
 }
 

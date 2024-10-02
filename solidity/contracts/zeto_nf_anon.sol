@@ -58,8 +58,12 @@ contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public returns (bool) {
+        uint256[] memory inputs = new uint256[](1);
+        inputs[0] = input;
+        uint256[] memory outputs = new uint256[](1);
+        outputs[0] = output;
         require(
-            validateTransactionProposal([input, 0], [output, 0], proof),
+            validateTransactionProposal(inputs, outputs, proof),
             "Invalid transaction proposal"
         );
 
@@ -77,12 +81,7 @@ contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
         _utxos[input] = UTXOStatus.SPENT;
         _utxos[output] = UTXOStatus.UNSPENT;
 
-        uint256[] memory inputArray = new uint256[](1);
-        uint256[] memory outputArray = new uint256[](1);
-        inputArray[0] = input;
-        outputArray[0] = output;
-
-        emit UTXOTransfer(inputArray, outputArray, msg.sender, data);
+        emit UTXOTransfer(inputs, outputs, msg.sender, data);
         return true;
     }
 

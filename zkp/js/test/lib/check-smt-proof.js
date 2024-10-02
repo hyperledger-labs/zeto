@@ -14,18 +14,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
-const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
-const { Poseidon, newSalt, tokenUriHash } = require('../../index.js');
-const { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } = require('@iden3/js-merkletree');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
+const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
+const { Poseidon, newSalt, tokenUriHash } = require("../../index.js");
+const {
+  Merkletree,
+  InMemoryDB,
+  str2Bytes,
+  ZERO_HASH,
+} = require("@iden3/js-merkletree");
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon5;
 const poseidonHash4 = Poseidon.poseidon4;
 
-describe('check-smt-proof circuit tests', () => {
+describe("check-smt-proof circuit tests", () => {
   let circuit, smt;
   const sender = {};
   const receiver = {};
@@ -34,7 +39,9 @@ describe('check-smt-proof circuit tests', () => {
   before(async function () {
     this.timeout(60000);
 
-    circuit = await wasm_tester(join(__dirname, '../circuits/check-smt-proof.circom'));
+    circuit = await wasm_tester(
+      join(__dirname, "../circuits/check-smt-proof.circom"),
+    );
 
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;
@@ -45,17 +52,22 @@ describe('check-smt-proof circuit tests', () => {
     receiver.privKey = keypair.privKey;
     receiver.pubKey = keypair.pubKey;
 
-    const storage = new InMemoryDB(str2Bytes(''));
+    const storage = new InMemoryDB(str2Bytes(""));
     smt = new Merkletree(storage, true, SMT_HEIGHT);
   });
 
-  it('should return true for valid witness', async () => {
+  it("should return true for valid witness", async () => {
     const tokenId = 1001;
-    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash("http://ipfs.io/some-file-hash");
 
     // create two input UTXOs
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(tokenId), tokenUri, salt1, ...sender.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(tokenId),
+      tokenUri,
+      salt1,
+      ...sender.pubKey,
+    ]);
 
     // calculate the root of the SMT
     await smt.add(input1, input1);
@@ -70,7 +82,7 @@ describe('check-smt-proof circuit tests', () => {
         merkleProof: [proof1.siblings.map((s) => s.bigInt())],
         enabled: [1],
       },
-      true
+      true,
     );
 
     // console.log('inputCommitment', input1);

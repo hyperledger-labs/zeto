@@ -41,11 +41,12 @@ abstract contract ZetoFungibleWithdrawWithNullifiers is ZetoFungible {
 
     function _withdrawWithNullifiers(
         uint256 amount,
-        uint256[2] memory nullifiers,
+        uint256[] memory nullifiers,
         uint256 output,
         uint256 root,
         Commonlib.Proof calldata proof
     ) public virtual {
+        require((nullifiers.length == 2), "Withdraw must have 2 nullifiers");
         // construct the public inputs
         uint256[7] memory publicInputs;
         publicInputs[0] = amount;

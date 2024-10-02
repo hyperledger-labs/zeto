@@ -19,6 +19,7 @@ import {IZeto} from "./lib/interfaces/izeto.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckNullifierValue} from "./lib/verifier_check_nullifier_value.sol";
 import {Groth16Verifier_AnonNullifier} from "./lib/verifier_anon_nullifier.sol";
+import {Groth16Verifier_AnonNullifierBatch} from "./lib/verifier_anon_nullifier_batch.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Registry} from "./lib/registry.sol";
@@ -29,6 +30,9 @@ import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
 
 uint256 constant MAX_SMT_DEPTH = 64;
+uint256 constant MAX_BATCH = 10;
+uint256 constant INPUT_SIZE = 7;
+uint256 constant BATCH_INPUT_SIZE = 31;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and history masking
 /// @author Kaleido, Inc.
@@ -44,13 +48,15 @@ contract Zeto_AnonNullifier is
     ZetoFungibleWithdrawWithNullifiers,
     UUPSUpgradeable
 {
-    Groth16Verifier_AnonNullifier verifier;
+    Groth16Verifier_AnonNullifier internal verifier;
+    Groth16Verifier_AnonNullifierBatch internal batchVerifier;
 
     function initialize(
         address initialOwner,
         Groth16Verifier_AnonNullifier _verifier,
         Groth16Verifier_CheckHashesValue _depositVerifier,
-        Groth16Verifier_CheckNullifierValue _withdrawVerifier
+        Groth16Verifier_CheckNullifierValue _withdrawVerifier,
+        Groth16Verifier_AnonNullifierBatch _batchVerifier
     ) public initializer {
         __ZetoNullifier_init(initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(
@@ -58,9 +64,38 @@ contract Zeto_AnonNullifier is
             _withdrawVerifier
         );
         verifier = _verifier;
+        batchVerifier = _batchVerifier;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
+
+    function constructPublicInputs(
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
+        uint256 root,
+        uint256 size
+    ) internal returns (uint256[] memory publicInputs) {
+        publicInputs = new uint256[](size);
+        uint256 piIndex = 0;
+        // copy input commitments
+        for (uint256 i = 0; i < nullifiers.length; i++) {
+            publicInputs[piIndex++] = nullifiers[i];
+        }
+        // copy root
+        publicInputs[piIndex++] = root;
+
+        // populate enables
+        for (uint256 i = 0; i < nullifiers.length; i++) {
+            publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
+        }
+
+        // copy output commitments
+        for (uint256 i = 0; i < outputs.length; i++) {
+            publicInputs[piIndex++] = outputs[i];
+        }
+
+        return publicInputs;
+    }
 
     /**
      * @dev the main function of the contract.
@@ -74,32 +109,71 @@ contract Zeto_AnonNullifier is
      * Emits a {UTXOTransfer} event.
      */
     function transfer(
-        uint256[2] memory nullifiers,
-        uint256[2] memory outputs,
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
         uint256 root,
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public returns (bool) {
+        // Check and pad inputs and outputs based on the max size
+        (nullifiers, outputs) = checkAndPadCommitments(
+            nullifiers,
+            outputs,
+            MAX_BATCH
+        );
+
         require(
             validateTransactionProposal(nullifiers, outputs, root),
             "Invalid transaction proposal"
         );
 
-        // construct the public inputs
-        uint256[7] memory publicInputs;
-        publicInputs[0] = nullifiers[0];
-        publicInputs[1] = nullifiers[1];
-        publicInputs[2] = root;
-        publicInputs[3] = (nullifiers[0] == 0) ? 0 : 1; // if the first nullifier is empty, disable its MT proof verification
-        publicInputs[4] = (nullifiers[1] == 0) ? 0 : 1; // if the second nullifier is empty, disable its MT proof verification
-        publicInputs[5] = outputs[0];
-        publicInputs[6] = outputs[1];
+        // Check the proof
+        if (nullifiers.length > 2 || outputs.length > 2) {
+            uint256[] memory publicInputs = constructPublicInputs(
+                nullifiers,
+                outputs,
+                root,
+                BATCH_INPUT_SIZE
+            );
+            // construct the public inputs for batchVerifier
+            uint256[BATCH_INPUT_SIZE] memory fixedSizeInput;
+            for (uint256 i = 0; i < fixedSizeInput.length; i++) {
+                fixedSizeInput[i] = publicInputs[i];
+            }
 
-        // // Check the proof
-        require(
-            verifier.verifyProof(proof.pA, proof.pB, proof.pC, publicInputs),
-            "Invalid proof"
-        );
+            // Check the proof using batchVerifier
+            require(
+                batchVerifier.verifyProof(
+                    proof.pA,
+                    proof.pB,
+                    proof.pC,
+                    fixedSizeInput
+                ),
+                "Invalid proof"
+            );
+        } else {
+            uint256[] memory publicInputs = constructPublicInputs(
+                nullifiers,
+                outputs,
+                root,
+                INPUT_SIZE
+            );
+            // construct the public inputs for verifier
+            uint256[INPUT_SIZE] memory fixedSizeInput;
+            for (uint256 i = 0; i < fixedSizeInput.length; i++) {
+                fixedSizeInput[i] = publicInputs[i];
+            }
+            // Check the proof
+            require(
+                verifier.verifyProof(
+                    proof.pA,
+                    proof.pB,
+                    proof.pC,
+                    fixedSizeInput
+                ),
+                "Invalid proof"
+            );
+        }
 
         processInputsAndOutputs(nullifiers, outputs);
 
@@ -127,17 +201,28 @@ contract Zeto_AnonNullifier is
 
     function withdraw(
         uint256 amount,
-        uint256[2] memory nullifiers,
+        uint256[] memory nullifiers,
         uint256 output,
         uint256 root,
         Commonlib.Proof calldata proof
     ) public {
-        validateTransactionProposal(nullifiers, [output, 0], root);
+        uint256[] memory outputs = new uint256[](nullifiers.length);
+        outputs[0] = output;
+        // Check and pad inputs and outputs based on the max size
+        (nullifiers, outputs) = checkAndPadCommitments(
+            nullifiers,
+            outputs,
+            MAX_BATCH
+        );
+        validateTransactionProposal(nullifiers, outputs, root);
         _withdrawWithNullifiers(amount, nullifiers, output, root, proof);
-        processInputsAndOutputs(nullifiers, [output, 0]);
+        processInputsAndOutputs(nullifiers, outputs);
     }
 
-    function mint(uint256[] memory utxos, bytes calldata data) public onlyOwner {
+    function mint(
+        uint256[] memory utxos,
+        bytes calldata data
+    ) public onlyOwner {
         _mint(utxos, data);
     }
 }

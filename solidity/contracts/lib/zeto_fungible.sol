@@ -54,7 +54,7 @@ abstract contract ZetoFungible is OwnableUpgradeable {
         publicInputs[0] = amount;
         publicInputs[1] = utxo;
 
-        // // Check the proof
+        // Check the proof
         require(
             depositVerifier.verifyProof(
                 proof.pA,

@@ -19,6 +19,7 @@ import {IZeto} from "./lib/interfaces/izeto.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValue} from "./lib/verifier_check_inputs_outputs_value.sol";
 import {Groth16Verifier_Anon} from "./lib/verifier_anon.sol";
+import {Groth16Verifier_AnonBatch} from "./lib/verifier_anon_batch.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
@@ -26,6 +27,10 @@ import {ZetoFungible} from "./lib/zeto_fungible.sol";
 import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+
+uint256 constant MAX_BATCH = 10;
+uint256 constant INPUT_SIZE = 4;
+uint256 constant BATCH_INPUT_SIZE = 20;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and no encryption
 /// @author Kaleido, Inc.
@@ -36,19 +41,42 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
 contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
     Groth16Verifier_Anon internal verifier;
+    Groth16Verifier_AnonBatch internal batchVerifier;
 
     function initialize(
         address initialOwner,
         Groth16Verifier_Anon _verifier,
         Groth16Verifier_CheckHashesValue _depositVerifier,
-        Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier
+        Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier,
+        Groth16Verifier_AnonBatch _batchVerifier
     ) public initializer {
         __ZetoBase_init(initialOwner);
         __ZetoFungibleWithdraw_init(_depositVerifier, _withdrawVerifier);
         verifier = _verifier;
+        batchVerifier = _batchVerifier;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
+
+    function constructPublicInputs(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        uint256 size
+    ) internal returns (uint256[] memory publicInputs) {
+        publicInputs = new uint256[](size);
+        uint256 piIndex = 0;
+        // copy input commitments
+        for (uint256 i = 0; i < inputs.length; i++) {
+            publicInputs[piIndex++] = inputs[i];
+        }
+
+        // copy output commitments
+        for (uint256 i = 0; i < outputs.length; i++) {
+            publicInputs[piIndex++] = outputs[i];
+        }
+
+        return publicInputs;
+    }
 
     /**
      * @dev the main function of the contract.
@@ -61,28 +89,64 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
      * Emits a {UTXOTransfer} event.
      */
     function transfer(
-        uint256[2] memory inputs,
-        uint256[2] memory outputs,
+        uint256[] memory inputs,
+        uint256[] memory outputs,
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public returns (bool) {
+        // Check and pad inputs and outputs based on the max size
+        (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
+
         require(
             validateTransactionProposal(inputs, outputs, proof),
             "Invalid transaction proposal"
         );
 
-        // construct the public inputs
-        uint256[4] memory publicInputs;
-        publicInputs[0] = inputs[0];
-        publicInputs[1] = inputs[1];
-        publicInputs[2] = outputs[0];
-        publicInputs[3] = outputs[1];
-
         // Check the proof
-        require(
-            verifier.verifyProof(proof.pA, proof.pB, proof.pC, publicInputs),
-            "Invalid proof"
-        );
+        if (inputs.length > 2 || outputs.length > 2) {
+            uint256[] memory publicInputs = constructPublicInputs(
+                inputs,
+                outputs,
+                BATCH_INPUT_SIZE
+            );
+            // construct the public inputs for batchVerifier
+            uint256[BATCH_INPUT_SIZE] memory fixedSizeInput;
+            for (uint256 i = 0; i < fixedSizeInput.length; i++) {
+                fixedSizeInput[i] = publicInputs[i];
+            }
+
+            // Check the proof using batchVerifier
+            require(
+                batchVerifier.verifyProof(
+                    proof.pA,
+                    proof.pB,
+                    proof.pC,
+                    fixedSizeInput
+                ),
+                "Invalid proof"
+            );
+        } else {
+            uint256[] memory publicInputs = constructPublicInputs(
+                inputs,
+                outputs,
+                INPUT_SIZE
+            );
+            // construct the public inputs for verifier
+            uint256[INPUT_SIZE] memory fixedSizeInput;
+            for (uint256 i = 0; i < fixedSizeInput.length; i++) {
+                fixedSizeInput[i] = publicInputs[i];
+            }
+            // Check the proof
+            require(
+                verifier.verifyProof(
+                    proof.pA,
+                    proof.pB,
+                    proof.pC,
+                    fixedSizeInput
+                ),
+                "Invalid proof"
+            );
+        }
 
         processInputsAndOutputs(inputs, outputs);
 
@@ -111,16 +175,23 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
 
     function withdraw(
         uint256 amount,
-        uint256[2] memory inputs,
+        uint256[] memory inputs,
         uint256 output,
         Commonlib.Proof calldata proof
     ) public {
-        validateTransactionProposal(inputs, [output, 0], proof);
+        // Check and pad inputs and outputs based on the max size
+        uint256[] memory outputs = new uint256[](inputs.length);
+        outputs[0] = output;
+        (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
+        validateTransactionProposal(inputs, outputs, proof);
         _withdraw(amount, inputs, output, proof);
-        processInputsAndOutputs(inputs, [output, 0]);
+        processInputsAndOutputs(inputs, outputs);
     }
 
-    function mint(uint256[] memory utxos, bytes calldata data) public onlyOwner {
+    function mint(
+        uint256[] memory utxos,
+        bytes calldata data
+    ) public onlyOwner {
         _mint(utxos, data);
     }
 }

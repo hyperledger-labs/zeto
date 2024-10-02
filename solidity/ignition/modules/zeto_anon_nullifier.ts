@@ -15,18 +15,40 @@
 // limitations under the License.
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import { SmtLibModule, DepositVerifierModule, WithdrawNullifierVerifierModule } from "./lib/deps";
+import {
+  SmtLibModule,
+  DepositVerifierModule,
+  WithdrawNullifierVerifierModule,
+} from "./lib/deps";
 
 const VerifierModule = buildModule("Groth16Verifier_AnonNullifier", (m) => {
-  const verifier = m.contract('Groth16Verifier_AnonNullifier', []);
+  const verifier = m.contract("Groth16Verifier_AnonNullifier", []);
   return { verifier };
 });
+
+const BatchVerifierModule = buildModule(
+  "Groth16Verifier_AnonNullifierBatch",
+  (m) => {
+    const verifier = m.contract("Groth16Verifier_AnonNullifierBatch", []);
+    return { verifier };
+  },
+);
 
 export default buildModule("Zeto_AnonNullifier", (m) => {
   const { smtLib, poseidon3 } = m.useModule(SmtLibModule);
   const { verifier } = m.useModule(VerifierModule);
+  const { verifier: batchVerifier } = m.useModule(BatchVerifierModule);
   const { verifier: depositVerifier } = m.useModule(DepositVerifierModule);
-  const { verifier: withdrawVerifier } = m.useModule(WithdrawNullifierVerifierModule);
+  const { verifier: withdrawVerifier } = m.useModule(
+    WithdrawNullifierVerifierModule,
+  );
 
-  return { depositVerifier, withdrawVerifier, verifier, smtLib, poseidon3 };
+  return {
+    depositVerifier,
+    withdrawVerifier,
+    verifier,
+    batchVerifier,
+    smtLib,
+    poseidon3,
+  };
 });

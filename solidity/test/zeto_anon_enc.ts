@@ -14,15 +14,38 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ethers, network } from 'hardhat';
-import { ContractTransactionReceipt, Signer, BigNumberish } from 'ethers';
-import { expect } from 'chai';
-import { loadCircuit, poseidonDecrypt, encodeProof, Poseidon, newEncryptionNonce } from "zeto-js";
-import { groth16 } from 'snarkjs';
-import { formatPrivKeyForBabyJub, genEcdhSharedKey, stringifyBigInts } from 'maci-crypto';
-import { User, UTXO, newUser, newUTXO, doMint, ZERO_UTXO, parseUTXOEvents } from './lib/utils';
-import { loadProvingKeys, prepareDepositProof, prepareWithdrawProof } from './utils';
-import { deployZeto } from './lib/deploy';
+import { ethers, network } from "hardhat";
+import { ContractTransactionReceipt, Signer, BigNumberish } from "ethers";
+import { expect } from "chai";
+import {
+  loadCircuit,
+  poseidonDecrypt,
+  encodeProof,
+  Poseidon,
+  newEncryptionNonce,
+} from "zeto-js";
+import { groth16 } from "snarkjs";
+import {
+  genKeypair,
+  formatPrivKeyForBabyJub,
+  genEcdhSharedKey,
+  stringifyBigInts,
+} from "maci-crypto";
+import {
+  User,
+  UTXO,
+  newUser,
+  newUTXO,
+  doMint,
+  ZERO_UTXO,
+  parseUTXOEvents,
+} from "./lib/utils";
+import {
+  loadProvingKeys,
+  prepareDepositProof,
+  prepareWithdrawProof,
+} from "./utils";
+import { deployZeto } from "./lib/deploy";
 
 const poseidonHash = Poseidon.poseidon4;
 
@@ -39,9 +62,10 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
   let utxo3: UTXO;
   let utxo4: UTXO;
   let circuit: any, provingKey: any;
+  let batchCircuit: any, batchProvingKey: any;
 
   before(async function () {
-    if (network.name !== 'hardhat') {
+    if (network.name !== "hardhat") {
       // accommodate for longer block times on public networks
       this.timeout(120000);
     }
@@ -51,10 +75,78 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     Bob = await newUser(b);
     Charlie = await newUser(c);
 
-    ({ deployer, zeto, erc20 } = await deployZeto('Zeto_AnonEnc'));
+    ({ deployer, zeto, erc20 } = await deployZeto("Zeto_AnonEnc"));
 
-    circuit = await loadCircuit('anon_enc');
-    ({ provingKeyFile: provingKey } = loadProvingKeys('anon_enc'));
+    circuit = await loadCircuit("anon_enc");
+    ({ provingKeyFile: provingKey } = loadProvingKeys("anon_enc"));
+    batchCircuit = await loadCircuit("anon_enc_batch");
+    ({ provingKeyFile: batchProvingKey } = loadProvingKeys("anon_enc_batch"));
+  });
+
+  it("(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob and Charlie should succeed", async function () {
+    // first mint the tokens for batch testing
+    const inputUtxos = [];
+    for (let i = 0; i < 10; i++) {
+      // mint 10 utxos
+      inputUtxos.push(newUTXO(1, Alice));
+    }
+    await doMint(zeto, deployer, inputUtxos);
+
+    // Alice proposes the output UTXOs, 1 utxo to bob, 1 utxo to charlie and 1 utxo to alice
+    const _bOut1 = newUTXO(8, Bob);
+    const _bOut2 = newUTXO(1, Charlie);
+    const _bOut3 = newUTXO(1, Alice);
+    const outputUtxos = [_bOut1, _bOut2, _bOut3];
+    const outputOwners = [Bob, Charlie, Alice];
+    const inflatedOutputUtxos = [...outputUtxos];
+    const inflatedOutputOwners = [...outputOwners];
+    for (let i = 0; i < 10 - outputUtxos.length; i++) {
+      inflatedOutputUtxos.push(ZERO_UTXO);
+      inflatedOutputOwners.push(Bob);
+    }
+
+    // Alice transfers UTXOs to Bob
+    const result = await doTransfer(
+      Alice,
+      inputUtxos,
+      inflatedOutputUtxos,
+      inflatedOutputOwners,
+    );
+
+    const events = parseUTXOEvents(zeto, result.txResult!);
+    expect(events[0].inputs).to.deep.equal(inputUtxos.map((i) => i.hash));
+    const incomingUTXOs: any = events[0].outputs;
+    const ecdhPublicKey = events[0].ecdhPublicKey;
+
+    // check the non-empty output hashes are correct
+    for (let i = 0; i < outputUtxos.length; i++) {
+      const utxoOwner = outputOwners[i];
+      const sharedKey = genEcdhSharedKey(
+        utxoOwner.babyJubPrivateKey,
+        ecdhPublicKey,
+      );
+      const plainText = poseidonDecrypt(
+        events[0].encryptedValues.slice(4 * i, 4 * i + 4),
+        sharedKey,
+        events[0].encryptionNonce,
+        2,
+      );
+      expect(plainText).to.deep.equal(
+        result.expectedPlainText.slice(2 * i, 2 * i + 2),
+      );
+      const hash = poseidonHash([
+        BigInt(plainText[0]),
+        plainText[1],
+        utxoOwner.babyJubPublicKey[0],
+        utxoOwner.babyJubPublicKey[1],
+      ]);
+      expect(incomingUTXOs[i]).to.equal(hash);
+    }
+
+    // check empty values, salt and hashes are empty
+    for (let i = outputUtxos.length; i < 10; i++) {
+      expect(incomingUTXOs[i]).to.equal(0);
+    }
   });
 
   it("mint ERC20 tokens to Alice to deposit to Zeto should succeed", async function () {
@@ -68,7 +160,10 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     await tx1.wait();
 
     utxo100 = newUTXO(100, Alice);
-    const { outputCommitments, encodedProof } = await prepareDepositProof(Alice, utxo100);
+    const { outputCommitments, encodedProof } = await prepareDepositProof(
+      Alice,
+      utxo100,
+    );
     const tx2 = await zeto
       .connect(Alice.signer)
       .deposit(100, outputCommitments[0], encodedProof, "0x");
@@ -91,12 +186,17 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     utxo4 = newUTXO(5, Alice, _utxo1.salt);
 
     // Alice transfers UTXOs to Bob
-    const result = await doTransfer(Alice, [utxo1, utxo2], [_utxo1, utxo4], [Bob, Alice]);
+    const result = await doTransfer(
+      Alice,
+      [utxo1, utxo2],
+      [_utxo1, utxo4],
+      [Bob, Alice],
+    );
 
     // check the private transfer activity is not exposed in the ERC20 contract
     const afterTransferBalance = await erc20.balanceOf(Alice.ethAddress);
     expect(afterTransferBalance).to.equal(startingBalance);
-  
+
     // Bob uses the information in the event to recover the incoming UTXO
     // first obtain the UTXO from the transaction event
     const events = parseUTXOEvents(zeto, result.txResult!);
@@ -104,14 +204,24 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     expect(events[0].outputs).to.deep.equal([_utxo1.hash, utxo4.hash]);
     const incomingUTXOs: any = events[0].outputs;
 
-    // Bob reconstructs the shared key using his private key and Alice's public key (obtained out of band)
-    const senderPublicKey = Alice.babyJubPublicKey;
+    const ecdhPublicKey = events[0].ecdhPublicKey;
+    // Bob reconstructs the shared key using his private key and ephemeral public key
 
-    const sharedKey = genEcdhSharedKey(Bob.babyJubPrivateKey, senderPublicKey);
-    const plainText = poseidonDecrypt(events[0].encryptedValues, sharedKey, events[0].encryptionNonce, 2);
-    expect(plainText).to.deep.equal([25n, result.plainTextSalt]);
+    const sharedKey = genEcdhSharedKey(Bob.babyJubPrivateKey, ecdhPublicKey);
+    const plainText = poseidonDecrypt(
+      events[0].encryptedValues.slice(0, 4),
+      sharedKey,
+      events[0].encryptionNonce,
+      2,
+    );
+    expect(plainText).to.deep.equal(result.expectedPlainText.slice(0, 2));
     // Bob verifies that the UTXO constructed from the decrypted values matches the UTXO from the event
-    const hash = poseidonHash([BigInt(plainText[0]), plainText[1], Bob.babyJubPublicKey[0], Bob.babyJubPublicKey[1]]);
+    const hash = poseidonHash([
+      BigInt(plainText[0]),
+      plainText[1],
+      Bob.babyJubPublicKey[0],
+      Bob.babyJubPublicKey[1],
+    ]);
     expect(hash).to.equal(incomingUTXOs[0]);
 
     // simulate Bob using the decrypted values to construct the UTXO received from the transaction
@@ -122,7 +232,12 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     // propose the output UTXOs
     const _utxo1 = newUTXO(25, Charlie);
     // Bob should be able to spend the UTXO that was reconstructed from the previous transaction
-    await doTransfer(Bob, [utxo3, ZERO_UTXO], [_utxo1, ZERO_UTXO], [Charlie, Bob]);
+    await doTransfer(
+      Bob,
+      [utxo3, ZERO_UTXO],
+      [_utxo1, ZERO_UTXO],
+      [Charlie, Bob],
+    );
   });
 
   it("Alice withdraws her UTXOs to ERC20 tokens should succeed", async function () {
@@ -130,10 +245,13 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     // Alice proposes the output ERC20 tokens
     const outputCommitment = newUTXO(20, Alice);
 
-    const { inputCommitments, outputCommitments, encodedProof } = await prepareWithdrawProof(Alice, [utxo100, ZERO_UTXO], outputCommitment);
+    const { inputCommitments, outputCommitments, encodedProof } =
+      await prepareWithdrawProof(Alice, [utxo100, ZERO_UTXO], outputCommitment);
 
     // Alice withdraws her UTXOs to ERC20 tokens
-    const tx = await zeto.connect(Alice.signer).withdraw(80, inputCommitments, outputCommitments[0], encodedProof);
+    const tx = await zeto
+      .connect(Alice.signer)
+      .withdraw(80, inputCommitments, outputCommitments[0], encodedProof);
     await tx.wait();
 
     // Alice checks her ERC20 balance
@@ -145,7 +263,7 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     // the following failure cases rely on the hardhat network
     // to return the details of the errors. This is not possible
     // on non-hardhat networks
-    if (network.name !== 'hardhat') {
+    if (network.name !== "hardhat") {
       return;
     }
 
@@ -153,30 +271,52 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
       // Alice proposes the output ERC20 tokens
       const outputCommitment = newUTXO(90, Alice);
 
-      const { inputCommitments, outputCommitments, encodedProof } = await prepareWithdrawProof(Alice, [utxo100, ZERO_UTXO], outputCommitment);
+      const { inputCommitments, outputCommitments, encodedProof } =
+        await prepareWithdrawProof(
+          Alice,
+          [utxo100, ZERO_UTXO],
+          outputCommitment,
+        );
 
-      await expect(zeto.connect(Alice.signer).withdraw(10, inputCommitments, outputCommitments[0], encodedProof)).rejectedWith("UTXOAlreadySpent");
+      await expect(
+        zeto
+          .connect(Alice.signer)
+          .withdraw(10, inputCommitments, outputCommitments[0], encodedProof),
+      ).rejectedWith("UTXOAlreadySpent");
     });
 
     it("mint existing unspent UTXOs should fail", async function () {
-      await expect(doMint(zeto, deployer, [utxo4])).rejectedWith("UTXOAlreadyOwned");
+      await expect(doMint(zeto, deployer, [utxo4])).rejectedWith(
+        "UTXOAlreadyOwned",
+      );
     });
 
     it("mint existing spent UTXOs should fail", async function () {
-      await expect(doMint(zeto, deployer, [utxo1])).rejectedWith("UTXOAlreadySpent");
+      await expect(doMint(zeto, deployer, [utxo1])).rejectedWith(
+        "UTXOAlreadySpent",
+      );
     });
 
     it("transfer non-existing UTXOs should fail", async function () {
       const nonExisting1 = newUTXO(10, Alice);
       const nonExisting2 = newUTXO(20, Alice, nonExisting1.salt);
-      await expect(doTransfer(Alice, [nonExisting1, nonExisting2], [nonExisting1, nonExisting2], [Alice, Alice])).rejectedWith("UTXONotMinted");
+      await expect(
+        doTransfer(
+          Alice,
+          [nonExisting1, nonExisting2],
+          [nonExisting1, nonExisting2],
+          [Alice, Alice],
+        ),
+      ).rejectedWith("UTXONotMinted");
     });
 
     it("transfer spent UTXOs should fail (double spend protection)", async function () {
       // create outputs
       const _utxo1 = newUTXO(25, Bob);
       const _utxo2 = newUTXO(5, Alice);
-      await expect(doTransfer(Alice, [utxo1, utxo2], [_utxo1, _utxo2], [Bob, Alice])).rejectedWith("UTXOAlreadySpent")
+      await expect(
+        doTransfer(Alice, [utxo1, utxo2], [_utxo1, _utxo2], [Bob, Alice]),
+      ).rejectedWith("UTXOAlreadySpent");
     });
 
     it("spend by using the same UTXO as both inputs should fail", async function () {
@@ -186,91 +326,149 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
 
       const _utxo2 = newUTXO(25, Alice);
       const _utxo3 = newUTXO(15, Bob);
-      await expect(doTransfer(Bob, [_utxo1, _utxo1], [_utxo2, _utxo3], [Alice, Bob])).rejectedWith(`UTXODuplicate(${_utxo1.hash.toString()}`);
+      await expect(
+        doTransfer(Bob, [_utxo1, _utxo1], [_utxo2, _utxo3], [Alice, Bob]),
+      ).rejectedWith(`UTXODuplicate(${_utxo1.hash.toString()}`);
     });
   });
 
-  async function doTransfer(signer: User, inputs: UTXO[], outputs: UTXO[], owners: User[]) {
-    let inputCommitments: [BigNumberish, BigNumberish];
-    let outputCommitments: [BigNumberish, BigNumberish];
+  async function doTransfer(
+    signer: User,
+    inputs: UTXO[],
+    outputs: UTXO[],
+    owners: User[],
+  ) {
+    let inputCommitments: BigNumberish[];
+    let outputCommitments: BigNumberish[];
     let encryptedValues: BigNumberish[];
     let encryptionNonce: BigNumberish;
     let encodedProof: any;
-    const result = await prepareProof(signer, inputs, outputs, owners);
+    const ephemeralKeypair = genKeypair();
+    const result = await prepareProof(
+      signer,
+      inputs,
+      outputs,
+      owners,
+      ephemeralKeypair.privKey,
+    );
     inputCommitments = result.inputCommitments;
     outputCommitments = result.outputCommitments;
     encodedProof = result.encodedProof;
     encryptedValues = result.encryptedValues;
     encryptionNonce = result.encryptionNonce;
 
-    const txResult = await sendTx(signer, inputCommitments, outputCommitments, encryptedValues, encryptionNonce, encodedProof);
+    const txResult = await sendTx(
+      signer,
+      inputCommitments,
+      outputCommitments,
+      encryptedValues,
+      encryptionNonce,
+      encodedProof,
+      ephemeralKeypair.pubKey,
+    );
     // add the clear text value so that it can be used by tests to compare with the decrypted value
-    return { txResult, plainTextSalt: outputs[0].salt };
+    return {
+      txResult,
+      expectedPlainText: outputs.reduce((acc, o, i) => {
+        acc.push(BigInt(o.value || 0n) as BigNumberish);
+        acc.push((o.salt || 0n) as BigNumberish);
+        return acc;
+      }, [] as BigNumberish[]),
+    };
   }
 
-  async function prepareProof(signer: User, inputs: UTXO[], outputs: UTXO[], owners: User[]) {
-    const inputCommitments: [BigNumberish, BigNumberish] = inputs.map((input) => input.hash) as [BigNumberish, BigNumberish];
+  async function prepareProof(
+    signer: User,
+    inputs: UTXO[],
+    outputs: UTXO[],
+    owners: User[],
+    ephemeralPrivateKey: BigInt,
+  ) {
+    const inputCommitments: BigNumberish[] = inputs.map(
+      (input) => input.hash,
+    ) as BigNumberish[];
     const inputValues = inputs.map((input) => BigInt(input.value || 0n));
     const inputSalts = inputs.map((input) => input.salt || 0n);
-    const outputCommitments: [BigNumberish, BigNumberish] = outputs.map((output) => output.hash) as [BigNumberish, BigNumberish];
+    const outputCommitments: BigNumberish[] = outputs.map(
+      (output) => output.hash,
+    ) as BigNumberish[];
     const outputValues = outputs.map((output) => BigInt(output.value || 0n));
-    const outputOwnerPublicKeys: [[BigNumberish, BigNumberish], [BigNumberish, BigNumberish]] = owners.map(owner => owner.babyJubPublicKey) as [[BigNumberish, BigNumberish], [BigNumberish, BigNumberish]];
+    const outputOwnerPublicKeys: BigNumberish[][] = owners.map(
+      (owner) => owner.babyJubPublicKey,
+    ) as BigNumberish[][];
     const encryptionNonce: BigNumberish = newEncryptionNonce() as BigNumberish;
     const encryptInputs = stringifyBigInts({
       encryptionNonce,
-      inputOwnerPrivateKey: formatPrivKeyForBabyJub(signer.babyJubPrivateKey),
+      ecdhPrivateKey: formatPrivKeyForBabyJub(ephemeralPrivateKey),
     });
 
+    let circuitToUse = circuit;
+    let provingKeyToUse = provingKey;
+    let isBatch = false;
+    if (inputCommitments.length > 2 || outputCommitments.length > 2) {
+      isBatch = true;
+      circuitToUse = batchCircuit;
+      provingKeyToUse = batchProvingKey;
+    }
     const startWitnessCalculation = Date.now();
-    const witness = await circuit.calculateWTNSBin(
+    const witness = await circuitToUse.calculateWTNSBin(
       {
         inputCommitments,
         inputValues,
         inputSalts,
+        inputOwnerPrivateKey: formatPrivKeyForBabyJub(signer.babyJubPrivateKey),
         outputCommitments,
         outputValues,
         outputSalts: outputs.map((output) => output.salt || 0n),
         outputOwnerPublicKeys,
-        ...encryptInputs
+        ...encryptInputs,
       },
-      true
+      true,
     );
     const timeWitnessCalculation = Date.now() - startWitnessCalculation;
 
     const startProofGeneration = Date.now();
-    const { proof, publicSignals } = await groth16.prove(provingKey, witness) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
+    const { proof, publicSignals } = (await groth16.prove(
+      provingKeyToUse,
+      witness,
+    )) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
     const timeProofGeneration = Date.now() - startProofGeneration;
-    console.log(`Witness calculation time: ${timeWitnessCalculation}ms, Proof generation time: ${timeProofGeneration}ms`);
+    console.log(
+      `Witness calculation time: ${timeWitnessCalculation}ms, Proof generation time: ${timeProofGeneration}ms`,
+    );
 
+    // console.log(publicSignals);
     const encodedProof = encodeProof(proof);
-    const encryptedValues = publicSignals.slice(0, 4);
+    const encryptedValues = isBatch
+      ? publicSignals.slice(2, 42)
+      : publicSignals.slice(2, 10);
     return {
       inputCommitments,
       outputCommitments,
       encryptedValues,
       encryptionNonce,
-      encodedProof
+      encodedProof,
     };
   }
 
   async function sendTx(
     signer: User,
-    inputCommitments: [BigNumberish, BigNumberish],
-    outputCommitments: [BigNumberish, BigNumberish],
+    inputCommitments: BigNumberish[],
+    outputCommitments: BigNumberish[],
     encryptedValues: BigNumberish[],
     encryptionNonce: BigNumberish,
-    encodedProof: any
+    encodedProof: any,
+    ecdhPublicKey: BigInt[],
   ) {
-    const tx = await zeto
-      .connect(signer.signer)
-      .transfer(
-        inputCommitments,
-        outputCommitments,
-        encryptionNonce,
-        encryptedValues,
-        encodedProof,
-        "0x"
-      );
+    const tx = await zeto.connect(signer.signer).transfer(
+      inputCommitments.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
+      outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
+      encryptionNonce,
+      ecdhPublicKey,
+      encryptedValues,
+      encodedProof,
+      "0x",
+    );
     const results: ContractTransactionReceipt | null = await tx.wait();
 
     for (const input of inputCommitments) {
@@ -286,4 +484,3 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     return results;
   }
 });
-

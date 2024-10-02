@@ -14,20 +14,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
 
-describe('check-sum circuit tests', () => {
+describe("check-sum circuit tests", () => {
   let circuit;
 
   before(async function () {
     this.timeout(60000);
 
-    circuit = await wasm_tester(join(__dirname, '../circuits/check-sum.circom'));
+    circuit = await wasm_tester(
+      join(__dirname, "../circuits/check-sum.circom"),
+    );
   });
 
-  it('should return true for valid witness', async () => {
+  it("should return true for valid witness", async () => {
     const inputValues = [32, 40];
     const outputValues = [20, 52];
 
@@ -36,13 +38,13 @@ describe('check-sum circuit tests', () => {
         inputValues,
         outputValues,
       },
-      true
+      true,
     );
     // console.log(witness.slice(0, 5));
     expect(witness[0]).to.equal(BigInt(1));
   });
 
-  it('should fail if sums are not equal', async () => {
+  it("should fail if sums are not equal", async () => {
     const inputValues = [32, 40];
     const outputValues = [20, 50];
 
@@ -53,7 +55,7 @@ describe('check-sum circuit tests', () => {
           inputValues,
           outputValues,
         },
-        true
+        true,
       );
     } catch (e) {
       error = e;

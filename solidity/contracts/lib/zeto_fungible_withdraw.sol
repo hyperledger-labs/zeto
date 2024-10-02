@@ -40,10 +40,12 @@ abstract contract ZetoFungibleWithdraw is ZetoFungible {
 
     function _withdraw(
         uint256 amount,
-        uint256[2] memory inputs,
+        uint256[] memory inputs,
         uint256 output,
         Commonlib.Proof calldata proof
     ) public virtual {
+        require((inputs.length == 2), "Withdraw must have 2 inputs");
+
         // construct the public inputs
         uint256[4] memory publicInputs;
         publicInputs[0] = amount;
