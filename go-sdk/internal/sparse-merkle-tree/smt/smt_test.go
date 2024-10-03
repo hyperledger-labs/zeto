@@ -152,9 +152,12 @@ func (s *MerkleTreeTestSuite) TestAddNode() {
 
 	// test storage persistence
 	rawDB := mt.(*sparseMerkleTree).db
-	rootIdx, err := rawDB.GetRootNodeIndex()
+	rootIdx, err := rawDB.GetRootNodeRef()
 	assert.NoError(s.T(), err)
 	assert.Equal(s.T(), "abacf46f5217552ee28fe50b8fd7ca6aa46daeb9acf9f60928654c3b1a472f23", rootIdx.Hex())
+	dbNode1, err := rawDB.GetNode(n1.Ref())
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), n1.Index().Hex(), dbNode1.Index().Hex())
 
 	// test storage persistence across tree creation
 	mt2, err := NewMerkleTree(s.db, 10)
@@ -242,7 +245,6 @@ func (s *MerkleTreeTestSuite) TestVerifyProof() {
 			assert.NoError(s.T(), err)
 			startProving <- node
 			done <- true
-			fmt.Printf("Added node %d\n", idx)
 		}(value, idx)
 	}
 

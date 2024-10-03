@@ -28,16 +28,16 @@ type mockStorage struct {
 	GetRootNodeIndex_customError bool
 }
 
-func (ms *mockStorage) GetRootNodeIndex() (core.NodeIndex, error) {
+func (ms *mockStorage) GetRootNodeRef() (core.NodeRef, error) {
 	if ms.GetRootNodeIndex_customError {
 		return nil, fmt.Errorf("nasty error in get root")
 	}
 	return nil, core.ErrNotFound
 }
-func (ms *mockStorage) UpsertRootNodeIndex(core.NodeIndex) error {
+func (ms *mockStorage) UpsertRootNodeRef(core.NodeRef) error {
 	return fmt.Errorf("nasty error in upsert root")
 }
-func (ms *mockStorage) GetNode(core.NodeIndex) (core.Node, error) {
+func (ms *mockStorage) GetNode(core.NodeRef) (core.Node, error) {
 	return nil, nil
 }
 func (ms *mockStorage) InsertNode(core.Node) error {

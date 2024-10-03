@@ -34,8 +34,7 @@ const (
 	NodeTypeLeaf
 )
 
-// NodeIndex is the index of a node in the Sparse Merkle Tree
-type NodeIndex interface {
+type NodeRef interface {
 	// BigInt returns the big integer representation of the index
 	BigInt() *big.Int
 	// Hex returns the hex string representation of the index in big-endian format
@@ -43,7 +42,12 @@ type NodeIndex interface {
 	// IsZero returns true if the index is zero
 	IsZero() bool
 	// Equal returns true if the index is equal to another index
-	Equal(NodeIndex) bool
+	Equal(NodeRef) bool
+}
+
+// NodeIndex is the index of a node in the Sparse Merkle Tree
+type NodeIndex interface {
+	NodeRef
 	// IsBitOn returns true if the index bit at the given position is 1
 	IsBitOn(uint) bool
 	// ToPath returns the binary path from the root to the leaf
@@ -68,15 +72,15 @@ type Node interface {
 	// calculated by combining the index and value of the node, as
 	// the reference to the node from its parent in the tree, as well as the
 	// key to the storage record for the node
-	Ref() NodeIndex
+	Ref() NodeRef
 	// returns the value object. only leaf nodes have a value object. If the
 	// client is the owner of a UTXO, the value object includes the secret values.
 	// otherwise the value object is simply the index of the node.
 	Value() Indexable
 	// returns the index of the left child. Only branch nodes have a left child.
-	LeftChild() NodeIndex
+	LeftChild() NodeRef
 	// returns the index of the right child. Only branch nodes have a right child.
-	RightChild() NodeIndex
+	RightChild() NodeRef
 }
 
 func (t NodeType) ToByte() byte {

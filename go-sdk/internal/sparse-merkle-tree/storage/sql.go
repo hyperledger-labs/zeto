@@ -41,7 +41,7 @@ func NewSqlStorage(p core.SqlDBProvider, smtName string) *sqlStorage {
 	}
 }
 
-func (s *sqlStorage) GetRootNodeIndex() (core.NodeIndex, error) {
+func (s *sqlStorage) GetRootNodeRef() (core.NodeRef, error) {
 	root := core.SMTRoot{
 		Name: s.smtName,
 	}
@@ -51,15 +51,15 @@ func (s *sqlStorage) GetRootNodeIndex() (core.NodeIndex, error) {
 	} else if err != nil {
 		return nil, err
 	}
-	idx, err := node.NewNodeIndexFromHex(root.RootIndex)
+	idx, err := node.NewNodeIndexFromHex(root.RootRef)
 	return idx, err
 }
 
-func (s *sqlStorage) UpsertRootNodeIndex(root core.NodeIndex) error {
-	return upsertRootNodeIndex(s.p.DB(), s.smtName, root)
+func (s *sqlStorage) UpsertRootNodeRef(root core.NodeRef) error {
+	return upsertRootNodeRef(s.p.DB(), s.smtName, root)
 }
 
-func (s *sqlStorage) GetNode(ref core.NodeIndex) (core.Node, error) {
+func (s *sqlStorage) GetNode(ref core.NodeRef) (core.Node, error) {
 	return getNode(s.p.DB(), s.nodesTableName, ref)
 }
 
@@ -81,11 +81,11 @@ type sqlTxStorage struct {
 	nodesTableName string
 }
 
-func (b *sqlTxStorage) UpsertRootNodeIndex(root core.NodeIndex) error {
-	return upsertRootNodeIndex(b.tx, b.smtName, root)
+func (b *sqlTxStorage) UpsertRootNodeRef(root core.NodeRef) error {
+	return upsertRootNodeRef(b.tx, b.smtName, root)
 }
 
-func (b *sqlTxStorage) GetNode(ref core.NodeIndex) (core.Node, error) {
+func (b *sqlTxStorage) GetNode(ref core.NodeRef) (core.Node, error) {
 	return getNode(b.tx, b.nodesTableName, ref)
 }
 
@@ -105,15 +105,15 @@ func (m *sqlStorage) Close() {
 	m.p.Close()
 }
 
-func upsertRootNodeIndex(batchOrDb *gorm.DB, name string, root core.NodeIndex) error {
+func upsertRootNodeRef(batchOrDb *gorm.DB, name string, root core.NodeRef) error {
 	err := batchOrDb.Table(core.TreeRootsTable).Save(&core.SMTRoot{
-		RootIndex: root.Hex(),
-		Name:      name,
+		RootRef: root.Hex(),
+		Name:    name,
 	}).Error
 	return err
 }
 
-func getNode(batchOrDb *gorm.DB, nodesTableName string, ref core.NodeIndex) (core.Node, error) {
+func getNode(batchOrDb *gorm.DB, nodesTableName string, ref core.NodeRef) (core.Node, error) {
 	// the node's reference key (not the index) is used as the key to
 	// store the node in the DB
 	n := core.SMTNode{

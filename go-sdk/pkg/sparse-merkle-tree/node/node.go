@@ -33,7 +33,7 @@ func NewLeafNode(v core.Indexable) (core.Node, error) {
 	return node.NewLeafNode(v)
 }
 
-func NewBranchNode(leftChild, rightChild core.NodeIndex) (core.Node, error) {
+func NewBranchNode(leftChild, rightChild core.NodeRef) (core.Node, error) {
 	return node.NewBranchNode(leftChild, rightChild)
 }
 

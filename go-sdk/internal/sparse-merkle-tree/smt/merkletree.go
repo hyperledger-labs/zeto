@@ -34,7 +34,7 @@ const MAX_TREE_HEIGHT = 256
 type sparseMerkleTree struct {
 	sync.RWMutex
 	db        core.Storage
-	rootKey   core.NodeIndex
+	rootKey   core.NodeRef
 	maxLevels int
 }
 
@@ -44,10 +44,10 @@ func NewMerkleTree(db core.Storage, maxLevels int) (core.SparseMerkleTree, error
 	}
 	mt := sparseMerkleTree{db: db, maxLevels: maxLevels}
 
-	root, err := mt.db.GetRootNodeIndex()
+	root, err := mt.db.GetRootNodeRef()
 	if err == core.ErrNotFound {
 		mt.rootKey = node.ZERO_INDEX
-		err = mt.db.UpsertRootNodeIndex(mt.rootKey)
+		err = mt.db.UpsertRootNodeRef(mt.rootKey)
 		if err != nil {
 			return nil, err
 		}
@@ -59,7 +59,7 @@ func NewMerkleTree(db core.Storage, maxLevels int) (core.SparseMerkleTree, error
 	return &mt, nil
 }
 
-func (mt *sparseMerkleTree) Root() core.NodeIndex {
+func (mt *sparseMerkleTree) Root() core.NodeRef {
 	mt.RLock()
 	defer mt.RUnlock()
 	return mt.rootKey
@@ -93,7 +93,7 @@ func (mt *sparseMerkleTree) AddLeaf(node core.Node) error {
 
 	// update the root node index in the storage
 	log.L().Infof("Upserting root node index to %s", mt.rootKey.Hex())
-	err = batch.UpsertRootNodeIndex(mt.rootKey)
+	err = batch.UpsertRootNodeRef(mt.rootKey)
 	if err != nil {
 		log.L().Errorf("Error upserting root node %s: %v, rolling back", mt.rootKey.Hex(), err)
 		_ = batch.Rollback()
@@ -114,7 +114,7 @@ func (mt *sparseMerkleTree) AddLeaf(node core.Node) error {
 
 // GetNode gets a node by key from the merkle tree. Empty nodes are not stored in the
 // tree: they are all the same and assumed to always exist.
-func (mt *sparseMerkleTree) GetNode(key core.NodeIndex) (core.Node, error) {
+func (mt *sparseMerkleTree) GetNode(key core.NodeRef) (core.Node, error) {
 	mt.RLock()
 	defer mt.RUnlock()
 	return mt.getNode(key)
@@ -123,7 +123,7 @@ func (mt *sparseMerkleTree) GetNode(key core.NodeIndex) (core.Node, error) {
 // GenerateProofs generates a list of proofs of existence (or non-existence) of the provided
 // leaf nodes that are represented by their indexes. An optional Merkle tree root can be provided.
 // If rootKey is not provided, the current Merkle tree root is used
-func (mt *sparseMerkleTree) GenerateProofs(keys []*big.Int, rootKey core.NodeIndex) ([]core.Proof, []*big.Int, error) {
+func (mt *sparseMerkleTree) GenerateProofs(keys []*big.Int, rootKey core.NodeRef) ([]core.Proof, []*big.Int, error) {
 	mt.RLock()
 	defer mt.RUnlock()
 
@@ -141,9 +141,9 @@ func (mt *sparseMerkleTree) GenerateProofs(keys []*big.Int, rootKey core.NodeInd
 	return merkleProofs, foundValues, nil
 }
 
-func (mt *sparseMerkleTree) generateProof(key *big.Int, rootKey core.NodeIndex) (core.Proof, *big.Int, error) {
+func (mt *sparseMerkleTree) generateProof(key *big.Int, rootKey core.NodeRef) (core.Proof, *big.Int, error) {
 	p := &proof{}
-	var siblingKey core.NodeIndex
+	var siblingKey core.NodeRef
 
 	kHash, err := node.NewNodeIndexFromBigInt(key)
 	if err != nil {
@@ -198,7 +198,7 @@ func (mt *sparseMerkleTree) generateProof(key *big.Int, rootKey core.NodeIndex) 
 }
 
 // must be called from inside a read lock
-func (mt *sparseMerkleTree) getNode(key core.NodeIndex) (core.Node, error) {
+func (mt *sparseMerkleTree) getNode(key core.NodeRef) (core.Node, error) {
 	if key.IsZero() {
 		return node.NewEmptyNode(), nil
 	}
@@ -219,7 +219,7 @@ func (mt *sparseMerkleTree) getNode(key core.NodeIndex) (core.Node, error) {
 //     as children of a new branch node.
 //   - if the current node is a branch node, it will continue traversing the tree, using the
 //     next bit of the new node's index to determine which child to go down to.
-func (mt *sparseMerkleTree) addLeaf(batch core.Transaction, newLeaf core.Node, currentNodeIndex core.NodeIndex, level int, path []bool) (core.NodeIndex, error) {
+func (mt *sparseMerkleTree) addLeaf(batch core.Transaction, newLeaf core.Node, currentNodeRef core.NodeRef, level int, path []bool) (core.NodeRef, error) {
 	log.WithLogField("level", strconv.Itoa(level)).Debugf("Adding leaf node %s", newLeaf.Ref().Hex())
 	if level > mt.maxLevels-1 {
 		// we have exhausted all levels but could not find a unique path for the new leaf.
@@ -228,8 +228,8 @@ func (mt *sparseMerkleTree) addLeaf(batch core.Transaction, newLeaf core.Node, c
 		return nil, ErrReachedMaxLevel
 	}
 
-	var nextKey core.NodeIndex
-	currentNode, err := mt.getNode(currentNodeIndex)
+	var nextKey core.NodeRef
+	currentNode, err := mt.getNode(currentNodeRef)
 	if err != nil {
 		return nil, err
 	}
@@ -289,7 +289,7 @@ func (mt *sparseMerkleTree) addLeaf(batch core.Transaction, newLeaf core.Node, c
 // must be called from inside a write lock
 // addNode adds a node into the MT.  Empty nodes are not stored in the tree;
 // they are all the same and assumed to always exist.
-func (mt *sparseMerkleTree) addNode(batch core.Transaction, n core.Node) (core.NodeIndex, error) {
+func (mt *sparseMerkleTree) addNode(batch core.Transaction, n core.Node) (core.NodeRef, error) {
 	if n.Type() == core.NodeTypeEmpty {
 		return n.Ref(), nil
 	}
@@ -301,7 +301,7 @@ func (mt *sparseMerkleTree) addNode(batch core.Transaction, n core.Node) (core.N
 // must be called from inside a write lock
 // extendPath extends the path of two leaf nodes, which share the same beginnging part of
 // their indexes, until their paths diverge, creating ancestor branch nodes as needed.
-func (mt *sparseMerkleTree) extendPath(batch core.Transaction, newLeaf core.Node, oldLeaf core.Node, level int, pathNewLeaf []bool, pathOldLeaf []bool) (core.NodeIndex, error) {
+func (mt *sparseMerkleTree) extendPath(batch core.Transaction, newLeaf core.Node, oldLeaf core.Node, level int, pathNewLeaf []bool, pathOldLeaf []bool) (core.NodeRef, error) {
 	if level > mt.maxLevels-2 {
 		return nil, ErrReachedMaxLevel
 	}

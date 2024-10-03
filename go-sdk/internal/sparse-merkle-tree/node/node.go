@@ -39,10 +39,10 @@ type nodeIndex [32]byte
 type node struct {
 	nodeType   core.NodeType
 	index      core.NodeIndex
-	refKey     core.NodeIndex
+	refKey     core.NodeRef
 	value      core.Indexable
-	leftChild  core.NodeIndex
-	rightChild core.NodeIndex
+	leftChild  core.NodeRef
+	rightChild core.NodeRef
 }
 
 // //////////////////////////////////////
@@ -70,7 +70,7 @@ func NewLeafNode(v core.Indexable) (core.Node, error) {
 	return n, err
 }
 
-func NewBranchNode(leftChild, rightChild core.NodeIndex) (core.Node, error) {
+func NewBranchNode(leftChild, rightChild core.NodeRef) (core.Node, error) {
 	n := &node{nodeType: core.NodeTypeBranch, leftChild: leftChild, rightChild: rightChild}
 	elements := []*big.Int{leftChild.BigInt(), rightChild.BigInt()}
 	hash, err := poseidon.Hash(elements)
@@ -89,7 +89,7 @@ func (n *node) Index() core.NodeIndex {
 	return n.index
 }
 
-func (n *node) Ref() core.NodeIndex {
+func (n *node) Ref() core.NodeRef {
 	return n.refKey
 }
 
@@ -97,11 +97,11 @@ func (n *node) Value() core.Indexable {
 	return n.value
 }
 
-func (n *node) LeftChild() core.NodeIndex {
+func (n *node) LeftChild() core.NodeRef {
 	return n.leftChild
 }
 
-func (n *node) RightChild() core.NodeIndex {
+func (n *node) RightChild() core.NodeRef {
 	return n.rightChild
 }
 
@@ -145,7 +145,7 @@ func (idx *nodeIndex) IsZero() bool {
 	return idx.BigInt().Sign() == 0
 }
 
-func (idx *nodeIndex) Equal(other core.NodeIndex) bool {
+func (idx *nodeIndex) Equal(other core.NodeRef) bool {
 	return idx.BigInt().Cmp(other.BigInt()) == 0
 }
 

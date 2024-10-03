@@ -68,16 +68,16 @@ func TestSqliteStorage(t *testing.T) {
 	assert.NoError(t, err)
 
 	idx, _ := utxo1.CalculateIndex()
-	err = s.UpsertRootNodeIndex(idx)
+	err = s.UpsertRootNodeRef(idx)
 	assert.NoError(t, err)
-	dbIdx, err := s.GetRootNodeIndex()
+	dbIdx, err := s.GetRootNodeRef()
 	assert.NoError(t, err)
 	assert.Equal(t, idx.Hex(), dbIdx.Hex())
 
 	dbRoot := core.SMTRoot{Name: "test_1"}
 	err = db.Table(core.TreeRootsTable).First(&dbRoot).Error
 	assert.NoError(t, err)
-	assert.Equal(t, idx.Hex(), dbRoot.RootIndex)
+	assert.Equal(t, idx.Hex(), dbRoot.RootRef)
 
 	err = s.InsertNode(n1)
 	assert.NoError(t, err)
@@ -114,13 +114,13 @@ func TestSqliteStorageFail_NoRootTable(t *testing.T) {
 	s := NewSqlStorage(provider, "test_1")
 	assert.NoError(t, err)
 
-	_, err = s.GetRootNodeIndex()
+	_, err = s.GetRootNodeRef()
 	assert.EqualError(t, err, "no such table: merkelTreeRoots")
 
 	err = db.Table(core.TreeRootsTable).AutoMigrate(&core.SMTRoot{})
 	assert.NoError(t, err)
 
-	_, err = s.GetRootNodeIndex()
+	_, err = s.GetRootNodeRef()
 	assert.EqualError(t, err, "key not found")
 }
 
