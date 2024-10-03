@@ -18,7 +18,7 @@ import { ethers, network } from "hardhat";
 import { Signer } from "ethers";
 import { expect } from "chai";
 
-describe("Zeto based fungible token with anonymity without encryption or nullifier", function () {
+describe("(factory) Zeto based fungible token with anonymity without encryption or nullifier", function () {
   let deployer: Signer;
   let nonOwner: Signer;
 
@@ -41,6 +41,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
       batchVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
       depositVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
       withdrawVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+      batchWithdrawVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
     };
     await expect(
       factory.connect(nonOwner).registerImplementation("test", implInfo as any),
@@ -60,6 +61,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
       batchVerifier: "0x0000000000000000000000000000000000000000",
       depositVerifier: "0x0000000000000000000000000000000000000000",
       withdrawVerifier: "0x0000000000000000000000000000000000000000",
+      batchWithdrawVerifier: "0x0000000000000000000000000000000000000000",
     };
     await expect(
       factory.connect(deployer).registerImplementation("test", implInfo as any),
@@ -79,6 +81,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
       batchVerifier: "0x0000000000000000000000000000000000000000",
       depositVerifier: "0x0000000000000000000000000000000000000000",
       withdrawVerifier: "0x0000000000000000000000000000000000000000",
+      batchWithdrawVerifier: "0x0000000000000000000000000000000000000000",
     };
     await expect(
       factory.connect(deployer).registerImplementation("test", implInfo as any),
@@ -98,6 +101,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
       batchVerifier: "0x0000000000000000000000000000000000000000",
       depositVerifier: "0x0000000000000000000000000000000000000000",
       withdrawVerifier: "0x0000000000000000000000000000000000000000",
+      batchWithdrawVerifier: "0x0000000000000000000000000000000000000000",
     };
     await expect(
       factory.connect(deployer).registerImplementation("test", implInfo as any),
@@ -117,6 +121,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
       batchVerifier: "0x0000000000000000000000000000000000000000",
       depositVerifier: "0x0000000000000000000000000000000000000000",
       withdrawVerifier: "0x0000000000000000000000000000000000000000",
+      batchWithdrawVerifier: "0x0000000000000000000000000000000000000000",
     };
     const tx1 = await factory
       .connect(deployer)
@@ -142,6 +147,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
       batchVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
       depositVerifier: "0x0000000000000000000000000000000000000000",
       withdrawVerifier: "0x0000000000000000000000000000000000000000",
+      batchWithdrawVerifier: "0x0000000000000000000000000000000000000000",
     };
     const tx1 = await factory
       .connect(deployer)
@@ -168,6 +174,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
       batchVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
       depositVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
       withdrawVerifier: "0x0000000000000000000000000000000000000000",
+      batchWithdrawVerifier: "0x0000000000000000000000000000000000000000",
     };
     const tx1 = await factory
       .connect(deployer)
@@ -179,6 +186,33 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
         .connect(deployer)
         .deployZetoFungibleToken("test", await deployer.getAddress()),
     ).rejectedWith("Factory: withdrawVerifier address is required");
+  });
+
+  it("attempting to deploy a fungible token but with a registered implementation that misses required batchWithdrawVerifier should fail", async function () {
+    // we want to test the effectiveness of the factory contract
+    // to create clones of the Zeto implementation contract
+    const Factory = await ethers.getContractFactory("ZetoTokenFactory");
+    const factory = await Factory.deploy();
+    await factory.waitForDeployment();
+
+    const implInfo = {
+      implementation: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+      verifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+      batchVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+      depositVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+      withdrawVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+      batchWithdrawVerifier: "0x0000000000000000000000000000000000000000",
+    };
+    const tx1 = await factory
+      .connect(deployer)
+      .registerImplementation("test", implInfo as any);
+    await tx1.wait();
+
+    await expect(
+      factory
+        .connect(deployer)
+        .deployZetoFungibleToken("test", await deployer.getAddress()),
+    ).rejectedWith("Factory: batchWithdrawVerifier address is required");
   });
 
   it("attempting to deploy a fungible token with a properly registered implementation should succeed", async function () {
@@ -194,6 +228,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
       batchVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
       depositVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
       withdrawVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+      batchWithdrawVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
     };
     const tx1 = await factory
       .connect(deployer)

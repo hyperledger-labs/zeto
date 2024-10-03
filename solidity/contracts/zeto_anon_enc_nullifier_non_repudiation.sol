@@ -18,6 +18,7 @@ pragma solidity ^0.8.20;
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckNullifierValue} from "./lib/verifier_check_nullifier_value.sol";
+import {Groth16Verifier_CheckNullifierValueBatch} from "./lib/verifier_check_nullifier_value_batch.sol";
 import {Groth16Verifier_AnonEncNullifierNonRepudiation} from "./lib/verifier_anon_enc_nullifier_non_repudiation.sol";
 import {Groth16Verifier_AnonEncNullifierNonRepudiationBatch} from "./lib/verifier_anon_enc_nullifier_non_repudiation_batch.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
@@ -65,12 +66,14 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         Groth16Verifier_AnonEncNullifierNonRepudiation _verifier,
         Groth16Verifier_CheckHashesValue _depositVerifier,
         Groth16Verifier_CheckNullifierValue _withdrawVerifier,
-        Groth16Verifier_AnonEncNullifierNonRepudiationBatch _batchVerifier
+        Groth16Verifier_AnonEncNullifierNonRepudiationBatch _batchVerifier,
+        Groth16Verifier_CheckNullifierValueBatch _batchWithdrawVerifier
     ) public initializer {
         __ZetoNullifier_init(initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(
             _depositVerifier,
-            _withdrawVerifier
+            _withdrawVerifier,
+            _batchWithdrawVerifier
         );
         verifier = _verifier;
         batchVerifier = _batchVerifier;
@@ -95,7 +98,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         uint256[] memory encryptedValuesForReceiver,
         uint256[] memory encryptedValuesForAuthority,
         uint256 size
-    ) internal returns (uint256[] memory publicInputs) {
+    ) internal view returns (uint256[] memory publicInputs) {
         publicInputs = new uint256[](size);
         uint256 piIndex = 0;
         // copy the ecdh public key
@@ -193,9 +196,9 @@ contract Zeto_AnonEncNullifierNonRepudiation is
                 BATCH_INPUT_SIZE
             );
             // construct the public inputs for batchVerifier
-            uint256[BATCH_INPUT_SIZE] memory fixedSizeInput;
-            for (uint256 i = 0; i < fixedSizeInput.length; i++) {
-                fixedSizeInput[i] = publicInputs[i];
+            uint256[BATCH_INPUT_SIZE] memory fixedSizeInputs;
+            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
+                fixedSizeInputs[i] = publicInputs[i];
             }
 
             // Check the proof using batchVerifier
@@ -204,7 +207,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is
                     proof.pA,
                     proof.pB,
                     proof.pC,
-                    fixedSizeInput
+                    fixedSizeInputs
                 ),
                 "Invalid proof"
             );
@@ -224,9 +227,9 @@ contract Zeto_AnonEncNullifierNonRepudiation is
                 INPUT_SIZE
             );
             // construct the public inputs for verifier
-            uint256[INPUT_SIZE] memory fixedSizeInput;
-            for (uint256 i = 0; i < fixedSizeInput.length; i++) {
-                fixedSizeInput[i] = publicInputs[i];
+            uint256[INPUT_SIZE] memory fixedSizeInputs;
+            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
+                fixedSizeInputs[i] = publicInputs[i];
             }
             // Check the proof
             require(
@@ -234,7 +237,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is
                     proof.pA,
                     proof.pB,
                     proof.pC,
-                    fixedSizeInput
+                    fixedSizeInputs
                 ),
                 "Invalid proof"
             );

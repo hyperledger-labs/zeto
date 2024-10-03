@@ -15,7 +15,11 @@
 // limitations under the License.
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import { DepositVerifierModule, WithdrawVerifierModule } from "./lib/deps";
+import {
+  DepositVerifierModule,
+  WithdrawVerifierModule,
+  BatchWithdrawVerifierModule,
+} from "./lib/deps";
 
 const VerifierModule = buildModule("Groth16Verifier_AnonEnc", (m) => {
   const verifier = m.contract("Groth16Verifier_AnonEnc", []);
@@ -32,5 +36,14 @@ export default buildModule("Zeto_AnonEnc", (m) => {
   const { verifier: batchVerifier } = m.useModule(BatchVerifierModule);
   const { verifier: depositVerifier } = m.useModule(DepositVerifierModule);
   const { verifier: withdrawVerifier } = m.useModule(WithdrawVerifierModule);
-  return { depositVerifier, withdrawVerifier, verifier, batchVerifier };
+  const { verifier: batchWithdrawVerifier } = m.useModule(
+    BatchWithdrawVerifierModule,
+  );
+  return {
+    depositVerifier,
+    withdrawVerifier,
+    verifier,
+    batchVerifier,
+    batchWithdrawVerifier,
+  };
 });

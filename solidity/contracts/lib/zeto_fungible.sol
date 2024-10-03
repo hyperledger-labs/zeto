@@ -29,6 +29,7 @@ abstract contract ZetoFungible is OwnableUpgradeable {
     // this can be used in the optional deposit calls to verify that
     // the UTXOs match the deposited value
     Groth16Verifier_CheckHashesValue internal depositVerifier;
+    error WithdrawArrayTooLarge(uint256 maxAllowed);
 
     IERC20 internal erc20;
 

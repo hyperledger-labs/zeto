@@ -31,6 +31,7 @@ contract ZetoTokenFactory is Ownable {
         address withdrawVerifier;
         address verifier;
         address batchVerifier;
+        address batchWithdrawVerifier;
     }
 
     event ZetoTokenDeployed(address indexed zetoToken);
@@ -79,6 +80,10 @@ contract ZetoTokenFactory is Ownable {
             args.batchVerifier != address(0),
             "Factory: batchVerifier address is required"
         );
+        require(
+            args.batchWithdrawVerifier != address(0),
+            "Factory: batchWithdrawVerifier address is required"
+        );
         address instance = Clones.clone(args.implementation);
         require(
             instance != address(0),
@@ -89,7 +94,8 @@ contract ZetoTokenFactory is Ownable {
             args.verifier,
             args.depositVerifier,
             args.withdrawVerifier,
-            args.batchVerifier
+            args.batchVerifier,
+            args.batchWithdrawVerifier
         );
         emit ZetoTokenDeployed(instance);
         return instance;
