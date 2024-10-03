@@ -295,13 +295,14 @@ describe.skip("(Gas cost analysis) Zeto based fungible token with anonymity usin
                 _outUtxos.push(_oUtox);
                 unspentBobUTXOs.push(_oUtox);
               } else {
-                // _inUtxos.push(ZERO_UTXO);
-                // const inProof = await smtAlice.generateCircomVerifierProof(
-                //   BigInt(0),
-                //   utxosRoot
-                // );
-                // _mtps.push(inProof.siblings.map((s) => s.bigInt()));
-                // _nullifiers.push(ZERO_UTXO);
+                _inUtxos.push(ZERO_UTXO);
+                _nullifiers.push(ZERO_UTXO);
+                const inProof = await smtAlice.generateCircomVerifierProof(
+                  0n,
+                  utxosRoot,
+                );
+                _outUtxos.push(ZERO_UTXO);
+                _mtps.push(inProof.siblings.map((s) => s.bigInt()));
               }
             }
             const owners = [];
@@ -348,51 +349,68 @@ describe.skip("(Gas cost analysis) Zeto based fungible token with anonymity usin
       );
     }).timeout(6000000000000);
 
-    it(`Bob withdraw ${TOTAL_AMOUNT} tokens`, async function () {
+    it(`Bob withdraw ${TOTAL_AMOUNT} tokens in ${transferCount} transactions`, async function () {
       const startingBalance = await erc20.balanceOf(Bob.ethAddress);
 
       const root = await smtBob.root();
       let promises = [];
-      for (let i = 0; i < unspentBobUTXOs.length; i++) {
-        if (unspentBobUTXOs[i].value) {
-          promises.push(
-            (async () => {
-              const utxoToWithdraw = unspentBobUTXOs[i];
-              const nullifier1 = newNullifier(utxoToWithdraw, Bob);
-
-              const proof1 = await smtBob.generateCircomVerifierProof(
-                utxoToWithdraw.hash,
-                root,
-              );
-              const proof2 = await smtBob.generateCircomVerifierProof(0n, root);
-              const merkleProofs = [
-                proof1.siblings.map((s) => s.bigInt()),
-                proof2.siblings.map((s) => s.bigInt()),
-              ];
-              const { nullifiers, outputCommitments, encodedProof } =
-                await prepareNullifierWithdrawProof(
-                  Bob,
-                  [utxoToWithdraw, ZERO_UTXO],
-                  [nullifier1, ZERO_UTXO],
-                  newUTXO(0, Bob),
-                  root.bigInt(),
-                  merkleProofs,
+      for (let i = 0; i < transferCount; i++) {
+        promises.push(
+          (async () => {
+            const _inUtxos = [];
+            const _mtps = [];
+            const _nullifiers = [];
+            let amount = 0;
+            for (let j = 0; j < UTXO_PER_TX; j++) {
+              if (
+                i !== transferCount - 1 ||
+                unspentBobUTXOs.length % UTXO_PER_TX === 0 ||
+                j < unspentBobUTXOs.length % UTXO_PER_TX
+              ) {
+                amount++;
+                const _iUtxo = unspentBobUTXOs[i * UTXO_PER_TX + j];
+                _inUtxos.push(_iUtxo);
+                _nullifiers.push(newNullifier(_iUtxo, Bob));
+                // Alice generates inclusion proofs for the UTXOs to be spent
+                const inProof = await smtBob.generateCircomVerifierProof(
+                  _iUtxo.hash,
+                  root,
                 );
-
-              // Bob withdraws UTXOs to ERC20 tokens
-              await doWithdraw(
-                zeto,
-                Bob.signer,
-                1,
-                nullifiers,
-                outputCommitments[0],
+                _mtps.push(inProof.siblings.map((s) => s.bigInt()));
+              } else {
+                _inUtxos.push(ZERO_UTXO);
+                _nullifiers.push(ZERO_UTXO);
+                const inProof = await smtBob.generateCircomVerifierProof(
+                  0n,
+                  root,
+                );
+                _mtps.push(inProof.siblings.map((s) => s.bigInt()));
+              }
+            }
+            const { nullifiers, outputCommitments, encodedProof } =
+              await prepareNullifierWithdrawProof(
+                Bob,
+                _inUtxos,
+                _nullifiers,
+                ZERO_UTXO,
                 root.bigInt(),
-                encodedProof,
-                withdrawGasCostHistory,
+                _mtps,
               );
-            })(),
-          );
-        }
+
+            // Bob withdraws UTXOs to ERC20 tokens
+            await doWithdraw(
+              zeto,
+              Bob.signer,
+              amount,
+              nullifiers,
+              outputCommitments[0],
+              root.bigInt(),
+              encodedProof,
+              withdrawGasCostHistory,
+            );
+          })(),
+        );
+
         // If we reach the concurrency limit, wait for the current batch to finish
         if (promises.length >= TX_CONCURRENCY) {
           await Promise.all(promises);
@@ -556,8 +574,8 @@ describe.skip("(Gas cost analysis) Zeto based fungible token with anonymity usin
 
     const encodedProof = encodeProof(proof);
     const encryptedValues = isBatch
-      ? publicSignals.slice(0, 22)
-      : publicSignals.slice(0, 7);
+      ? publicSignals.slice(2, 42)
+      : publicSignals.slice(2, 10);
     return {
       inputCommitments,
       outputCommitments,

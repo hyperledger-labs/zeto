@@ -89,10 +89,9 @@ export async function prepareNullifierWithdrawProof(
   root: BigInt,
   merkleProof: BigInt[][],
 ) {
-  const nullifiers = _nullifiers.map((nullifier) => nullifier.hash) as [
-    BigNumberish,
-    BigNumberish,
-  ];
+  const nullifiers = _nullifiers.map(
+    (nullifier) => nullifier.hash,
+  ) as BigNumberish[];
   const inputCommitments: BigNumberish[] = inputs.map(
     (input) => input.hash,
   ) as BigNumberish[];
@@ -111,15 +110,19 @@ export async function prepareNullifierWithdrawProof(
     inputSalts,
     inputOwnerPrivateKey: signer.formattedPrivateKey,
     root,
-    enabled: [nullifiers[0] !== 0n ? 1 : 0, nullifiers[1] !== 0n ? 1 : 0],
+    enabled: nullifiers.map((n) => (n !== 0n ? 1 : 0)),
     merkleProof,
     outputCommitments,
     outputValues,
-    outputSalts: [output.salt],
+    outputSalts: [output.salt || 0n],
     outputOwnerPublicKeys,
   };
-  const circuit = await loadCircuit("check_nullifier_value");
-  const { provingKeyFile } = loadProvingKeys("check_nullifier_value");
+  let circuit = await loadCircuit("check_nullifier_value");
+  let { provingKeyFile } = loadProvingKeys("check_nullifier_value");
+  if (inputCommitments.length > 2) {
+    circuit = await loadCircuit("check_nullifier_value_batch");
+    ({ provingKeyFile } = loadProvingKeys("check_nullifier_value_batch"));
+  }
 
   const startWitnessCalculation = Date.now();
   const witness = await circuit.calculateWTNSBin(inputObj, true);
@@ -167,11 +170,16 @@ export async function prepareWithdrawProof(
     inputOwnerPrivateKey: signer.formattedPrivateKey,
     outputCommitments,
     outputValues,
-    outputSalts: [output.salt],
+    outputSalts: [output.salt || 0n],
     outputOwnerPublicKeys,
   };
-  const circuit = await loadCircuit("check_inputs_outputs_value");
-  const { provingKeyFile } = loadProvingKeys("check_inputs_outputs_value");
+
+  let circuit = await loadCircuit("check_inputs_outputs_value");
+  let { provingKeyFile } = loadProvingKeys("check_inputs_outputs_value");
+  if (inputCommitments.length > 2) {
+    circuit = await loadCircuit("check_inputs_outputs_value_batch");
+    ({ provingKeyFile } = loadProvingKeys("check_inputs_outputs_value_batch"));
+  }
 
   const startWitnessCalculation = Date.now();
   const witness = await circuit.calculateWTNSBin(inputObj, true);

@@ -89,7 +89,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
     expect(root.string()).to.equal(onchainRoot.toString());
   });
 
-  it("(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob and Charlie should succeed", async function () {
+  it("(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob & Charlie then withdraw should succeed", async function () {
     // first mint the tokens for batch testing
     const inputUtxos = [];
     const nullifiers = [];
@@ -119,13 +119,17 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
       );
       mtps.push(p.siblings.map((s) => s.bigInt()));
     }
-
-    // Alice proposes the output UTXOs, 1 utxo to bob, 1 utxo to charlie and 1 utxo to alice
-    const _bOut1 = newUTXO(8, Bob);
+    const aliceUTXOsToBeWithdrawn = [
+      newUTXO(1, Alice),
+      newUTXO(1, Alice),
+      newUTXO(1, Alice),
+    ];
+    // Alice proposes the output UTXOs, 1 utxo to bob, 1 utxo to charlie and 3 utxos to alice
+    const _bOut1 = newUTXO(6, Bob);
     const _bOut2 = newUTXO(1, Charlie);
-    const _bOut3 = newUTXO(1, Alice);
-    const outputUtxos = [_bOut1, _bOut2, _bOut3];
-    const outputOwners = [Bob, Charlie, Alice];
+
+    const outputUtxos = [_bOut1, _bOut2, ...aliceUTXOsToBeWithdrawn];
+    const outputOwners = [Bob, Charlie, Alice, Alice, Alice];
     const inflatedOutputUtxos = [...outputUtxos];
     const inflatedOutputOwners = [...outputOwners];
     for (let i = 0; i < 10 - outputUtxos.length; i++) {
@@ -169,6 +173,67 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
     for (let i = outputUtxos.length; i < 10; i++) {
       expect(incomingUTXOs[i]).to.equal(0);
     }
+
+    // mint sufficient balance in Zeto contract address for Alice to withdraw
+    const mintTx = await erc20.connect(deployer).mint(zeto, 3);
+    await mintTx.wait();
+    const startingBalance = await erc20.balanceOf(Alice.ethAddress);
+
+    // Alice generates the nullifiers for the UTXOs to be spent
+    root = await smtAlice.root();
+    const inflatedWithdrawNullifiers = [];
+    const inflatedWithdrawInputs = [];
+    const inflatedWithdrawMTPs = [];
+    for (let i = 0; i < aliceUTXOsToBeWithdrawn.length; i++) {
+      inflatedWithdrawInputs.push(aliceUTXOsToBeWithdrawn[i]);
+      inflatedWithdrawNullifiers.push(
+        newNullifier(aliceUTXOsToBeWithdrawn[i], Alice),
+      );
+      const _withdrawUTXOProof = await smtAlice.generateCircomVerifierProof(
+        aliceUTXOsToBeWithdrawn[i].hash,
+        root,
+      );
+      inflatedWithdrawMTPs.push(
+        _withdrawUTXOProof.siblings.map((s) => s.bigInt()),
+      );
+    }
+    // Alice generates inclusion proofs for the UTXOs to be spent
+
+    for (let i = aliceUTXOsToBeWithdrawn.length; i < 10; i++) {
+      inflatedWithdrawInputs.push(ZERO_UTXO);
+      inflatedWithdrawNullifiers.push(ZERO_UTXO);
+      const _zeroProof = await smtAlice.generateCircomVerifierProof(0n, root);
+      inflatedWithdrawMTPs.push(_zeroProof.siblings.map((s) => s.bigInt()));
+    }
+
+    const {
+      nullifiers: _withdrawNullifiers,
+      outputCommitments: withdrawCommitments,
+      encodedProof: withdrawEncodedProof,
+    } = await prepareNullifierWithdrawProof(
+      Alice,
+      inflatedWithdrawInputs,
+      inflatedWithdrawNullifiers,
+      ZERO_UTXO,
+      root.bigInt(),
+      inflatedWithdrawMTPs,
+    );
+
+    // Alice withdraws her UTXOs to ERC20 tokens
+    const tx = await zeto
+      .connect(Alice.signer)
+      .withdraw(
+        3,
+        _withdrawNullifiers,
+        withdrawCommitments[0],
+        root.bigInt(),
+        withdrawEncodedProof,
+      );
+    await tx.wait();
+
+    // Alice checks her ERC20 balance
+    const endingBalance = await erc20.balanceOf(Alice.ethAddress);
+    expect(endingBalance - startingBalance).to.be.equal(3);
   });
 
   it("mint ERC20 tokens to Alice to deposit to Zeto should succeed", async function () {
