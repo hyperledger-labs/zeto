@@ -28,7 +28,7 @@ import (
 // non-existence.
 type proof struct {
 	existence    bool
-	siblings     []core.NodeIndex
+	siblings     []core.NodeRef
 	depth        uint
 	existingNode core.Node
 	// nonEmptySiblings is a bitmap of non-empty Siblings found in Siblings. This helps
@@ -40,7 +40,7 @@ func (p *proof) IsExistenceProof() bool {
 	return p.existence
 }
 
-func (p *proof) Siblings() []core.NodeIndex {
+func (p *proof) Siblings() []core.NodeRef {
 	return p.siblings
 }
 
@@ -71,9 +71,9 @@ func (p *proof) IsNonEmptySibling(level uint) bool {
 	return isBitOnBigEndian(p.nonEmptySiblings, level)
 }
 
-func (p *proof) AllSiblings() []core.NodeIndex {
+func (p *proof) AllSiblings() []core.NodeRef {
 	sibIdx := 0
-	siblings := []core.NodeIndex{}
+	siblings := []core.NodeRef{}
 	for level := 0; level < int(p.depth); level++ {
 		if p.IsNonEmptySibling(uint(level)) {
 			siblings = append(siblings, p.siblings[sibIdx])
@@ -89,7 +89,7 @@ func (p *proof) AllSiblings() []core.NodeIndex {
 func (p *proof) getPath(index core.NodeIndex) []bool {
 	path := make([]bool, p.depth)
 	for n := 0; n < int(p.depth); n++ {
-		path[n] = index.IsBitOn(uint(n))
+		path[n] = index.IsBitOne(uint(n))
 	}
 	return path
 }
@@ -97,7 +97,7 @@ func (p *proof) getPath(index core.NodeIndex) []bool {
 // ToCircomVerifierProof enhances the generic merkle proof with additional
 // signals required by the circuit for Sparse Merkle Tree proof verification:
 // https://github.com/iden3/circomlib/blob/master/circuits/smt/smtverifier.circom
-func (p *proof) ToCircomVerifierProof(k, v *big.Int, rootKey core.NodeIndex, levels int) (*core.CircomVerifierProof, error) {
+func (p *proof) ToCircomVerifierProof(k, v *big.Int, rootKey core.NodeRef, levels int) (*core.CircomVerifierProof, error) {
 	var cp core.CircomVerifierProof
 	cp.Root = rootKey
 	cp.Siblings = p.AllSiblings()
@@ -131,7 +131,7 @@ func (p *proof) ToCircomVerifierProof(k, v *big.Int, rootKey core.NodeIndex, lev
 }
 
 // VerifyProof verifies the Merkle Proof for the entry and root.
-func VerifyProof(rootKey core.NodeIndex, p core.Proof, leafNode core.Node) bool {
+func VerifyProof(rootKey core.NodeRef, p core.Proof, leafNode core.Node) bool {
 	rootFromProof, err := calculateRootFromProof(p.(*proof), leafNode)
 	if err != nil {
 		return false
@@ -141,9 +141,9 @@ func VerifyProof(rootKey core.NodeIndex, p core.Proof, leafNode core.Node) bool 
 
 // CalculateRootFromProof calculates the root that would correspond to a tree whose
 // siblings are the ones in the proof with the leaf node
-func calculateRootFromProof(proof *proof, leafNode core.Node) (core.NodeIndex, error) {
+func calculateRootFromProof(proof *proof, leafNode core.Node) (core.NodeRef, error) {
 	sibIdx := len(proof.siblings) - 1
-	var midKey core.NodeIndex
+	var midKey core.NodeRef
 	if proof.existence {
 		midKey = leafNode.Ref()
 	} else {
@@ -157,7 +157,7 @@ func calculateRootFromProof(proof *proof, leafNode core.Node) (core.NodeIndex, e
 		}
 	}
 	path := proof.getPath(leafNode.Index())
-	var siblingKey core.NodeIndex
+	var siblingKey core.NodeRef
 	for level := int(proof.depth) - 1; level >= 0; level-- {
 		if proof.IsNonEmptySibling(uint(level)) {
 			siblingKey = proof.siblings[sibIdx]

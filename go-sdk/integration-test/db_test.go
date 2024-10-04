@@ -103,7 +103,7 @@ func (s *SqliteTestSuite) TestSqliteStorage() {
 	dbRoot := core.SMTRoot{Name: s.smtName}
 	err = s.gormDB.Table(core.TreeRootsTable).First(&dbRoot).Error
 	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), root.Hex(), dbRoot.RootIndex)
+	assert.Equal(s.T(), root.Hex(), dbRoot.RootRef)
 
 	dbNode := core.SMTNode{RefKey: n1.Ref().Hex()}
 	err = s.gormDB.Table(core.NodesTablePrefix + s.smtName).First(&dbNode).Error
@@ -155,7 +155,7 @@ func TestPostgresStorage(t *testing.T) {
 	dbRoot := core.SMTRoot{Name: "test_1"}
 	err = db.Table(core.TreeRootsTable).First(&dbRoot).Error
 	assert.NoError(t, err)
-	assert.Equal(t, root.Hex(), dbRoot.RootIndex)
+	assert.Equal(t, root.Hex(), dbRoot.RootRef)
 
 	dbNode := core.SMTNode{RefKey: n1.Ref().Hex()}
 	err = db.Table(core.NodesTablePrefix + "test_1").First(&dbNode).Error

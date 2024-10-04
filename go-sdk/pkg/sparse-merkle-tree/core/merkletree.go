@@ -34,11 +34,14 @@ import "math/big"
 //	1 2 3 4 5 - - -     level 3
 type SparseMerkleTree interface {
 	// Root returns the root hash of the tree
-	Root() NodeIndex
+	Root() NodeRef
 	// AddLeaf adds a key-value pair to the tree
 	AddLeaf(leaf Node) error
 	// GetNode returns the node at the given reference hash
-	GetNode(node NodeIndex) (Node, error)
+	// nodeRef: the reference hash of the node (node.Ref()). Note, this is NOT the index of the node
+	GetNode(nodeRef NodeRef) (Node, error)
 	// GetnerateProof generates a proof of existence (or non-existence) of a leaf node
-	GenerateProofs(nodeIndexes []*big.Int, root NodeIndex) ([]Proof, []*big.Int, error)
+	// nodeIndexes: the index of the leaf nodes to generate proofs for
+	// rootRef: the reference hash of the root node
+	GenerateProofs(nodeIndexes []*big.Int, rootRef NodeRef) ([]Proof, []*big.Int, error)
 }

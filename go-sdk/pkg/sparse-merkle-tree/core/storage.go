@@ -19,14 +19,14 @@ package core
 import "gorm.io/gorm"
 
 type Storage interface {
-	// GetRootNodeIndex returns the root node index.
+	// GetRootNodeRef returns the root node index.
 	// Must return an ErrNotFound error if it does not exist.
-	GetRootNodeIndex() (NodeIndex, error)
+	GetRootNodeRef() (NodeRef, error)
 	// UpsertRootNodeIndex updates the root node index.
-	UpsertRootNodeIndex(NodeIndex) error
-	// GetNode returns the node with the given index
+	UpsertRootNodeRef(NodeRef) error
+	// GetNode returns the node with the given reference hash
 	// Must return an ErrNotFound error if it does not exist.
-	GetNode(NodeIndex) (Node, error)
+	GetNode(NodeRef) (Node, error)
 	// InsertNode inserts a node into the storage. Where the private values of a node are stored
 	// is implementation-specific
 	InsertNode(Node) error
@@ -38,8 +38,8 @@ type Storage interface {
 }
 
 type Transaction interface {
-	UpsertRootNodeIndex(NodeIndex) error
-	GetNode(NodeIndex) (Node, error)
+	UpsertRootNodeRef(NodeRef) error
+	GetNode(NodeRef) (Node, error)
 	InsertNode(Node) error
 	Commit() error
 	Rollback() error
@@ -66,9 +66,9 @@ type SqlDBProvider interface {
 type SMTRoot struct {
 	// the name of the merkle tree
 	Name string `gorm:"primaryKey"`
-	// this must be the hex bytes of the root index
+	// this must be the hex bytes of the root reference hash
 	// following the big-endian encoding
-	RootIndex string `gorm:"size:64"`
+	RootRef string `gorm:"size:64"`
 }
 
 // SMTNode is the structure of a node in the merkle tree.

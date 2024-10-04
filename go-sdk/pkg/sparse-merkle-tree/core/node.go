@@ -34,18 +34,23 @@ const (
 	NodeTypeLeaf
 )
 
-// NodeIndex is the index of a node in the Sparse Merkle Tree
-type NodeIndex interface {
-	// BigInt returns the big integer representation of the index
+// NodeRef defines functions associated with the reference hash of SMT nodes, this interface applies to all types of nodes (reference hash calculated differently depending on node type)
+type NodeRef interface {
+	// BigInt returns the big integer representation of the reference hash
 	BigInt() *big.Int
-	// Hex returns the hex string representation of the index in big-endian format
+	// Hex returns the hex string representation of the reference hash in big-endian format
 	Hex() string
-	// IsZero returns true if the index is zero
+	// IsZero returns true if the reference hash is zero
 	IsZero() bool
-	// Equal returns true if the index is equal to another index
-	Equal(NodeIndex) bool
-	// IsBitOn returns true if the index bit at the given position is 1
-	IsBitOn(uint) bool
+	// Equal returns true if two reference hashes equal to each other
+	Equal(NodeRef) bool
+}
+
+// NodeIndex defines the functions of leaf nodes in the SMT, which provide access to their node paths in addition to the NodeRef functions.
+type NodeIndex interface {
+	NodeRef
+	// IsBitOne returns true if the index bit at the given position is 1
+	IsBitOne(uint) bool
 	// ToPath returns the binary path from the root to the leaf
 	ToPath(int) []bool
 }
@@ -68,15 +73,15 @@ type Node interface {
 	// calculated by combining the index and value of the node, as
 	// the reference to the node from its parent in the tree, as well as the
 	// key to the storage record for the node
-	Ref() NodeIndex
+	Ref() NodeRef
 	// returns the value object. only leaf nodes have a value object. If the
 	// client is the owner of a UTXO, the value object includes the secret values.
 	// otherwise the value object is simply the index of the node.
 	Value() Indexable
 	// returns the index of the left child. Only branch nodes have a left child.
-	LeftChild() NodeIndex
+	LeftChild() NodeRef
 	// returns the index of the right child. Only branch nodes have a right child.
-	RightChild() NodeIndex
+	RightChild() NodeRef
 }
 
 func (t NodeType) ToByte() byte {

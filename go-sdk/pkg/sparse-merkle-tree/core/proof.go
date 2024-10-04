@@ -24,7 +24,7 @@ type Proof interface {
 	// existence indicates wether this is a proof of existence or non-existence.
 	IsExistenceProof() bool
 	// Siblings is a list of non-empty sibling keys.
-	Siblings() []NodeIndex
+	Siblings() []NodeRef
 	// depth indicates how deep in the tree the proof goes.
 	Depth() uint
 	// ExistingNode is only used in a non-existence proof. It's the node
@@ -33,19 +33,19 @@ type Proof interface {
 	// demonstrating non-inclusion of the target node.
 	ExistingNode() Node
 	// ToCircomVerifierProof converts the proof to a CircomVerifierProof
-	ToCircomVerifierProof(k, v *big.Int, rootKey NodeIndex, levels int) (*CircomVerifierProof, error)
+	ToCircomVerifierProof(k, v *big.Int, rootKey NodeRef, levels int) (*CircomVerifierProof, error)
 }
 
 // CircomVerifierProof defines the proof with signals compatible with circom's SMT proof
 // verification:
 // https://github.com/iden3/circomlib/blob/master/circuits/smt/smtverifier.circom
 type CircomVerifierProof struct {
-	Root     NodeIndex   `json:"root"`
-	Siblings []NodeIndex `json:"siblings"`
-	OldKey   NodeIndex   `json:"oldKey"`
-	OldValue NodeIndex   `json:"oldValue"`
-	IsOld0   bool        `json:"isOld0"`
-	Key      NodeIndex   `json:"key"`
-	Value    NodeIndex   `json:"value"`
-	Fnc      int         `json:"fnc"` // 0: inclusion, 1: non inclusion
+	Root     NodeRef   `json:"root"`
+	Siblings []NodeRef `json:"siblings"`
+	OldKey   NodeIndex `json:"oldKey"`
+	OldValue NodeIndex `json:"oldValue"`
+	IsOld0   bool      `json:"isOld0"`
+	Key      NodeIndex `json:"key"`
+	Value    NodeIndex `json:"value"`
+	Fnc      int       `json:"fnc"` // 0: inclusion, 1: non inclusion
 }
