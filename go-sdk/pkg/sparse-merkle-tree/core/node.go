@@ -49,8 +49,8 @@ type NodeRef interface {
 // NodeIndex defines the functions of leaf nodes in the SMT, which provide access to their node paths in addition to the NodeRef functions.
 type NodeIndex interface {
 	NodeRef
-	// IsBitOn returns true if the index bit at the given position is 1
-	IsBitOn(uint) bool
+	// IsBitOne returns true if the index bit at the given position is 1
+	IsBitOne(uint) bool
 	// ToPath returns the binary path from the root to the leaf
 	ToPath(int) []bool
 }

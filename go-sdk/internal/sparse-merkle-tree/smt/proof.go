@@ -89,7 +89,7 @@ func (p *proof) AllSiblings() []core.NodeRef {
 func (p *proof) getPath(index core.NodeIndex) []bool {
 	path := make([]bool, p.depth)
 	for n := 0; n < int(p.depth); n++ {
-		path[n] = index.IsBitOn(uint(n))
+		path[n] = index.IsBitOne(uint(n))
 	}
 	return path
 }

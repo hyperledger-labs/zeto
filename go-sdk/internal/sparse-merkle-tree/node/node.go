@@ -153,12 +153,12 @@ func (idx *nodeIndex) Equal(other core.NodeRef) bool {
 func (idx *nodeIndex) ToPath(levels int) []bool {
 	path := make([]bool, levels)
 	for l := 0; l < levels; l++ {
-		path[l] = idx.IsBitOn(uint(l))
+		path[l] = idx.IsBitOne(uint(l))
 	}
 	return path
 }
 
-func (idx *nodeIndex) IsBitOn(pos uint) bool {
+func (idx *nodeIndex) IsBitOne(pos uint) bool {
 	if pos >= 256 {
 		return false
 	}
