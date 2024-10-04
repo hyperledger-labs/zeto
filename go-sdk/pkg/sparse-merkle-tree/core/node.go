@@ -38,7 +38,7 @@ const (
 type NodeRef interface {
 	// BigInt returns the big integer representation of the reference hash
 	BigInt() *big.Int
-	// Hex returns the hex string representation of the index in big-endian format
+	// Hex returns the hex string representation of the reference hash in big-endian format
 	Hex() string
 	// IsZero returns true if the index is zero
 	IsZero() bool
