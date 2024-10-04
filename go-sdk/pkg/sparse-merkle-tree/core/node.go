@@ -46,7 +46,7 @@ type NodeRef interface {
 	Equal(NodeRef) bool
 }
 
-// NodeIndex is the index of a node in the Sparse Merkle Tree
+// NodeIndex defines the functions of leaf nodes in the SMT, which provide access to their node paths in addition to the NodeRef functions.
 type NodeIndex interface {
 	NodeRef
 	// IsBitOn returns true if the index bit at the given position is 1
