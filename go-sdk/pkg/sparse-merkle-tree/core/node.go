@@ -36,7 +36,7 @@ const (
 
 // NodeRef defines functions associated with the reference hash of SMT nodes, this interface applies to all types of nodes (reference hash calculated differently depending on node type)
 type NodeRef interface {
-	// BigInt returns the big integer representation of the index
+	// BigInt returns the big integer representation of the reference hash
 	BigInt() *big.Int
 	// Hex returns the hex string representation of the index in big-endian format
 	Hex() string
