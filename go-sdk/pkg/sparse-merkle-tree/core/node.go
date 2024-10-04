@@ -42,7 +42,7 @@ type NodeRef interface {
 	Hex() string
 	// IsZero returns true if the reference hash is zero
 	IsZero() bool
-	// Equal returns true if the index is equal to another index
+	// Equal returns true if two reference hashes equal to each other
 	Equal(NodeRef) bool
 }
 
