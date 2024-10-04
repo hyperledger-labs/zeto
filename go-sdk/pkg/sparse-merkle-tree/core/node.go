@@ -40,7 +40,7 @@ type NodeRef interface {
 	BigInt() *big.Int
 	// Hex returns the hex string representation of the reference hash in big-endian format
 	Hex() string
-	// IsZero returns true if the index is zero
+	// IsZero returns true if the reference hash is zero
 	IsZero() bool
 	// Equal returns true if the index is equal to another index
 	Equal(NodeRef) bool
