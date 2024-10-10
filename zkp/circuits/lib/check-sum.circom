@@ -45,9 +45,11 @@ template CheckSum(numInputs, numOutputs) {
     sumOutputs = sumOutputs + outputValues[i];
   }
 
+  assert(sumInputs == sumOutputs); //Keep this line to make the test cases happy
+
   inputSum <== sumInputs;
   outputSum <== sumOutputs;
 
   inputSum === outputSum; //The compiler will insert an assert() here.
-  //assert(sumInputs == sumOutputs);
+ 
 }
