@@ -209,7 +209,7 @@ describe("main circuit tests for Zeto non-fungible tokens with anonymity without
     } catch (e) {
       error = e;
     }
-    console.log(error);
+    // console.log(error);
     expect(error).to.match(/Error in template Zeto_89 line: 66/);
     expect(error).to.match(
       /Error in template CheckHashesForTokenIdAndUri_88 line: 58/,
