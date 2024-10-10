@@ -18,6 +18,7 @@ pragma circom 2.1.4;
 include "./check-positive.circom";
 include "./check-hashes.circom";
 include "../node_modules/circomlib/circuits/babyjub.circom";
+include "../node_modules/circomlib/circuits/comparators.circom";
 
 template Zeto(numInputs, numOutputs) {
   signal input inputCommitments[numInputs];
@@ -73,7 +74,10 @@ template Zeto(numInputs, numOutputs) {
   }
 
   // check that the sum of input values is greater than the sum of output values
-  assert(sumInputs >= sumOutputs);
+  component checkSum = GreaterEqThan(40);
+  checkSum.in[0] <== sumInputs;
+  checkSum.in[1] <== sumOutputs;
+  checkSum.out === 1;
 
   // return the remainder as output
   out <== sumInputs - sumOutputs;

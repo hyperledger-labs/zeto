@@ -150,6 +150,6 @@ describe("check_nullifiers circuit tests", () => {
       err = e;
     }
     // console.log(err);
-    expect(err).to.match(/Error in template Zeto_157 line: 62/);
+    expect(err).to.match(/Error in template Zeto_159 line: 62/);
   });
 });
