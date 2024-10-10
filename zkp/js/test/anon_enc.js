@@ -226,7 +226,7 @@ describe("main circuit tests for Zeto fungible tokens with anonymity with encryp
       err = e;
     }
     // console.log(err);
-    expect(err).to.match(/Error in template Zeto_106 line: 82/);
+    expect(err).to.match(/Error in template CheckSum_93 line: 48/);
   });
 
   it("should failed to match output UTXO after decrypting the cipher texts from the events if using the wrong sender public keys", async () => {

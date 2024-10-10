@@ -66,7 +66,7 @@ describe("check-positive circuit tests", () => {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckPositive_3 line: 39/); // positive range check failed
+    expect(error).to.match(/Error in template CheckPositive_3 line: 37/); // positive range check failed
   });
 
   it("should fail to generate a witness because of using the inverse of a negative value in output commitments", async () => {
@@ -90,7 +90,7 @@ describe("check-positive circuit tests", () => {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckPositive_3 line: 39/); // positive range check failed
+    expect(error).to.match(/Error in template CheckPositive_3 line: 37/); // positive range check failed
   });
 
   it("should fail to generate a witness because a larger than MAX_VALUE is used in output", async () => {
@@ -108,6 +108,6 @@ describe("check-positive circuit tests", () => {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckPositive_3 line: 39/); // positive range check failed
+    expect(error).to.match(/Error in template CheckPositive_3 line: 37/); // positive range check failed
   });
 });

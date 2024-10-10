@@ -41,5 +41,9 @@ template CheckSum(numInputs, numOutputs) {
   for (var i = 0; i < numOutputs; i++) {
     sumOutputs = sumOutputs + outputValues[i];
   }
-  assert(sumInputs == sumOutputs);
+
+  component checkEqual = IsEqual();
+  checkEqual.in[0] <== sumInputs;
+  checkEqual.in[1] <== sumOutputs;
+  checkEqual.out === 1;
 }

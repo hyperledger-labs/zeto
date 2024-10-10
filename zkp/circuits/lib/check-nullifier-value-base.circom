@@ -94,7 +94,10 @@ template Zeto(numInputs, numOutputs, nSMTLevels) {
   }
 
   // check that the sum of input values is greater than the sum of output values
-  assert(sumInputs >= sumOutputs);
+  component checkSum = GreaterEqThan(40);
+  checkSum.in[0] <== sumInputs;
+  checkSum.in[1] <== sumOutputs;
+  checkSum.out === 1;
 
   out <== sumInputs - sumOutputs;
 }

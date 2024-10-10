@@ -118,7 +118,7 @@ describe("check-hashes-tokenid-uri circuit tests", () => {
     }
     // console.log(error);
     expect(error).to.match(
-      /Error in template CheckHashesForTokenIdAndUri_74 line: 58/,
+      /Error in template CheckHashesForTokenIdAndUri_76 line: 58/,
     );
   });
 });
