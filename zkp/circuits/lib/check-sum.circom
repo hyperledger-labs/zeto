@@ -32,6 +32,9 @@ template CheckSum(numInputs, numOutputs) {
   signal input inputValues[numInputs];
   signal input outputValues[numOutputs];
 
+  signal output inputSum;
+  signal output outputSum;
+
   // check that the sum of input values equals the sum of output values
   var sumInputs = 0;
   for (var i = 0; i < numInputs; i++) {
@@ -41,5 +44,10 @@ template CheckSum(numInputs, numOutputs) {
   for (var i = 0; i < numOutputs; i++) {
     sumOutputs = sumOutputs + outputValues[i];
   }
-  assert(sumInputs == sumOutputs);
+
+  inputSum <== sumInputs;
+  outputSum <== sumOutputs;
+
+  inputSum === outputSum; //The compiler will insert an assert() here.
+  //assert(sumInputs == sumOutputs);
 }
