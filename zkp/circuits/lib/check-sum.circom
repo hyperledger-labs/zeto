@@ -32,8 +32,8 @@ template CheckSum(numInputs, numOutputs) {
   signal input inputValues[numInputs];
   signal input outputValues[numOutputs];
 
-  signal output inputSum;
-  signal output outputSum;
+  signal inputSum;
+  signal outputSum;
 
   // check that the sum of input values equals the sum of output values
   var sumInputs = 0;
