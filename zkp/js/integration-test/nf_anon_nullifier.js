@@ -60,7 +60,7 @@ describe("main circuit tests for Zeto non-fungible tokens with anonymity using n
     smtBob = new Merkletree(storage2, true, SMT_HEIGHT);
   });
 
-  it("should generate a valid proof that can be verified successfully", async () => {
+  it("should generate a valid proof that can be verified successfully and fail when public signals are tampered", async () => {
     const tokenId = 1001;
     const tokenUri = tokenUriHash("http://ipfs.io/some-file-hash");
 
@@ -123,11 +123,32 @@ describe("main circuit tests for Zeto non-fungible tokens with anonymity using n
     );
     console.log("Proving time: ", (Date.now() - startTime) / 1000, "s");
 
-    const success = await groth16.verify(verificationKey, publicSignals, proof);
+    let verifyResult = await groth16.verify(
+      verificationKey,
+      publicSignals,
+      proof,
+    );
+    expect(verifyResult).to.be.true;
     // console.log('nullifiers', nullifier1);
     // console.log('outputCommitments', output1);
     // console.log('root', proof1.root.bigInt());
-    // console.log('publicSignals', publicSignals);
-    expect(success, true);
+    // console.log("public signals", publicSignals);
+    const tamperedOutputHash = poseidonHash([
+      BigInt(9831),
+      tokenUri,
+      salt3,
+      ...Bob.pubKey,
+    ]);
+    let tamperedPublicSignals = publicSignals.map((ps) =>
+      ps.toString() === output1.toString() ? tamperedOutputHash : ps,
+    );
+    // console.log("tampered public signals", tamperedPublicSignals);
+
+    verifyResult = await groth16.verify(
+      verificationKey,
+      tamperedPublicSignals,
+      proof,
+    );
+    expect(verifyResult).to.be.false;
   }).timeout(600000);
 });

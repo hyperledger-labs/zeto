@@ -43,7 +43,7 @@ describe("check-nullifiers circuit tests", () => {
     receiver.pubKey = keypair.pubKey;
   });
 
-  it("should generate a valid proof using groth16 that can be verified successfully", async () => {
+  it("should generate a valid proof using groth16 that can be verified successfully and fail when public signals are tampered", async () => {
     const inputValues = [15, 100];
 
     // create two input UTXOs, each has their own salt, but same owner
@@ -91,7 +91,32 @@ describe("check-nullifiers circuit tests", () => {
       witness,
     );
     console.log("Proving time: ", (Date.now() - startTime) / 1000, "s");
-    const success = await groth16.verify(verificationKey, publicSignals, proof);
-    expect(success, true);
+    let verifyResult = await groth16.verify(
+      verificationKey,
+      publicSignals,
+      proof,
+    );
+    expect(verifyResult).to.be.true;
+    // console.log('nullifiers', nullifiers);
+    // console.log('inputCommitments', inputCommitments);
+    // console.log("public signals", publicSignals);
+    const tamperedOutputHash = poseidonHash4([
+      BigInt(100),
+      salt2,
+      ...sender.pubKey,
+    ]);
+    let tamperedPublicSignals = publicSignals.map((ps) =>
+      ps.toString() === inputCommitments[0].toString()
+        ? tamperedOutputHash
+        : ps,
+    );
+    // console.log("tampered public signals", tamperedPublicSignals);
+
+    verifyResult = await groth16.verify(
+      verificationKey,
+      tamperedPublicSignals,
+      proof,
+    );
+    expect(verifyResult).to.be.false;
   }).timeout(20000);
 });
