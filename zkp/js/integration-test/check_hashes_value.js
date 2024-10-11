@@ -32,7 +32,7 @@ describe("check-hashes-value circuit tests", () => {
     sender.pubKey = keypair.pubKey;
   });
 
-  it("should return true for valid witness", async () => {
+  it("should return true for valid witness and false when public signals are tampered", async () => {
     const outputValues = [200];
 
     // create the output UTXO
@@ -73,10 +73,32 @@ describe("check-hashes-value circuit tests", () => {
       witness,
     );
     console.log("Proving time: ", (Date.now() - startTime) / 1000, "s");
-    const success = await groth16.verify(verificationKey, publicSignals, proof);
-    expect(success, true);
+    let verifyResult = await groth16.verify(
+      verificationKey,
+      publicSignals,
+      proof,
+    );
+    expect(verifyResult).to.be.true;
     // console.log('output commitments', outputCommitments);
     // console.log('output values', outputValues);
-    // console.log('public signals', publicSignals);
+    // console.log("public signals", publicSignals);
+    const tamperedOutputHash = poseidonHash([
+      BigInt(100),
+      salt1,
+      ...sender.pubKey,
+    ]);
+    let tamperedPublicSignals = publicSignals.map((ps) =>
+      ps.toString() === outputCommitments[0].toString()
+        ? tamperedOutputHash
+        : ps,
+    );
+    // console.log("tampered public signals", tamperedPublicSignals);
+
+    verifyResult = await groth16.verify(
+      verificationKey,
+      tamperedPublicSignals,
+      proof,
+    );
+    expect(verifyResult).to.be.false;
   }).timeout(20000);
 });

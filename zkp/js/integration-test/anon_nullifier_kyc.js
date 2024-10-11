@@ -74,7 +74,7 @@ describe("main circuit tests for Zeto fungible tokens with anonymity, KYC, using
     await smtKYC.add(identity2, identity2);
   });
 
-  it("should generate a valid proof that can be verified successfully", async () => {
+  it("should generate a valid proof that can be verified successfully and fail when public signals are tampered", async () => {
     const inputValues = [32, 40];
     const outputValues = [20, 52];
 
@@ -181,13 +181,35 @@ describe("main circuit tests for Zeto fungible tokens with anonymity, KYC, using
     );
     console.log("Proving time: ", (Date.now() - startTime) / 1000, "s");
 
-    const success = await groth16.verify(verificationKey, publicSignals, proof);
+    let verifyResult = await groth16.verify(
+      verificationKey,
+      publicSignals,
+      proof,
+    );
+    expect(verifyResult).to.be.true;
     // console.log('nullifiers', nullifiers);
     // console.log('inputCommitments', inputCommitments);
     // console.log('outputCommitments', outputCommitments);
     // console.log('utxo root', proof1.root.bigInt());
     // console.log('identitiesRoot', proof3.root.bigInt());
-    // console.log('publicSignals', publicSignals);
-    expect(success, true);
+    // console.log('public signals', publicSignals);
+    const tamperedOutputHash = poseidonHash([
+      BigInt(100),
+      salt3,
+      ...Bob.pubKey,
+    ]);
+    let tamperedPublicSignals = publicSignals.map((ps) =>
+      ps.toString() === outputCommitments[0].toString()
+        ? tamperedOutputHash
+        : ps,
+    );
+    // console.log("tampered public signals", tamperedPublicSignals);
+
+    verifyResult = await groth16.verify(
+      verificationKey,
+      tamperedPublicSignals,
+      proof,
+    );
+    expect(verifyResult).to.be.false;
   }).timeout(600000);
 });

@@ -52,7 +52,7 @@ describe("main circuit tests for Zeto fungible tokens with anonymity with encryp
     receiver.pubKey = keypair.pubKey;
   });
 
-  it("should generate a valid proof that can be verified successfully", async () => {
+  it("should generate a valid proof that can be verified successfully and fail when public signals are tampered", async () => {
     const inputValues = [115, 0];
     const outputValues = [115, 0];
     // create two input UTXOs, each has their own salt, but same owner
@@ -102,13 +102,35 @@ describe("main circuit tests for Zeto fungible tokens with anonymity with encryp
     );
     console.log("Proving time: ", (Date.now() - startTime) / 1000, "s");
 
-    const success = await groth16.verify(verificationKey, publicSignals, proof);
+    let verifyResult = await groth16.verify(
+      verificationKey,
+      publicSignals,
+      proof,
+    );
+    expect(verifyResult).to.be.true;
     // console.log('inputCommitments', inputCommitments);
     // console.log('outputCommitments', outputCommitments);
     // console.log('senderPublicKey', sender.pubKey);
     // console.log('receiverPublicKey', receiver.pubKey);
     // console.log('encryptionNonce', encryptionNonce);
-    // console.log('publicSignals', publicSignals);
-    expect(success, true);
+    // console.log("publicSignals", publicSignals);
+    const tamperedOutputHash = poseidonHash([
+      BigInt(100),
+      salt3,
+      ...receiver.pubKey,
+    ]);
+    let tamperedPublicSignals = publicSignals.map((ps) =>
+      ps.toString() === outputCommitments[0].toString()
+        ? tamperedOutputHash
+        : ps,
+    );
+    // console.log("tampered public signals", tamperedPublicSignals);
+
+    verifyResult = await groth16.verify(
+      verificationKey,
+      tamperedPublicSignals,
+      proof,
+    );
+    expect(verifyResult).to.be.false;
   }).timeout(60000);
 });
