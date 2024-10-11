@@ -30,12 +30,10 @@ template CheckPositive(numOutputs) {
 
   // check that the output values are within the expected range. we don't allow negative values
   component positive[numOutputs];
-  var isPositive[numOutputs];
   for (var i = 0; i < numOutputs; i++) {
     positive[i] = GreaterEqThan(40);
     positive[i].in[0] <== outputValues[i];
     positive[i].in[1] <== 0;
-    isPositive[i] = positive[i].out;
-    assert(isPositive[i] == 1);
+    positive[i].out === 1;
   }
 }

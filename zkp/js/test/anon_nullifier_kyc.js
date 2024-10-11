@@ -299,7 +299,6 @@ describe("main circuit tests for Zeto fungible tokens with anonymity, KYC, using
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template Zeto_254 line: 126/);
     expect(error).to.match(/Error in template CheckSMTProof_253 line: 46/);
   });
 });

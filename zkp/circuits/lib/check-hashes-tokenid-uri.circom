@@ -35,7 +35,8 @@ template CheckHashesForTokenIdAndUri(numInputs) {
 
   // hash the input values
   component inputHashes[numInputs];
-  var calculatedInputHashes[numInputs];
+  component checkEquals[numInputs];
+  component checkZero[numInputs];
   for (var i = 0; i < numInputs; i++) {
     // perform the hash calculation even though they are not needed when the input 
     // commitment at the current index is 0; this is because in zkp circuits we
@@ -46,15 +47,14 @@ template CheckHashesForTokenIdAndUri(numInputs) {
     inputHashes[i].inputs[2] <== salts[i];
     inputHashes[i].inputs[3] <== ownerPublicKeys[i][0];
     inputHashes[i].inputs[4] <== ownerPublicKeys[i][1];
-    if (commitments[i] == 0) {
-      calculatedInputHashes[i] = 0;
-    } else {
-      calculatedInputHashes[i] = inputHashes[i].out;
-    }
-  }
 
-  // check that the input commitments match the calculated hashes
-  for (var i = 0; i < numInputs; i++) {
-    assert(commitments[i] == calculatedInputHashes[i]);
+    // check that the input commitments match the calculated hashes
+    checkZero[i] = IsZero();
+    checkZero[i].in <== commitments[i];
+    checkEquals[i] = IsEqual();
+    checkEquals[i].in[0] <== commitments[i];
+    // ensure when commitment is 0, compare with 0
+    checkEquals[i].in[1] <== (1 - checkZero[i].out) * inputHashes[i].out;
+    checkEquals[i].out === 1;
   }
 }
