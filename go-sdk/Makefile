@@ -18,7 +18,7 @@ coverage: test coverage.html
 lint: ${LINT}
 		GOGC=20 $(LINT) run -v --timeout 5m
 ${LINT}:
-		$(VGO) install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.54.0
+		$(VGO) install github.com/golangci/golangci-lint/cmd/golangci-lint
 go-mod-tidy: .ALWAYS
 		$(VGO) mod tidy
 e2e: test
