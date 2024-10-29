@@ -17,6 +17,7 @@ pragma solidity ^0.8.20;
 
 import {Commonlib} from "./common.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Arrays} from "@openzeppelin/contracts/utils/Arrays.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 /// @title A sample base implementation of a Zeto based token contract
@@ -101,8 +102,8 @@ abstract contract ZetoCommon is OwnableUpgradeable {
         for (uint256 i = 0; i < outputs.length; ++i) {
             sortedOutputs[i] = outputs[i];
         }
-        sortedInputs = Commonlib.sort(sortedInputs);
-        sortedOutputs = Commonlib.sort(sortedOutputs);
+        sortedInputs = Arrays.sort(sortedInputs);
+        sortedOutputs = Arrays.sort(sortedOutputs);
         return (sortedInputs, sortedOutputs);
     }
 }
