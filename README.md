@@ -22,7 +22,7 @@ The following diagram illustrates the basics of Zeto tokens.
 
 The above diagram illustrates that the secrets are transmitted from the sender to the receiver in an off-chain secure channel. Other means of sharing the secrets are avaiable in Zeto token implementations. For instance, the [Zeto_AnonEnc](./solidity/contracts/zeto_anon_enc.sol) implementation includes encrypted secrets in the transaction input, and emits an event with the encrypted values. The encrypted values can only be decrypted by the receiver.
 
-# Enforcing token transfer policies with zero knowledge proofs
+# Zeto fungible and non-fungible token implementations
 
 The various patterns in this project use Zero Knowledge Proofs (ZKP) to demonstrate the validity of the proposed transaction. There is no centralized party to trust as in the [Notary pattern](#enforce-token-transfer-policies-with-a-notary), which is not implemented in this project but discussed briefly below.
 
@@ -142,6 +142,27 @@ The statements in the proof include:
 - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 - the encrypted values in the transaction contains cipher texts derived from the receiver's UTXO values and encrypted with a shared secret using the ECDH protocol between a random private key and the receiver (this guarantees data availability for the receiver, because the public key for the random private key used by the sender is published in the transaction)
 - the encrypted values in the transaction contains cipher texts derived from the receiver's UTXO values and encrypted with a shared secret using the ECDH protocol between a random private key and the authority
+
+## Zeto_NfAnon
+
+This implements a basic non-fungible token.
+
+For non-fungible tokens, the main concern with the transaction validity check is that the output UTXO contains the same secrets (id, uri) as the input UTXO, with only the ownership updated.
+
+The statements in the proof include:
+
+- the output UTXO hashes are based on the same `id, uri` as the input UTXO hashes
+- the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
+
+## Zeto_NfAnonNullifier
+
+This implements a non-fungible token using nullifiers, thus hiding the spending graph.
+
+The statements in the proof include:
+
+- the output UTXO hashes are based on the same `id, uri` as the input UTXO hashes
+- the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers
+- the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 
 # Enforce token transfer policies with a Notary
 
