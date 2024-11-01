@@ -100,7 +100,7 @@ The statements in the proof include:
 
 ## Zeto_AnonEncNullifier
 
-This implementation adds encryption, as described in the section above for Zeto_AnonEnc, to the pattern Zeto_AnonNullifierKyc above.
+This implementation adds encryption, as described in the section above for Zeto_AnonEnc, to the pattern Zeto_AnonNullifier above.
 
 The statements in the proof include:
 
@@ -113,7 +113,7 @@ The statements in the proof include:
 
 ## Zeto_AnonEncNullifierKyc
 
-This implementation adds encryption, as described in the section above for Zeto_AnonEnc, to the pattern above.
+This implementation adds encryption, as described in the section above for Zeto_AnonEnc, to the pattern Zeto_AnonNullifierKyc above.
 
 The statements in the proof include:
 
