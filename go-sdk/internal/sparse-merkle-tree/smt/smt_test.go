@@ -93,7 +93,7 @@ func (s *MerkleTreeTestSuite) TestNewMerkleTree() {
 }
 
 func (s *MerkleTreeTestSuite) TestAddNode() {
-	mt, err := NewMerkleTree(s.db, 10)
+	mt, err := NewMerkleTree(s.db, 64)
 	assert.NoError(s.T(), err)
 
 	x, _ := new(big.Int).SetString("9198063289874244593808956064764348354864043212453245695133881114917754098693", 10)
@@ -166,7 +166,7 @@ func (s *MerkleTreeTestSuite) TestAddNode() {
 }
 
 func (s *MerkleTreeTestSuite) TestAddNodeFailExistingKey() {
-	mt, err := NewMerkleTree(s.db, 10)
+	mt, err := NewMerkleTree(s.db, 64)
 	assert.NoError(s.T(), err)
 
 	x, _ := new(big.Int).SetString("9198063289874244593808956064764348354864043212453245695133881114917754098693", 10)
@@ -192,7 +192,7 @@ func (s *MerkleTreeTestSuite) TestAddNodeFailExistingKey() {
 }
 
 func (s *MerkleTreeTestSuite) TestGenerateProof() {
-	const levels = 10
+	const levels = 64
 	mt, _ := NewMerkleTree(s.db, levels)
 
 	alice := testutils.NewKeypair()
@@ -271,7 +271,7 @@ func (s *MerkleTreeTestSuite) TestVerifyProof() {
 }
 
 func (s *MerkleTreeTestSuite) TestSqliteStorage() {
-	mt, err := NewMerkleTree(s.db, 10)
+	mt, err := NewMerkleTree(s.db, 64)
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), mt)
 
