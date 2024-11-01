@@ -14,7 +14,7 @@ The following diagram illustrates the basics of Zeto tokens.
 
 - Party A owns 3 Zeto tokens at the beginning: `#1, #2, #3`. The 3 tokens have been minted in the Zeto smart contract and represented by their commitments, or `hash(value, owner public key, salt)`
   - As the owner of the tokens, party A also has access to the secrets that the commitments can be opened to, namely the value and salt. The secrets are represented as private states: `s1, s2, s3`
-  - How party A obtained the secrets for the owned tokens, is dependent on the specific Zeto implementation. Tt can be from offchain channels or from onchain (encrypted) data
+  - How party A obtained the secrets for the owned tokens, is dependent on the specific Zeto implementation. It can be from offchain channels or from onchain (encrypted) data
 - Party A sends transaction `Tx1` to transfer some value to party B. The transaction consumes 2 tokens (`#1, #2`) and produces 2 new tokens (`#4, #5`). `#5` is the value to be transferred to party B. `#4` is the remainder value that goes back to party A
   - Even though party A knows the secrets of `#5`, they won't be able to spend the token because party A is not the owner of the token. Ownership verification is enforced by the Zeto smart contract when it verifies the zero knowledge proofs. Each ZKP circuit ensures that the sender's private key is used as a private input signal to derive the public key, which is then hashed to calculate the commitments
 - Party B sends transaction `Tx2` to transfer some value to party C. This works the same as `Tx1`
