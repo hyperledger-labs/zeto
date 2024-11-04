@@ -19,16 +19,9 @@ include "../node_modules/circomlib/circuits/poseidon.circom";
 include "../node_modules/circomlib/circuits/comparators.circom";
 
 // CheckHashes is a circuit that checks the integrity of transactions of Fungible Tokens
-//   - check that all output values are positive numbers (within the range of 0 to 2^40)
-//   - check that the input commitments are the hash of the input values
-//   - check that the output commitments are the hash of the output values
+//   - check that the commitments are the hash of the values, salts and owner public keys
 //
-// input commitments: array of hashes for the input utxos
-// inputValues: array of values, as preimages for the input hashes, for the input utxos
-// output commitments: array of hashes for the output utxos
-// outputValues: array of values, as preimages for the output hashes, for the output utxos
-//
-// commitment = hash(value, salt, ownerAddress)
+// commitment = hash(value, salt, owner public key)
 //
 template CheckHashes(numInputs) {
   signal input commitments[numInputs];

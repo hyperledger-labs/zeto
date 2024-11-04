@@ -18,15 +18,7 @@ pragma circom 2.1.4;
 include "../node_modules/circomlib/circuits/poseidon.circom";
 include "../node_modules/circomlib/circuits/comparators.circom";
 
-// CheckSum is a circuit that checks the integrity of transactions of Fungible Tokens
-//   - check that the sum of input values equals the sum of output values
-//
-// input commitments: array of hashes for the input utxos
-// inputValues: array of values, as preimages for the input hashes, for the input utxos
-// output commitments: array of hashes for the output utxos
-// outputValues: array of values, as preimages for the output hashes, for the output utxos
-//
-// commitment = hash(value, salt, ownerAddress)
+// CheckSum is a circuit that checks that the sum of input values equals the sum of output values
 //
 template CheckSum(numInputs, numOutputs) {
   signal input inputValues[numInputs];

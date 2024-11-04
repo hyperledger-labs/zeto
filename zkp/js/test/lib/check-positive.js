@@ -18,7 +18,7 @@ const { expect } = require("chai");
 const { join } = require("path");
 const { wasm: wasm_tester } = require("circom_tester");
 
-const MAX_VALUE = 2n ** 40n - 1n;
+const MAX_VALUE = 2n ** 100n - 1n;
 
 describe("check-positive circuit tests", () => {
   let circuit;
@@ -108,6 +108,6 @@ describe("check-positive circuit tests", () => {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckPositive_3 line: 37/); // positive range check failed
+    expect(error).to.match(/Error in template CheckPositive_3 line: 36/); // positive range check failed
   });
 });

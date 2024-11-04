@@ -61,6 +61,6 @@ describe("check-sum circuit tests", () => {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckSum_2 line: 48/);
+    expect(error).to.match(/Error in template CheckSum_2 line: 40/);
   });
 });

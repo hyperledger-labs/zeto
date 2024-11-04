@@ -21,7 +21,7 @@ include "../node_modules/circomlib/circuits/babyjub.circom";
 include "../node_modules/circomlib/circuits/smt/smtverifier.circom";
 
 // CheckPositive is a circuit that checks the integrity of transactions of Fungible Tokens
-//   - check that all output values are positive numbers (within the range of 0 to 2^40)
+//   - check that all output values are positive numbers, within the range of [0, 2^100)
 //
 // outputValues: array of values, as preimages for the output hashes, for the output utxos
 //
@@ -31,7 +31,7 @@ template CheckPositive(numOutputs) {
   // check that the output values are within the expected range. we don't allow negative values
   component positive[numOutputs];
   for (var i = 0; i < numOutputs; i++) {
-    positive[i] = GreaterEqThan(40);
+    positive[i] = GreaterEqThan(100);
     positive[i].in[0] <== outputValues[i];
     positive[i].in[1] <== 0;
     positive[i].out === 1;

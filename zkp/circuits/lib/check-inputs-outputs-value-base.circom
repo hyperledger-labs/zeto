@@ -20,7 +20,17 @@ include "./check-hashes.circom";
 include "../node_modules/circomlib/circuits/babyjub.circom";
 include "../node_modules/circomlib/circuits/comparators.circom";
 
-template Zeto(numInputs, numOutputs) {
+// CheckInputsOutputsValue is a circuit that checks the sum of the input values
+// is greater than or equal to the sum of the output values:
+//   - check that the private key is the owner of the input UTXOs
+//   - check that the input commitments are the hash of the input values, salts and sender public keys
+//   - check that the output commitments are the hash of the output values, salts and receiver public keys
+//   - check that the output values are all positive, assuming the values are in the range [0, 2^100)
+//   - check that the sum of input values is greater than or equal to the sum of output values
+//
+// commitment = hash(value, salt, owner public key)
+//
+template CheckInputsOutputsValue(numInputs, numOutputs) {
   signal input inputCommitments[numInputs];
   signal input inputValues[numInputs];
   signal input inputSalts[numInputs];
@@ -74,7 +84,7 @@ template Zeto(numInputs, numOutputs) {
   }
 
   // check that the sum of input values is greater than the sum of output values
-  component checkSum = GreaterEqThan(40);
+  component checkSum = GreaterEqThan(100);
   checkSum.in[0] <== sumInputs;
   checkSum.in[1] <== sumOutputs;
   checkSum.out === 1;
