@@ -269,6 +269,43 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     expect(endingBalance - startingBalance).to.be.equal(80);
   });
 
+  it("Test support for large values, such as when using 18 decimals", async function () {
+    const EighteenDecimals = 10 ** 18;
+
+    // first the authority mints UTXOs to Alice
+    const utxo1 = newUTXO(10 * EighteenDecimals, Alice);
+    const utxo2 = newUTXO(20 * EighteenDecimals, Alice);
+    await doMint(zeto, deployer, [utxo1, utxo2]);
+
+    // Alice proposes the output UTXOs
+    const utxo3 = newUTXO(25 * EighteenDecimals, Bob);
+    const utxo4 = newUTXO(5 * EighteenDecimals, Alice);
+
+    // Alice transfers UTXOs to Bob
+    const result = await doTransfer(
+      Alice,
+      [utxo1, utxo2],
+      [utxo3, utxo4],
+      [Bob, Alice],
+    );
+
+    // Bob reconstructs the UTXO from off-chain secure message channels with Alice
+    // first obtain the UTXOs from the transaction event
+    const events = parseUTXOEvents(zeto, result);
+    const incomingUTXOs: any = events[0].outputs;
+
+    // Bob uses the information received from Alice to reconstruct the UTXO sent to him
+    const receivedValue = 25 * EighteenDecimals;
+    const receivedSalt = utxo3.salt;
+    const hash = poseidonHash([
+      BigInt(receivedValue),
+      receivedSalt,
+      Bob.babyJubPublicKey[0],
+      Bob.babyJubPublicKey[1],
+    ]);
+    expect(incomingUTXOs[0]).to.equal(hash);
+  });
+
   describe("failure cases", function () {
     // the following failure cases rely on the hardhat network
     // to return the details of the errors. This is not possible

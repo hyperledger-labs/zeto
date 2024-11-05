@@ -20,7 +20,7 @@ const { wasm: wasm_tester } = require("circom_tester");
 const { genKeypair } = require("maci-crypto");
 const { Poseidon, newSalt } = require("../index.js");
 
-const MAX_VALUE = 2n ** 40n - 1n;
+const MAX_VALUE = 2n ** 100n - 1n;
 const poseidonHash = Poseidon.poseidon4;
 
 describe("check_hashes_value circuit tests", () => {
@@ -101,7 +101,7 @@ describe("check_hashes_value circuit tests", () => {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckHashes_80 line: 60/); // hash check failed
+    expect(error).to.match(/Error in template CheckHashes_80 line: 53/); // hash check failed
   });
 
   it("should fail to generate a witness because of negative values in output commitments", async () => {
@@ -198,6 +198,6 @@ describe("check_hashes_value circuit tests", () => {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckPositive_3 line: 37/); // positive range check failed
+    expect(error).to.match(/Error in template CheckPositive_3 line: 36/); // positive range check failed
   });
 });

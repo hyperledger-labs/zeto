@@ -17,4 +17,4 @@ pragma circom 2.1.4;
 
 include "./lib/check-inputs-outputs-value-base.circom";
 
-component main { public [ inputCommitments, outputCommitments ] } = Zeto(2, 1);
+component main { public [ inputCommitments, outputCommitments ] } = CheckInputsOutputsValue(2, 1);

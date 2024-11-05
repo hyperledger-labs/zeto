@@ -17,4 +17,4 @@ pragma circom 2.1.4;
 
 include "./lib/check-nullifier-value-base.circom";
 
-component main { public [ nullifiers, outputCommitments, root, enabled ] } = Zeto(2, 1, 64);
+component main { public [ nullifiers, outputCommitments, root, enabled ] } = CheckNullifiersInputsOutputsValue(2, 1, 64);
