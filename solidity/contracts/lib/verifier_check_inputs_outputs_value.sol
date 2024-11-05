@@ -178,8 +178,6 @@ contract Groth16Verifier_CheckInputsOutputsValue {
             
             checkField(calldataload(add(_pubSignals, 96)))
             
-            checkField(calldataload(add(_pubSignals, 128)))
-            
 
             // Validate all evaluations
             let isValid := checkPairing(_pA, _pB, _pC, _pubSignals, pMem)

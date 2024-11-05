@@ -283,8 +283,6 @@ contract Groth16Verifier_AnonEncNullifierKyc {
             
             checkField(calldataload(add(_pubSignals, 576)))
             
-            checkField(calldataload(add(_pubSignals, 608)))
-            
 
             // Validate all evaluations
             let isValid := checkPairing(_pA, _pB, _pC, _pubSignals, pMem)

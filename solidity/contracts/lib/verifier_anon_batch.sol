@@ -290,8 +290,6 @@ contract Groth16Verifier_AnonBatch {
             
             checkField(calldataload(add(_pubSignals, 608)))
             
-            checkField(calldataload(add(_pubSignals, 640)))
-            
 
             // Validate all evaluations
             let isValid := checkPairing(_pA, _pB, _pC, _pubSignals, pMem)
