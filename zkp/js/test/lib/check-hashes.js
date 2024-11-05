@@ -158,6 +158,6 @@ describe("check-hashes circuit tests", () => {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckHashes_76 line: 60/); // hash check failed
+    expect(error).to.match(/Error in template CheckHashes_76 line: 53/); // hash check failed
   });
 });

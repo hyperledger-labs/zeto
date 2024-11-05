@@ -20,7 +20,19 @@ include "./check-hashes.circom";
 include "./check-nullifiers.circom";
 include "./check-smt-proof.circom";
 
-template Zeto(numInputs, numOutputs, nSMTLevels) {
+// CheckNullifiersInputsOutputsValue is a circuit that checks the sum of the input values
+// is greater than or equal to the sum of the output values:
+//   - check that the private key is the owner of the input UTXOs
+//   - check that the input commitments are the hash of the input values, salts and sender public keys
+//   - check that the nullifiers are securely bound to the input commitments
+//   - check that the output commitments are the hash of the output values, salts and receiver public keys
+//   - check that the output values are all positive, assuming the values are in the range [0, 2^100)
+//   - check that the sum of input values is greater than or equal to the sum of output values
+//
+// commitment = hash(value, salt, owner public key)
+// nullifier = hash(value, salt, ownerPrivatekey)
+//
+template CheckNullifiersInputsOutputsValue(numInputs, numOutputs, nSMTLevels) {
   signal input nullifiers[numInputs];
   signal input inputCommitments[numInputs];
   signal input inputValues[numInputs];
@@ -94,7 +106,7 @@ template Zeto(numInputs, numOutputs, nSMTLevels) {
   }
 
   // check that the sum of input values is greater than the sum of output values
-  component checkSum = GreaterEqThan(40);
+  component checkSum = GreaterEqThan(100);
   checkSum.in[0] <== sumInputs;
   checkSum.in[1] <== sumOutputs;
   checkSum.out === 1;

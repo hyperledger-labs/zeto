@@ -20,18 +20,9 @@ include "../node_modules/circomlib/circuits/comparators.circom";
 include "../node_modules/circomlib/circuits/babyjub.circom";
 include "../node_modules/circomlib/circuits/smt/smtverifier.circom";
 
-// CheckNullifierHashesAndSum is a circuit that checks the integrity of transactions of Fungible Tokens
-//   - check that all output values are positive numbers (within the range of 0 to 2^40)
+// CheckNullifiers is a circuit that checks the nullifiers are correctly computed
+// from the input values, salts and the owner private key.
 //   - check that the nullifiers are correctly computed from the input values and salts
-//   - check that the input commitments are correctly computed from the input values, salts, and owner public keys
-//   - check that the input commitments are included in the Sparse Merkle Tree with the root `root`
-//   - check that the output commitments are correctly computed from the output values, salts, and owner public keys
-//   - check that the sum of input values equals the sum of output values
-//
-// nullifiers: array of hashes for the nullifiers corresponding to the input utxos
-// inputValues: array of values, as preimages for the input hashes, for the input utxos
-// output commitments: array of hashes for the output utxos
-// outputValues: array of values, as preimages for the output hashes, for the output utxos
 //
 // commitment = hash(value, salt, ownerPublicKey1, ownerPublicKey2)
 // nullifier = hash(value, salt, ownerPrivatekey)
