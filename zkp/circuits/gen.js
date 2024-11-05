@@ -151,7 +151,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
   }
 
   const { stdout: ctOut, stderr: ctErr } = await execAsync(
-    `circom ${circomInput} --output ${provingKeysRoot} --r1cs`,
+    `circom --O2 ${circomInput} --output ${provingKeysRoot} --r1cs`,
   );
   if (verbose) {
     if (ctOut) {
