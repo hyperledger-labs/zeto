@@ -33,6 +33,8 @@ var (
 	initAtLeastOnce atomic.Bool
 )
 
+// Optional to call if you wish to use Zeto's configuration for logging.
+// Otherwise standard logrus logging will be used as configured by your own environment
 func InitConfig() {
 	initAtLeastOnce.Store(true) // must store before SetLevel
 
@@ -51,22 +53,12 @@ func InitConfig() {
 	logrus.SetFormatter(formatter)
 }
 
-func ensureInit() {
-	// Called at a couple of strategic points to check we get log initialize in things like unit tests
-	// However NOT guaranteed to be called because we can't afford to do atomic load on every log line
-	if !initAtLeastOnce.Load() {
-		InitConfig()
-	}
-}
-
 func logger() *logrus.Entry {
-	ensureInit()
 	return rootLogger
 }
 
 // WithLogField adds the specified field to the logger in the context
 func WithLogField(key, value string) *logrus.Entry {
-	ensureInit()
 	if len(value) > 61 {
 		value = value[0:61] + "..."
 	}
