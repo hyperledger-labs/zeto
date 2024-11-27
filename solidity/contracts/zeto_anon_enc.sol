@@ -208,14 +208,12 @@ contract Zeto_AnonEnc is
 
     function deposit(
         uint256 amount,
-        uint256 utxo,
+        uint256[] memory outputs,
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public {
-        _deposit(amount, utxo, proof);
-        uint256[] memory utxos = new uint256[](1);
-        utxos[0] = utxo;
-        _mint(utxos, data);
+        _deposit(amount, outputs, proof);
+        _mint(outputs, data);
     }
 
     function withdraw(

@@ -33,7 +33,7 @@ describe("check-hashes-value circuit tests", () => {
   });
 
   it("should return true for valid witness and false when public signals are tampered", async () => {
-    const outputValues = [200];
+    const outputValues = [200, 0];
 
     // create the output UTXO
     const salt1 = newSalt();
@@ -42,14 +42,19 @@ describe("check-hashes-value circuit tests", () => {
       salt1,
       ...sender.pubKey,
     ]);
-    const outputCommitments = [output1];
+    const output2 = poseidonHash([
+      BigInt(outputValues[1]),
+      salt1,
+      ...sender.pubKey,
+    ]);
+    const outputCommitments = [output1, output2];
 
     let witness = await circuit.calculateWitness(
       {
         outputCommitments,
         outputValues,
-        outputSalts: [salt1],
-        outputOwnerPublicKeys: [sender.pubKey],
+        outputSalts: [salt1, salt1],
+        outputOwnerPublicKeys: [sender.pubKey, sender.pubKey],
       },
       true,
     );
@@ -60,8 +65,8 @@ describe("check-hashes-value circuit tests", () => {
       {
         outputCommitments,
         outputValues,
-        outputSalts: [salt1],
-        outputOwnerPublicKeys: [sender.pubKey],
+        outputSalts: [salt1, salt1],
+        outputOwnerPublicKeys: [sender.pubKey, sender.pubKey],
       },
       true,
     );

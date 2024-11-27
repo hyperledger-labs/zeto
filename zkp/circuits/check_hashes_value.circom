@@ -42,4 +42,4 @@ template Zeto(nOutputs) {
   out <== sumOutputs;
 }
 
-component main {public [ outputCommitments ]} = Zeto(1);
+component main {public [ outputCommitments ]} = Zeto(2);
