@@ -42,17 +42,27 @@ export function loadProvingKeys(type: string) {
   };
 }
 
-export async function prepareDepositProof(signer: User, output: UTXO) {
-  const outputCommitments: [BigNumberish] = [output.hash] as [BigNumberish];
-  const outputValues = [BigInt(output.value || 0n)];
-  const outputOwnerPublicKeys: [[BigNumberish, BigNumberish]] = [
-    signer.babyJubPublicKey,
-  ] as [[BigNumberish, BigNumberish]];
+export async function prepareDepositProof(signer: User, outputs: [UTXO, UTXO]) {
+  const outputCommitments: [BigNumberish, BigNumberish] = [
+    outputs[0].hash,
+    outputs[1].hash,
+  ] as [BigNumberish, BigNumberish];
+  const outputValues = [
+    BigInt(outputs[0].value || 0n),
+    BigInt(outputs[1].value || 0n),
+  ];
+  const outputOwnerPublicKeys: [
+    [BigNumberish, BigNumberish],
+    [BigNumberish, BigNumberish],
+  ] = [signer.babyJubPublicKey, signer.babyJubPublicKey] as [
+    [BigNumberish, BigNumberish],
+    [BigNumberish, BigNumberish],
+  ];
 
   const inputObj = {
     outputCommitments,
     outputValues,
-    outputSalts: [output.salt],
+    outputSalts: [outputs[0].salt, outputs[1].salt],
     outputOwnerPublicKeys,
   };
 

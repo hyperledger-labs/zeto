@@ -61,6 +61,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
   let erc20: any;
   let zeto: any;
   let utxo100: UTXO;
+  let utxo0: UTXO;
   let utxo1: UTXO;
   let utxo2: UTXO;
   let utxo3: UTXO;
@@ -336,17 +337,20 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     await tx1.wait();
 
     utxo100 = newUTXO(100, Alice);
+    utxo0 = newUTXO(0, Alice);
     const { outputCommitments, encodedProof } = await prepareDepositProof(
       Alice,
-      utxo100,
+      [utxo100, utxo0],
     );
     const tx2 = await zeto
       .connect(Alice.signer)
-      .deposit(100, outputCommitments[0], encodedProof, "0x");
+      .deposit(100, outputCommitments, encodedProof, "0x");
     await tx2.wait();
 
     await smtAlice.add(utxo100.hash, utxo100.hash);
+    await smtAlice.add(utxo0.hash, utxo0.hash);
     await smtBob.add(utxo100.hash, utxo100.hash);
+    await smtBob.add(utxo0.hash, utxo0.hash);
   });
 
   it("mint to Alice and transfer UTXOs honestly to Bob should succeed", async function () {
@@ -576,6 +580,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
 
   describe("unregistered user cases", function () {
     let unregisteredUtxo100: UTXO;
+    let unregisteredUtxo0: UTXO;
 
     it("deposit by an unregistered user should succeed", async function () {
       const tx = await erc20
@@ -588,24 +593,28 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
       await tx1.wait();
 
       unregisteredUtxo100 = newUTXO(100, unregistered);
+      unregisteredUtxo0 = newUTXO(0, unregistered);
       const { outputCommitments, encodedProof } = await prepareDepositProof(
         unregistered,
-        unregisteredUtxo100,
+        [unregisteredUtxo100, unregisteredUtxo0],
       );
       const tx2 = await zeto
         .connect(unregistered.signer)
-        .deposit(100, outputCommitments[0], encodedProof, "0x");
+        .deposit(100, outputCommitments, encodedProof, "0x");
       await tx2.wait();
 
       // Alice tracks the UTXO inside the SMT
       await smtAlice.add(unregisteredUtxo100.hash, unregisteredUtxo100.hash);
+      await smtAlice.add(unregisteredUtxo0.hash, unregisteredUtxo0.hash);
       // Bob also locally tracks the UTXOs inside the SMT
       await smtBob.add(unregisteredUtxo100.hash, unregisteredUtxo100.hash);
+      await smtBob.add(unregisteredUtxo0.hash, unregisteredUtxo0.hash);
     });
 
     it("transfer from an unregistered user should fail", async function () {
       // catch up the local SMT for the unregistered user
       await smtUnregistered.add(utxo100.hash, utxo100.hash);
+      await smtUnregistered.add(utxo0.hash, utxo0.hash);
       await smtUnregistered.add(utxo1.hash, utxo1.hash);
       await smtUnregistered.add(utxo2.hash, utxo2.hash);
       await smtUnregistered.add(_utxo3.hash, _utxo3.hash);
@@ -620,6 +629,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
         unregisteredUtxo100.hash,
         unregisteredUtxo100.hash,
       );
+      await smtUnregistered.add(unregisteredUtxo0.hash, unregisteredUtxo0.hash);
       const utxosRoot = await smtUnregistered.root();
 
       const nullifier = newNullifier(unregisteredUtxo100, unregistered);
