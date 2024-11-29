@@ -38,28 +38,17 @@ template Zeto(numInputs) {
   // for the sender's private key. This step demonstrates
   // the sender really owns the private key for the input
   // UTXOs
-  var inputOwnerPublicKey[2];
-  component pub = BabyPbk();
-  pub.in <== inputOwnerPrivateKey;
-  inputOwnerPublicKey[0] = pub.Ax;
-  inputOwnerPublicKey[1] = pub.Ay;
+  var inputOwnerPubKeyAx, inputOwnerPubKeyAy;
+  (inputOwnerPubKeyAx, inputOwnerPubKeyAy) = BabyPbk()(in <== inputOwnerPrivateKey);
+
   var inputOwnerPublicKeys[numInputs][2];
   for (var i = 0; i < numInputs; i++) {
-    inputOwnerPublicKeys[i][0] = inputOwnerPublicKey[0];
-    inputOwnerPublicKeys[i][1] = inputOwnerPublicKey[1];
+    inputOwnerPublicKeys[i] = [inputOwnerPubKeyAx, inputOwnerPubKeyAy];
   }
 
-  component checkInputHashes = CheckHashes(numInputs);
-  checkInputHashes.commitments <== inputCommitments;
-  checkInputHashes.values <== inputValues;
-  checkInputHashes.salts <== inputSalts;
-  checkInputHashes.ownerPublicKeys <== inputOwnerPublicKeys;
+  CheckHashes(numInputs)(commitments <== inputCommitments, values <== inputValues, salts <== inputSalts, ownerPublicKeys <== inputOwnerPublicKeys);
 
-  component checkNullifiers = CheckNullifiers(numInputs);
-  checkNullifiers.nullifiers <== nullifiers;
-  checkNullifiers.values <== inputValues;
-  checkNullifiers.salts <== inputSalts;
-  checkNullifiers.ownerPrivateKey <== inputOwnerPrivateKey;
+  CheckNullifiers(numInputs)(nullifiers <== nullifiers, values <== inputValues, salts <== inputSalts, ownerPrivateKey <== inputOwnerPrivateKey);
 }
 
 component main { public [ nullifiers, inputCommitments ] } = Zeto(2);

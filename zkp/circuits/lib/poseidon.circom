@@ -8,10 +8,5 @@ template TestPoseidon() {
   signal input c;
   signal output out;
 
-  component poseidon = Poseidon(3);
-  poseidon.inputs[0] <== a;
-  poseidon.inputs[1] <== b;
-  poseidon.inputs[2] <== c;
-
-  out <== poseidon.out;
+  out <== Poseidon(3)(inputs <== [a, b, c]);
 }

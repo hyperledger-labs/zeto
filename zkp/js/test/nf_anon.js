@@ -154,9 +154,9 @@ describe("main circuit tests for Zeto non-fungible tokens with anonymity without
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template Zeto_89 line: 66/);
+    expect(error).to.match(/Error in template Zeto_89 line: 53/);
     expect(error).to.match(
-      /Error in template CheckHashesForTokenIdAndUri_88 line: 58/,
+      /Error in template CheckHashesForTokenIdAndUri_88 line: 51/,
     );
   });
 
@@ -210,9 +210,9 @@ describe("main circuit tests for Zeto non-fungible tokens with anonymity without
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template Zeto_89 line: 66/);
+    expect(error).to.match(/Error in template Zeto_89 line: 53/);
     expect(error).to.match(
-      /Error in template CheckHashesForTokenIdAndUri_88 line: 58/,
+      /Error in template CheckHashesForTokenIdAndUri_88 line: 51/,
     );
   });
 });

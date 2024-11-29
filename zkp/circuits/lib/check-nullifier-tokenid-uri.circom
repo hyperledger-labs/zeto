@@ -38,23 +38,17 @@ template CheckNullifierForTokenIdAndUri(numInputs) {
   signal input ownerPrivateKey;
 
   // calculate the nullifier values from the input values
-  component nullifierHashes[numInputs];
-  component checkEquals[numInputs];
-  component checkZero[numInputs];
   for (var i = 0; i < numInputs; i++) {
-    nullifierHashes[i] = Poseidon(4);
-    nullifierHashes[i].inputs[0] <== tokenIds[i];
-    nullifierHashes[i].inputs[1] <== tokenUris[i];
-    nullifierHashes[i].inputs[2] <== salts[i];
-    nullifierHashes[i].inputs[3] <== ownerPrivateKey;
+    var calculatedHash;
+    calculatedHash = Poseidon(4)([tokenIds[i], tokenUris[i], salts[i], ownerPrivateKey]);
 
     // check that the nullifiers match the calculated hashes
-    checkZero[i] = IsZero();
-    checkZero[i].in <== nullifiers[i];
-    checkEquals[i] = IsEqual();
-    checkEquals[i].in[0] <== nullifiers[i];
-    // ensure when nullifier is 0, compare with 0
-    checkEquals[i].in[1] <== (1 - checkZero[i].out) * nullifierHashes[i].out;
-    checkEquals[i].out === 1;
+    var isNullifierZero;
+    isNullifierZero = IsZero()(in <== nullifiers[i]);
+
+    var isHashEqual;
+    isHashEqual = IsEqual()(in <== [nullifiers[i], (1 - isNullifierZero) * calculatedHash /* ensure when nullifier is 0, compare with 0 */]);
+
+    isHashEqual === 1;
   }
 }

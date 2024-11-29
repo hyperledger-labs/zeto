@@ -29,10 +29,9 @@ template SymmetricEncrypt(length) {
   var two128 = 2 ** 128;
 
   // nonce must be < 2^128
-  component lt = LessThan(252);
-  lt.in[0] <== nonce;
-  lt.in[1] <== two128;
-  lt.out === 1;
+  var lessThanTwo128;
+  lessThanTwo128 = LessThan(252)(in <== [nonce, two128]);
+  lessThanTwo128 === 1;
 
   // the number of plain text messages must be multiple of 3
   // pad the array with zeros if necessary.
@@ -57,31 +56,21 @@ template SymmetricEncrypt(length) {
   var n = l \ 3;
 
   // create the initial state: [0, key[0], key[1], nonce + (length * 2^128)]
-  component rounds[n + 1];
-  rounds[0] = PoseidonEx(4, 4);
-  rounds[0].initialState <== 0;
-  rounds[0].inputs[0] <== 0;
-  rounds[0].inputs[1] <== key[0];
-  rounds[0].inputs[2] <== key[1];
-  rounds[0].inputs[3] <== nonce + (length * two128);
+  var roundResults[n + 1][4];
+  roundResults[0] = PoseidonEx(4, 4)(initialState <== 0, inputs <== [0, key[0], key[1], nonce + (length * two128)]);
 
   for (var i = 0; i < n; i++) {
-    rounds[i + 1] = PoseidonEx(4, 4);
-    rounds[i + 1].initialState <== 0;
-    rounds[i + 1].inputs[0] <== rounds[i].out[0];
-
-    // Absorb three elements of message, setting them to the
-    // corresponding inputs of the next round
-    rounds[i + 1].inputs[1] <== rounds[i].out[1] + messages[i * 3];
-    rounds[i + 1].inputs[2] <== rounds[i].out[2] + messages[i * 3 + 1];
-    rounds[i + 1].inputs[3] <== rounds[i].out[3] + messages[i * 3 + 2];
-
     // release three elements of the ciphertext
-    cipherText[i * 3] <== rounds[i + 1].inputs[1];
-    cipherText[i * 3 + 1] <== rounds[i + 1].inputs[2];
-    cipherText[i * 3 + 2] <== rounds[i + 1].inputs[3];
+    cipherText[i * 3] <== roundResults[i][1] + messages[i * 3];
+    cipherText[i * 3 + 1] <== roundResults[i][2] + messages[i * 3 + 1];
+    cipherText[i * 3 + 2] <== roundResults[i][3] + messages[i * 3 + 2];
+
+    // For the inputs, absorb three elements of message, setting them to the
+    // corresponding inputs of the next round
+    roundResults[i +1] = PoseidonEx(4, 4)(initialState <== 0, inputs <== [roundResults[i][0], cipherText[i * 3], cipherText[i * 3 + 1], cipherText[i * 3 + 2]]);
+
   }
 
   // Iterate Poseidon on the state one last time
-  cipherText[l] <== rounds[n].out[1];
+  cipherText[l] <== roundResults[n][1];
 }

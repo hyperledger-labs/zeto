@@ -101,7 +101,7 @@ describe("check_hashes_value circuit tests", () => {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckHashes_80 line: 53/); // hash check failed
+    expect(error).to.match(/Error in template CheckHashes_80 line: 47/); // hash check failed
   });
 
   it("should fail to generate a witness because of negative values in output commitments", async () => {
@@ -133,7 +133,7 @@ describe("check_hashes_value circuit tests", () => {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckPositive_3 line: 37/); // positive range check failed
+    expect(error).to.match(/Error in template CheckPositive_3 line: 36/); // positive range check failed
   });
 
   it("should fail to generate a witness because of using the inverse of a negative value in output commitments", async () => {
@@ -168,7 +168,7 @@ describe("check_hashes_value circuit tests", () => {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckPositive_3 line: 37/); // positive range check failed
+    expect(error).to.match(/Error in template CheckPositive_3 line: 36/); // positive range check failed
   });
 
   it("should fail to generate a witness because a larger than MAX_VALUE is used in output", async () => {

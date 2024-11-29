@@ -25,14 +25,9 @@ template Zeto(nOutputs) {
   signal input outputOwnerPublicKeys[nOutputs][2];
   signal output out;
 
-  component checkPositives = CheckPositive(nOutputs);
-  checkPositives.outputValues <== outputValues;
+  CheckPositive(nOutputs)(outputValues <== outputValues);
 
-  component checkHashesValue = CheckHashes(nOutputs);
-  checkHashesValue.commitments <== outputCommitments;
-  checkHashesValue.values <== outputValues;
-  checkHashesValue.salts <== outputSalts;
-  checkHashesValue.ownerPublicKeys <== outputOwnerPublicKeys;
+  CheckHashes(nOutputs)(commitments <== outputCommitments, values <== outputValues, salts <== outputSalts, ownerPublicKeys <== outputOwnerPublicKeys);
 
   // calculate the sum of output values and set to the output
   var sumOutputs = 0;

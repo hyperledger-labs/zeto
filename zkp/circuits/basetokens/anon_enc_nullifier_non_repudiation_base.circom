@@ -75,98 +75,61 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   // for the sender's private key. This step demonstrates
   // the sender really owns the private key for the input
   // UTXOs
-  var inputOwnerPublicKey[2];
-  component pub = BabyPbk();
-  pub.in <== inputOwnerPrivateKey;
-  inputOwnerPublicKey[0] = pub.Ax;
-  inputOwnerPublicKey[1] = pub.Ay;
+  var inputOwnerPubKeyAx, inputOwnerPubKeyAy;
+  (inputOwnerPubKeyAx, inputOwnerPubKeyAy) = BabyPbk()(in <== inputOwnerPrivateKey);
+
   var inputOwnerPublicKeys[nInputs][2];
   for (var i = 0; i < nInputs; i++) {
-    inputOwnerPublicKeys[i][0] = inputOwnerPublicKey[0];
-    inputOwnerPublicKeys[i][1] = inputOwnerPublicKey[1];
+    inputOwnerPublicKeys[i] = [inputOwnerPubKeyAx, inputOwnerPubKeyAy];
   }
 
-  component checkPositives = CheckPositive(nOutputs);
-  checkPositives.outputValues <== outputValues;
+  CheckPositive(nOutputs)(outputValues <== outputValues);
 
-  component checkInputHashes = CheckHashes(nInputs);
-  checkInputHashes.commitments <== inputCommitments;
-  checkInputHashes.values <== inputValues;
-  checkInputHashes.salts <== inputSalts;
-  checkInputHashes.ownerPublicKeys <== inputOwnerPublicKeys;
+  CheckHashes(nInputs)(commitments <== inputCommitments, values <== inputValues, salts <== inputSalts, ownerPublicKeys <== inputOwnerPublicKeys);
 
-  component checkOutputHashes = CheckHashes(nOutputs);
-  checkOutputHashes.commitments <== outputCommitments;
-  checkOutputHashes.values <== outputValues;
-  checkOutputHashes.salts <== outputSalts;
-  checkOutputHashes.ownerPublicKeys <== outputOwnerPublicKeys;
+  CheckHashes(nOutputs)(commitments <== outputCommitments, values <== outputValues, salts <== outputSalts, ownerPublicKeys <== outputOwnerPublicKeys);
 
-  component checkNullifiers = CheckNullifiers(nInputs);
-  checkNullifiers.nullifiers <== nullifiers;
-  checkNullifiers.values <== inputValues;
-  checkNullifiers.salts <== inputSalts;
-  checkNullifiers.ownerPrivateKey <== inputOwnerPrivateKey;
+  CheckNullifiers(nInputs)(nullifiers <== nullifiers, values <== inputValues, salts <== inputSalts, ownerPrivateKey <== inputOwnerPrivateKey);
 
-  component checkSum = CheckSum(nInputs, nOutputs);
-  checkSum.inputValues <== inputValues;
-  checkSum.outputValues <== outputValues;
+  CheckSum(nInputs, nOutputs)(inputValues <== inputValues, outputValues <== outputValues);
 
   // With the above steps, we demonstrated that the nullifiers
   // are securely bound to the input commitments. Now we need to
   // demonstrate that the input commitments belong to the Sparse
   // Merkle Tree with the root `root`.
-  component checkSMTProof = CheckSMTProof(nInputs, nSMTLevels);
-  checkSMTProof.root <== root;
-  checkSMTProof.merkleProof <== merkleProof;
-  checkSMTProof.enabled <== enabled;
-  checkSMTProof.leafNodeIndexes <== inputCommitments;
+  CheckSMTProof(nInputs, nSMTLevels)(root <== root, merkleProof <== merkleProof, enabled <== enabled, leafNodeIndexes <== inputCommitments);
 
   // Generate cipher text for output utxos
-  component encryptOutputs = EncryptOutputs(nOutputs);
-  encryptOutputs.ecdhPrivateKey <== ecdhPrivateKey;
-  encryptOutputs.encryptionNonce <== encryptionNonce;
-  encryptOutputs.outputValues <== outputValues;
-  encryptOutputs.outputSalts <== outputSalts;
-  encryptOutputs.outputOwnerPublicKeys <== outputOwnerPublicKeys;
-  
-  encryptOutputs.ecdhPublicKey ==> ecdhPublicKey;
-  encryptOutputs.cipherTexts ==> cipherTexts;
+  (ecdhPublicKey, cipherTexts) <== EncryptOutputs(nOutputs)(ecdhPrivateKey <== ecdhPrivateKey, outputValues <== outputValues, outputSalts <== outputSalts, outputOwnerPublicKeys <== outputOwnerPublicKeys, encryptionNonce <== encryptionNonce);
 
   // generate shared secret for the authority
   var sharedSecretAuthority[2];
-  component ecdhAuth = Ecdh();
-  ecdhAuth.privKey <== ecdhPrivateKey;
-  ecdhAuth.pubKey[0] <== authorityPublicKey[0];
-  ecdhAuth.pubKey[1] <== authorityPublicKey[1];
-  sharedSecretAuthority[0] = ecdhAuth.sharedKey[0];
-  sharedSecretAuthority[1] = ecdhAuth.sharedKey[1];
+  (sharedSecretAuthority) = Ecdh()(privKey <== ecdhPrivateKey, pubKey <== authorityPublicKey);
 
-
-  // encrypt the values for the authority
-  component encryptAuth = SymmetricEncrypt(2 + 2 * nInputs + 4 * nOutputs);
-  encryptAuth.plainText[0] <== inputOwnerPublicKey[0];
-  encryptAuth.plainText[1] <== inputOwnerPublicKey[1];
-
+  // prepare text to be created for the authority
+  var plainText[2 + 2 * nInputs + 4 * nOutputs];
+  plainText[0] = inputOwnerPubKeyAx;
+  plainText[1] = inputOwnerPubKeyAy;
   var idx1 = 2;
   for (var i = 0; i < nInputs; i++) {
-    encryptAuth.plainText[idx1] <== inputValues[i];
+    plainText[idx1] = inputValues[i];
     idx1++;
-    encryptAuth.plainText[idx1] <== inputSalts[i];
-    idx1++;
-  }
-  for (var i = 0; i < nOutputs; i++) {
-    encryptAuth.plainText[idx1] <== outputOwnerPublicKeys[i][0];
-    idx1++;
-    encryptAuth.plainText[idx1] <== outputOwnerPublicKeys[i][1];
+    plainText[idx1] = inputSalts[i];
     idx1++;
   }
   for (var i = 0; i < nOutputs; i++) {
-    encryptAuth.plainText[idx1] <== outputValues[i];
+    plainText[idx1] = outputOwnerPublicKeys[i][0];
     idx1++;
-    encryptAuth.plainText[idx1] <== outputSalts[i];
+    plainText[idx1] = outputOwnerPublicKeys[i][1];
     idx1++;
   }
-  encryptAuth.key <== sharedSecretAuthority;
-  encryptAuth.nonce <== encryptionNonce;
-  encryptAuth.cipherText ==> cipherTextAuthority;
+  for (var i = 0; i < nOutputs; i++) {
+    plainText[idx1] = outputValues[i];
+    idx1++;
+    plainText[idx1] = outputSalts[i];
+    idx1++;
+  }
+
+  // encrypt the values for the authority
+  cipherTextAuthority <== SymmetricEncrypt(2 + 2 * nInputs + 4 * nOutputs)(plainText <== plainText, key <== sharedSecretAuthority, nonce <== encryptionNonce);
 }

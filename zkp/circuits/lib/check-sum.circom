@@ -34,8 +34,8 @@ template CheckSum(numInputs, numOutputs) {
     sumOutputs = sumOutputs + outputValues[i];
   }
 
-  component checkEqual = IsEqual();
-  checkEqual.in[0] <== sumInputs;
-  checkEqual.in[1] <== sumOutputs;
-  checkEqual.out === 1;
+  var isSumEqual;
+  isSumEqual = IsEqual()(in <== [sumInputs, sumOutputs]);
+
+  isSumEqual === 1;
 }

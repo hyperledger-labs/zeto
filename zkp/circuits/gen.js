@@ -159,7 +159,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
       const { stdout: csOut } = await execAsync(
         `npx snarkjs r1cs print ${provingKeysRoot}/${circuit}.r1cs ${circuitsRoot}/${circuit}.sym `,
       );
-      log(circuit, "constraints:\n" + csOut);
+      // log(circuit, "constraints:\n" + csOut);
     }
     if (ctErr) {
       log(circuit, "constraint error:\n" + ctErr);
@@ -175,7 +175,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
   );
   if (verbose) {
     if (pkOut) {
-      log(circuit, "test proving key generation output:\n" + pkOut);
+      // log(circuit, "test proving key generation output:\n" + pkOut);
     }
     if (pkErr) {
       log(circuit, "test proving key generation error:\n" + pkErr);
@@ -190,7 +190,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
   );
   if (verbose) {
     if (vkOut) {
-      log(circuit, "verification key export output:\n" + vkOut);
+      // log(circuit, "verification key export output:\n" + vkOut);
     }
     if (vkErr) {
       log(circuit, "verification key export error:\n" + vkErr);

@@ -62,85 +62,44 @@ template Zeto(nInputs, nOutputs, nUTXOSMTLevels, nIdentitiesSMTLevels) {
   // for the sender's private key. This step demonstrates
   // the sender really owns the private key for the input
   // UTXOs
-  var inputOwnerPublicKey[2];
-  component pub = BabyPbk();
-  pub.in <== inputOwnerPrivateKey;
-  inputOwnerPublicKey[0] = pub.Ax;
-  inputOwnerPublicKey[1] = pub.Ay;
+  var inputOwnerPubKeyAx, inputOwnerPubKeyAy;
+  (inputOwnerPubKeyAx, inputOwnerPubKeyAy) = BabyPbk()(in <== inputOwnerPrivateKey);
+
   var inputOwnerPublicKeys[nInputs][2];
   for (var i = 0; i < nInputs; i++) {
-    inputOwnerPublicKeys[i][0] = inputOwnerPublicKey[0];
-    inputOwnerPublicKeys[i][1] = inputOwnerPublicKey[1];
+    inputOwnerPublicKeys[i]= [inputOwnerPubKeyAx, inputOwnerPubKeyAy];
   }
 
-  component checkPositives = CheckPositive(nOutputs);
-  checkPositives.outputValues <== outputValues;
+  CheckPositive(nOutputs)(outputValues <== outputValues);
 
-  component checkInputHashes = CheckHashes(nInputs);
-  checkInputHashes.commitments <== inputCommitments;
-  checkInputHashes.values <== inputValues;
-  checkInputHashes.salts <== inputSalts;
-  checkInputHashes.ownerPublicKeys <== inputOwnerPublicKeys;
+  CheckHashes(nInputs)(commitments <== inputCommitments, values <== inputValues, salts <== inputSalts, ownerPublicKeys <== inputOwnerPublicKeys);
 
-  component checkOutputHashes = CheckHashes(nOutputs);
-  checkOutputHashes.commitments <== outputCommitments;
-  checkOutputHashes.values <== outputValues;
-  checkOutputHashes.salts <== outputSalts;
-  checkOutputHashes.ownerPublicKeys <== outputOwnerPublicKeys;
+  CheckHashes(nOutputs)(commitments <== outputCommitments, values <== outputValues, salts <== outputSalts, ownerPublicKeys <== outputOwnerPublicKeys);
 
-  component checkNullifiers = CheckNullifiers(nInputs);
-  checkNullifiers.nullifiers <== nullifiers;
-  checkNullifiers.values <== inputValues;
-  checkNullifiers.salts <== inputSalts;
-  checkNullifiers.ownerPrivateKey <== inputOwnerPrivateKey;
+  CheckNullifiers(nInputs)(nullifiers <== nullifiers, values <== inputValues, salts <== inputSalts, ownerPrivateKey <== inputOwnerPrivateKey);
 
-  component checkSum = CheckSum(nInputs, nOutputs);
-  checkSum.inputValues <== inputValues;
-  checkSum.outputValues <== outputValues;
+  CheckSum(nInputs, nOutputs)(inputValues <== inputValues, outputValues <== outputValues);
 
   // With the above steps, we demonstrated that the nullifiers
   // are securely bound to the input commitments. Now we need to
   // demonstrate that the input commitments belong to the Sparse
   // Merkle Tree with the root `root`.
-  component checkUTXOSMTProof = CheckSMTProof(nInputs, nUTXOSMTLevels);
-  checkUTXOSMTProof.root <== utxosRoot;
-  checkUTXOSMTProof.merkleProof <== utxosMerkleProof;
-  checkUTXOSMTProof.enabled <== enabled;
-  checkUTXOSMTProof.leafNodeIndexes <== inputCommitments;
+  CheckSMTProof(nInputs, nUTXOSMTLevels)(root <== utxosRoot, merkleProof <== utxosMerkleProof, enabled <== enabled, leafNodeIndexes <== inputCommitments);
 
   // Then, we need to check that the owner public keys
   // for the inputs and outputs are included in the identities
   // Sparse Merkle Tree with the root `identitiesRoot`.
   var ownerPublicKeyHashes[nOutputs + 1];
-  component hash1 = Poseidon(2);
-  hash1.inputs[0] <== inputOwnerPublicKey[0];
-  hash1.inputs[1] <== inputOwnerPublicKey[1];
-  ownerPublicKeyHashes[0] = hash1.out;
+  ownerPublicKeyHashes[0] = Poseidon(2)(inputs <== [inputOwnerPubKeyAx, inputOwnerPubKeyAy]);
 
-  component hashes[nOutputs];
   var identitiesMTPCheckEnabled[nOutputs + 1];
   identitiesMTPCheckEnabled[0] = 1;
   for (var i = 0; i < nOutputs; i++) {
-    hashes[i] = Poseidon(2);
-    hashes[i].inputs[0] <== outputOwnerPublicKeys[i][0];
-    hashes[i].inputs[1] <== outputOwnerPublicKeys[i][1];
-    ownerPublicKeyHashes[i+1] = hashes[i].out;
+    ownerPublicKeyHashes[i+1] = Poseidon(2)(inputs <== outputOwnerPublicKeys[i]);
     identitiesMTPCheckEnabled[i+1] = 1;
   }
 
-  component checkIdentitiesSMTProof = CheckSMTProof(nOutputs + 1, nIdentitiesSMTLevels);
-  checkIdentitiesSMTProof.root <== identitiesRoot;
-  checkIdentitiesSMTProof.merkleProof <== identitiesMerkleProof;
-  checkIdentitiesSMTProof.enabled <== identitiesMTPCheckEnabled;
-  checkIdentitiesSMTProof.leafNodeIndexes <== ownerPublicKeyHashes;
+  CheckSMTProof(nOutputs + 1, nIdentitiesSMTLevels)(root <== identitiesRoot, merkleProof <== identitiesMerkleProof, enabled <== identitiesMTPCheckEnabled, leafNodeIndexes <== ownerPublicKeyHashes);
 
-  component encryptOutputs = EncryptOutputs(nOutputs);
-  encryptOutputs.ecdhPrivateKey <== ecdhPrivateKey;
-  encryptOutputs.encryptionNonce <== encryptionNonce;
-  encryptOutputs.outputValues <== outputValues;
-  encryptOutputs.outputSalts <== outputSalts;
-  encryptOutputs.outputOwnerPublicKeys <== outputOwnerPublicKeys;
-  
-  encryptOutputs.ecdhPublicKey ==> ecdhPublicKey;
-  encryptOutputs.cipherTexts ==> cipherTexts;
+  (ecdhPublicKey, cipherTexts) <== EncryptOutputs(nOutputs)(ecdhPrivateKey <== ecdhPrivateKey, outputValues <== outputValues, outputSalts <== outputSalts, outputOwnerPublicKeys <== outputOwnerPublicKeys, encryptionNonce <== encryptionNonce);
 }

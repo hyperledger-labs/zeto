@@ -27,8 +27,8 @@ template Ecdh() {
 
     signal output sharedKey[2];
 
-    component privBits = Num2Bits(253);
-    privBits.in <== privKey;
+    var privBits[253];
+    privBits = Num2Bits(253)(in <== privKey);
 
     // calculate the receiver's public key raised to the power of the sender's private key.
     // - Given the receiver's public key g^r ("r" is the receiver's private key)
@@ -36,14 +36,5 @@ template Ecdh() {
     // - The receiver can derive the same shared secret by raising the sender's public key
     //   to the power of the receiver's private key: (g^s)^r
     // - The shared secret is the same in both cases: g^(r*s) = g^(s*r)
-    component mulFix = EscalarMulAny(253);
-    mulFix.p[0] <== pubKey[0];
-    mulFix.p[1] <== pubKey[1];
-
-    for (var i = 0; i < 253; i++) {
-        mulFix.e[i] <== privBits.out[i];
-    }
-
-    sharedKey[0] <== mulFix.out[0];
-    sharedKey[1] <== mulFix.out[1];
+    sharedKey <== EscalarMulAny(253)(p <== pubKey, e <== privBits);
 }

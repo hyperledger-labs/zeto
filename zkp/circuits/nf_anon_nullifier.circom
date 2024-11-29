@@ -41,52 +41,22 @@ template Zeto(nSMTLevels) {
   signal input outputOwnerPublicKey[2];
   signal input outputSalt;
 
-  var tokenIds[1] = [tokenId];
-  var tokenUris[1] = [tokenUri];
-  var inputCommitments[1] = [inputCommitment];
-  var inputSalts[1] = [inputSalt];
-  var nullifiers[1] = [nullifier];
-  var outputCommitments[1] = [outputCommitment];
-  var outputSalts[1] = [outputSalt];
-  var outputOwnerPublicKeys[1][2] = [outputOwnerPublicKey];
-
   // derive the sender's public key from the secret input
   // for the sender's private key. This step demonstrates
   // the sender really owns the private key for the input
   // UTXOs
-  var senderPublicKey[2];
-  component pub = BabyPbk();
-  pub.in <== inputOwnerPrivateKey;
-  senderPublicKey[0] = pub.Ax;
-  senderPublicKey[1] = pub.Ay;
-  var inputOwnerPublicKeys[1][2] = [senderPublicKey];
+  var inputOwnerPubKeyAx, inputOwnerPubKeyAy;
+  (inputOwnerPubKeyAx, inputOwnerPubKeyAy) = BabyPbk()(in <== inputOwnerPrivateKey);
 
-  component checkInputHashes = CheckHashesForTokenIdAndUri(1);
-  checkInputHashes.tokenIds <== tokenIds;
-  checkInputHashes.tokenUris <== tokenUris;
-  checkInputHashes.commitments <== inputCommitments;
-  checkInputHashes.salts <== inputSalts;
-  checkInputHashes.ownerPublicKeys <== inputOwnerPublicKeys;
+  var inputOwnerPublicKeys[1][2] = [[inputOwnerPubKeyAx, inputOwnerPubKeyAy]];
 
-  component checkOutputHashes = CheckHashesForTokenIdAndUri(1);
-  checkOutputHashes.tokenIds <== tokenIds;
-  checkOutputHashes.tokenUris <== tokenUris;
-  checkOutputHashes.commitments <== outputCommitments;
-  checkOutputHashes.salts <== outputSalts;
-  checkOutputHashes.ownerPublicKeys <== outputOwnerPublicKeys;  
+  CheckHashesForTokenIdAndUri(1)(tokenIds <== [tokenId], tokenUris <== [tokenUri], commitments <== [inputCommitment], salts <== [inputSalt], ownerPublicKeys <== inputOwnerPublicKeys);
 
-  component checkHashesSum = CheckNullifierForTokenIdAndUri(1);
-  checkHashesSum.nullifiers <== nullifiers;
-  checkHashesSum.tokenIds <== tokenIds;
-  checkHashesSum.tokenUris <== tokenUris;
-  checkHashesSum.salts <== inputSalts;
-  checkHashesSum.ownerPrivateKey <== inputOwnerPrivateKey;
+  CheckHashesForTokenIdAndUri(1)(tokenIds <== [tokenId], tokenUris <== [tokenUri], commitments <== [outputCommitment], salts <== [outputSalt], ownerPublicKeys <== [outputOwnerPublicKey]);
 
-  component checkSMTProof = CheckSMTProof(1, nSMTLevels);
-  checkSMTProof.root <== root;
-  checkSMTProof.merkleProof <== [merkleProof];
-  checkSMTProof.enabled <== [1];
-  checkSMTProof.leafNodeIndexes <== inputCommitments;
+  CheckNullifierForTokenIdAndUri(1)(nullifiers <== [nullifier], tokenIds <== [tokenId], tokenUris <== [tokenUri], salts <== [inputSalt], ownerPrivateKey <== inputOwnerPrivateKey);
+
+  CheckSMTProof(1, nSMTLevels)(root <== root, merkleProof <== [merkleProof], enabled <== [1], leafNodeIndexes <== [inputCommitment]);
 }
 
 component main { public [ nullifier, outputCommitment, root ] } = Zeto(64);
