@@ -265,7 +265,7 @@ contract Zeto_AnonEncNullifierKyc is
         validateTransactionProposal(nullifiers, outputs, root);
         _withdrawWithNullifiers(amount, nullifiers, output, root, proof);
         processInputsAndOutputs(nullifiers, outputs);
-        emit UTXOWithdraw(amount, inputs, output, msg.sender, data);
+        emit UTXOWithdraw(amount, nullifiers, output, msg.sender, data);
     }
 
     function mint(
