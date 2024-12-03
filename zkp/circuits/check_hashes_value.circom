@@ -13,7 +13,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pragma circom 2.1.4;
+pragma circom 2.1.9;
 
 include "./lib/check-positive.circom";
 include "./lib/check-hashes.circom";
@@ -25,14 +25,9 @@ template Zeto(nOutputs) {
   signal input outputOwnerPublicKeys[nOutputs][2];
   signal output out;
 
-  component checkPositives = CheckPositive(nOutputs);
-  checkPositives.outputValues <== outputValues;
+  CheckPositive(nOutputs)(outputValues <== outputValues);
 
-  component checkHashesValue = CheckHashes(nOutputs);
-  checkHashesValue.commitments <== outputCommitments;
-  checkHashesValue.values <== outputValues;
-  checkHashesValue.salts <== outputSalts;
-  checkHashesValue.ownerPublicKeys <== outputOwnerPublicKeys;
+  CheckHashes(nOutputs)(commitments <== outputCommitments, values <== outputValues, salts <== outputSalts, ownerPublicKeys <== outputOwnerPublicKeys);
 
   // calculate the sum of output values and set to the output
   var sumOutputs = 0;

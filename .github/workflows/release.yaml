@@ -4,7 +4,7 @@ name: release
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
 
 env:
   ZETO_VER: ${{ github.ref_name }}
@@ -93,7 +93,7 @@ jobs:
       - name: Release Zeto Version
         uses: ncipollo/release-action@v1
         with:
-          allowUpdates: 'true'
+          allowUpdates: "true"
           artifacts: zeto-wasm-and-proving-keys/*.tar.gz
           tag: ${{ env.ZETO_VER }}
         env:

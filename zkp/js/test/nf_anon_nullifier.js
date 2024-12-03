@@ -194,9 +194,9 @@ describe("main circuit tests for Zeto non-fungible tokens with anonymity using n
       err = e;
     }
     // console.log(err);
-    expect(err).to.match(/Error in template Zeto_319 line: 76/);
+    expect(err).to.match(/Error in template Zeto_319 line: 55/);
     expect(err).to.match(
-      /Error in template CheckHashesForTokenIdAndUri_88 line: 58/,
+      /Error in template CheckHashesForTokenIdAndUri_88 line: 51/,
     );
   });
 
@@ -262,9 +262,9 @@ describe("main circuit tests for Zeto non-fungible tokens with anonymity using n
       err = e;
     }
     // console.log(err);
-    expect(err).to.match(/Error in template Zeto_319 line: 76/);
+    expect(err).to.match(/Error in template Zeto_319 line: 55/);
     expect(err).to.match(
-      /Error in template CheckHashesForTokenIdAndUri_88 line: 58/,
+      /Error in template CheckHashesForTokenIdAndUri_88 line: 51/,
     );
   });
 
@@ -331,7 +331,7 @@ describe("main circuit tests for Zeto non-fungible tokens with anonymity using n
     }
     // console.log(err);
     expect(err).to.match(
-      /Error in template CheckHashesForTokenIdAndUri_88 line: 58/,
+      /Error in template CheckHashesForTokenIdAndUri_88 line: 51/,
     );
   });
 
@@ -398,7 +398,7 @@ describe("main circuit tests for Zeto non-fungible tokens with anonymity using n
     }
     // console.log(err);
     expect(err).to.match(
-      /Error in template CheckHashesForTokenIdAndUri_88 line: 58/,
+      /Error in template CheckHashesForTokenIdAndUri_88 line: 51/,
     );
   });
 });

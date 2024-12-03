@@ -172,7 +172,7 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     // Alice withdraws her UTXOs to ERC20 tokens
     const tx = await zeto
       .connect(Alice.signer)
-      .withdraw(3, inputCommitments, outputCommitments[0], encodedProof);
+      .withdraw(3, inputCommitments, outputCommitments[0], encodedProof, "0x");
     await tx.wait();
 
     // Alice checks her ERC20 balance
@@ -283,7 +283,7 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     // Alice withdraws her UTXOs to ERC20 tokens
     const tx = await zeto
       .connect(Alice.signer)
-      .withdraw(80, inputCommitments, outputCommitments[0], encodedProof);
+      .withdraw(80, inputCommitments, outputCommitments[0], encodedProof, "0x");
     await tx.wait();
 
     // Alice checks her ERC20 balance
@@ -313,7 +313,7 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
       await expect(
         zeto
           .connect(Alice.signer)
-          .withdraw(10, inputCommitments, outputCommitments[0], encodedProof),
+          .withdraw(10, inputCommitments, outputCommitments[0], encodedProof, "0x"),
       ).rejectedWith("UTXOAlreadySpent");
     });
 

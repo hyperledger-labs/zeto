@@ -205,7 +205,8 @@ contract Zeto_AnonNullifier is
         uint256[] memory nullifiers,
         uint256 output,
         uint256 root,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof calldata proof,
+        bytes calldata data
     ) public {
         uint256[] memory outputs = new uint256[](nullifiers.length);
         outputs[0] = output;
@@ -218,6 +219,7 @@ contract Zeto_AnonNullifier is
         validateTransactionProposal(nullifiers, outputs, root);
         _withdrawWithNullifiers(amount, nullifiers, output, root, proof);
         processInputsAndOutputs(nullifiers, outputs);
+        emit UTXOWithdraw(amount, nullifiers, output, msg.sender, data);
     }
 
     function mint(
