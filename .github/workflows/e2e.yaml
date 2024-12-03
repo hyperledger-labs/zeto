@@ -60,6 +60,11 @@ jobs:
         run: |
           npm install
           npm run gen
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "Error: 'npm run gen' caused changes in the repository, please run the command locally to commit in all changes."
+            git status --porcelain
+            exit 1
+          fi
 
       - name: Set up Go
         uses: actions/setup-go@v5
