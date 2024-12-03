@@ -228,6 +228,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
         withdrawCommitments[0],
         root.bigInt(),
         withdrawEncodedProof,
+        "0x"
       );
     await tx.wait();
 
@@ -429,6 +430,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
         outputCommitments[0],
         root.bigInt(),
         encodedProof,
+        "0x"
       );
     await tx.wait();
 
@@ -488,6 +490,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
             outputCommitments[0],
             root.bigInt(),
             encodedProof,
+            "0x"
           ),
       ).rejectedWith("UTXOAlreadySpent");
     });
@@ -785,9 +788,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
     );
     const results: ContractTransactionReceipt | null = await tx.wait();
     console.log(
-      `Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${
-        results?.gasUsed
-      }`,
+      `Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${results?.gasUsed}`,
     );
     return results;
   }

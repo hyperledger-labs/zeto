@@ -119,7 +119,7 @@ describe("check-nullifier-tokenid-uri circuit tests", () => {
     }
     // console.log(error);
     expect(error).to.match(
-      /Error in template CheckNullifierForTokenIdAndUri_76 line: 58/,
+      /Error in template CheckNullifierForTokenIdAndUri_76 line: 52/,
     );
   });
 });

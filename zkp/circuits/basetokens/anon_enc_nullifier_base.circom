@@ -13,7 +13,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pragma circom 2.1.4;
+pragma circom 2.1.9;
 
 include "../lib/check-positive.circom";
 include "../lib/check-hashes.circom";
@@ -59,59 +59,30 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   // for the sender's private key. This step demonstrates
   // the sender really owns the private key for the input
   // UTXOs
-  var inputOwnerPublicKey[2];
-  component pub = BabyPbk();
-  pub.in <== inputOwnerPrivateKey;
-  inputOwnerPublicKey[0] = pub.Ax;
-  inputOwnerPublicKey[1] = pub.Ay;
+  var inputOwnerPubKeyAx, inputOwnerPubKeyAy;
+  (inputOwnerPubKeyAx, inputOwnerPubKeyAy) = BabyPbk()(in <== inputOwnerPrivateKey);
+
   var inputOwnerPublicKeys[nInputs][2];
   for (var i = 0; i < nInputs; i++) {
-    inputOwnerPublicKeys[i][0] = inputOwnerPublicKey[0];
-    inputOwnerPublicKeys[i][1] = inputOwnerPublicKey[1];
+    inputOwnerPublicKeys[i]= [inputOwnerPubKeyAx, inputOwnerPubKeyAy];
   }
 
-  component checkPositives = CheckPositive(nOutputs);
-  checkPositives.outputValues <== outputValues;
+  CheckPositive(nOutputs)(outputValues <== outputValues);
+  
+  CheckHashes(nInputs)(commitments <== inputCommitments, values <== inputValues, salts <== inputSalts, ownerPublicKeys <== inputOwnerPublicKeys);
 
-  component checkInputHashes = CheckHashes(nInputs);
-  checkInputHashes.commitments <== inputCommitments;
-  checkInputHashes.values <== inputValues;
-  checkInputHashes.salts <== inputSalts;
-  checkInputHashes.ownerPublicKeys <== inputOwnerPublicKeys;
+  CheckHashes(nOutputs)(commitments <== outputCommitments, values <== outputValues, salts <== outputSalts, ownerPublicKeys <== outputOwnerPublicKeys);
 
-  component checkOutputHashes = CheckHashes(nOutputs);
-  checkOutputHashes.commitments <== outputCommitments;
-  checkOutputHashes.values <== outputValues;
-  checkOutputHashes.salts <== outputSalts;
-  checkOutputHashes.ownerPublicKeys <== outputOwnerPublicKeys;
+  CheckNullifiers(nInputs)(nullifiers <== nullifiers, values <== inputValues, salts <== inputSalts, ownerPrivateKey <== inputOwnerPrivateKey);
 
-  component checkNullifiers = CheckNullifiers(nInputs);
-  checkNullifiers.nullifiers <== nullifiers;
-  checkNullifiers.values <== inputValues;
-  checkNullifiers.salts <== inputSalts;
-  checkNullifiers.ownerPrivateKey <== inputOwnerPrivateKey;
+  CheckSum(nInputs, nOutputs)(inputValues <== inputValues, outputValues <== outputValues);
 
-  component checkSum = CheckSum(nInputs, nOutputs);
-  checkSum.inputValues <== inputValues;
-  checkSum.outputValues <== outputValues;
 
   // With the above steps, we demonstrated that the nullifiers
   // are securely bound to the input commitments. Now we need to
   // demonstrate that the input commitments belong to the Sparse
   // Merkle Tree with the root `root`.
-  component checkSMTProof = CheckSMTProof(nInputs, nSMTLevels);
-  checkSMTProof.root <== root;
-  checkSMTProof.merkleProof <== merkleProof;
-  checkSMTProof.enabled <== enabled;
-  checkSMTProof.leafNodeIndexes <== inputCommitments;
+  CheckSMTProof(nInputs, nSMTLevels)(root <== root, merkleProof <== merkleProof, enabled <== enabled, leafNodeIndexes <== inputCommitments);
 
-  component encryptOutputs = EncryptOutputs(nOutputs);
-  encryptOutputs.ecdhPrivateKey <== ecdhPrivateKey;
-  encryptOutputs.encryptionNonce <== encryptionNonce;
-  encryptOutputs.outputValues <== outputValues;
-  encryptOutputs.outputSalts <== outputSalts;
-  encryptOutputs.outputOwnerPublicKeys <== outputOwnerPublicKeys;
-  
-  encryptOutputs.ecdhPublicKey ==> ecdhPublicKey;
-  encryptOutputs.cipherTexts ==> cipherTexts;
+  (ecdhPublicKey, cipherTexts) <== EncryptOutputs(nOutputs)(ecdhPrivateKey <== ecdhPrivateKey, outputValues <== outputValues, outputSalts <== outputSalts, outputOwnerPublicKeys <== outputOwnerPublicKeys, encryptionNonce <== encryptionNonce);
 }

@@ -13,7 +13,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pragma circom 2.1.4;
+pragma circom 2.1.9;
 
 include "../lib/check-positive.circom";
 include "../lib/check-hashes.circom";
@@ -40,33 +40,15 @@ template Zeto(nInputs, nOutputs) {
   // for the sender's private key. This step demonstrates
   // the sender really owns the private key for the input
   // UTXOs
-  var inputOwnerPublicKey[2];
-  component pub = BabyPbk();
-  pub.in <== inputOwnerPrivateKey;
-  inputOwnerPublicKey[0] = pub.Ax;
-  inputOwnerPublicKey[1] = pub.Ay;
+  var inputOwnerPubKeyAx, inputOwnerPubKeyAy;
+  (inputOwnerPubKeyAx, inputOwnerPubKeyAy) = BabyPbk()(in <== inputOwnerPrivateKey);
+
   var inputOwnerPublicKeys[nInputs][2];
   for (var i = 0; i < nInputs; i++) {
-    inputOwnerPublicKeys[i][0] = inputOwnerPublicKey[0];
-    inputOwnerPublicKeys[i][1] = inputOwnerPublicKey[1];
+    inputOwnerPublicKeys[i]= [inputOwnerPubKeyAx, inputOwnerPubKeyAy];
   }
-
-  component checkPositives = CheckPositive(nOutputs);
-  checkPositives.outputValues <== outputValues;
-
-  component checkInputHashes = CheckHashes(nInputs);
-  checkInputHashes.commitments <== inputCommitments;
-  checkInputHashes.values <== inputValues;
-  checkInputHashes.salts <== inputSalts;
-  checkInputHashes.ownerPublicKeys <== inputOwnerPublicKeys;
-
-  component checkOutputHashes = CheckHashes(nOutputs);
-  checkOutputHashes.commitments <== outputCommitments;
-  checkOutputHashes.values <== outputValues;
-  checkOutputHashes.salts <== outputSalts;
-  checkOutputHashes.ownerPublicKeys <== outputOwnerPublicKeys;
-
-  component checkSum = CheckSum(nInputs, nOutputs);
-  checkSum.inputValues <== inputValues;
-  checkSum.outputValues <== outputValues;
+  CheckPositive(nOutputs)(outputValues <== outputValues);
+  CheckHashes(nInputs)(commitments <== inputCommitments, values <== inputValues, salts <== inputSalts, ownerPublicKeys <== inputOwnerPublicKeys);
+  CheckHashes(nOutputs)(commitments <== outputCommitments, values <== outputValues, salts <== outputSalts, ownerPublicKeys <== outputOwnerPublicKeys);
+  CheckSum(nInputs, nOutputs)(inputValues <== inputValues, outputValues <== outputValues);
 }

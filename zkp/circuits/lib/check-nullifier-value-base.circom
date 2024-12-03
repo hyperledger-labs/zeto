@@ -13,7 +13,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pragma circom 2.1.4;
+pragma circom 2.1.9;
 
 include "./check-positive.circom";
 include "./check-hashes.circom";
@@ -53,47 +53,27 @@ template CheckNullifiersInputsOutputsValue(numInputs, numOutputs, nSMTLevels) {
   // for the sender's private key. This step demonstrates
   // the sender really owns the private key for the input
   // UTXOs
-  var inputOwnerPublicKey[2];
-  component pub = BabyPbk();
-  pub.in <== inputOwnerPrivateKey;
-  inputOwnerPublicKey[0] = pub.Ax;
-  inputOwnerPublicKey[1] = pub.Ay;
+  var inputOwnerPubKeyAx, inputOwnerPubKeyAy;
+  (inputOwnerPubKeyAx, inputOwnerPubKeyAy) = BabyPbk()(in <== inputOwnerPrivateKey);
+
   var inputOwnerPublicKeys[numInputs][2];
   for (var i = 0; i < numInputs; i++) {
-    inputOwnerPublicKeys[i][0] = inputOwnerPublicKey[0];
-    inputOwnerPublicKeys[i][1] = inputOwnerPublicKey[1];
+    inputOwnerPublicKeys[i] = [inputOwnerPubKeyAx, inputOwnerPubKeyAy];
   }
 
-  component checkPositives = CheckPositive(numOutputs);
-  checkPositives.outputValues <== outputValues;
+  CheckPositive(numOutputs)(outputValues <== outputValues);
 
-  component checkInputHashes = CheckHashes(numInputs);
-  checkInputHashes.commitments <== inputCommitments;
-  checkInputHashes.values <== inputValues;
-  checkInputHashes.salts <== inputSalts;
-  checkInputHashes.ownerPublicKeys <== inputOwnerPublicKeys;
+  CheckHashes(numInputs)(commitments <== inputCommitments, values <== inputValues, salts <== inputSalts, ownerPublicKeys <== inputOwnerPublicKeys);
 
-  component checkNullifiers = CheckNullifiers(numInputs);
-  checkNullifiers.nullifiers <== nullifiers;
-  checkNullifiers.values <== inputValues;
-  checkNullifiers.salts <== inputSalts;
-  checkNullifiers.ownerPrivateKey <== inputOwnerPrivateKey;
+  CheckNullifiers(numInputs)(nullifiers <== nullifiers, values <== inputValues, salts <== inputSalts, ownerPrivateKey <== inputOwnerPrivateKey);
 
-  component checkOutputHashes = CheckHashes(numOutputs);
-  checkOutputHashes.commitments <== outputCommitments;
-  checkOutputHashes.values <== outputValues;
-  checkOutputHashes.salts <== outputSalts;
-  checkOutputHashes.ownerPublicKeys <== outputOwnerPublicKeys;
+  CheckHashes(numOutputs)(commitments <== outputCommitments, values <== outputValues, salts <== outputSalts, ownerPublicKeys <== outputOwnerPublicKeys);
 
   // With the above steps, we demonstrated that the nullifiers
   // are securely bound to the input commitments. Now we need to
   // demonstrate that the input commitments belong to the Sparse
   // Merkle Tree with the root `root`.
-  component checkSMTProof = CheckSMTProof(numInputs, nSMTLevels);
-  checkSMTProof.root <== root;
-  checkSMTProof.merkleProof <== merkleProof;
-  checkSMTProof.enabled <== enabled;
-  checkSMTProof.leafNodeIndexes <== inputCommitments;
+  CheckSMTProof(numInputs, nSMTLevels)(root <== root, merkleProof <== merkleProof, enabled <== enabled, leafNodeIndexes <== inputCommitments);
 
   // check that the sum of input values equals the sum of output values
   var sumInputs = 0;
@@ -106,10 +86,10 @@ template CheckNullifiersInputsOutputsValue(numInputs, numOutputs, nSMTLevels) {
   }
 
   // check that the sum of input values is greater than the sum of output values
-  component checkSum = GreaterEqThan(100);
-  checkSum.in[0] <== sumInputs;
-  checkSum.in[1] <== sumOutputs;
-  checkSum.out === 1;
+  var greaterEqThan;
+  greaterEqThan = GreaterEqThan(100)(in <== [sumInputs, sumOutputs]);
+
+  greaterEqThan === 1;
 
   out <== sumInputs - sumOutputs;
 }

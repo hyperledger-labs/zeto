@@ -13,7 +13,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pragma circom 2.1.4;
+pragma circom 2.1.9;
 
 include "../node_modules/circomlib/circuits/poseidon.circom";
 include "../node_modules/circomlib/circuits/comparators.circom";
@@ -34,27 +34,20 @@ template CheckHashesForTokenIdAndUri(numInputs) {
   signal input ownerPublicKeys[numInputs][2];
 
   // hash the input values
-  component inputHashes[numInputs];
-  component checkEquals[numInputs];
-  component checkZero[numInputs];
   for (var i = 0; i < numInputs; i++) {
     // perform the hash calculation even though they are not needed when the input 
     // commitment at the current index is 0; this is because in zkp circuits we
     // must always perform the same computation (have the the same constraints)
-    inputHashes[i] = Poseidon(5);
-    inputHashes[i].inputs[0] <== tokenIds[i];
-    inputHashes[i].inputs[1] <== tokenUris[i];
-    inputHashes[i].inputs[2] <== salts[i];
-    inputHashes[i].inputs[3] <== ownerPublicKeys[i][0];
-    inputHashes[i].inputs[4] <== ownerPublicKeys[i][1];
+    var calculatedHash;
+    calculatedHash = Poseidon(5)([tokenIds[i], tokenUris[i], salts[i], ownerPublicKeys[i][0], ownerPublicKeys[i][1]]);
 
     // check that the input commitments match the calculated hashes
-    checkZero[i] = IsZero();
-    checkZero[i].in <== commitments[i];
-    checkEquals[i] = IsEqual();
-    checkEquals[i].in[0] <== commitments[i];
-    // ensure when commitment is 0, compare with 0
-    checkEquals[i].in[1] <== (1 - checkZero[i].out) * inputHashes[i].out;
-    checkEquals[i].out === 1;
+    var isCommitmentZero;
+    isCommitmentZero = IsZero()(in <== commitments[i]);
+
+    var isHashEqual;
+    isHashEqual = IsEqual()(in <== [commitments[i], (1 - isCommitmentZero) * calculatedHash /* ensure when commitment is 0, compare with 0 */]);
+
+    isHashEqual === 1;
   }
 }
