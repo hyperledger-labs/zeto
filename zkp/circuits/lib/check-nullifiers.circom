@@ -13,7 +13,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pragma circom 2.1.4;
+pragma circom 2.1.9;
 
 include "../node_modules/circomlib/circuits/poseidon.circom";
 include "../node_modules/circomlib/circuits/comparators.circom";
@@ -36,22 +36,18 @@ template CheckNullifiers(numInputs) {
   signal input ownerPrivateKey;
 
   // calculate the nullifier values from the input values
-  component nullifierHashes[numInputs];
-  component checkEquals[numInputs];
-  component checkZero[numInputs];
+
   for (var i = 0; i < numInputs; i++) {
-    nullifierHashes[i] = Poseidon(3);
-    nullifierHashes[i].inputs[0] <== values[i];
-    nullifierHashes[i].inputs[1] <== salts[i];
-    nullifierHashes[i].inputs[2] <== ownerPrivateKey;
+    var calculatedHash;
+    calculatedHash = Poseidon(3)(inputs <== [values[i], salts[i], ownerPrivateKey]);
 
     // check that the nullifiers match the calculated hashes
-    checkZero[i] = IsZero();
-    checkZero[i].in <== nullifiers[i];
-    checkEquals[i] = IsEqual();
-    checkEquals[i].in[0] <== nullifiers[i];
-    // ensure when nullifier is 0, compare with 0
-    checkEquals[i].in[1] <== (1 - checkZero[i].out) * nullifierHashes[i].out;
-    checkEquals[i].out === 1;
+    var isNullifierZero;
+    isNullifierZero = IsZero()(in <== nullifiers[i]);
+
+    var isHashEqual;
+    isHashEqual = IsEqual()(in <== [nullifiers[i], (1 - isNullifierZero) * calculatedHash /* ensure when nullifier is 0, compare with 0 */]);
+
+    isHashEqual === 1;
   }
 }

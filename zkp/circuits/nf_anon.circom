@@ -13,7 +13,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pragma circom 2.1.4;
+pragma circom 2.1.9;
 
 include "./lib/check-hashes-tokenid-uri.circom";
 include "./lib/ecdh.circom";
@@ -40,30 +40,17 @@ template Zeto(nInputs, nOutputs) {
   // for the sender's private key. This step demonstrates
   // the sender really owns the private key for the input
   // UTXOs
-  var senderPublicKey[2];
-  component pub = BabyPbk();
-  pub.in <== inputOwnerPrivateKey;
-  senderPublicKey[0] = pub.Ax;
-  senderPublicKey[1] = pub.Ay;
+  var inputOwnerPubKeyAx, inputOwnerPubKeyAy;
+  (inputOwnerPubKeyAx, inputOwnerPubKeyAy) = BabyPbk()(in <== inputOwnerPrivateKey);
+
   var inputOwnerPublicKeys[nInputs][2];
   for (var i = 0; i < nInputs; i++) {
-    inputOwnerPublicKeys[i][0] = senderPublicKey[0];
-    inputOwnerPublicKeys[i][1] = senderPublicKey[1];
+    inputOwnerPublicKeys[i]= [inputOwnerPubKeyAx, inputOwnerPubKeyAy];
   }
 
-  component checkInputHashes = CheckHashesForTokenIdAndUri(nInputs);
-  checkInputHashes.tokenIds <== tokenIds;
-  checkInputHashes.tokenUris <== tokenUris;
-  checkInputHashes.commitments <== inputCommitments;
-  checkInputHashes.salts <== inputSalts;
-  checkInputHashes.ownerPublicKeys <== inputOwnerPublicKeys;
+  CheckHashesForTokenIdAndUri(nInputs)(tokenIds <== tokenIds, tokenUris <== tokenUris, commitments <== inputCommitments, salts <== inputSalts, ownerPublicKeys <== inputOwnerPublicKeys);
 
-  component checkOutputHashes = CheckHashesForTokenIdAndUri(nOutputs);
-  checkOutputHashes.tokenIds <== tokenIds;
-  checkOutputHashes.tokenUris <== tokenUris;
-  checkOutputHashes.commitments <== outputCommitments;
-  checkOutputHashes.salts <== outputSalts;
-  checkOutputHashes.ownerPublicKeys <== outputOwnerPublicKeys;  
+  CheckHashesForTokenIdAndUri(nOutputs)(tokenIds <== tokenIds, tokenUris <== tokenUris, commitments <== outputCommitments, salts <== outputSalts, ownerPublicKeys <== outputOwnerPublicKeys);
 }
 
 component main { public [ inputCommitments, outputCommitments ] } = Zeto(1, 1);

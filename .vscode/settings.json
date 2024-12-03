@@ -1,0 +1,6 @@
+{
+    "yaml.format.singleQuote": false,
+    "prettier.enable": true,
+    "prettier.jsxSingleQuote": false,
+    "yaml.format.enable": true
+}

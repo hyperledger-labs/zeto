@@ -13,7 +13,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pragma circom 2.1.4;
+pragma circom 2.1.9;
 
 include "../node_modules/circomlib/circuits/poseidon.circom";
 include "../node_modules/circomlib/circuits/comparators.circom";
@@ -29,11 +29,10 @@ template CheckPositive(numOutputs) {
   signal input outputValues[numOutputs];
 
   // check that the output values are within the expected range. we don't allow negative values
-  component positive[numOutputs];
   for (var i = 0; i < numOutputs; i++) {
-    positive[i] = GreaterEqThan(100);
-    positive[i].in[0] <== outputValues[i];
-    positive[i].in[1] <== 0;
-    positive[i].out === 1;
+    var greaterEqThanZero;
+    greaterEqThanZero = GreaterEqThan(100)(in <== [outputValues[i], 0]);
+
+    greaterEqThanZero === 1;
   }
 }

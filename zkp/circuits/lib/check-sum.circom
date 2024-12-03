@@ -13,7 +13,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pragma circom 2.1.4;
+pragma circom 2.1.9;
 
 include "../node_modules/circomlib/circuits/poseidon.circom";
 include "../node_modules/circomlib/circuits/comparators.circom";
@@ -34,8 +34,8 @@ template CheckSum(numInputs, numOutputs) {
     sumOutputs = sumOutputs + outputValues[i];
   }
 
-  component checkEqual = IsEqual();
-  checkEqual.in[0] <== sumInputs;
-  checkEqual.in[1] <== sumOutputs;
-  checkEqual.out === 1;
+  var isSumEqual;
+  isSumEqual = IsEqual()(in <== [sumInputs, sumOutputs]);
+
+  isSumEqual === 1;
 }
