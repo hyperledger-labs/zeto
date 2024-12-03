@@ -171,8 +171,6 @@ contract Groth16Verifier_CheckHashesValue {
             
             checkField(calldataload(add(_pubSignals, 64)))
             
-            checkField(calldataload(add(_pubSignals, 96)))
-            
 
             // Validate all evaluations
             let isValid := checkPairing(_pA, _pB, _pC, _pubSignals, pMem)
