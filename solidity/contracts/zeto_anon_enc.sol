@@ -220,7 +220,8 @@ contract Zeto_AnonEnc is
         uint256 amount,
         uint256[] memory inputs,
         uint256 output,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof calldata proof,
+        bytes calldata data
     ) public {
         uint256[] memory outputs = new uint256[](inputs.length);
         outputs[0] = output;
@@ -229,6 +230,7 @@ contract Zeto_AnonEnc is
         validateTransactionProposal(inputs, outputs, proof);
         _withdraw(amount, inputs, output, proof);
         processInputsAndOutputs(inputs, outputs);
+        emit UTXOWithdraw(amount, inputs, output, msg.sender, data);
     }
 
     function mint(

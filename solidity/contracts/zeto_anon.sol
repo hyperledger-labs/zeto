@@ -156,14 +156,7 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         }
 
         processInputsAndOutputs(inputs, outputs);
-
-        uint256[] memory inputArray = new uint256[](inputs.length);
-        uint256[] memory outputArray = new uint256[](outputs.length);
-        for (uint256 i = 0; i < inputs.length; ++i) {
-            inputArray[i] = inputs[i];
-            outputArray[i] = outputs[i];
-        }
-        emit UTXOTransfer(inputArray, outputArray, msg.sender, data);
+        emit UTXOTransfer(inputs, outputs, msg.sender, data);
 
         return true;
     }
@@ -182,7 +175,8 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         uint256 amount,
         uint256[] memory inputs,
         uint256 output,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof calldata proof,
+        bytes calldata data
     ) public {
         // Check and pad inputs and outputs based on the max size
         uint256[] memory outputs = new uint256[](inputs.length);
@@ -191,6 +185,7 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         validateTransactionProposal(inputs, outputs, proof);
         _withdraw(amount, inputs, output, proof);
         processInputsAndOutputs(inputs, outputs);
+        emit UTXOWithdraw(amount, inputs, output, msg.sender, data);
     }
 
     function mint(
