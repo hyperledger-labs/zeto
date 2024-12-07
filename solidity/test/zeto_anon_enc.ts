@@ -313,7 +313,13 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
       await expect(
         zeto
           .connect(Alice.signer)
-          .withdraw(10, inputCommitments, outputCommitments[0], encodedProof, "0x"),
+          .withdraw(
+            10,
+            inputCommitments,
+            outputCommitments[0],
+            encodedProof,
+            "0x",
+          ),
       ).rejectedWith("UTXOAlreadySpent");
     });
 
