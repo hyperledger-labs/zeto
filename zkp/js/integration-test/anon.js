@@ -24,7 +24,7 @@ const {
 const { Poseidon, newSalt, loadCircuit } = require("../index.js");
 const { loadProvingKeys } = require("./utils.js");
 
-const ZERO_PUBKEY = [0, 0];
+const ZERO_PUBKEY = [0n, 0n];
 const poseidonHash = Poseidon.poseidon4;
 
 describe("main circuit tests for Zeto fungible tokens with anonymity without encryption", () => {
@@ -71,7 +71,7 @@ describe("main circuit tests for Zeto fungible tokens with anonymity without enc
       salt3,
       ...receiver.pubKey,
     ]);
-    const outputCommitments = [output1, 0];
+    const outputCommitments = [output1, 0n];
 
     const otherInputs = stringifyBigInts({
       inputOwnerPrivateKey: formatPrivKeyForBabyJub(sender.privKey),

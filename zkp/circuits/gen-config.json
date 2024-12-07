@@ -1,63 +1,66 @@
 {
-  "anon": {
-    "ptau": "powersOfTau28_hez_final_12",
-    "batchPtau": "powersOfTau28_hez_final_14",
-    "skipSolidityGenaration": false
-  },
-  "anon_enc": {
-    "ptau": "powersOfTau28_hez_final_14",
-    "batchPtau": "powersOfTau28_hez_final_16",
-    "skipSolidityGenaration": false
-  },
-  "anon_nullifier": {
-    "ptau": "powersOfTau28_hez_final_16",
-    "batchPtau": "powersOfTau28_hez_final_18",
-    "skipSolidityGenaration": false
-  },
-  "anon_nullifier_kyc": {
-    "ptau": "powersOfTau28_hez_final_16",
-    "batchPtau": "powersOfTau28_hez_final_18",
-    "skipSolidityGenaration": false
-  },
-  "anon_enc_nullifier_non_repudiation": {
-    "ptau": "powersOfTau28_hez_final_16",
-    "batchPtau": "powersOfTau28_hez_final_18",
-    "skipSolidityGenaration": false
-  },
-  "anon_enc_nullifier": {
-    "ptau": "powersOfTau28_hez_final_16",
-    "batchPtau": "powersOfTau28_hez_final_18",
-    "skipSolidityGenaration": false
-  },
-  "anon_enc_nullifier_kyc": {
-    "ptau": "powersOfTau28_hez_final_16",
-    "batchPtau": "powersOfTau28_hez_final_18",
-    "skipSolidityGenaration": false
-  },
-  "nf_anon": {
-    "ptau": "powersOfTau28_hez_final_11",
-    "skipSolidityGenaration": false
-  },
-  "nf_anon_nullifier": {
-    "ptau": "powersOfTau28_hez_final_15",
-    "skipSolidityGenaration": false
-  },
-  "check_hashes_value": {
-    "ptau": "powersOfTau28_hez_final_10",
-    "skipSolidityGenaration": false
-  },
-  "check_inputs_outputs_value": {
-    "ptau": "powersOfTau28_hez_final_12",
-    "batchPtau": "powersOfTau28_hez_final_13",
-    "skipSolidityGenaration": false
-  },
-  "check_nullifier_value": {
-    "ptau": "powersOfTau28_hez_final_16",
-    "batchPtau": "powersOfTau28_hez_final_18",
-    "skipSolidityGenaration": false
-  },
-  "check_nullifiers": {
-    "ptau": "powersOfTau28_hez_final_11",
-    "skipSolidityGenaration": true
+  "circomVersion": "2.2.1",
+  "circuits": {
+    "anon": {
+      "ptau": "powersOfTau28_hez_final_13",
+      "batchPtau": "powersOfTau28_hez_final_15",
+      "skipSolidityGenaration": false
+    },
+    "anon_enc": {
+      "ptau": "powersOfTau28_hez_final_15",
+      "batchPtau": "powersOfTau28_hez_final_17",
+      "skipSolidityGenaration": false
+    },
+    "anon_nullifier": {
+      "ptau": "powersOfTau28_hez_final_17",
+      "batchPtau": "powersOfTau28_hez_final_19",
+      "skipSolidityGenaration": false
+    },
+    "anon_nullifier_kyc": {
+      "ptau": "powersOfTau28_hez_final_17",
+      "batchPtau": "powersOfTau28_hez_final_19",
+      "skipSolidityGenaration": false
+    },
+    "anon_enc_nullifier_non_repudiation": {
+      "ptau": "powersOfTau28_hez_final_17",
+      "batchPtau": "powersOfTau28_hez_final_19",
+      "skipSolidityGenaration": false
+    },
+    "anon_enc_nullifier": {
+      "ptau": "powersOfTau28_hez_final_17",
+      "batchPtau": "powersOfTau28_hez_final_19",
+      "skipSolidityGenaration": false
+    },
+    "anon_enc_nullifier_kyc": {
+      "ptau": "powersOfTau28_hez_final_17",
+      "batchPtau": "powersOfTau28_hez_final_20",
+      "skipSolidityGenaration": false
+    },
+    "nf_anon": {
+      "ptau": "powersOfTau28_hez_final_13",
+      "skipSolidityGenaration": false
+    },
+    "nf_anon_nullifier": {
+      "ptau": "powersOfTau28_hez_final_16",
+      "skipSolidityGenaration": false
+    },
+    "check_hashes_value": {
+      "ptau": "powersOfTau28_hez_final_11",
+      "skipSolidityGenaration": false
+    },
+    "check_inputs_outputs_value": {
+      "ptau": "powersOfTau28_hez_final_13",
+      "batchPtau": "powersOfTau28_hez_final_14",
+      "skipSolidityGenaration": false
+    },
+    "check_nullifier_value": {
+      "ptau": "powersOfTau28_hez_final_17",
+      "batchPtau": "powersOfTau28_hez_final_19",
+      "skipSolidityGenaration": false
+    },
+    "check_nullifiers": {
+      "ptau": "powersOfTau28_hez_final_13",
+      "skipSolidityGenaration": true
+    }
   }
 }

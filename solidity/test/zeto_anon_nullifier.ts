@@ -228,7 +228,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
         withdrawCommitments[0],
         root.bigInt(),
         withdrawEncodedProof,
-        "0x"
+        "0x",
       );
     await tx.wait();
 
@@ -430,7 +430,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
         outputCommitments[0],
         root.bigInt(),
         encodedProof,
-        "0x"
+        "0x",
       );
     await tx.wait();
 
@@ -490,7 +490,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
             outputCommitments[0],
             root.bigInt(),
             encodedProof,
-            "0x"
+            "0x",
           ),
       ).rejectedWith("UTXOAlreadySpent");
     });

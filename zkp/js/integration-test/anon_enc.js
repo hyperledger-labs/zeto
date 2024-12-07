@@ -30,7 +30,7 @@ const {
 } = require("../index.js");
 const { loadProvingKeys } = require("./utils.js");
 
-const ZERO_PUBKEY = [0, 0];
+const ZERO_PUBKEY = [0n, 0n];
 const poseidonHash = Poseidon.poseidon4;
 
 describe("main circuit tests for Zeto fungible tokens with anonymity with encryption", () => {
@@ -62,7 +62,7 @@ describe("main circuit tests for Zeto fungible tokens with anonymity with encryp
       salt1,
       ...sender.pubKey,
     ]);
-    const inputCommitments = [input1, 0];
+    const inputCommitments = [input1, 0n];
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
@@ -71,7 +71,7 @@ describe("main circuit tests for Zeto fungible tokens with anonymity with encryp
       salt3,
       ...receiver.pubKey,
     ]);
-    const outputCommitments = [output1, 0];
+    const outputCommitments = [output1, 0n];
 
     const encryptionNonce = newEncryptionNonce();
     const ephemeralKeypair = genKeypair();
@@ -85,11 +85,11 @@ describe("main circuit tests for Zeto fungible tokens with anonymity with encryp
       {
         inputCommitments,
         inputValues,
-        inputSalts: [salt1, 0],
+        inputSalts: [salt1, 0n],
         inputOwnerPrivateKey: formatPrivKeyForBabyJub(sender.privKey),
         outputCommitments,
         outputValues,
-        outputSalts: [salt3, 0],
+        outputSalts: [salt3, 0n],
         outputOwnerPublicKeys: [receiver.pubKey, ZERO_PUBKEY],
         ...encryptInputs,
       },

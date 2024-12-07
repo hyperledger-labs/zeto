@@ -1,4 +1,4 @@
-pragma circom 2.1.9;
+pragma circom 2.2.1;
 
 // Copyright © 2024 Kaleido, Inc.
 //
