@@ -25,6 +25,14 @@ function provingKeysRoot() {
   return PROVING_KEYS_ROOT;
 }
 
+function circuitsRoot() {
+  const CIRCUITS_ROOT = process.env.CIRCUITS_ROOT;
+  if (!CIRCUITS_ROOT) {
+    throw new Error("CIRCUITS_ROOT env var is not set");
+  }
+  return CIRCUITS_ROOT;
+}
+
 function loadProvingKeys(type) {
   const provingKeyFile = path.join(provingKeysRoot(), `${type}.zkey`);
   const verificationKey = JSON.parse(
@@ -34,6 +42,7 @@ function loadProvingKeys(type) {
   );
   return {
     provingKeyFile,
+    wasmFile: path.join(circuitsRoot(), `${type}_js/${type}.wasm`),
     verificationKey,
   };
 }

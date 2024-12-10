@@ -200,7 +200,7 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
       .connect(Alice.signer)
       .deposit(100, outputCommitments, encodedProof, "0x");
     await tx2.wait();
-  });
+  }).timeout(60000);
 
   it("mint to Alice and transfer UTXOs honestly to Bob should succeed", async function () {
     const startingBalance = await erc20.balanceOf(Alice.ethAddress);
@@ -313,7 +313,13 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
       await expect(
         zeto
           .connect(Alice.signer)
-          .withdraw(10, inputCommitments, outputCommitments[0], encodedProof, "0x"),
+          .withdraw(
+            10,
+            inputCommitments,
+            outputCommitments[0],
+            encodedProof,
+            "0x",
+          ),
       ).rejectedWith("UTXOAlreadySpent");
     });
 

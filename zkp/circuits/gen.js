@@ -45,7 +45,7 @@ const ptauDownload = process.env.PTAU_DOWNLOAD_PATH || argv.ptauDownloadPath;
 const specificCircuits = argv.c;
 const verbose = argv.v;
 const compileOnly = argv.compileOnly;
-const parallelLimit = parseInt(process.env.GEN_CONCURRENCY, 10) || 30; // Default to compile 30 circuits in parallel
+const parallelLimit = parseInt(process.env.GEN_CONCURRENCY, 10) || 4; // Default to compile 4 circuits in parallel 
 
 // check env vars
 if (!circuitsRoot) {
@@ -81,9 +81,10 @@ console.log(
     "\n",
 );
 
-// load genConfig
+// load configuration
 
 const genConfig = require("./gen-config.json");
+const circuits = genConfig.circuits;
 
 const toCamelCase = (str) => {
   return str
@@ -151,7 +152,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
   }
 
   const { stdout: ctOut, stderr: ctErr } = await execAsync(
-    `circom --O2 ${circomInput} --output ${provingKeysRoot} --r1cs`,
+    `circom ${circomInput} --output ${provingKeysRoot} --r1cs`,
   );
   if (verbose) {
     if (ctOut) {
@@ -232,6 +233,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
   );
   fs.writeFileSync(solidityFileTmp, updatedContent);
   fs.renameSync(solidityFileTmp, solidityFile);
+  log(circuit, `Circuit process complete`);
 };
 
 const run = async () => {
@@ -243,14 +245,14 @@ const run = async () => {
 
     // if specific circuits are provided, check it's in the map
     for (const circuit of onlyCircuits) {
-      if (!genConfig[circuit]) {
+      if (!circuits[circuit]) {
         console.error(`Error: Unknown circuit: ${circuit}`);
         process.exit(1);
       }
     }
   }
 
-  const circuitsArray = Object.entries(genConfig);
+  const circuitsArray = Object.entries(circuits);
   const activePromises = new Set();
 
   for (const [
