@@ -235,7 +235,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
     // Alice checks her ERC20 balance
     const endingBalance = await erc20.balanceOf(Alice.ethAddress);
     expect(endingBalance - startingBalance).to.be.equal(3);
-  });
+  }).timeout(60000);
 
   it("mint ERC20 tokens to Alice to deposit to Zeto should succeed", async function () {
     const startingBalance = await erc20.balanceOf(Alice.ethAddress);

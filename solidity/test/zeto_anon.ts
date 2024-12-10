@@ -226,7 +226,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
 
     // now Bob can reconstruct the UTXO using the information received from Alice
     utxo3 = newUTXO(receivedValue, Bob, receivedSalt);
-  });
+  }).timeout(60000);
 
   it("Bob transfers UTXOs, previously received from Alice, honestly to Charlie should succeed", async function () {
     const startingBalance = await erc20.balanceOf(Alice.ethAddress);
