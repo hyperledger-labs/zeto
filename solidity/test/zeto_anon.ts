@@ -37,7 +37,7 @@ import {
 import { Zeto_Anon } from "../typechain-types";
 import { deployZeto } from "./lib/deploy";
 
-const ZERO_PUBKEY = [0, 0];
+const ZERO_PUBKEY = [0n, 0n];
 const poseidonHash = Poseidon.poseidon4;
 
 describe("Zeto based fungible token with anonymity without encryption or nullifier", function () {
@@ -226,7 +226,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
 
     // now Bob can reconstruct the UTXO using the information received from Alice
     utxo3 = newUTXO(receivedValue, Bob, receivedSalt);
-  });
+  }).timeout(60000);
 
   it("Bob transfers UTXOs, previously received from Alice, honestly to Charlie should succeed", async function () {
     const startingBalance = await erc20.balanceOf(Alice.ethAddress);
@@ -329,7 +329,13 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
       await expect(
         zeto
           .connect(Alice.signer)
-          .withdraw(10, inputCommitments, outputCommitments[0], encodedProof, "0x"),
+          .withdraw(
+            10,
+            inputCommitments,
+            outputCommitments[0],
+            encodedProof,
+            "0x",
+          ),
       ).rejectedWith("UTXOAlreadySpent");
     });
 

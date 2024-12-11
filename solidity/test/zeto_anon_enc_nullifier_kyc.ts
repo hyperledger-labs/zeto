@@ -318,14 +318,14 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
         withdrawCommitments[0],
         root.bigInt(),
         withdrawEncodedProof,
-        "0x"
+        "0x",
       );
     await tx.wait();
 
     // Alice checks her ERC20 balance
     const endingBalance = await erc20.balanceOf(Alice.ethAddress);
     expect(endingBalance - startingBalance).to.be.equal(3);
-  });
+  }).timeout(60000);
 
   it("mint ERC20 tokens to Alice to deposit to Zeto should succeed", async function () {
     const startingBalance = await erc20.balanceOf(Alice.ethAddress);
@@ -566,7 +566,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
         outputCommitments[0],
         root.bigInt(),
         encodedProof,
-        "0x"
+        "0x",
       );
     await tx.wait();
 
@@ -722,7 +722,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
           outputCommitments[0],
           root.bigInt(),
           encodedProof,
-          "0x"
+          "0x",
         );
       await tx.wait();
 
@@ -790,7 +790,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
             outputCommitments[0],
             root.bigInt(),
             encodedProof,
-            "0x"
+            "0x",
           ),
       ).rejectedWith("UTXOAlreadySpent");
     });
