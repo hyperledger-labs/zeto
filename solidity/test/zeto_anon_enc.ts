@@ -43,6 +43,7 @@ import {
 import {
   loadProvingKeys,
   prepareDepositProof,
+  prepareLockProof,
   prepareWithdrawProof,
 } from "./utils";
 import { deployZeto } from "./lib/deploy";
@@ -367,6 +368,52 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
       await expect(
         doTransfer(Bob, [_utxo1, _utxo1], [_utxo2, _utxo3], [Alice, Bob]),
       ).rejectedWith(`UTXODuplicate(${_utxo1.hash.toString()}`);
+    });
+  });
+
+  describe("lockStates() tests", function () {
+    it("lockStates() should succeed when using unlocked states", async function () {
+      const { commitments, encodedProof } = await prepareLockProof(Alice, [utxo4, ZERO_UTXO]);
+
+      const tx = await zeto.connect(Alice.signer).lockStates(
+        commitments.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
+        encodedProof,
+        Bob.ethAddress, // make Bob the delegate who can spend the state (if she has the right proof)
+        "0x",
+      );
+      const results = await tx.wait();
+      console.log(`Method transfer() complete. Gas used: ${results?.gasUsed}`);
+    });
+
+    it("lockStates() should fail when trying to lock as non-delegate", async function () {
+      if (network.name !== "hardhat") {
+        return;
+      }
+
+      // Bob is the owner of the UTXO, so he can generate the right proof
+      const { commitments, encodedProof } = await prepareLockProof(Alice, [utxo4, ZERO_UTXO]);
+
+      // but he's no longer the delegate (Alice is) to spend the state
+      await expect(zeto.connect(Alice.signer).lockStates(
+        commitments.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
+        encodedProof,
+        Alice.ethAddress,
+        "0x",
+      )).rejectedWith(`UTXOAlreadyLocked(${utxo4.hash.toString()})`);
+    });
+
+    it("the original owner can NOT use the proper proof to spend the locked state", async function () {
+      const utxo8 = newUTXO(5, Charlie);
+      const ephemeralKeypair = genKeypair();
+      const { inputCommitments, outputCommitments, encodedProof, encryptedValues, encryptionNonce } = await prepareProof(Alice, [utxo4, ZERO_UTXO], [utxo8, ZERO_UTXO], [Charlie, Alice], ephemeralKeypair.privKey);
+      await expect(sendTx(Alice, inputCommitments, outputCommitments, encryptedValues, encryptionNonce, encodedProof, ephemeralKeypair.pubKey)).to.be.rejectedWith("UTXOAlreadyLocked");
+    });
+
+    it("the designated delegate can use the proper proof to spend the locked state", async function () {
+      const utxo8 = newUTXO(5, Charlie);
+      const ephemeralKeypair = genKeypair();
+      const { inputCommitments, outputCommitments, encodedProof, encryptedValues, encryptionNonce } = await prepareProof(Alice, [utxo4, ZERO_UTXO], [utxo8, ZERO_UTXO], [Charlie, Alice], ephemeralKeypair.privKey);
+      await expect(sendTx(Bob, inputCommitments, outputCommitments, encryptedValues, encryptionNonce, encodedProof, ephemeralKeypair.pubKey)).to.be.fulfilled;
     });
   });
 

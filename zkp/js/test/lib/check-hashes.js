@@ -21,8 +21,6 @@ const { wasm: wasm_tester } = require("circom_tester");
 const { genKeypair } = require("maci-crypto");
 const { Poseidon, newSalt } = require("../../index.js");
 
-const MAX_VALUE = 2n ** 40n - 1n;
-const ZERO_PUBKEY = [0n, 0n];
 const poseidonHash = Poseidon.poseidon4;
 
 describe("check-hashes circuit tests", () => {

@@ -24,6 +24,7 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 /// @author Kaleido, Inc.
 /// @dev Implements common functionalities of Zeto based tokens
 abstract contract ZetoCommon is OwnableUpgradeable {
+    uint256 public constant MAX_BATCH = 10;
     error UTXONotMinted(uint256 utxo);
     error UTXOAlreadyOwned(uint256 utxo);
     error UTXOAlreadySpent(uint256 utxo);
@@ -31,31 +32,8 @@ abstract contract ZetoCommon is OwnableUpgradeable {
     error IdentityNotRegistered(address addr);
     error UTXOArrayTooLarge(uint256 maxAllowed);
 
-    // used for multi-step transaction flows that require counterparties
-    // to upload proofs. To protect the party that uploads their proof first,
-    // and prevent the other party from utilizing the uploaded proof to execute
-    // a transaction, the proof can be locked and only usable by the same party
-    // that did the locking.
-    mapping(bytes32 => address) internal lockedProofs;
-
     function __ZetoCommon_init(address initialOwner) internal onlyInitializing {
         __Ownable_init(initialOwner);
-    }
-
-    // should be called by escrow contracts that will use uploaded proofs
-    // to execute transactions, in order to prevent the proof from being used
-    // by parties other than the escrow contract
-    function lockProof(
-        Commonlib.Proof calldata proof,
-        address delegate
-    ) public {
-        bytes32 proofHash = Commonlib.getProofHash(proof);
-        require(
-            lockedProofs[proofHash] == address(0) ||
-                lockedProofs[proofHash] == msg.sender,
-            "Proof already locked by another party"
-        );
-        lockedProofs[proofHash] = delegate;
     }
     function checkAndPadCommitments(
         uint256[] memory inputs,

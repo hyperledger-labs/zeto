@@ -19,17 +19,20 @@ import {IZetoEncrypted} from "./lib/interfaces/izeto_encrypted.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValue} from "./lib/verifier_check_inputs_outputs_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValueBatch} from "./lib/verifier_check_inputs_outputs_value_batch.sol";
+import {Groth16Verifier_CheckUtxosOwner} from "./lib/verifier_check_utxos_owner.sol";
+import {Groth16Verifier_CheckUtxosOwnerBatch} from "./lib/verifier_check_utxos_owner_batch.sol";
+
 import {Groth16Verifier_AnonEnc} from "./lib/verifier_anon_enc.sol";
 import {Groth16Verifier_AnonEncBatch} from "./lib/verifier_anon_enc_batch.sol";
 import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
 import {ZetoFungible} from "./lib/zeto_fungible.sol";
+import {ZetoLock} from "./lib/zeto_lock.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-uint256 constant MAX_BATCH = 10;
 uint256 constant INPUT_SIZE = 15;
 uint256 constant BATCH_INPUT_SIZE = 63;
 
@@ -46,6 +49,7 @@ contract Zeto_AnonEnc is
     IZetoEncrypted,
     ZetoBase,
     ZetoFungibleWithdraw,
+    ZetoLock,
     UUPSUpgradeable
 {
     Groth16Verifier_AnonEnc internal verifier;
@@ -57,7 +61,9 @@ contract Zeto_AnonEnc is
         Groth16Verifier_CheckHashesValue _depositVerifier,
         Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier,
         Groth16Verifier_AnonEncBatch _batchVerifier,
-        Groth16Verifier_CheckInputsOutputsValueBatch _batchWithdrawVerifier
+        Groth16Verifier_CheckInputsOutputsValueBatch _batchWithdrawVerifier,
+        address _lockVerifier,
+        address _batchLockVerifier
     ) public initializer {
         __ZetoBase_init(initialOwner);
         __ZetoFungibleWithdraw_init(
@@ -65,8 +71,8 @@ contract Zeto_AnonEnc is
             _withdrawVerifier,
             _batchWithdrawVerifier
         );
+        __ZetoLock_init(_lockVerifier, _batchLockVerifier);
         verifier = _verifier;
-        batchVerifier = _batchVerifier;
         batchVerifier = _batchVerifier;
     }
 
@@ -131,6 +137,11 @@ contract Zeto_AnonEnc is
         require(
             validateTransactionProposal(inputs, outputs, proof),
             "Invalid transaction proposal"
+        );
+
+        require(
+            validateLockedStates(inputs),
+            "At least one UTXO in the inputs are locked"
         );
 
         // Check the proof

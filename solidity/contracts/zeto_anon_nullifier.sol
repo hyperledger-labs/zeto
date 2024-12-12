@@ -30,8 +30,6 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
 
-uint256 constant MAX_SMT_DEPTH = 64;
-uint256 constant MAX_BATCH = 10;
 uint256 constant INPUT_SIZE = 7;
 uint256 constant BATCH_INPUT_SIZE = 31;
 

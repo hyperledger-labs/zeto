@@ -27,7 +27,6 @@ import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-uint256 constant MAX_BATCH = 10;
 uint256 constant INPUT_SIZE = 19;
 uint256 constant BATCH_INPUT_SIZE = 75;
 

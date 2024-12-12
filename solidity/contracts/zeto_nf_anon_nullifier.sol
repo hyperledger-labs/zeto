@@ -25,8 +25,6 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
 
-uint256 constant MAX_SMT_DEPTH = 64;
-
 /// @title A sample implementation of a Zeto based non-fungible token with anonymity and history masking
 /// @author Kaleido, Inc.
 /// @dev The proof has the following statements:

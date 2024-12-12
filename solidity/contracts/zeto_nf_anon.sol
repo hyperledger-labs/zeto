@@ -16,8 +16,12 @@
 pragma solidity ^0.8.20;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
+import {Groth16Verifier_CheckUtxosNfOwner} from "./lib/verifier_check_utxos_nf_owner.sol";
+import {IZetoLockable} from "./lib/interfaces/izeto_lockable.sol";
+
 import {Groth16Verifier_NfAnon} from "./lib/verifier_nf_anon.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
+import {ZetoLock} from "./lib/zeto_lock.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -29,14 +33,23 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 ///        - The sender owns the private key whose public key is part of the pre-image of the input UTXOs commitments
 ///          (aka the sender is authorized to spend the input UTXOs)
 ///        - The input UTXOs and output UTXOs are valid in terms of obeying mass conservation rules
-contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
+contract Zeto_NfAnon is
+    IZeto,
+    IZetoLockable,
+    ZetoBase,
+    ZetoLock,
+    UUPSUpgradeable
+{
     Groth16Verifier_NfAnon internal verifier;
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_NfAnon _verifier
+        Groth16Verifier_NfAnon _verifier,
+        address _lockVerifier,
+        address _batchLockVerifier
     ) public initializer {
         __ZetoBase_init(initialOwner);
+        __ZetoLock_init(_lockVerifier, _batchLockVerifier);
         verifier = _verifier;
     }
 
@@ -65,6 +78,11 @@ contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
         require(
             validateTransactionProposal(inputs, outputs, proof),
             "Invalid transaction proposal"
+        );
+
+        require(
+            validateLockedStates(inputs),
+            "At least one UTXO in the inputs are locked"
         );
 
         // construct the public inputs

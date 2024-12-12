@@ -88,15 +88,6 @@ abstract contract ZetoBase is IZetoBase, ZetoCommon {
                 revert UTXOAlreadyOwned(sortedOutputs[i]);
             }
         }
-
-        // check if the proof has been locked
-        bytes32 proofHash = Commonlib.getProofHash(proof);
-        if (lockedProofs[proofHash] != address(0)) {
-            require(
-                lockedProofs[proofHash] == msg.sender,
-                "Locked proof can only be submitted by the locker address"
-            );
-        }
         return true;
     }
 

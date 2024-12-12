@@ -13,8 +13,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pragma solidity ^0.8.20;
+pragma circom 2.1.9;
 
-interface IZetoNonFungibleInitializable {
-    function initialize(address initialOwner, address _verifier) external;
-}
+include "./lib/check-utxos-owner.circom";
+
+component main {public [ commitments ]} = CheckUTXOsOwner(2);

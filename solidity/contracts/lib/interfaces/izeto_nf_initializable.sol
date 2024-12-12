@@ -13,16 +13,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+pragma solidity ^0.8.20;
 
-import { ethers, ignition } from "hardhat";
-import zetoModule from "../../ignition/modules/zeto_nf_anon";
-
-export async function deployDependencies() {
-  const [deployer] = await ethers.getSigners();
-
-  const { verifier, lockVerifier, batchLockVerifier, } = await ignition.deploy(zetoModule);
-  return {
-    deployer,
-    args: [await deployer.getAddress(), verifier.target, lockVerifier.target, batchLockVerifier.target],
-  };
+interface IZetoNonFungibleInitializable {
+    function initialize(
+        address initialOwner,
+        address _verifier,
+        address _lockVerifier,
+        address _batchLockVerifier
+    ) external;
 }

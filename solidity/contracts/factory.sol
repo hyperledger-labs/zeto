@@ -17,8 +17,8 @@ pragma solidity ^0.8.20;
 
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IZetoFungibleInitializable} from "./lib/interfaces/zeto_fungible_initializable.sol";
-import {IZetoNonFungibleInitializable} from "./lib/interfaces/zeto_nf_initializable.sol";
+import {IZetoFungibleInitializable} from "./lib/interfaces/izeto_fungible_initializable.sol";
+import {IZetoNonFungibleInitializable} from "./lib/interfaces/izeto_nf_initializable.sol";
 
 contract ZetoTokenFactory is Ownable {
     // all the addresses needed by the factory to
@@ -32,6 +32,8 @@ contract ZetoTokenFactory is Ownable {
         address verifier;
         address batchVerifier;
         address batchWithdrawVerifier;
+        address lockVerifier;
+        address batchLockVerifier;
     }
 
     event ZetoTokenDeployed(address indexed zetoToken);
@@ -84,6 +86,14 @@ contract ZetoTokenFactory is Ownable {
             args.batchWithdrawVerifier != address(0),
             "Factory: batchWithdrawVerifier address is required"
         );
+        require(
+            args.lockVerifier != address(0),
+            "Factory: lockVerifier address is required"
+        );
+        require(
+            args.batchLockVerifier != address(0),
+            "Factory: batchLockVerifier address is required"
+        );
         address instance = Clones.clone(args.implementation);
         require(
             instance != address(0),
@@ -95,7 +105,9 @@ contract ZetoTokenFactory is Ownable {
             args.depositVerifier,
             args.withdrawVerifier,
             args.batchVerifier,
-            args.batchWithdrawVerifier
+            args.batchWithdrawVerifier,
+            args.lockVerifier,
+            args.batchLockVerifier
         );
         emit ZetoTokenDeployed(instance);
         return instance;
@@ -110,6 +122,14 @@ contract ZetoTokenFactory is Ownable {
             args.implementation != address(0),
             "Factory: failed to find implementation"
         );
+        require(
+            args.lockVerifier != address(0),
+            "Factory: lockVerifier address is required"
+        );
+        require(
+            args.batchLockVerifier != address(0),
+            "Factory: batchLockVerifier address is required"
+        );
         address instance = Clones.clone(args.implementation);
         require(
             instance != address(0),
@@ -117,7 +137,9 @@ contract ZetoTokenFactory is Ownable {
         );
         (IZetoNonFungibleInitializable(instance)).initialize(
             initialOwner,
-            args.verifier
+            args.verifier,
+            args.lockVerifier,
+            args.batchLockVerifier
         );
         emit ZetoTokenDeployed(instance);
         return instance;

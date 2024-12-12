@@ -15,7 +15,10 @@
 // limitations under the License.
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-
+import {
+  NfLockVerifierModule,
+  BatchLockVerifierModule,
+} from "./lib/deps";
 const VerifierModule = buildModule("Groth16Verifier_NfAnon", (m) => {
   const verifier = m.contract("Groth16Verifier_NfAnon", []);
   return { verifier };
@@ -23,6 +26,9 @@ const VerifierModule = buildModule("Groth16Verifier_NfAnon", (m) => {
 
 export default buildModule("Zeto_NfAnon", (m) => {
   const { verifier } = m.useModule(VerifierModule);
+  const { verifier: lockVerifier } = m.useModule(NfLockVerifierModule);
+  // TODO: update this to use the correct batch verifier
+  const { verifier: batchLockVerifier } = m.useModule(BatchLockVerifierModule);
 
-  return { verifier };
+  return { verifier, lockVerifier, batchLockVerifier };
 });

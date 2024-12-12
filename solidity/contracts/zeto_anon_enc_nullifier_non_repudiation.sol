@@ -26,7 +26,6 @@ import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_n
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 
-uint256 constant MAX_BATCH = 10;
 uint256 constant INPUT_SIZE = 36;
 uint256 constant BATCH_INPUT_SIZE = 140;
 

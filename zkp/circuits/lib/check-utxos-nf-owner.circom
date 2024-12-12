@@ -15,15 +15,16 @@
 // limitations under the License.
 pragma circom 2.1.9;
 
-include "./check-hashes.circom";
+include "./check-hashes-tokenid-uri.circom";
 include "../node_modules/circomlib/circuits/babyjub.circom";
 
 // This version of the circuit performs the following operations:
 // - derive the sender's public key from the sender's private key
-// - check the commitments match the calculated hashes
-template CheckUTXOsOwner(nInputs) {
+// - check the commitments match the calculated hashes for a non-fungible UTXO
+template CheckUTXOsNFOwner(nInputs) {
   signal input commitments[nInputs];
-  signal input values[nInputs];
+  signal input tokenIds[nInputs];
+  signal input tokenUris[nInputs];
   signal input salts[nInputs];
   // must be properly hashed and trimmed to be compatible with the BabyJub curve.
   // Reference: https://github.com/iden3/circomlib/blob/master/test/babyjub.js#L103
@@ -40,5 +41,5 @@ template CheckUTXOsOwner(nInputs) {
   for (var i = 0; i < nInputs; i++) {
     ownerPublicKeys[i]= [ownerPubKeyAx, ownerPubKeyAy];
   }
-  CheckHashes(nInputs)(commitments <== commitments, values <== values, salts <== salts, ownerPublicKeys <== ownerPublicKeys);
+  CheckHashesForTokenIdAndUri(nInputs)(commitments <== commitments, tokenIds <== tokenIds, tokenUris <== tokenUris, salts <== salts, ownerPublicKeys <== ownerPublicKeys);
 }

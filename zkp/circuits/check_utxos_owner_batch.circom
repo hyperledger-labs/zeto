@@ -13,16 +13,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+pragma circom 2.1.9;
 
-import { ethers, ignition } from "hardhat";
-import zetoModule from "../../ignition/modules/zeto_nf_anon";
+include "./lib/check-utxos-owner.circom";
 
-export async function deployDependencies() {
-  const [deployer] = await ethers.getSigners();
-
-  const { verifier, lockVerifier, batchLockVerifier, } = await ignition.deploy(zetoModule);
-  return {
-    deployer,
-    args: [await deployer.getAddress(), verifier.target, lockVerifier.target, batchLockVerifier.target],
-  };
-}
+component main {public [ commitments ]} = CheckUTXOsOwner(10);
