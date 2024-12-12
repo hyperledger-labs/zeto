@@ -18,23 +18,20 @@ pragma circom 2.2.1;
 include "./lib/check-positive.circom";
 include "./lib/check-hashes.circom";
 
-template Zeto(nOutputs) {
+template checkHashesValue(nOutputs) {
   signal input outputCommitments[nOutputs];
-  signal input outputValues[nOutputs];
-  signal input outputSalts[nOutputs];
-  signal input outputOwnerPublicKeys[nOutputs][2];
+  input CommitmentInputs() outputCommitmentInputs[nOutputs];
   signal output out;
 
-  CheckPositive(nOutputs)(outputValues <== outputValues);
-
-  CheckHashes(nOutputs)(commitments <== outputCommitments, values <== outputValues, salts <== outputSalts, ownerPublicKeys <== outputOwnerPublicKeys);
+  CheckPositiveValues(nOutputs)(commitmentInputs <== outputCommitmentInputs);
+  CheckHashes(nOutputs)(commitmentHashes <== outputCommitments, commitmentInputs <== outputCommitmentInputs);
 
   // calculate the sum of output values and set to the output
   var sumOutputs = 0;
   for (var i = 0; i < nOutputs; i++) {
-    sumOutputs = sumOutputs + outputValues[i];
+    sumOutputs = sumOutputs + outputCommitmentInputs[i].value;
   }
   out <== sumOutputs;
 }
 
-component main {public [ outputCommitments ]} = Zeto(2);
+component main {public [ outputCommitments ]} = checkHashesValue(2);
