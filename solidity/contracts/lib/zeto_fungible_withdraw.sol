@@ -18,11 +18,8 @@ pragma solidity ^0.8.20;
 import {Groth16Verifier_CheckHashesValue} from "./verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValue} from "./verifier_check_inputs_outputs_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValueBatch} from "./verifier_check_inputs_outputs_value_batch.sol";
-import {Groth16Verifier_CheckUtxosOwner} from "./verifier_check_utxos_owner.sol";
-import {Groth16Verifier_CheckUtxosOwnerBatch} from "./verifier_check_utxos_owner_batch.sol";
 import {ZetoFungible} from "./zeto_fungible.sol";
 import {Commonlib} from "./common.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 uint256 constant WITHDRAW_INPUT_SIZE = 4;
 uint256 constant BATCH_WITHDRAW_INPUT_SIZE = 12;

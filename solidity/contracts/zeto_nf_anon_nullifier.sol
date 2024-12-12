@@ -18,12 +18,8 @@ pragma solidity ^0.8.20;
 import {IZeto} from "./lib/interfaces/izeto.sol";
 import {Groth16Verifier_NfAnonNullifier} from "./lib/verifier_nf_anon_nullifier.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
-import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
-import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
 
 /// @title A sample implementation of a Zeto based non-fungible token with anonymity and history masking
 /// @author Kaleido, Inc.

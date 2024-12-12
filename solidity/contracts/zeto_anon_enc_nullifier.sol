@@ -23,7 +23,6 @@ import {Groth16Verifier_AnonEncNullifier} from "./lib/verifier_anon_enc_nullifie
 import {Groth16Verifier_AnonEncNullifierBatch} from "./lib/verifier_anon_enc_nullifier_batch.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
-import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 

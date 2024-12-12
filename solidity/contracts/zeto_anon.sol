@@ -25,13 +25,10 @@ import {Groth16Verifier_CheckUtxosOwnerBatch} from "./lib/verifier_check_utxos_o
 
 import {Groth16Verifier_Anon} from "./lib/verifier_anon.sol";
 import {Groth16Verifier_AnonBatch} from "./lib/verifier_anon_batch.sol";
-import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
-import {ZetoFungible} from "./lib/zeto_fungible.sol";
 import {ZetoLock} from "./lib/zeto_lock.sol";
 import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 uint256 constant INPUT_SIZE = 4;
@@ -117,7 +114,7 @@ contract Zeto_Anon is
         (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
 
         require(
-            validateTransactionProposal(inputs, outputs, proof),
+            validateTransactionProposal(inputs, outputs),
             "Invalid transaction proposal"
         );
 
@@ -199,7 +196,7 @@ contract Zeto_Anon is
         uint256[] memory outputs = new uint256[](inputs.length);
         outputs[0] = output;
         (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
-        validateTransactionProposal(inputs, outputs, proof);
+        validateTransactionProposal(inputs, outputs);
         _withdraw(amount, inputs, output, proof);
         processInputsAndOutputs(inputs, outputs);
         emit UTXOWithdraw(amount, inputs, output, msg.sender, data);

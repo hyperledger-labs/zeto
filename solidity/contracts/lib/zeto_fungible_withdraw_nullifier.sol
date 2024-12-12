@@ -20,8 +20,6 @@ import {Groth16Verifier_CheckNullifierValue} from "./verifier_check_nullifier_va
 import {Groth16Verifier_CheckNullifierValueBatch} from "./verifier_check_nullifier_value_batch.sol";
 import {ZetoFungible} from "./zeto_fungible.sol";
 import {Commonlib} from "./common.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 uint256 constant WITHDRAW_INPUT_SIZE = 7;
 uint256 constant BATCH_WITHDRAW_INPUT_SIZE = 23;

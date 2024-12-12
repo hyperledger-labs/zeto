@@ -16,10 +16,7 @@
 pragma solidity ^0.8.20;
 
 import {IZetoBase} from "./interfaces/izeto_base.sol";
-import {Commonlib} from "./common.sol";
-import {Registry} from "./registry.sol";
 import {ZetoCommon} from "./zeto_common.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
 

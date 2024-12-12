@@ -23,7 +23,6 @@ import {Groth16Verifier_AnonEncNullifierNonRepudiation} from "./lib/verifier_ano
 import {Groth16Verifier_AnonEncNullifierNonRepudiationBatch} from "./lib/verifier_anon_enc_nullifier_non_repudiation_batch.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
-import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 
 uint256 constant INPUT_SIZE = 36;

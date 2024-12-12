@@ -17,7 +17,6 @@ pragma solidity ^0.8.20;
 
 import {Groth16Verifier_CheckHashesValue} from "./verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckNullifierValue} from "./verifier_check_nullifier_value.sol";
-import {ZetoBase} from "./zeto_base.sol";
 import {Commonlib} from "./common.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";

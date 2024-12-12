@@ -16,7 +16,6 @@
 pragma solidity ^0.8.20;
 
 import {Commonlib} from "./common.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Arrays} from "@openzeppelin/contracts/utils/Arrays.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 

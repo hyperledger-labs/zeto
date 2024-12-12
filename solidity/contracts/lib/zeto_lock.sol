@@ -18,10 +18,6 @@ pragma solidity ^0.8.20;
 import {IZetoBase} from "./interfaces/izeto_base.sol";
 import {IZetoLockable, ILockVerifier, IBatchLockVerifier} from "./interfaces/izeto_lockable.sol";
 import {Commonlib} from "./common.sol";
-import {Registry} from "./registry.sol";
-import {ZetoCommon} from "./zeto_common.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 /// @title A sample base implementation of a Zeto based token contract

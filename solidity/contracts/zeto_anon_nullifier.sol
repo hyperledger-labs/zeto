@@ -23,12 +23,8 @@ import {Groth16Verifier_AnonNullifier} from "./lib/verifier_anon_nullifier.sol";
 import {Groth16Verifier_AnonNullifierBatch} from "./lib/verifier_anon_nullifier_batch.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
-import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
-import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
 
 uint256 constant INPUT_SIZE = 7;
 uint256 constant BATCH_INPUT_SIZE = 31;

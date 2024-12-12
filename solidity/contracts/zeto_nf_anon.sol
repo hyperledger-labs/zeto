@@ -22,9 +22,7 @@ import {IZetoLockable} from "./lib/interfaces/izeto_lockable.sol";
 import {Groth16Verifier_NfAnon} from "./lib/verifier_nf_anon.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
 import {ZetoLock} from "./lib/zeto_lock.sol";
-import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /// @title A sample implementation of a Zeto based non-fungible token with anonymity and no encryption
@@ -76,7 +74,7 @@ contract Zeto_NfAnon is
         uint256[] memory outputs = new uint256[](1);
         outputs[0] = output;
         require(
-            validateTransactionProposal(inputs, outputs, proof),
+            validateTransactionProposal(inputs, outputs),
             "Invalid transaction proposal"
         );
 
