@@ -17,16 +17,9 @@
 const { expect } = require("chai");
 const { groth16 } = require("snarkjs");
 const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
-const {
-  Merkletree,
-  InMemoryDB,
-  str2Bytes,
-  ZERO_HASH,
-} = require("@iden3/js-merkletree");
 const { Poseidon, newSalt, loadCircuit } = require("../index.js");
 const { loadProvingKeys } = require("./utils.js");
 
-const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
 const poseidonHash3 = Poseidon.poseidon3;
 
@@ -46,86 +39,34 @@ describe("check_utxos_owner circuit tests", () => {
     Alice.privKey = keypair.privKey;
     Alice.pubKey = keypair.pubKey;
     senderPrivateKey = formatPrivKeyForBabyJub(Alice.privKey);
-
-    // initialize the local storage for Alice to manage her UTXOs in the Spart Merkle Tree
-    const storage1 = new InMemoryDB(str2Bytes(""));
-    smtAlice = new Merkletree(storage1, true, SMT_HEIGHT);
   });
 
   it("should generate a valid proof that can be verified successfully and fail when public signals are tampered", async () => {
-    const inputValues = [15, 100];
-    const outputValues = [35];
+    const values = [15, 100];
 
     // create two input UTXOs, each has their own salt, but same owner
     const senderPrivateKey = formatPrivKeyForBabyJub(Alice.privKey);
     const salt1 = newSalt();
     const input1 = poseidonHash([
-      BigInt(inputValues[0]),
+      BigInt(values[0]),
       salt1,
       ...Alice.pubKey,
     ]);
     const salt2 = newSalt();
     const input2 = poseidonHash([
-      BigInt(inputValues[1]),
+      BigInt(values[1]),
       salt2,
       ...Alice.pubKey,
     ]);
-    const inputCommitments = [input1, input2];
-
-    // create the nullifiers for the input UTXOs
-    const nullifier1 = poseidonHash3([
-      BigInt(inputValues[0]),
-      salt1,
-      senderPrivateKey,
-    ]);
-    const nullifier2 = poseidonHash3([
-      BigInt(inputValues[1]),
-      salt2,
-      senderPrivateKey,
-    ]);
-    const nullifiers = [nullifier1, nullifier2];
-
-    // calculate the root of the SMT
-    await smtAlice.add(input1, input1);
-    await smtAlice.add(input2, input2);
-
-    // generate the merkle proof for the inputs
-    const proof1 = await smtAlice.generateCircomVerifierProof(
-      input1,
-      ZERO_HASH,
-    );
-    const proof2 = await smtAlice.generateCircomVerifierProof(
-      input2,
-      ZERO_HASH,
-    );
-
-    // create two output UTXOs, they share the same salt, and different owner
-    const salt3 = newSalt();
-    const output1 = poseidonHash([
-      BigInt(outputValues[0]),
-      salt3,
-      ...Alice.pubKey,
-    ]);
-    const outputCommitments = [output1];
+    const commitments = [input1, input2];
 
     const startTime = Date.now();
     const witness = await circuit.calculateWTNSBin(
       {
-        nullifiers,
-        inputCommitments,
-        inputValues,
-        inputSalts: [salt1, salt2],
-        inputOwnerPrivateKey: senderPrivateKey,
-        root: proof1.root.bigInt(),
-        merkleProof: [
-          proof1.siblings.map((s) => s.bigInt()),
-          proof2.siblings.map((s) => s.bigInt()),
-        ],
-        enabled: [1, 1],
-        outputCommitments,
-        outputValues,
-        outputSalts: [salt3],
-        outputOwnerPublicKeys: [Alice.pubKey],
+        commitments,
+        values,
+        salts: [salt1, salt2],
+        ownerPrivateKey: senderPrivateKey,
       },
       true,
     );
@@ -147,17 +88,16 @@ describe("check_utxos_owner circuit tests", () => {
     // console.log('outputCommitments', outputCommitments);
     // console.log('root', proof1.root.bigInt());
     // console.log("public signals", publicSignals);
-    const tamperedOutputHash = poseidonHash([
-      BigInt(100),
-      salt3,
+    const tamperedCommitment = poseidonHash([
+      BigInt(values[0] + 1),
+      salt1,
       ...Alice.pubKey,
     ]);
     let tamperedPublicSignals = publicSignals.map((ps) =>
-      ps.toString() === outputCommitments[0].toString()
-        ? tamperedOutputHash
+      ps.toString() === commitments[0].toString()
+        ? tamperedCommitment
         : ps,
     );
-    // console.log("tampered public signals", tamperedPublicSignals);
 
     verifyResult = await groth16.verify(
       verificationKey,
