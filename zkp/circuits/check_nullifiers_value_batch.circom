@@ -15,6 +15,6 @@
 // limitations under the License.
 pragma circom 2.2.1;
 
-include "./lib/check-nullifier-value-base.circom";
+include "./lib/check-nullifiers-value-base.circom";
 
 component main { public [ nullifiers, outputCommitments, root, enabled ] } = CheckNullifiersInputsOutputsValue(10, 1, 64);

@@ -30,7 +30,7 @@ const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
 const poseidonHash3 = Poseidon.poseidon3;
 
-describe("check_nullifier_value circuit tests", () => {
+describe("check_nullifiers_value circuit tests", () => {
   let circuit, smtAlice;
 
   const Alice = {};
@@ -40,7 +40,7 @@ describe("check_nullifier_value circuit tests", () => {
     this.timeout(60000);
 
     circuit = await wasm_tester(
-      join(__dirname, "../../circuits/check_nullifier_value.circom"),
+      join(__dirname, "../../circuits/check_nullifiers_value.circom"),
     );
 
     let keypair = genKeypair();

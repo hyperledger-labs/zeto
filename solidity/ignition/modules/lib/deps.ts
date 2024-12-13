@@ -94,6 +94,29 @@ export const NfLockVerifierModule = buildModule(
   },
 );
 
+export const LockNullifiersVerifierModule = buildModule(
+  "Groth16Verifier_CheckNullifiersOwner",
+  (m) => {
+    const verifier = m.contract("Groth16Verifier_CheckNullifiersOwner", []);
+    return { verifier };
+  },
+);
+export const BatchLockNullifiersVerifierModule = buildModule(
+  "Groth16Verifier_CheckNullifiersOwnerBatch",
+  (m) => {
+    const verifier = m.contract("Groth16Verifier_CheckNullifiersOwnerBatch", []);
+    return { verifier };
+  },
+);
+
+export const NfLockNullifiersVerifierModule = buildModule(
+  "Groth16Verifier_CheckNullifiersNfOwner",
+  (m) => {
+    const verifier = m.contract("Groth16Verifier_CheckNullifiersNfOwner", []);
+    return { verifier };
+  },
+);
+
 function PoseidonArtifact(param: number): Artifact {
   const abi = poseidonContract.generateABI(param);
   const bytecode = poseidonContract.createCode(param);

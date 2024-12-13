@@ -19,7 +19,6 @@ interface IZetoNonFungibleInitializable {
     function initialize(
         address initialOwner,
         address _verifier,
-        address _lockVerifier,
-        address _batchLockVerifier
+        address _lockVerifier
     ) external;
 }

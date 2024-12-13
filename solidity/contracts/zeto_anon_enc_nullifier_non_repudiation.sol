@@ -23,6 +23,7 @@ import {Groth16Verifier_AnonEncNullifierNonRepudiation} from "./lib/verifier_ano
 import {Groth16Verifier_AnonEncNullifierNonRepudiationBatch} from "./lib/verifier_anon_enc_nullifier_non_repudiation_batch.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
+import {ZetoLock} from "./lib/zeto_lock.sol";
 import {Commonlib} from "./lib/common.sol";
 
 uint256 constant INPUT_SIZE = 36;
@@ -40,6 +41,7 @@ uint256 constant BATCH_INPUT_SIZE = 140;
 contract Zeto_AnonEncNullifierNonRepudiation is
     ZetoNullifier,
     ZetoFungibleWithdrawWithNullifiers,
+    ZetoLock,
     UUPSUpgradeable
 {
     event UTXOTransferNonRepudiation(
@@ -65,7 +67,9 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         Groth16Verifier_CheckHashesValue _depositVerifier,
         Groth16Verifier_CheckNullifierValue _withdrawVerifier,
         Groth16Verifier_AnonEncNullifierNonRepudiationBatch _batchVerifier,
-        Groth16Verifier_CheckNullifierValueBatch _batchWithdrawVerifier
+        Groth16Verifier_CheckNullifierValueBatch _batchWithdrawVerifier,
+        address _lockVerifier,
+        address _batchLockVerifier
     ) public initializer {
         __ZetoNullifier_init(initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(
@@ -73,6 +77,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is
             _withdrawVerifier,
             _batchWithdrawVerifier
         );
+        __ZetoLock_init(_lockVerifier, _batchLockVerifier);
         verifier = _verifier;
         batchVerifier = _batchVerifier;
     }
@@ -175,6 +180,11 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         require(
             validateTransactionProposal(nullifiers, outputs, root),
             "Invalid transaction proposal"
+        );
+
+        require(
+            validateLockedStates(nullifiers),
+            "At least one UTXO in the input nullifiers are locked"
         );
 
         // Check the proof

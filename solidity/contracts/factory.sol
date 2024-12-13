@@ -126,10 +126,6 @@ contract ZetoTokenFactory is Ownable {
             args.lockVerifier != address(0),
             "Factory: lockVerifier address is required"
         );
-        require(
-            args.batchLockVerifier != address(0),
-            "Factory: batchLockVerifier address is required"
-        );
         address instance = Clones.clone(args.implementation);
         require(
             instance != address(0),
@@ -138,8 +134,7 @@ contract ZetoTokenFactory is Ownable {
         (IZetoNonFungibleInitializable(instance)).initialize(
             initialOwner,
             args.verifier,
-            args.lockVerifier,
-            args.batchLockVerifier
+            args.lockVerifier
         );
         emit ZetoTokenDeployed(instance);
         return instance;

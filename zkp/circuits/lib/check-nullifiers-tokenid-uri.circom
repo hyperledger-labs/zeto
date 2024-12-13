@@ -20,7 +20,7 @@ include "../node_modules/circomlib/circuits/comparators.circom";
 include "../node_modules/circomlib/circuits/babyjub.circom";
 include "../node_modules/circomlib/circuits/smt/smtverifier.circom";
 
-// CheckNullifierForTokenIdAndUri is a circuit that checks the integrity of transactions of Non-Fungible Tokens
+// CheckNullifiersForTokenIdAndUri is a circuit that checks the integrity of transactions of Non-Fungible Tokens
 //   - check that the nullifiers are correctly computed from the token ids, uris and salts
 //   - check that the input commitments match the calculated hashes
 //   - check that the input commitments are included in the Sparse Merkle Tree with the root `root`
@@ -28,7 +28,7 @@ include "../node_modules/circomlib/circuits/smt/smtverifier.circom";
 // commitment = hash(tokenId, uri, salt, ownerPublicKey1, ownerPublicKey2)
 // nullifier = hash(tokenId, uri, salt, ownerPrivatekey)
 //
-template CheckNullifierForTokenIdAndUri(numInputs) {
+template CheckNullifiersForTokenIdAndUri(numInputs) {
   signal input tokenIds[numInputs];
   signal input tokenUris[numInputs];
   signal input nullifiers[numInputs];

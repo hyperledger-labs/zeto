@@ -43,11 +43,10 @@ contract Zeto_NfAnon is
     function initialize(
         address initialOwner,
         Groth16Verifier_NfAnon _verifier,
-        address _lockVerifier,
-        address _batchLockVerifier
+        address _lockVerifier
     ) public initializer {
         __ZetoBase_init(initialOwner);
-        __ZetoLock_init(_lockVerifier, _batchLockVerifier);
+        __ZetoLock_init(_lockVerifier, address(0));
         verifier = _verifier;
     }
 

@@ -18,6 +18,7 @@ pragma solidity ^0.8.20;
 import {IZeto} from "./lib/interfaces/izeto.sol";
 import {Groth16Verifier_NfAnonNullifier} from "./lib/verifier_nf_anon_nullifier.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
+import {ZetoLock} from "./lib/zeto_lock.sol";
 import {Commonlib} from "./lib/common.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
@@ -29,14 +30,21 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 ///        - the hashes in the input and output match the hash(value, salt, owner public key) formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
-contract Zeto_NfAnonNullifier is IZeto, ZetoNullifier, UUPSUpgradeable {
+contract Zeto_NfAnonNullifier is
+    IZeto,
+    ZetoNullifier,
+    ZetoLock,
+    UUPSUpgradeable
+{
     Groth16Verifier_NfAnonNullifier verifier;
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_NfAnonNullifier _verifier
+        Groth16Verifier_NfAnonNullifier _verifier,
+        address _lockVerifier
     ) public initializer {
         __ZetoNullifier_init(initialOwner);
+        __ZetoLock_init(_lockVerifier, address(0));
         verifier = _verifier;
     }
 
@@ -67,6 +75,11 @@ contract Zeto_NfAnonNullifier is IZeto, ZetoNullifier, UUPSUpgradeable {
         require(
             validateTransactionProposal(nullifiers, outputs, root),
             "Invalid transaction proposal"
+        );
+
+        require(
+            validateLockedStates(nullifiers),
+            "The input nullifier is locked"
         );
 
         // construct the public inputs

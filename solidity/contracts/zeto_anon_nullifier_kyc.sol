@@ -24,6 +24,7 @@ import {Groth16Verifier_AnonNullifierKyc} from "./lib/verifier_anon_nullifier_ky
 import {Groth16Verifier_AnonNullifierKycBatch} from "./lib/verifier_anon_nullifier_kyc_batch.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
+import {ZetoLock} from "./lib/zeto_lock.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -43,6 +44,7 @@ contract Zeto_AnonNullifierKyc is
     IZeto,
     ZetoNullifier,
     ZetoFungibleWithdrawWithNullifiers,
+    ZetoLock,
     Registry,
     UUPSUpgradeable
 {
@@ -55,7 +57,9 @@ contract Zeto_AnonNullifierKyc is
         Groth16Verifier_CheckHashesValue _depositVerifier,
         Groth16Verifier_CheckNullifierValue _withdrawVerifier,
         Groth16Verifier_AnonNullifierKycBatch _batchVerifier,
-        Groth16Verifier_CheckNullifierValueBatch _batchWithdrawVerifier
+        Groth16Verifier_CheckNullifierValueBatch _batchWithdrawVerifier,
+        address _lockVerifier,
+        address _batchLockVerifier
     ) public initializer {
         __Registry_init();
         __ZetoNullifier_init(initialOwner);
@@ -64,6 +68,7 @@ contract Zeto_AnonNullifierKyc is
             _withdrawVerifier,
             _batchWithdrawVerifier
         );
+        __ZetoLock_init(_lockVerifier, _batchLockVerifier);
         verifier = _verifier;
         batchVerifier = _batchVerifier;
     }
@@ -133,6 +138,11 @@ contract Zeto_AnonNullifierKyc is
         require(
             validateTransactionProposal(nullifiers, outputs, root),
             "Invalid transaction proposal"
+        );
+
+        require(
+            validateLockedStates(nullifiers),
+            "At least one UTXO in the input nullifiers are locked"
         );
 
         // Check the proof

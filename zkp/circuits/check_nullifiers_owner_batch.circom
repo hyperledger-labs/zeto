@@ -13,20 +13,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+pragma circom 2.2.1;
 
-import { ethers, ignition } from "hardhat";
-import zetoModule from "../../ignition/modules/zeto_nf_anon_nullifier";
+include "./lib/check-nullifiers.circom";
+include "./node_modules/circomlib/circuits/babyjub.circom";
 
-export async function deployDependencies() {
-  const [deployer] = await ethers.getSigners();
-
-  const { verifier, lockVerifier, smtLib, poseidon3 } = await ignition.deploy(zetoModule);
-  return {
-    deployer,
-    args: [await deployer.getAddress(), verifier.target, lockVerifier.target],
-    libraries: {
-      SmtLib: smtLib.target,
-      PoseidonUnit3L: poseidon3.target,
-    },
-  };
-}
+component main { public [ nullifiers ] } = CheckNullifiers(10);

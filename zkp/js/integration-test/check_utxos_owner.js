@@ -30,16 +30,16 @@ const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
 const poseidonHash3 = Poseidon.poseidon3;
 
-describe("check_nullifier_value circuit tests", () => {
+describe("check_utxos_owner circuit tests", () => {
   let circuit, provingKeyFile, verificationKey, smtAlice;
 
   const Alice = {};
   let senderPrivateKey;
 
   before(async () => {
-    circuit = await loadCircuit("check_nullifier_value");
+    circuit = await loadCircuit("check_utxos_owner");
     ({ provingKeyFile, verificationKey } = loadProvingKeys(
-      "check_nullifier_value",
+      "check_utxos_owner",
     ));
 
     let keypair = genKeypair();

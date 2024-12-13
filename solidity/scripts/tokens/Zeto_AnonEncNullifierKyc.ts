@@ -26,6 +26,8 @@ export async function deployDependencies() {
     verifier,
     batchVerifier,
     batchWithdrawVerifier,
+    lockVerifier,
+    batchLockVerifier,
     smtLib,
     poseidon2,
     poseidon3,
@@ -39,6 +41,8 @@ export async function deployDependencies() {
       withdrawVerifier.target,
       batchVerifier.target,
       batchWithdrawVerifier.target,
+      lockVerifier.target,
+      batchLockVerifier.target,
     ],
     libraries: {
       SmtLib: smtLib.target,
