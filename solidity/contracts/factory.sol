@@ -29,10 +29,10 @@ contract ZetoTokenFactory is Ownable {
         address implementation;
         address depositVerifier;
         address withdrawVerifier;
+        address lockVerifier;
         address verifier;
         address batchVerifier;
         address batchWithdrawVerifier;
-        address lockVerifier;
         address batchLockVerifier;
     }
 
