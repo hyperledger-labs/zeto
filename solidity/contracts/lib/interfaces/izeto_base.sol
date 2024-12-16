@@ -24,4 +24,7 @@ interface IZetoBase {
         address indexed submitter,
         bytes data
     );
+    error UTXONotMinted(uint256 utxo);
+    error UTXOAlreadyOwned(uint256 utxo);
+    error UTXOAlreadySpent(uint256 utxo);
 }

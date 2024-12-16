@@ -16,21 +16,14 @@
 pragma solidity ^0.8.20;
 
 import {Commonlib} from "./common.sol";
+import {IZetoCommon} from "./interfaces/izeto_common.sol";
 import {Arrays} from "@openzeppelin/contracts/utils/Arrays.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 /// @title A sample base implementation of a Zeto based token contract
 /// @author Kaleido, Inc.
 /// @dev Implements common functionalities of Zeto based tokens
-abstract contract ZetoCommon is OwnableUpgradeable {
-    uint256 public constant MAX_BATCH = 10;
-    error UTXONotMinted(uint256 utxo);
-    error UTXOAlreadyOwned(uint256 utxo);
-    error UTXOAlreadySpent(uint256 utxo);
-    error UTXODuplicate(uint256 utxo);
-    error IdentityNotRegistered(address addr);
-    error UTXOArrayTooLarge(uint256 maxAllowed);
-
+abstract contract ZetoCommon is IZetoCommon, OwnableUpgradeable {
     function __ZetoCommon_init(address initialOwner) internal onlyInitializing {
         __Ownable_init(initialOwner);
     }

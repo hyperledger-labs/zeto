@@ -16,7 +16,8 @@
 pragma solidity ^0.8.20;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
-import {ILockVerifier} from "./lib/interfaces/izeto_lockable.sol";
+import {MAX_BATCH} from "./lib/interfaces/izeto_common.sol";
+import {ILockVerifier, IBatchLockVerifier} from "./lib/interfaces/izeto_lockable.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValue} from "./lib/verifier_check_inputs_outputs_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValueBatch} from "./lib/verifier_check_inputs_outputs_value_batch.sol";
@@ -58,8 +59,8 @@ contract Zeto_Anon is
         Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier,
         Groth16Verifier_AnonBatch _batchVerifier,
         Groth16Verifier_CheckInputsOutputsValueBatch _batchWithdrawVerifier,
-        address _lockVerifier,
-        address _batchLockVerifier
+        ILockVerifier _lockVerifier,
+        IBatchLockVerifier _batchLockVerifier
     ) public initializer {
         __ZetoBase_init(initialOwner);
         __ZetoFungibleWithdraw_init(
@@ -113,15 +114,8 @@ contract Zeto_Anon is
         // Check and pad inputs and outputs based on the max size
         (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
 
-        require(
-            validateTransactionProposal(inputs, outputs),
-            "Invalid transaction proposal"
-        );
-
-        require(
-            validateLockedStates(inputs),
-            "At least one UTXO in the inputs are locked"
-        );
+        validateTransactionProposal(inputs, outputs);
+        validateLockedStates(inputs);
 
         // Check the proof
         if (inputs.length > 2 || outputs.length > 2) {
@@ -197,6 +191,7 @@ contract Zeto_Anon is
         outputs[0] = output;
         (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
         validateTransactionProposal(inputs, outputs);
+        validateLockedStates(inputs);
         _withdraw(amount, inputs, output, proof);
         processInputsAndOutputs(inputs, outputs);
         emit UTXOWithdraw(amount, inputs, output, msg.sender, data);

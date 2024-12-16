@@ -21,6 +21,8 @@ import {Groth16Verifier_CheckNullifierValue} from "./lib/verifier_check_nullifie
 import {Groth16Verifier_CheckNullifierValueBatch} from "./lib/verifier_check_nullifier_value_batch.sol";
 import {Groth16Verifier_AnonEncNullifierNonRepudiation} from "./lib/verifier_anon_enc_nullifier_non_repudiation.sol";
 import {Groth16Verifier_AnonEncNullifierNonRepudiationBatch} from "./lib/verifier_anon_enc_nullifier_non_repudiation_batch.sol";
+import {MAX_BATCH} from "./lib/interfaces/izeto_common.sol";
+import {ILockVerifier, IBatchLockVerifier} from "./lib/interfaces/izeto_lockable.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {ZetoLock} from "./lib/zeto_lock.sol";
@@ -68,8 +70,8 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         Groth16Verifier_CheckNullifierValue _withdrawVerifier,
         Groth16Verifier_AnonEncNullifierNonRepudiationBatch _batchVerifier,
         Groth16Verifier_CheckNullifierValueBatch _batchWithdrawVerifier,
-        address _lockVerifier,
-        address _batchLockVerifier
+        ILockVerifier _lockVerifier,
+        IBatchLockVerifier _batchLockVerifier
     ) public initializer {
         __ZetoNullifier_init(initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(
@@ -177,15 +179,8 @@ contract Zeto_AnonEncNullifierNonRepudiation is
             outputs,
             MAX_BATCH
         );
-        require(
-            validateTransactionProposal(nullifiers, outputs, root),
-            "Invalid transaction proposal"
-        );
-
-        require(
-            validateLockedStates(nullifiers),
-            "At least one UTXO in the input nullifiers are locked"
-        );
+        validateTransactionProposal(nullifiers, outputs, root);
+        validateLockedStates(nullifiers);
 
         // Check the proof
         if (nullifiers.length > 2 || outputs.length > 2) {
@@ -307,6 +302,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is
             MAX_BATCH
         );
         validateTransactionProposal(nullifiers, outputs, root);
+        validateLockedStates(nullifiers);
         _withdrawWithNullifiers(amount, nullifiers, output, root, proof);
         processInputsAndOutputs(nullifiers, outputs);
         emit UTXOWithdraw(amount, nullifiers, output, msg.sender, data);

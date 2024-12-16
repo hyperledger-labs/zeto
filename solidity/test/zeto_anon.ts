@@ -414,10 +414,21 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
       )).rejectedWith(`UTXOAlreadyLocked(${utxo7.hash.toString()})`);
     });
 
-    it("the original owner can NOT use the proper proof to spend the locked state", async function () {
+    it("the original owner can NOT spend the locked state", async function () {
       const utxo8 = newUTXO(15, Alice);
-      const { inputCommitments, outputCommitments, encodedProof } = await prepareProof(circuit, provingKey, Bob, [utxo7, ZERO_UTXO], [utxo8, ZERO_UTXO], [Alice, Alice]);
-      await expect(sendTx(Bob, inputCommitments, outputCommitments, encodedProof)).to.be.rejectedWith("UTXOAlreadyLocked");
+      await expect(doTransfer(Bob, [utxo7, ZERO_UTXO], [utxo8, ZERO_UTXO], [Alice, Alice])).to.be.rejectedWith("UTXOAlreadyLocked");
+    });
+
+    it("the original owner can NOT withdraw the locked state", async function () {
+      const outputCommitment = newUTXO(5, Bob);
+
+      const { inputCommitments, outputCommitments, encodedProof } =
+        await prepareWithdrawProof(Bob, [utxo7, ZERO_UTXO], outputCommitment);
+
+      // Alice withdraws her UTXOs to ERC20 tokens
+      await expect(zeto
+        .connect(Bob.signer)
+        .withdraw(10, inputCommitments, outputCommitments[0], encodedProof, "0x")).to.be.rejectedWith("UTXOAlreadyLocked");
     });
 
     it("the designated delegate can use the proper proof to spend the locked state", async function () {

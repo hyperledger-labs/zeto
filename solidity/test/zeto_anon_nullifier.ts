@@ -479,7 +479,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
       )).rejectedWith(`UTXOAlreadyLocked(${nullifier1.hash.toString()})`);
     });
 
-    it("the original owner can NOT use the proper proof to spend the locked state", async function () {
+    it("the original owner can NOT spend the locked state", async function () {
       // Bob generates inclusion proofs for the UTXOs to be spent, as private input to the proof generation
       const root = await smtBob.root();
       const proof1 = await smtBob.generateCircomVerifierProof(utxo7.hash, root);
@@ -502,6 +502,40 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
         merkleProofs,
         [Alice, Bob],
       )).to.be.rejectedWith("UTXOAlreadyLocked");
+    });
+
+    it("the original owner can NOT withdraw the locked state", async function () {
+      // Bob generates inclusion proofs for the UTXOs to be spent, as private input to the proof generation
+      const root = await smtBob.root();
+      const proof1 = await smtBob.generateCircomVerifierProof(utxo7.hash, root);
+      const proof2 = await smtBob.generateCircomVerifierProof(0n, root);
+      const merkleProofs = [
+        proof1.siblings.map((s) => s.bigInt()),
+        proof2.siblings.map((s) => s.bigInt()),
+      ];
+
+      const _utxo = newUTXO(5, Bob);
+
+      const { nullifiers, outputCommitments, encodedProof } =
+        await prepareNullifierWithdrawProof(
+          Bob,
+          [utxo7, ZERO_UTXO],
+          [nullifier1, ZERO_UTXO],
+          _utxo,
+          root.bigInt(),
+          merkleProofs,
+        );
+
+      await expect(zeto
+        .connect(Bob.signer)
+        .withdraw(
+          80,
+          nullifiers,
+          outputCommitments[0],
+          root.bigInt(),
+          encodedProof,
+          "0x",
+        )).to.be.rejectedWith("UTXOAlreadyLocked");
     });
 
     it("the designated delegate can use the proper proof to spend the locked state", async function () {

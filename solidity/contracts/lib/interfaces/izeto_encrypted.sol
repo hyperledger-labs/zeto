@@ -15,9 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.20;
 
-import {IZetoBase} from "./izeto_base.sol";
-
-interface IZetoEncrypted is IZetoBase {
+interface IZetoEncrypted {
     event UTXOTransferWithEncryptedValues(
         uint256[] inputs,
         uint256[] outputs,

@@ -36,10 +36,10 @@ abstract contract ZetoLock is IZetoBase, IZetoLockable, OwnableUpgradeable {
     IBatchLockVerifier internal batchLockVerifier;
 
     function __ZetoLock_init(
-        address _lockVerifier,
-        address _batchLockVerifier
+        ILockVerifier _lockVerifier,
+        IBatchLockVerifier _batchLockVerifier
     ) public onlyInitializing {
-        lockVerifier = ILockVerifier(_lockVerifier);
+        lockVerifier = _lockVerifier;
         batchLockVerifier = IBatchLockVerifier(_batchLockVerifier);
     }
 

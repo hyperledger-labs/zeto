@@ -506,7 +506,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
       )).rejectedWith(`UTXOAlreadyLocked(${nullifier1.hash.toString()})`);
     });
 
-    it("the original owner can NOT use the proper proof to spend the locked state", async function () {
+    it("the original owner can NOT spend the locked state", async function () {
       // Alice generates inclusion proofs for the UTXOs to be spent, as private input to the proof generation
       const root = await smtAlice.root();
       const proof1 = await smtAlice.generateCircomVerifierProof(utxo4.hash, root);
@@ -529,6 +529,40 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
         merkleProofs,
         [Charlie, Alice],
       )).to.be.rejectedWith("UTXOAlreadyLocked");
+    });
+
+    it("the original owner can NOT withdraw the locked state", async function () {
+      // Alice generates inclusion proofs for the UTXOs to be spent, as private input to the proof generation
+      const root = await smtAlice.root();
+      const proof1 = await smtAlice.generateCircomVerifierProof(utxo4.hash, root);
+      const proof2 = await smtAlice.generateCircomVerifierProof(0n, root);
+      const merkleProofs = [
+        proof1.siblings.map((s) => s.bigInt()),
+        proof2.siblings.map((s) => s.bigInt()),
+      ];
+
+      const utxo9 = newUTXO(0, Alice);
+
+      const { nullifiers, outputCommitments, encodedProof } =
+        await prepareNullifierWithdrawProof(
+          Alice,
+          [utxo4, ZERO_UTXO],
+          [nullifier1, ZERO_UTXO],
+          utxo9,
+          root.bigInt(),
+          merkleProofs,
+        );
+
+      await expect(zeto
+        .connect(Alice.signer)
+        .withdraw(
+          80,
+          nullifiers,
+          outputCommitments[0],
+          root.bigInt(),
+          encodedProof,
+          "0x",
+        )).to.be.rejectedWith("UTXOAlreadyLocked");
     });
 
     it("the designated delegate can use the proper proof to spend the locked state", async function () {

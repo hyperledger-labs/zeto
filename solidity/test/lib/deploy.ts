@@ -48,9 +48,8 @@ export async function deployZeto(tokenName: string) {
       ? deployFungibleCloneable
       : deployNonFungibleCloneable;
     const result = await deployFunc(tokenName);
-    console.log("deployFunc result: ", JSON.stringify(result, null, 2));
     ({ deployer, zetoImpl, erc20, args } = result as any);
-    const [
+    let [
       deployerAddr,
       verifier,
       depositVerifier,
@@ -60,6 +59,9 @@ export async function deployZeto(tokenName: string) {
       lockVerifier,
       batchLockVerifier,
     ] = args;
+    if (!isFungible) {
+      ({ deployerAddr, verifier, lockVerifier } = args);
+    }
 
     // we want to test the effectiveness of the factory contract
     // to create clones of the Zeto implementation contract
@@ -83,7 +85,6 @@ export async function deployZeto(tokenName: string) {
       batchLockVerifier:
         batchLockVerifier || "0x0000000000000000000000000000000000000000",
     };
-    console.log("impl info: ", JSON.stringify(implInfo, null, 2));
     const tx1 = await factory
       .connect(deployer)
       .registerImplementation(tokenName, implInfo as any);

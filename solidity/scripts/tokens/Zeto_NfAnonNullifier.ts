@@ -23,7 +23,11 @@ export async function deployDependencies() {
   const { verifier, lockVerifier, smtLib, poseidon3 } = await ignition.deploy(zetoModule);
   return {
     deployer,
-    args: [await deployer.getAddress(), verifier.target, lockVerifier.target],
+    args: [
+      await deployer.getAddress(),
+      verifier.target,
+      lockVerifier.target,
+    ],
     libraries: {
       SmtLib: smtLib.target,
       PoseidonUnit3L: poseidon3.target,
