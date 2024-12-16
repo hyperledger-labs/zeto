@@ -60,7 +60,7 @@ export async function deployZeto(tokenName: string) {
       batchLockVerifier,
     ] = args;
     if (!isFungible) {
-      ({ deployerAddr, verifier, lockVerifier } = args);
+      ([deployerAddr, verifier, lockVerifier] = args);
     }
 
     // we want to test the effectiveness of the factory contract
