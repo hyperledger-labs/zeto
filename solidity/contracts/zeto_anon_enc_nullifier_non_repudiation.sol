@@ -57,31 +57,31 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         bytes data
     );
 
-    Groth16Verifier_AnonEncNullifierNonRepudiation internal verifier;
-    Groth16Verifier_AnonEncNullifierNonRepudiationBatch internal batchVerifier;
+    Groth16Verifier_AnonEncNullifierNonRepudiation internal _verifier;
+    Groth16Verifier_AnonEncNullifierNonRepudiationBatch internal _batchVerifier;
     // the arbiter public key that must be used to
     // encrypt the secrets of every transaction
     uint256[2] private arbiter;
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_AnonEncNullifierNonRepudiation _verifier,
-        Groth16Verifier_CheckHashesValue _depositVerifier,
-        Groth16Verifier_CheckNullifierValue _withdrawVerifier,
-        Groth16Verifier_AnonEncNullifierNonRepudiationBatch _batchVerifier,
-        Groth16Verifier_CheckNullifierValueBatch _batchWithdrawVerifier,
-        ILockVerifier _lockVerifier,
-        IBatchLockVerifier _batchLockVerifier
+        Groth16Verifier_AnonEncNullifierNonRepudiation verifier,
+        Groth16Verifier_CheckHashesValue depositVerifier,
+        Groth16Verifier_CheckNullifierValue withdrawVerifier,
+        Groth16Verifier_AnonEncNullifierNonRepudiationBatch batchVerifier,
+        Groth16Verifier_CheckNullifierValueBatch batchWithdrawVerifier,
+        ILockVerifier lockVerifier,
+        IBatchLockVerifier batchLockVerifier
     ) public initializer {
         __ZetoNullifier_init(initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(
-            _depositVerifier,
-            _withdrawVerifier,
-            _batchWithdrawVerifier
+            depositVerifier,
+            withdrawVerifier,
+            batchWithdrawVerifier
         );
-        __ZetoLock_init(_lockVerifier, _batchLockVerifier);
-        verifier = _verifier;
-        batchVerifier = _batchVerifier;
+        __ZetoLock_init(lockVerifier, batchLockVerifier);
+        _verifier = verifier;
+        _batchVerifier = batchVerifier;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -206,7 +206,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is
 
             // Check the proof using batchVerifier
             require(
-                batchVerifier.verifyProof(
+                _batchVerifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,
@@ -236,7 +236,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is
             }
             // Check the proof
             require(
-                verifier.verifyProof(
+                _verifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,

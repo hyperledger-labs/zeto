@@ -49,28 +49,28 @@ contract Zeto_Anon is
     ZetoLock,
     UUPSUpgradeable
 {
-    Groth16Verifier_Anon internal verifier;
-    Groth16Verifier_AnonBatch internal batchVerifier;
+    Groth16Verifier_Anon internal _verifier;
+    Groth16Verifier_AnonBatch internal _batchVerifier;
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_Anon _verifier,
-        Groth16Verifier_CheckHashesValue _depositVerifier,
-        Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier,
-        Groth16Verifier_AnonBatch _batchVerifier,
-        Groth16Verifier_CheckInputsOutputsValueBatch _batchWithdrawVerifier,
-        ILockVerifier _lockVerifier,
-        IBatchLockVerifier _batchLockVerifier
+        Groth16Verifier_Anon verifier,
+        Groth16Verifier_CheckHashesValue depositVerifier,
+        Groth16Verifier_CheckInputsOutputsValue withdrawVerifier,
+        Groth16Verifier_AnonBatch batchVerifier,
+        Groth16Verifier_CheckInputsOutputsValueBatch batchWithdrawVerifier,
+        ILockVerifier lockVerifier,
+        IBatchLockVerifier batchLockVerifier
     ) public initializer {
         __ZetoBase_init(initialOwner);
         __ZetoFungibleWithdraw_init(
-            _depositVerifier,
-            _withdrawVerifier,
-            _batchWithdrawVerifier
+            depositVerifier,
+            withdrawVerifier,
+            batchWithdrawVerifier
         );
-        __ZetoLock_init(_lockVerifier, _batchLockVerifier);
-        verifier = _verifier;
-        batchVerifier = _batchVerifier;
+        __ZetoLock_init(lockVerifier, batchLockVerifier);
+        _verifier = verifier;
+        _batchVerifier = batchVerifier;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -132,7 +132,7 @@ contract Zeto_Anon is
 
             // Check the proof using batchVerifier
             require(
-                batchVerifier.verifyProof(
+                _batchVerifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,
@@ -153,7 +153,7 @@ contract Zeto_Anon is
             }
             // Check the proof
             require(
-                verifier.verifyProof(
+                _verifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,

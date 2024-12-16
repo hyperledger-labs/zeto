@@ -132,7 +132,7 @@ func (s *E2ETestSuite) TearDownSuite() {
 	assert.NoError(s.T(), err)
 }
 
-func (s *E2ETestSuite) TestZeto_1_SuccessfulProving() {
+func (s *E2ETestSuite) TestZeto_anon_SuccessfulProving() {
 	calc, provingKey, err := loadCircuit("anon")
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
@@ -193,7 +193,7 @@ func (s *E2ETestSuite) TestZeto_1_SuccessfulProving() {
 	assert.Equal(s.T(), 4, len(proof.PubSignals))
 }
 
-func (s *E2ETestSuite) TestZeto_2_SuccessfulProving() {
+func (s *E2ETestSuite) TestZeto_anon_enc_SuccessfulProving() {
 	calc, provingKey, err := loadCircuit("anon_enc")
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
@@ -271,7 +271,7 @@ func (s *E2ETestSuite) TestZeto_2_SuccessfulProving() {
 	assert.Equal(s.T(), output1.String(), calculatedHash.String())
 }
 
-func (s *E2ETestSuite) TestZeto_3_SuccessfulProving() {
+func (s *E2ETestSuite) TestZeto_anon_nullifier_SuccessfulProving() {
 	calc, provingKey, err := loadCircuit("anon_nullifier")
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
@@ -355,7 +355,7 @@ func (s *E2ETestSuite) TestZeto_3_SuccessfulProving() {
 	assert.Equal(s.T(), 7, len(proof.PubSignals))
 }
 
-func (s *E2ETestSuite) TestZeto_4_SuccessfulProving() {
+func (s *E2ETestSuite) TestZeto_anon_enc_nullifier_SuccessfulProving() {
 	calc, provingKey, err := loadCircuit("anon_enc_nullifier")
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
@@ -444,7 +444,7 @@ func (s *E2ETestSuite) TestZeto_4_SuccessfulProving() {
 	assert.Equal(s.T(), 18, len(proof.PubSignals))
 }
 
-func (s *E2ETestSuite) TestZeto_5_SuccessfulProving() {
+func (s *E2ETestSuite) TestZeto_nf_anon_SuccessfulProving() {
 	calc, provingKey, err := loadCircuit("nf_anon")
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
@@ -503,7 +503,7 @@ func (s *E2ETestSuite) TestZeto_5_SuccessfulProving() {
 
 }
 
-func (s *E2ETestSuite) TestZeto_5_SuccessfulProvingWithConcurrency() {
+func (s *E2ETestSuite) TestZeto_nf_anon_SuccessfulProvingWithConcurrency() {
 	concurrency := 10
 	resultChan := make(chan struct{}, concurrency)
 
@@ -582,7 +582,7 @@ func (s *E2ETestSuite) TestZeto_5_SuccessfulProvingWithConcurrency() {
 
 }
 
-func (s *E2ETestSuite) TestZeto_6_SuccessfulProving() {
+func (s *E2ETestSuite) TestZeto_nf_anon_nullifier_SuccessfulProving() {
 	calc, provingKey, err := loadCircuit("nf_anon_nullifier")
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)

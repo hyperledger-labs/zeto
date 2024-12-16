@@ -25,23 +25,23 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 /// @author Kaleido, Inc.
 /// @dev Defines the verifier library for checking UTXOs against a claimed value.
 abstract contract ZetoFungible is OwnableUpgradeable {
-    // depositVerifier library for checking UTXOs against a claimed value.
+    // _depositVerifier library for checking UTXOs against a claimed value.
     // this can be used in the optional deposit calls to verify that
     // the UTXOs match the deposited value
-    Groth16Verifier_CheckHashesValue internal depositVerifier;
+    Groth16Verifier_CheckHashesValue internal _depositVerifier;
 
     error WithdrawArrayTooLarge(uint256 maxAllowed);
 
-    IERC20 internal erc20;
+    IERC20 internal _erc20;
 
     function __ZetoFungible_init(
-        Groth16Verifier_CheckHashesValue _depositVerifier
+        Groth16Verifier_CheckHashesValue depositVerifier
     ) public onlyInitializing {
-        depositVerifier = _depositVerifier;
+        _depositVerifier = depositVerifier;
     }
 
-    function setERC20(IERC20 _erc20) public onlyOwner {
-        erc20 = _erc20;
+    function setERC20(IERC20 erc20) public onlyOwner {
+        _erc20 = erc20;
     }
 
     function _deposit(
@@ -59,7 +59,7 @@ abstract contract ZetoFungible is OwnableUpgradeable {
 
         // Check the proof
         require(
-            depositVerifier.verifyProof(
+            _depositVerifier.verifyProof(
                 proof.pA,
                 proof.pB,
                 proof.pC,
@@ -69,7 +69,7 @@ abstract contract ZetoFungible is OwnableUpgradeable {
         );
 
         require(
-            erc20.transferFrom(msg.sender, address(this), amount),
+            _erc20.transferFrom(msg.sender, address(this), amount),
             "Failed to transfer ERC20 tokens"
         );
     }

@@ -32,16 +32,16 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 ///          (aka the sender is authorized to spend the input UTXOs)
 ///        - The input UTXOs and output UTXOs are valid in terms of obeying mass conservation rules
 contract Zeto_NfAnon is IZeto, ZetoBase, ZetoLock, UUPSUpgradeable {
-    Groth16Verifier_NfAnon internal verifier;
+    Groth16Verifier_NfAnon internal _verifier;
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_NfAnon _verifier,
-        ILockVerifier _lockVerifier
+        Groth16Verifier_NfAnon verifier,
+        ILockVerifier lockVerifier
     ) public initializer {
         __ZetoBase_init(initialOwner);
-        __ZetoLock_init(_lockVerifier, IBatchLockVerifier(address(0)));
-        verifier = _verifier;
+        __ZetoLock_init(lockVerifier, IBatchLockVerifier(address(0)));
+        _verifier = verifier;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -83,7 +83,7 @@ contract Zeto_NfAnon is IZeto, ZetoBase, ZetoLock, UUPSUpgradeable {
 
         // Check the proof
         require(
-            verifier.verifyProof(proof.pA, proof.pB, proof.pC, publicInputs),
+            _verifier.verifyProof(proof.pA, proof.pB, proof.pC, publicInputs),
             "Invalid proof"
         );
 

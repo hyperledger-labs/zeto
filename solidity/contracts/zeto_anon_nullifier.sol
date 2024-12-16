@@ -47,28 +47,28 @@ contract Zeto_AnonNullifier is
     ZetoLock,
     UUPSUpgradeable
 {
-    Groth16Verifier_AnonNullifier internal verifier;
-    Groth16Verifier_AnonNullifierBatch internal batchVerifier;
+    Groth16Verifier_AnonNullifier internal _verifier;
+    Groth16Verifier_AnonNullifierBatch internal _batchVerifier;
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_AnonNullifier _verifier,
-        Groth16Verifier_CheckHashesValue _depositVerifier,
-        Groth16Verifier_CheckNullifierValue _withdrawVerifier,
-        Groth16Verifier_AnonNullifierBatch _batchVerifier,
-        Groth16Verifier_CheckNullifierValueBatch _batchWithdrawVerifier,
-        ILockVerifier _lockVerifier,
-        IBatchLockVerifier _batchLockVerifier
+        Groth16Verifier_AnonNullifier verifier,
+        Groth16Verifier_CheckHashesValue depositVerifier,
+        Groth16Verifier_CheckNullifierValue withdrawVerifier,
+        Groth16Verifier_AnonNullifierBatch batchVerifier,
+        Groth16Verifier_CheckNullifierValueBatch batchWithdrawVerifier,
+        ILockVerifier lockVerifier,
+        IBatchLockVerifier batchLockVerifier
     ) public initializer {
         __ZetoNullifier_init(initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(
-            _depositVerifier,
-            _withdrawVerifier,
-            _batchWithdrawVerifier
+            depositVerifier,
+            withdrawVerifier,
+            batchWithdrawVerifier
         );
-        __ZetoLock_init(_lockVerifier, _batchLockVerifier);
-        verifier = _verifier;
-        batchVerifier = _batchVerifier;
+        __ZetoLock_init(lockVerifier, batchLockVerifier);
+        _verifier = verifier;
+        _batchVerifier = batchVerifier;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -145,7 +145,7 @@ contract Zeto_AnonNullifier is
 
             // Check the proof using batchVerifier
             require(
-                batchVerifier.verifyProof(
+                _batchVerifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,
@@ -167,7 +167,7 @@ contract Zeto_AnonNullifier is
             }
             // Check the proof
             require(
-                verifier.verifyProof(
+                _verifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,

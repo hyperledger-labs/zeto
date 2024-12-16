@@ -31,17 +31,17 @@ abstract contract ZetoFungibleWithdrawWithNullifiers is ZetoFungible {
     // nullifierVerifier library for checking nullifiers against a claimed value.
     // this can be used in the optional withdraw calls to verify that the nullifiers
     // match the withdrawn value
-    Groth16Verifier_CheckNullifierValue internal withdrawVerifier;
-    Groth16Verifier_CheckNullifierValueBatch internal batchWithdrawVerifier;
+    Groth16Verifier_CheckNullifierValue internal _withdrawVerifier;
+    Groth16Verifier_CheckNullifierValueBatch internal _batchWithdrawVerifier;
 
     function __ZetoFungibleWithdrawWithNullifiers_init(
-        Groth16Verifier_CheckHashesValue _depositVerifier,
-        Groth16Verifier_CheckNullifierValue _withdrawVerifier,
-        Groth16Verifier_CheckNullifierValueBatch _batchWithdrawVerifier
+        Groth16Verifier_CheckHashesValue depositVerifier,
+        Groth16Verifier_CheckNullifierValue withdrawVerifier,
+        Groth16Verifier_CheckNullifierValueBatch batchWithdrawVerifier
     ) internal onlyInitializing {
-        __ZetoFungible_init(_depositVerifier);
-        withdrawVerifier = _withdrawVerifier;
-        batchWithdrawVerifier = _batchWithdrawVerifier;
+        __ZetoFungible_init(depositVerifier);
+        _withdrawVerifier = withdrawVerifier;
+        _batchWithdrawVerifier = batchWithdrawVerifier;
     }
 
     function constructPublicInputs(
@@ -103,7 +103,7 @@ abstract contract ZetoFungibleWithdrawWithNullifiers is ZetoFungible {
             }
             // Check the proof
             require(
-                batchWithdrawVerifier.verifyProof(
+                _batchWithdrawVerifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,
@@ -126,7 +126,7 @@ abstract contract ZetoFungibleWithdrawWithNullifiers is ZetoFungible {
             }
             // Check the proof
             require(
-                withdrawVerifier.verifyProof(
+                _withdrawVerifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,
@@ -137,7 +137,7 @@ abstract contract ZetoFungibleWithdrawWithNullifiers is ZetoFungible {
         }
 
         require(
-            erc20.transfer(msg.sender, amount),
+            _erc20.transfer(msg.sender, amount),
             "Failed to transfer ERC20 tokens"
         );
     }

@@ -32,15 +32,15 @@ abstract contract ZetoLock is IZetoBase, IZetoLockable, OwnableUpgradeable {
     // by the same party that did the locking.
     mapping(uint256 => address) internal lockedUTXOs;
 
-    ILockVerifier internal lockVerifier;
-    IBatchLockVerifier internal batchLockVerifier;
+    ILockVerifier internal _lockVerifier;
+    IBatchLockVerifier internal _batchLockVerifier;
 
     function __ZetoLock_init(
-        ILockVerifier _lockVerifier,
-        IBatchLockVerifier _batchLockVerifier
+        ILockVerifier lockVerifier,
+        IBatchLockVerifier batchLockVerifier
     ) public onlyInitializing {
-        lockVerifier = _lockVerifier;
-        batchLockVerifier = IBatchLockVerifier(_batchLockVerifier);
+        _lockVerifier = lockVerifier;
+        _batchLockVerifier = batchLockVerifier;
     }
 
     // should be called by escrow contracts that will use uploaded proofs
@@ -112,7 +112,7 @@ abstract contract ZetoLock is IZetoBase, IZetoLockable, OwnableUpgradeable {
         uint256[2] memory utxos,
         Commonlib.Proof calldata proof
     ) internal view returns (bool) {
-        return lockVerifier.verifyProof(proof.pA, proof.pB, proof.pC, utxos);
+        return _lockVerifier.verifyProof(proof.pA, proof.pB, proof.pC, utxos);
     }
 
     function _verifyBatchLockProof(
@@ -120,6 +120,6 @@ abstract contract ZetoLock is IZetoBase, IZetoLockable, OwnableUpgradeable {
         Commonlib.Proof calldata proof
     ) internal view returns (bool) {
         return
-            batchLockVerifier.verifyProof(proof.pA, proof.pB, proof.pC, utxos);
+            _batchLockVerifier.verifyProof(proof.pA, proof.pB, proof.pC, utxos);
     }
 }

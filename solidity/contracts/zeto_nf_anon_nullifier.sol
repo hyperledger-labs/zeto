@@ -37,16 +37,16 @@ contract Zeto_NfAnonNullifier is
     ZetoLock,
     UUPSUpgradeable
 {
-    Groth16Verifier_NfAnonNullifier verifier;
+    Groth16Verifier_NfAnonNullifier _verifier;
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_NfAnonNullifier _verifier,
-        ILockVerifier _lockVerifier
+        Groth16Verifier_NfAnonNullifier verifier,
+        ILockVerifier lockVerifier
     ) public initializer {
         __ZetoNullifier_init(initialOwner);
-        __ZetoLock_init(_lockVerifier, IBatchLockVerifier(address(0)));
-        verifier = _verifier;
+        __ZetoLock_init(lockVerifier, IBatchLockVerifier(address(0)));
+        _verifier = verifier;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -91,7 +91,7 @@ contract Zeto_NfAnonNullifier is
 
         // Check the proof
         require(
-            verifier.verifyProof(proof.pA, proof.pB, proof.pC, publicInputs),
+            _verifier.verifyProof(proof.pA, proof.pB, proof.pC, publicInputs),
             "Invalid proof"
         );
 
