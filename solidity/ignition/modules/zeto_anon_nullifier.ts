@@ -20,6 +20,8 @@ import {
   DepositVerifierModule,
   WithdrawNullifierVerifierModule,
   BatchWithdrawNullifierVerifierModule,
+  LockNullifiersVerifierModule,
+  BatchLockNullifiersVerifierModule,
 } from "./lib/deps";
 
 const VerifierModule = buildModule("Groth16Verifier_AnonNullifier", (m) => {
@@ -46,6 +48,12 @@ export default buildModule("Zeto_AnonNullifier", (m) => {
   const { verifier: batchWithdrawVerifier } = m.useModule(
     BatchWithdrawNullifierVerifierModule,
   );
+  const { verifier: lockVerifier } = m.useModule(
+    LockNullifiersVerifierModule,
+  );
+  const { verifier: batchLockVerifier } = m.useModule(
+    BatchLockNullifiersVerifierModule,
+  );
 
   return {
     depositVerifier,
@@ -53,6 +61,8 @@ export default buildModule("Zeto_AnonNullifier", (m) => {
     verifier,
     batchVerifier,
     batchWithdrawVerifier,
+    lockVerifier,
+    batchLockVerifier,
     smtLib,
     poseidon3,
   };

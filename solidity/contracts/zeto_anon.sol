@@ -16,21 +16,22 @@
 pragma solidity ^0.8.20;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
+import {MAX_BATCH} from "./lib/interfaces/izeto_common.sol";
+import {ILockVerifier, IBatchLockVerifier} from "./lib/interfaces/izeto_lockable.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValue} from "./lib/verifier_check_inputs_outputs_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValueBatch} from "./lib/verifier_check_inputs_outputs_value_batch.sol";
+import {Groth16Verifier_CheckUtxosOwner} from "./lib/verifier_check_utxos_owner.sol";
+import {Groth16Verifier_CheckUtxosOwnerBatch} from "./lib/verifier_check_utxos_owner_batch.sol";
 
 import {Groth16Verifier_Anon} from "./lib/verifier_anon.sol";
 import {Groth16Verifier_AnonBatch} from "./lib/verifier_anon_batch.sol";
-import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
-import {ZetoFungible} from "./lib/zeto_fungible.sol";
+import {ZetoLock} from "./lib/zeto_lock.sol";
 import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-uint256 constant MAX_BATCH = 10;
 uint256 constant INPUT_SIZE = 4;
 uint256 constant BATCH_INPUT_SIZE = 20;
 
@@ -41,26 +42,35 @@ uint256 constant BATCH_INPUT_SIZE = 20;
 ///        - the sum of the input values match the sum of output values
 ///        - the hashes in the input and output match the `hash(value, salt, owner public key)` formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
-contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
-    Groth16Verifier_Anon internal verifier;
-    Groth16Verifier_AnonBatch internal batchVerifier;
+contract Zeto_Anon is
+    IZeto,
+    ZetoBase,
+    ZetoFungibleWithdraw,
+    ZetoLock,
+    UUPSUpgradeable
+{
+    Groth16Verifier_Anon internal _verifier;
+    Groth16Verifier_AnonBatch internal _batchVerifier;
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_Anon _verifier,
-        Groth16Verifier_CheckHashesValue _depositVerifier,
-        Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier,
-        Groth16Verifier_AnonBatch _batchVerifier,
-        Groth16Verifier_CheckInputsOutputsValueBatch _batchWithdrawVerifier
+        Groth16Verifier_Anon verifier,
+        Groth16Verifier_CheckHashesValue depositVerifier,
+        Groth16Verifier_CheckInputsOutputsValue withdrawVerifier,
+        Groth16Verifier_AnonBatch batchVerifier,
+        Groth16Verifier_CheckInputsOutputsValueBatch batchWithdrawVerifier,
+        ILockVerifier lockVerifier,
+        IBatchLockVerifier batchLockVerifier
     ) public initializer {
         __ZetoBase_init(initialOwner);
         __ZetoFungibleWithdraw_init(
-            _depositVerifier,
-            _withdrawVerifier,
-            _batchWithdrawVerifier
+            depositVerifier,
+            withdrawVerifier,
+            batchWithdrawVerifier
         );
-        verifier = _verifier;
-        batchVerifier = _batchVerifier;
+        __ZetoLock_init(lockVerifier, batchLockVerifier);
+        _verifier = verifier;
+        _batchVerifier = batchVerifier;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -104,10 +114,8 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         // Check and pad inputs and outputs based on the max size
         (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
 
-        require(
-            validateTransactionProposal(inputs, outputs, proof),
-            "Invalid transaction proposal"
-        );
+        validateTransactionProposal(inputs, outputs);
+        validateLockedStates(inputs);
 
         // Check the proof
         if (inputs.length > 2 || outputs.length > 2) {
@@ -124,7 +132,7 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
 
             // Check the proof using batchVerifier
             require(
-                batchVerifier.verifyProof(
+                _batchVerifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,
@@ -145,7 +153,7 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
             }
             // Check the proof
             require(
-                verifier.verifyProof(
+                _verifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,
@@ -182,7 +190,8 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         uint256[] memory outputs = new uint256[](inputs.length);
         outputs[0] = output;
         (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
-        validateTransactionProposal(inputs, outputs, proof);
+        validateTransactionProposal(inputs, outputs);
+        validateLockedStates(inputs);
         _withdraw(amount, inputs, output, proof);
         processInputsAndOutputs(inputs, outputs);
         emit UTXOWithdraw(amount, inputs, output, msg.sender, data);

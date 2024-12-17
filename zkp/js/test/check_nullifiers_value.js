@@ -15,7 +15,8 @@
 // limitations under the License.
 
 const { expect } = require("chai");
-const { groth16 } = require("snarkjs");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
 const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
 const {
   Merkletree,
@@ -23,24 +24,24 @@ const {
   str2Bytes,
   ZERO_HASH,
 } = require("@iden3/js-merkletree");
-const { Poseidon, newSalt, loadCircuit } = require("../index.js");
-const { loadProvingKeys } = require("./utils.js");
+const { Poseidon, newSalt } = require("../index.js");
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
 const poseidonHash3 = Poseidon.poseidon3;
 
-describe("check_nullifier_value circuit tests", () => {
-  let circuit, provingKeyFile, verificationKey, smtAlice;
+describe("check_nullifiers_value circuit tests", () => {
+  let circuit, smtAlice;
 
   const Alice = {};
   let senderPrivateKey;
 
-  before(async () => {
-    circuit = await loadCircuit("check_nullifier_value");
-    ({ provingKeyFile, verificationKey } = loadProvingKeys(
-      "check_nullifier_value",
-    ));
+  before(async function () {
+    this.timeout(60000);
+
+    circuit = await wasm_tester(
+      join(__dirname, "../../circuits/check_nullifiers_value.circom"),
+    );
 
     let keypair = genKeypair();
     Alice.privKey = keypair.privKey;
@@ -52,12 +53,11 @@ describe("check_nullifier_value circuit tests", () => {
     smtAlice = new Merkletree(storage1, true, SMT_HEIGHT);
   });
 
-  it("should generate a valid proof that can be verified successfully and fail when public signals are tampered", async () => {
-    const inputValues = [15, 100];
-    const outputValues = [35];
+  it("should succeed for valid witness", async () => {
+    const inputValues = [32, 40];
+    const outputValues = [2];
 
     // create two input UTXOs, each has their own salt, but same owner
-    const senderPrivateKey = formatPrivKeyForBabyJub(Alice.privKey);
     const salt1 = newSalt();
     const input1 = poseidonHash([
       BigInt(inputValues[0]),
@@ -72,7 +72,7 @@ describe("check_nullifier_value circuit tests", () => {
     ]);
     const inputCommitments = [input1, input2];
 
-    // create the nullifiers for the input UTXOs
+    // create the nullifiers for the inputs
     const nullifier1 = poseidonHash3([
       BigInt(inputValues[0]),
       salt1,
@@ -99,7 +99,7 @@ describe("check_nullifier_value circuit tests", () => {
       ZERO_HASH,
     );
 
-    // create two output UTXOs, they share the same salt, and different owner
+    // create output UTXOs
     const salt3 = newSalt();
     const output1 = poseidonHash([
       BigInt(outputValues[0]),
@@ -108,8 +108,7 @@ describe("check_nullifier_value circuit tests", () => {
     ]);
     const outputCommitments = [output1];
 
-    const startTime = Date.now();
-    const witness = await circuit.calculateWTNSBin(
+    const witness = await circuit.calculateWitness(
       {
         nullifiers,
         inputCommitments,
@@ -130,40 +129,87 @@ describe("check_nullifier_value circuit tests", () => {
       true,
     );
 
-    const { proof, publicSignals } = await groth16.prove(
-      provingKeyFile,
-      witness,
-    );
-    console.log("Proving time: ", (Date.now() - startTime) / 1000, "s");
-
-    let verifyResult = await groth16.verify(
-      verificationKey,
-      publicSignals,
-      proof,
-    );
-    expect(verifyResult).to.be.true;
+    // console.log('witness', witness.slice(0, 10));
     // console.log('nullifiers', nullifiers);
     // console.log('inputCommitments', inputCommitments);
+    // console.log('inputValues', inputValues);
+    // console.log('inputSalts', [salt1, salt2]);
     // console.log('outputCommitments', outputCommitments);
     // console.log('root', proof1.root.bigInt());
-    // console.log("public signals", publicSignals);
-    const tamperedOutputHash = poseidonHash([
-      BigInt(100),
+    // console.log('outputValues', outputValues);
+    // console.log('outputSalt', salt3);
+    // console.log('outputOwnerPublicKeys', [Alice.pubKey]);
+
+    expect(witness[1]).to.equal(BigInt(70)); // output should be the difference between the inputs and outputs
+    expect(witness[2]).to.equal(BigInt(nullifiers[0]));
+    expect(witness[3]).to.equal(BigInt(nullifiers[1]));
+    expect(witness[4]).to.equal(proof1.root.bigInt());
+  });
+
+  it("should succeed for valid witness - single input", async () => {
+    const inputValues = [72, 0];
+    const outputValues = [10];
+
+    // create two input UTXOs, each has their own salt, but same owner
+    const salt1 = newSalt();
+    const input1 = poseidonHash([
+      BigInt(inputValues[0]),
+      salt1,
+      ...Alice.pubKey,
+    ]);
+    const inputCommitments = [input1, 0];
+
+    // create the nullifiers for the inputs
+    const nullifier1 = poseidonHash3([
+      BigInt(inputValues[0]),
+      salt1,
+      senderPrivateKey,
+    ]);
+    const nullifiers = [nullifier1, 0];
+
+    // calculate the root of the SMT
+    await smtAlice.add(input1, input1);
+
+    // generate the merkle proof for the inputs
+    const proof1 = await smtAlice.generateCircomVerifierProof(
+      input1,
+      ZERO_HASH,
+    );
+    const proof2 = await smtAlice.generateCircomVerifierProof(0, ZERO_HASH);
+
+    // create two output UTXOs, they share the same salt, and different owner
+    const salt3 = newSalt();
+    const output1 = poseidonHash([
+      BigInt(outputValues[0]),
       salt3,
       ...Alice.pubKey,
     ]);
-    let tamperedPublicSignals = publicSignals.map((ps) =>
-      ps.toString() === outputCommitments[0].toString()
-        ? tamperedOutputHash
-        : ps,
-    );
-    // console.log("tampered public signals", tamperedPublicSignals);
+    const outputCommitments = [output1];
 
-    verifyResult = await groth16.verify(
-      verificationKey,
-      tamperedPublicSignals,
-      proof,
+    const witness = await circuit.calculateWitness(
+      {
+        nullifiers,
+        inputCommitments,
+        inputValues,
+        inputSalts: [salt1, 0],
+        inputOwnerPrivateKey: senderPrivateKey,
+        root: proof1.root.bigInt(),
+        merkleProof: [
+          proof1.siblings.map((s) => s.bigInt()),
+          proof2.siblings.map((s) => s.bigInt()),
+        ],
+        enabled: [1, 0],
+        outputCommitments,
+        outputValues,
+        outputSalts: [salt3],
+        outputOwnerPublicKeys: [Alice.pubKey],
+      },
+      true,
     );
-    expect(verifyResult).to.be.false;
-  }).timeout(600000);
+
+    expect(witness[1]).to.equal(BigInt(62));
+    expect(witness[2]).to.equal(BigInt(nullifiers[0]));
+    expect(witness[3]).to.equal(BigInt(nullifiers[1]));
+    expect(witness[4]).to.equal(proof1.root.bigInt());
+  });
 });

@@ -16,20 +16,22 @@
 pragma solidity ^0.8.20;
 
 import {IZetoEncrypted} from "./lib/interfaces/izeto_encrypted.sol";
+import {ILockVerifier, IBatchLockVerifier} from "./lib/interfaces/izeto_lockable.sol";
+import {MAX_BATCH} from "./lib/interfaces/izeto_common.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValue} from "./lib/verifier_check_inputs_outputs_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValueBatch} from "./lib/verifier_check_inputs_outputs_value_batch.sol";
+import {Groth16Verifier_CheckUtxosOwner} from "./lib/verifier_check_utxos_owner.sol";
+import {Groth16Verifier_CheckUtxosOwnerBatch} from "./lib/verifier_check_utxos_owner_batch.sol";
+
 import {Groth16Verifier_AnonEnc} from "./lib/verifier_anon_enc.sol";
 import {Groth16Verifier_AnonEncBatch} from "./lib/verifier_anon_enc_batch.sol";
 import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
-import {ZetoFungible} from "./lib/zeto_fungible.sol";
-import {Registry} from "./lib/registry.sol";
+import {ZetoLock} from "./lib/zeto_lock.sol";
 import {Commonlib} from "./lib/common.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-uint256 constant MAX_BATCH = 10;
 uint256 constant INPUT_SIZE = 15;
 uint256 constant BATCH_INPUT_SIZE = 63;
 
@@ -46,28 +48,31 @@ contract Zeto_AnonEnc is
     IZetoEncrypted,
     ZetoBase,
     ZetoFungibleWithdraw,
+    ZetoLock,
     UUPSUpgradeable
 {
-    Groth16Verifier_AnonEnc internal verifier;
-    Groth16Verifier_AnonEncBatch internal batchVerifier;
+    Groth16Verifier_AnonEnc internal _verifier;
+    Groth16Verifier_AnonEncBatch internal _batchVerifier;
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_AnonEnc _verifier,
-        Groth16Verifier_CheckHashesValue _depositVerifier,
-        Groth16Verifier_CheckInputsOutputsValue _withdrawVerifier,
-        Groth16Verifier_AnonEncBatch _batchVerifier,
-        Groth16Verifier_CheckInputsOutputsValueBatch _batchWithdrawVerifier
+        Groth16Verifier_AnonEnc verifier,
+        Groth16Verifier_CheckHashesValue depositVerifier,
+        Groth16Verifier_CheckInputsOutputsValue withdrawVerifier,
+        Groth16Verifier_AnonEncBatch batchVerifier,
+        Groth16Verifier_CheckInputsOutputsValueBatch batchWithdrawVerifier,
+        ILockVerifier lockVerifier,
+        IBatchLockVerifier batchLockVerifier
     ) public initializer {
         __ZetoBase_init(initialOwner);
         __ZetoFungibleWithdraw_init(
-            _depositVerifier,
-            _withdrawVerifier,
-            _batchWithdrawVerifier
+            depositVerifier,
+            withdrawVerifier,
+            batchWithdrawVerifier
         );
-        verifier = _verifier;
-        batchVerifier = _batchVerifier;
-        batchVerifier = _batchVerifier;
+        __ZetoLock_init(lockVerifier, batchLockVerifier);
+        _verifier = verifier;
+        _batchVerifier = batchVerifier;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -128,10 +133,8 @@ contract Zeto_AnonEnc is
     ) public returns (bool) {
         // Check and pad commitments
         (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
-        require(
-            validateTransactionProposal(inputs, outputs, proof),
-            "Invalid transaction proposal"
-        );
+        validateTransactionProposal(inputs, outputs);
+        validateLockedStates(inputs);
 
         // Check the proof
         if (inputs.length > 2 || outputs.length > 2) {
@@ -151,7 +154,7 @@ contract Zeto_AnonEnc is
 
             // Check the proof using batchVerifier
             require(
-                batchVerifier.verifyProof(
+                _batchVerifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,
@@ -175,7 +178,7 @@ contract Zeto_AnonEnc is
             }
             // Check the proof
             require(
-                verifier.verifyProof(
+                _verifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,
@@ -227,7 +230,8 @@ contract Zeto_AnonEnc is
         outputs[0] = output;
         // Check and pad commitments
         (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
-        validateTransactionProposal(inputs, outputs, proof);
+        validateTransactionProposal(inputs, outputs);
+        validateLockedStates(inputs);
         _withdraw(amount, inputs, output, proof);
         processInputsAndOutputs(inputs, outputs);
         emit UTXOWithdraw(amount, inputs, output, msg.sender, data);

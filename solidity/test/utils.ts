@@ -18,8 +18,9 @@ import { readFileSync } from "fs";
 import * as path from "path";
 import { BigNumberish } from "ethers";
 import { groth16 } from "snarkjs";
-import { loadCircuit, encodeProof } from "zeto-js";
+import { loadCircuit, encodeProof, tokenUriHash } from "zeto-js";
 import { User, UTXO } from "./lib/utils";
+import { formatPrivKeyForBabyJub, stringifyBigInts } from "maci-crypto";
 
 function provingKeysRoot() {
   const PROVING_KEYS_ROOT = process.env.PROVING_KEYS_ROOT;
@@ -127,11 +128,11 @@ export async function prepareNullifierWithdrawProof(
     outputSalts: [output.salt || 0n],
     outputOwnerPublicKeys,
   };
-  let circuit = await loadCircuit("check_nullifier_value");
-  let { provingKeyFile } = loadProvingKeys("check_nullifier_value");
+  let circuit = await loadCircuit("check_nullifiers_value");
+  let { provingKeyFile } = loadProvingKeys("check_nullifiers_value");
   if (inputCommitments.length > 2) {
-    circuit = await loadCircuit("check_nullifier_value_batch");
-    ({ provingKeyFile } = loadProvingKeys("check_nullifier_value_batch"));
+    circuit = await loadCircuit("check_nullifiers_value_batch");
+    ({ provingKeyFile } = loadProvingKeys("check_nullifiers_value_batch"));
   }
 
   const startWitnessCalculation = Date.now();
@@ -210,6 +211,152 @@ export async function prepareWithdrawProof(
   return {
     inputCommitments,
     outputCommitments,
+    encodedProof,
+  };
+}
+
+export async function prepareLockProof(
+  signer: User,
+  inputs: UTXO[],
+) {
+  const commitments: BigNumberish[] = inputs.map(
+    (input) => input.hash || 0n,
+  ) as BigNumberish[];
+  const values = inputs.map((input) => BigInt(input.value || 0n));
+  const salts = inputs.map((input) => input.salt || 0n);
+  const otherInputs = stringifyBigInts({
+    ownerPrivateKey: formatPrivKeyForBabyJub(signer.babyJubPrivateKey),
+  });
+
+  const startWitnessCalculation = Date.now();
+  let circuit = await loadCircuit("check_utxos_owner");
+  let { provingKeyFile: provingKey } = loadProvingKeys("check_utxos_owner");
+  if (commitments.length > 2) {
+    circuit = await loadCircuit("check_utxos_owner_batch");
+    ({ provingKeyFile: provingKey } = loadProvingKeys("check_utxos_owner_batch"));
+  }
+
+  const witness = await circuit.calculateWTNSBin(
+    {
+      commitments,
+      values,
+      salts,
+      ...otherInputs,
+    },
+    true,
+  );
+  const timeWitnessCalculation = Date.now() - startWitnessCalculation;
+
+  const startProofGeneration = Date.now();
+  const { proof, publicSignals } = (await groth16.prove(
+    provingKey,
+    witness,
+  )) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
+  const timeProofGeneration = Date.now() - startProofGeneration;
+  console.log(
+    `Witness calculation time: ${timeWitnessCalculation}ms, Proof generation time: ${timeProofGeneration}ms`,
+  );
+  const encodedProof = encodeProof(proof);
+  return {
+    commitments,
+    encodedProof,
+  };
+}
+
+export async function prepareNullifiersLockProof(
+  signer: User,
+  _nullifiers: UTXO[],
+) {
+  const nullifiers: BigNumberish[] = _nullifiers.map(
+    (input) => input.hash || 0n,
+  ) as BigNumberish[];
+  const values = _nullifiers.map((input) => BigInt(input.value || 0n));
+  const salts = _nullifiers.map((input) => input.salt || 0n);
+  const otherInputs = stringifyBigInts({
+    ownerPrivateKey: formatPrivKeyForBabyJub(signer.babyJubPrivateKey),
+  });
+
+  const startWitnessCalculation = Date.now();
+  let circuit = await loadCircuit("check_nullifiers_owner");
+  let { provingKeyFile: provingKey } = loadProvingKeys("check_nullifiers_owner");
+  if (nullifiers.length > 2) {
+    circuit = await loadCircuit("check_nullifiers_owner_batch");
+    ({ provingKeyFile: provingKey } = loadProvingKeys("check_nullifiers_owner_batch"));
+  }
+
+  const witness = await circuit.calculateWTNSBin(
+    {
+      nullifiers,
+      values,
+      salts,
+      ...otherInputs,
+    },
+    true,
+  );
+  const timeWitnessCalculation = Date.now() - startWitnessCalculation;
+
+  const startProofGeneration = Date.now();
+  const { proof, publicSignals } = (await groth16.prove(
+    provingKey,
+    witness,
+  )) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
+  const timeProofGeneration = Date.now() - startProofGeneration;
+  console.log(
+    `Witness calculation time: ${timeWitnessCalculation}ms, Proof generation time: ${timeProofGeneration}ms`,
+  );
+  const encodedProof = encodeProof(proof);
+  return {
+    nullifiers,
+    encodedProof,
+  };
+}
+
+export async function prepareAssetLockProof(
+  signer: User,
+  inputs: UTXO[],
+) {
+  const commitments: BigNumberish[] = inputs.map(
+    (input) => input.hash || 0n,
+  ) as BigNumberish[];
+  const tokenIds = inputs.map((input) => BigInt(input.tokenId || 0n));
+  const tokenUris = inputs.map((input) => BigInt(input.uri ? tokenUriHash(input.uri) : 0n));
+  const salts = inputs.map((input) => input.salt || 0n);
+  const otherInputs = stringifyBigInts({
+    ownerPrivateKey: formatPrivKeyForBabyJub(signer.babyJubPrivateKey),
+  });
+
+  const startWitnessCalculation = Date.now();
+  let circuit = await loadCircuit("check_utxos_nf_owner");
+  let { provingKeyFile: provingKey } = loadProvingKeys("check_utxos_nf_owner");
+  if (commitments.length > 2) {
+    circuit = await loadCircuit("check_utxos_owner_batch");
+    ({ provingKeyFile: provingKey } = loadProvingKeys("check_utxos_owner_batch"));
+  }
+
+  const witness = await circuit.calculateWTNSBin(
+    {
+      commitments,
+      tokenIds,
+      tokenUris,
+      salts,
+      ...otherInputs,
+    },
+    true,
+  );
+  const timeWitnessCalculation = Date.now() - startWitnessCalculation;
+
+  const startProofGeneration = Date.now();
+  const { proof, publicSignals } = (await groth16.prove(
+    provingKey,
+    witness,
+  )) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
+  const timeProofGeneration = Date.now() - startProofGeneration;
+  console.log(
+    `Witness calculation time: ${timeWitnessCalculation}ms, Proof generation time: ${timeProofGeneration}ms`,
+  );
+  const encodedProof = encodeProof(proof);
+  return {
+    commitments,
     encodedProof,
   };
 }

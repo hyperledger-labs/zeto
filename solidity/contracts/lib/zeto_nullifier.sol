@@ -16,19 +16,15 @@
 pragma solidity ^0.8.20;
 
 import {IZetoBase} from "./interfaces/izeto_base.sol";
-import {Commonlib} from "./common.sol";
-import {Registry} from "./registry.sol";
 import {ZetoCommon} from "./zeto_common.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
-
-uint256 constant MAX_SMT_DEPTH = 64;
 
 /// @title A sample base implementation of a Zeto based token contract with nullifiers
 /// @author Kaleido, Inc.
 /// @dev Implements common functionalities of Zeto based tokens using nullifiers
 abstract contract ZetoNullifier is IZetoBase, ZetoCommon {
+    uint256 public constant MAX_SMT_DEPTH = 64;
     SmtLib.Data internal _commitmentsTree;
     using SmtLib for SmtLib.Data;
     mapping(uint256 => bool) private _nullifiers;

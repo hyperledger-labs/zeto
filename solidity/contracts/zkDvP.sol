@@ -196,7 +196,8 @@ contract zkDvP {
 
     function completeTrade(
         uint256 tradeId,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof calldata proof,
+        Commonlib.Proof calldata lockProof
     ) public {
         Trade memory trade = trades[tradeId];
         require(
@@ -204,12 +205,24 @@ contract zkDvP {
             "Trade must be in ACCEPTED state to complete"
         );
         bytes32 proofHash = getProofHash(proof);
+        uint256[] memory lockedStates;
         if (trade.paymentProofHash == proofHash) {
             trade.paymentProof = proof;
-            paymentToken.lockProof(proof, address(this));
+            lockedStates = new uint256[](trade.paymentInputs.length);
+            for (uint256 i = 0; i < trade.paymentInputs.length; i++) {
+                lockedStates[i] = trade.paymentInputs[i];
+            }
+            paymentToken.lockStates(
+                lockedStates,
+                lockProof,
+                address(this),
+                "0x"
+            );
         } else if (trade.assetProofHash == proofHash) {
             trade.assetProof = proof;
-            assetToken.lockProof(proof, address(this));
+            lockedStates = new uint256[](1);
+            lockedStates[0] = trade.assetInput;
+            assetToken.lockStates(lockedStates, lockProof, address(this), "0x");
         } else {
             revert("Invalid proof");
         }
