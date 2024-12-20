@@ -1,0 +1,20 @@
+{
+	"name": "MkDocs Material editor",
+	"dockerFile": "Dockerfile",
+	"workspaceMount": "source=${localWorkspaceFolder}/doc-site,target=/docs,type=bind",
+	"workspaceFolder": "/docs",
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"terminal.integrated.shell.linux": "/bin/sh"
+			},
+			"extensions": [
+				"ms-vscode-remote.remote-containers"
+			]
+		}
+	},
+	"forwardPorts": [
+		8001
+	],
+	"postStartCommand": "mkdocs serve -a localhost:8001",
+}
