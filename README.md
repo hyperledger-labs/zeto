@@ -2,7 +2,7 @@
 
 This project hosts the multiple patterns to implement privacy preserving tokens on EVM.
 
-Refer to the [Zeto documentation](https://hyperledger-labs.github.io/zeto) for details.
+Refer to the [Zeto documentation](https://hyperledger-labs.github.io/zeto/head) for details.
 
 # Sub-projects
 
