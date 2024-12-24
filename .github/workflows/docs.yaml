@@ -5,17 +5,17 @@ on:
     branches:
       - main
     paths:
-      - 'doc-site/docs/**'
+      - "doc-site/docs/**"
   pull_request:
     paths:
-      - 'doc-site/docs/**'
+      - "doc-site/docs/**"
   release:
     types: [released]
 jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      LATEST_TAG: ''
+      LATEST_TAG: ""
     permissions:
       contents: write
     steps:
@@ -48,7 +48,9 @@ jobs:
       - name: Update doc site for latest release
         if: github.event.action == 'released' && github.ref_name == env.LATEST_TAG
         working-directory: doc-site
-        run: mike deploy ${{ github.event.release.tag_name }} latest -u --push
+        run: |
+          mike deploy ${{ github.event.release.tag_name }} latest -u --push
+          mike set-default latest
 
       - name: Update doc site for `main` branch
         if: ${{ github.event_name == 'push' }}
