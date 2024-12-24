@@ -87,6 +87,7 @@ extra:
     property: !ENV GOOGLE_ANALYTICS_KEY
   version:
     provider: mike
+    alias: true
   generator: false
 exclude_docs: |
   _includes/
