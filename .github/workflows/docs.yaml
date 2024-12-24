@@ -6,9 +6,11 @@ on:
       - main
     paths:
       - "doc-site/docs/**"
+      - ".github/workflows/docs.yaml"
   pull_request:
     paths:
       - "doc-site/docs/**"
+      - ".github/workflows/docs.yaml"
   release:
     types: [released]
 jobs:
