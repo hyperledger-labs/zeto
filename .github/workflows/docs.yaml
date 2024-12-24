@@ -52,7 +52,7 @@ jobs:
         working-directory: doc-site
         run: |
           mike deploy ${{ github.event.release.tag_name }} latest -u --push
-          mike set-default latest
+          mike set-default --push latest
 
       - name: Update doc site for `main` branch
         if: ${{ github.event_name == 'push' }}
