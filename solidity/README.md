@@ -14,14 +14,14 @@ Zeto token contracts are all upgradeable contracts. They can be deployed with on
 
 ```console
 export ZETO_NAME=Zeto_AnonEncNullifier
-npx hardhat run scripts/deploy_upgradeable.js
+npx hardhat run scripts/deploy_upgradeable.ts
 ```
 
 - [deploy_cloneable](/solidity/scripts/deploy_cloneable.ts): Deploys the target contract, designated by the `ZETO_NAME` environment variable, as a [cloneable contract](https://blog.openzeppelin.com/workshop-recap-cheap-contract-deployment-through-clones).
 
 ```console
 export ZETO_NAME=Zeto_AnonEncNullifier
-npx hardhat run scripts/deploy_cloneable.js
+npx hardhat run scripts/deploy_cloneable.ts
 ```
 
 # Run The Hardhat Tests
