@@ -14,16 +14,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
-const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
-const { Poseidon, newSalt, tokenUriHash } = require('../index.js');
-const { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } = require('@iden3/js-merkletree');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
+const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
+const { Poseidon, newSalt, tokenUriHash } = require("../index.js");
 
 const poseidonHash4 = Poseidon.poseidon4;
 
-describe('check_nullifiers_nf_owner circuit tests', () => {
+describe("check_nullifiers_nf_owner circuit tests", () => {
   let circuit;
   const sender = {};
   const receiver = {};
@@ -32,7 +31,9 @@ describe('check_nullifiers_nf_owner circuit tests', () => {
   before(async function () {
     this.timeout(60000);
 
-    circuit = await wasm_tester(join(__dirname, '../../circuits/check_nullifiers_nf_owner.circom'));
+    circuit = await wasm_tester(
+      join(__dirname, "../../circuits/check_nullifiers_nf_owner.circom"),
+    );
 
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;
@@ -44,12 +45,17 @@ describe('check_nullifiers_nf_owner circuit tests', () => {
     receiver.pubKey = keypair.pubKey;
   });
 
-  it('should return true for valid witness', async () => {
+  it("should return true for valid witness", async () => {
     const tokenId = 1001;
-    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash("http://ipfs.io/some-file-hash");
 
     const salt1 = newSalt();
-    const nullifier1 = poseidonHash4([BigInt(tokenId), tokenUri, salt1, senderPrivateKey]);
+    const nullifier1 = poseidonHash4([
+      BigInt(tokenId),
+      tokenUri,
+      salt1,
+      senderPrivateKey,
+    ]);
 
     const witness = await circuit.calculateWitness(
       {
@@ -59,7 +65,7 @@ describe('check_nullifiers_nf_owner circuit tests', () => {
         salts: [salt1, 0],
         ownerPrivateKey: senderPrivateKey,
       },
-      true
+      true,
     );
 
     // console.log('tokenUri', tokenUri);
@@ -73,12 +79,17 @@ describe('check_nullifiers_nf_owner circuit tests', () => {
     expect(witness[7]).to.equal(salt1);
   });
 
-  it('should fail to calculate witness due to invalid nullifier', async () => {
+  it("should fail to calculate witness due to invalid nullifier", async () => {
     const tokenId = 1001;
-    const tokenUri = tokenUriHash('http://ipfs.io/some-file-hash');
+    const tokenUri = tokenUriHash("http://ipfs.io/some-file-hash");
 
     const salt1 = newSalt();
-    const nullifier1 = poseidonHash4([BigInt(tokenId), tokenUri, salt1, senderPrivateKey]);
+    const nullifier1 = poseidonHash4([
+      BigInt(tokenId),
+      tokenUri,
+      salt1,
+      senderPrivateKey,
+    ]);
 
     let error;
     try {
@@ -90,12 +101,14 @@ describe('check_nullifiers_nf_owner circuit tests', () => {
           salts: [salt1, 0],
           ownerPrivateKey: senderPrivateKey,
         },
-        true
+        true,
       );
     } catch (e) {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckNullifiersForTokenIdAndUri_76 line: 52/);
+    expect(error).to.match(
+      /Error in template CheckNullifiersForTokenIdAndUri_76 line: 52/,
+    );
   });
 });

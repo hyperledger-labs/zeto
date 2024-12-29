@@ -14,15 +14,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
-const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
-const { Poseidon, newSalt, tokenUriHash } = require('../index.js');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
+const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
+const { Poseidon, newSalt, tokenUriHash } = require("../index.js");
 
 const poseidonHash = Poseidon.poseidon5;
 
-describe('check_utxos_nf_owner circuit tests', () => {
+describe("check_utxos_nf_owner circuit tests", () => {
   let circuit;
   const sender = {};
   let senderPrivateKey;
@@ -30,7 +30,9 @@ describe('check_utxos_nf_owner circuit tests', () => {
   before(async function () {
     this.timeout(60000);
 
-    circuit = await wasm_tester(join(__dirname, '../../circuits/check_utxos_nf_owner.circom'));
+    circuit = await wasm_tester(
+      join(__dirname, "../../circuits/check_utxos_nf_owner.circom"),
+    );
 
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;
@@ -38,13 +40,18 @@ describe('check_utxos_nf_owner circuit tests', () => {
     senderPrivateKey = formatPrivKeyForBabyJub(sender.privKey);
   });
 
-  it('should return true for valid witness', async () => {
+  it("should return true for valid witness", async () => {
     const tokenIds = [1001, 0];
-    const tokenUris = [tokenUriHash('http://ipfs.io/some-file-hash'), 0];
+    const tokenUris = [tokenUriHash("http://ipfs.io/some-file-hash"), 0];
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(tokenIds[0]), tokenUris[0], salt1, ...sender.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(tokenIds[0]),
+      tokenUris[0],
+      salt1,
+      ...sender.pubKey,
+    ]);
     const commitments = [input1, 0];
 
     const witness = await circuit.calculateWitness(
@@ -55,7 +62,7 @@ describe('check_utxos_nf_owner circuit tests', () => {
         salts: [salt1, 0],
         ownerPrivateKey: senderPrivateKey,
       },
-      true
+      true,
     );
 
     // console.log(witness.slice(0, 10));
@@ -68,13 +75,18 @@ describe('check_utxos_nf_owner circuit tests', () => {
     expect(witness[11]).to.equal(BigInt(sender.pubKey[1]));
   });
 
-  it('should fail to generate a witness because of invalid owner private key', async () => {
+  it("should fail to generate a witness because of invalid owner private key", async () => {
     const tokenIds = [1001, 0];
-    const tokenUris = [tokenUriHash('http://ipfs.io/some-file-hash'), 0];
+    const tokenUris = [tokenUriHash("http://ipfs.io/some-file-hash"), 0];
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(tokenIds[0]), tokenUris[0], salt1, ...sender.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(tokenIds[0]),
+      tokenUris[0],
+      salt1,
+      ...sender.pubKey,
+    ]);
     const commitments = [input1, 0];
 
     let error;
@@ -87,12 +99,14 @@ describe('check_utxos_nf_owner circuit tests', () => {
           salts: [salt1, 0],
           ownerPrivateKey: senderPrivateKey + BigInt(1),
         },
-        true
+        true,
       );
     } catch (e) {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckHashesForTokenIdAndUri_88 line: 51/); // hash check failed
+    expect(error).to.match(
+      /Error in template CheckHashesForTokenIdAndUri_88 line: 51/,
+    ); // hash check failed
   });
 });

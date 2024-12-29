@@ -45,7 +45,7 @@ const ptauDownload = process.env.PTAU_DOWNLOAD_PATH || argv.ptauDownloadPath;
 const specificCircuits = argv.c;
 const verbose = argv.v;
 const compileOnly = argv.compileOnly;
-const parallelLimit = parseInt(process.env.GEN_CONCURRENCY, 10) || 4; // Default to compile 4 circuits in parallel 
+const parallelLimit = parseInt(process.env.GEN_CONCURRENCY, 10) || 4; // Default to compile 4 circuits in parallel
 
 // check env vars
 if (!circuitsRoot) {
@@ -105,7 +105,7 @@ const log = (circuit, message) => {
 };
 
 // main circuit process logic
-const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
+const processCircuit = async (circuit, ptau, skipSolidityGeneration) => {
   const circomInput = path.join("./", `${circuit}.circom`);
   const ptauFile = path.join(ptauDownload, `${ptau}.ptau`);
   const zkeyOutput = path.join(provingKeysRoot, `${circuit}.zkey`);
@@ -184,7 +184,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
   }
   log(circuit, `Exporting verification key`);
   const { stdout: vkOut, stderr: vkErr } = await execAsync(
-    `npx snarkjs zkey export verificationkey ${zkeyOutput} ${path.join(
+    `npx snarkjs zkey export verification key ${zkeyOutput} ${path.join(
       provingKeysRoot,
       `${circuit}-vkey.json`,
     )}`,
@@ -197,7 +197,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
       log(circuit, "verification key export error:\n" + vkErr);
     }
   }
-  if (skipSolidityGenaration) {
+  if (skipSolidityGeneration) {
     log(circuit, `Skipping solidity verifier generation`);
     return;
   }
@@ -212,7 +212,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
     `verifier_${circuit}.sol`,
   );
   const { stdout: svOut, stderr: svErr } = await execAsync(
-    `npx snarkjs zkey export solidityverifier ${zkeyOutput} ${solidityFile}`,
+    `npx snarkjs zkey export solidity verifier ${zkeyOutput} ${solidityFile}`,
   );
   if (verbose) {
     if (svOut) {
@@ -257,14 +257,14 @@ const run = async () => {
 
   for (const [
     circuit,
-    { ptau, skipSolidityGenaration, batchPtau },
+    { ptau, skipSolidityGeneration, batchPtau },
   ] of circuitsArray) {
     if (onlyCircuits && !onlyCircuits.includes(circuit)) {
       continue;
     }
 
     let snarkjsVersion;
-    // first check cirom version and snarkjs version matches the one in the package.json
+    // first check circom version and snarkjs version matches the one in the package.json
     try {
       const { stdout: circomVersion } = await execAsync("circom --version");
       // Trigger error to get snarkjs version
@@ -316,7 +316,7 @@ const run = async () => {
       process.exit(1);
     }
 
-    const pcPromise = processCircuit(circuit, ptau, skipSolidityGenaration);
+    const pcPromise = processCircuit(circuit, ptau, skipSolidityGeneration);
     activePromises.add(pcPromise);
 
     if (activePromises.size >= parallelLimit) {
@@ -327,7 +327,7 @@ const run = async () => {
       const pcBatchPromise = processCircuit(
         circuit + "_batch",
         batchPtau,
-        skipSolidityGenaration,
+        skipSolidityGeneration,
       );
       activePromises.add(pcBatchPromise);
 
