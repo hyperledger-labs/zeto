@@ -17,10 +17,7 @@ pragma solidity ^0.8.20;
 
 import {IZetoBase} from "./interfaces/izeto_base.sol";
 import {Commonlib} from "./common.sol";
-import {Registry} from "./registry.sol";
 import {ZetoCommon} from "./zeto_common.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title A sample base implementation of a Zeto based token contract
 ///        without using nullifiers. Each UTXO's spending status is explicitly tracked.
@@ -48,8 +45,7 @@ abstract contract ZetoBase is IZetoBase, ZetoCommon {
 
     function validateTransactionProposal(
         uint256[] memory inputs,
-        uint256[] memory outputs,
-        Commonlib.Proof calldata proof
+        uint256[] memory outputs
     ) internal view returns (bool) {
         // sort the inputs and outputs to detect duplicates
         (
@@ -87,15 +83,6 @@ abstract contract ZetoBase is IZetoBase, ZetoCommon {
             } else if (_utxos[sortedOutputs[i]] == UTXOStatus.UNSPENT) {
                 revert UTXOAlreadyOwned(sortedOutputs[i]);
             }
-        }
-
-        // check if the proof has been locked
-        bytes32 proofHash = Commonlib.getProofHash(proof);
-        if (lockedProofs[proofHash] != address(0)) {
-            require(
-                lockedProofs[proofHash] == msg.sender,
-                "Locked proof can only be submitted by the locker address"
-            );
         }
         return true;
     }

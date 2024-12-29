@@ -15,6 +15,6 @@
 // limitations under the License.
 pragma circom 2.2.1;
 
-include "../../../circuits/lib/check-nullifier-tokenid-uri.circom";
+include "./lib/check-utxos-owner.circom";
 
-component main {public [ nullifiers ]} = CheckNullifierForTokenIdAndUri(1);
+component main {public [ commitments ]} = CheckUTXOsOwner(2);

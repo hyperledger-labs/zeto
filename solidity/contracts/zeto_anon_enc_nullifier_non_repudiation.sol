@@ -21,12 +21,13 @@ import {Groth16Verifier_CheckNullifierValue} from "./lib/verifier_check_nullifie
 import {Groth16Verifier_CheckNullifierValueBatch} from "./lib/verifier_check_nullifier_value_batch.sol";
 import {Groth16Verifier_AnonEncNullifierNonRepudiation} from "./lib/verifier_anon_enc_nullifier_non_repudiation.sol";
 import {Groth16Verifier_AnonEncNullifierNonRepudiationBatch} from "./lib/verifier_anon_enc_nullifier_non_repudiation_batch.sol";
+import {MAX_BATCH} from "./lib/interfaces/izeto_common.sol";
+import {ILockVerifier, IBatchLockVerifier} from "./lib/interfaces/izeto_lockable.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
-import {Registry} from "./lib/registry.sol";
+import {ZetoLock} from "./lib/zeto_lock.sol";
 import {Commonlib} from "./lib/common.sol";
 
-uint256 constant MAX_BATCH = 10;
 uint256 constant INPUT_SIZE = 36;
 uint256 constant BATCH_INPUT_SIZE = 140;
 
@@ -42,6 +43,7 @@ uint256 constant BATCH_INPUT_SIZE = 140;
 contract Zeto_AnonEncNullifierNonRepudiation is
     ZetoNullifier,
     ZetoFungibleWithdrawWithNullifiers,
+    ZetoLock,
     UUPSUpgradeable
 {
     event UTXOTransferNonRepudiation(
@@ -55,28 +57,31 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         bytes data
     );
 
-    Groth16Verifier_AnonEncNullifierNonRepudiation internal verifier;
-    Groth16Verifier_AnonEncNullifierNonRepudiationBatch internal batchVerifier;
+    Groth16Verifier_AnonEncNullifierNonRepudiation internal _verifier;
+    Groth16Verifier_AnonEncNullifierNonRepudiationBatch internal _batchVerifier;
     // the arbiter public key that must be used to
     // encrypt the secrets of every transaction
     uint256[2] private arbiter;
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_AnonEncNullifierNonRepudiation _verifier,
-        Groth16Verifier_CheckHashesValue _depositVerifier,
-        Groth16Verifier_CheckNullifierValue _withdrawVerifier,
-        Groth16Verifier_AnonEncNullifierNonRepudiationBatch _batchVerifier,
-        Groth16Verifier_CheckNullifierValueBatch _batchWithdrawVerifier
+        Groth16Verifier_AnonEncNullifierNonRepudiation verifier,
+        Groth16Verifier_CheckHashesValue depositVerifier,
+        Groth16Verifier_CheckNullifierValue withdrawVerifier,
+        Groth16Verifier_AnonEncNullifierNonRepudiationBatch batchVerifier,
+        Groth16Verifier_CheckNullifierValueBatch batchWithdrawVerifier,
+        ILockVerifier lockVerifier,
+        IBatchLockVerifier batchLockVerifier
     ) public initializer {
         __ZetoNullifier_init(initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(
-            _depositVerifier,
-            _withdrawVerifier,
-            _batchWithdrawVerifier
+            depositVerifier,
+            withdrawVerifier,
+            batchWithdrawVerifier
         );
-        verifier = _verifier;
-        batchVerifier = _batchVerifier;
+        __ZetoLock_init(lockVerifier, batchLockVerifier);
+        _verifier = verifier;
+        _batchVerifier = batchVerifier;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -174,10 +179,8 @@ contract Zeto_AnonEncNullifierNonRepudiation is
             outputs,
             MAX_BATCH
         );
-        require(
-            validateTransactionProposal(nullifiers, outputs, root),
-            "Invalid transaction proposal"
-        );
+        validateTransactionProposal(nullifiers, outputs, root);
+        validateLockedStates(nullifiers);
 
         // Check the proof
         if (nullifiers.length > 2 || outputs.length > 2) {
@@ -203,7 +206,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is
 
             // Check the proof using batchVerifier
             require(
-                batchVerifier.verifyProof(
+                _batchVerifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,
@@ -233,7 +236,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is
             }
             // Check the proof
             require(
-                verifier.verifyProof(
+                _verifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,
@@ -299,6 +302,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is
             MAX_BATCH
         );
         validateTransactionProposal(nullifiers, outputs, root);
+        validateLockedStates(nullifiers);
         _withdrawWithNullifiers(amount, nullifiers, output, root, proof);
         processInputsAndOutputs(nullifiers, outputs);
         emit UTXOWithdraw(amount, nullifiers, output, msg.sender, data);

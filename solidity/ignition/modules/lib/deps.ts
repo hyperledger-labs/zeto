@@ -71,6 +71,52 @@ export const BatchWithdrawVerifierModule = buildModule(
   },
 );
 
+export const LockVerifierModule = buildModule(
+  "Groth16Verifier_CheckUtxosOwner",
+  (m) => {
+    const verifier = m.contract("Groth16Verifier_CheckUtxosOwner", []);
+    return { verifier };
+  },
+);
+export const BatchLockVerifierModule = buildModule(
+  "Groth16Verifier_CheckUtxosOwnerBatch",
+  (m) => {
+    const verifier = m.contract("Groth16Verifier_CheckUtxosOwnerBatch", []);
+    return { verifier };
+  },
+);
+
+export const NfLockVerifierModule = buildModule(
+  "Groth16Verifier_CheckUtxosNfOwner",
+  (m) => {
+    const verifier = m.contract("Groth16Verifier_CheckUtxosNfOwner", []);
+    return { verifier };
+  },
+);
+
+export const LockNullifiersVerifierModule = buildModule(
+  "Groth16Verifier_CheckNullifiersOwner",
+  (m) => {
+    const verifier = m.contract("Groth16Verifier_CheckNullifiersOwner", []);
+    return { verifier };
+  },
+);
+export const BatchLockNullifiersVerifierModule = buildModule(
+  "Groth16Verifier_CheckNullifiersOwnerBatch",
+  (m) => {
+    const verifier = m.contract("Groth16Verifier_CheckNullifiersOwnerBatch", []);
+    return { verifier };
+  },
+);
+
+export const NfLockNullifiersVerifierModule = buildModule(
+  "Groth16Verifier_CheckNullifiersNfOwner",
+  (m) => {
+    const verifier = m.contract("Groth16Verifier_CheckNullifiersNfOwner", []);
+    return { verifier };
+  },
+);
+
 function PoseidonArtifact(param: number): Artifact {
   const abi = poseidonContract.generateABI(param);
   const bytecode = poseidonContract.createCode(param);

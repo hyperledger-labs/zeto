@@ -13,8 +13,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pragma circom 2.2.1;
+pragma solidity ^0.8.20;
 
-include "./lib/check-nullifier-value-base.circom";
-
-component main { public [ nullifiers, outputCommitments, root, enabled ] } = CheckNullifiersInputsOutputsValue(10, 1, 64);
+interface IZetoNonFungibleInitializable {
+    function initialize(
+        address initialOwner,
+        address _verifier,
+        address _lockVerifier
+    ) external;
+}

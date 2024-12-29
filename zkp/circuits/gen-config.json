@@ -53,9 +53,27 @@
       "batchPtau": "powersOfTau28_hez_final_14",
       "skipSolidityGenaration": false
     },
-    "check_nullifier_value": {
+    "check_nullifiers_value": {
       "ptau": "powersOfTau28_hez_final_17",
       "batchPtau": "powersOfTau28_hez_final_19",
+      "skipSolidityGenaration": false
+    },
+    "check_utxos_owner": {
+      "ptau": "powersOfTau28_hez_final_13",
+      "batchPtau": "powersOfTau28_hez_final_14",
+      "skipSolidityGenaration": false
+    },
+    "check_utxos_nf_owner": {
+      "ptau": "powersOfTau28_hez_final_13",
+      "skipSolidityGenaration": false
+    },
+    "check_nullifiers_owner": {
+      "ptau": "powersOfTau28_hez_final_11",
+      "batchPtau": "powersOfTau28_hez_final_13",
+      "skipSolidityGenaration": false
+    },
+    "check_nullifiers_nf_owner": {
+      "ptau": "powersOfTau28_hez_final_11",
       "skipSolidityGenaration": false
     },
     "check_nullifiers": {

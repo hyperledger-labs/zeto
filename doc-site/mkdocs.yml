@@ -1,0 +1,118 @@
+site_name: Zeto
+repo_name: hyperledger-labs/zeto
+repo_url: https://github.com/hyperledger-labs/zeto
+theme:
+  name: material
+  custom_dir: overrides
+  logo: assets/paladin-logo-light.svg
+  logo_dark: assets/paladin-logo-dark.svg
+  favicon: assets/paladin-icon-light.png
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    # Palette toggle for light mode
+    - media: '(prefers-color-scheme: light)'
+      scheme: zeto
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: '(prefers-color-scheme: dark)'
+      scheme: zeto-dark
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  primary: custom
+  features:
+    - content.code.copy
+    - navigation.expand
+    - navigation.footer
+    - navigation.instant
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sidebar
+    - navigation.tracking
+    - navigation.path
+    - navigation.indexes
+extra_css:
+  - stylesheets/zeto.css
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: squidfunk
+      repo: mkdocs-material
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+plugins:
+  - include-markdown:
+      rewrite_relative_urls: false
+  - literate-nav
+  - search
+  - mike
+extra:
+  analytics:
+    provider: google
+    property: !ENV GOOGLE_ANALYTICS_KEY
+  version:
+    provider: mike
+    alias: true
+  generator: false
+exclude_docs: |
+  _includes/
+nav:
+  - Introduction:
+      - Introduction: index.md
+      - Concepts: concepts/basics.md
+      - How Zeto Works: concepts/how-zeto-works.md
+  - Implementations:
+      - Overview: implementations/index.md
+      - Fungible:
+          - Zeto_Anon: implementations/anon.md
+          - Zeto_AnonNullifier: implementations/anon_nullifier.md
+          - Zeto_AnonEnc: implementations/anon_enc.md
+          - Zeto_AnonNullifierKyc: implementations/anon_nullifier_kyc.md
+          - Zeto_AnonEncNullifier: implementations/anon_enc_nullifier.md
+          - Zeto_AnonEncNullifierKyc: implementations/anon_enc_nullifier_kyc.md
+          - Zeto_AnonEncNullifierNonRepudiation: implementations/anon_enc_nullifier_non_repudiation.md
+      - Non-Fungible:
+          - Zeto_NfAnon: implementations/nf_anon.md
+          - Zeto_NfAnonNullifier: implementations/nf_anon_nullifier.md
+  - FAQs: faqs.md
+  - Glossary: glossary.md
+  - Contributing:
+      - Ask a Question: contributing/asking-a-question.md
+      - How to contribute: contributing/how-to-contribute.md
+      - Report a bug: contributing/reporting-a-bug.md
+      - Request a change: contributing/requesting-a-change.md

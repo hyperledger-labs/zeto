@@ -15,7 +15,7 @@
 // limitations under the License.
 pragma circom 2.2.1;
 
-include "./lib/check-nullifier-tokenid-uri.circom";
+include "./lib/check-nullifiers-tokenid-uri.circom";
 include "./lib/check-hashes-tokenid-uri.circom";
 include "./lib/check-smt-proof.circom";
 include "./node_modules/circomlib/circuits/babyjub.circom";
@@ -54,7 +54,7 @@ template Zeto(nSMTLevels) {
 
   CheckHashesForTokenIdAndUri(1)(tokenIds <== [tokenId], tokenUris <== [tokenUri], commitments <== [outputCommitment], salts <== [outputSalt], ownerPublicKeys <== [outputOwnerPublicKey]);
 
-  CheckNullifierForTokenIdAndUri(1)(nullifiers <== [nullifier], tokenIds <== [tokenId], tokenUris <== [tokenUri], salts <== [inputSalt], ownerPrivateKey <== inputOwnerPrivateKey);
+  CheckNullifiersForTokenIdAndUri(1)(nullifiers <== [nullifier], tokenIds <== [tokenId], tokenUris <== [tokenUri], salts <== [inputSalt], ownerPrivateKey <== inputOwnerPrivateKey);
 
   CheckSMTProof(1, nSMTLevels)(root <== root, merkleProof <== [merkleProof], enabled <== [1], leafNodeIndexes <== [inputCommitment]);
 }

@@ -16,11 +16,13 @@
 pragma solidity ^0.8.20;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
+import {Groth16Verifier_CheckUtxosNfOwner} from "./lib/verifier_check_utxos_nf_owner.sol";
+import {ILockVerifier, IBatchLockVerifier} from "./lib/interfaces/izeto_lockable.sol";
+
 import {Groth16Verifier_NfAnon} from "./lib/verifier_nf_anon.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
-import {Registry} from "./lib/registry.sol";
+import {ZetoLock} from "./lib/zeto_lock.sol";
 import {Commonlib} from "./lib/common.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /// @title A sample implementation of a Zeto based non-fungible token with anonymity and no encryption
@@ -29,15 +31,17 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 ///        - The sender owns the private key whose public key is part of the pre-image of the input UTXOs commitments
 ///          (aka the sender is authorized to spend the input UTXOs)
 ///        - The input UTXOs and output UTXOs are valid in terms of obeying mass conservation rules
-contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
-    Groth16Verifier_NfAnon internal verifier;
+contract Zeto_NfAnon is IZeto, ZetoBase, ZetoLock, UUPSUpgradeable {
+    Groth16Verifier_NfAnon internal _verifier;
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_NfAnon _verifier
+        Groth16Verifier_NfAnon verifier,
+        ILockVerifier lockVerifier
     ) public initializer {
         __ZetoBase_init(initialOwner);
-        verifier = _verifier;
+        __ZetoLock_init(lockVerifier, IBatchLockVerifier(address(0)));
+        _verifier = verifier;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -63,8 +67,13 @@ contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
         uint256[] memory outputs = new uint256[](1);
         outputs[0] = output;
         require(
-            validateTransactionProposal(inputs, outputs, proof),
+            validateTransactionProposal(inputs, outputs),
             "Invalid transaction proposal"
+        );
+
+        require(
+            validateLockedStates(inputs),
+            "At least one UTXO in the inputs are locked"
         );
 
         // construct the public inputs
@@ -74,7 +83,7 @@ contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
 
         // Check the proof
         require(
-            verifier.verifyProof(proof.pA, proof.pB, proof.pC, publicInputs),
+            _verifier.verifyProof(proof.pA, proof.pB, proof.pC, publicInputs),
             "Invalid proof"
         );
 

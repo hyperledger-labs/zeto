@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import { ethers, ignition, network } from "hardhat";
-import { Signer, encodeBytes32String, ZeroHash } from "ethers";
+import { Signer, encodeBytes32String, ZeroHash, lock } from "ethers";
 import { expect } from "chai";
 import { loadCircuit, getProofHash } from "zeto-js";
 import zkDvPModule from "../ignition/modules/zkDvP";
@@ -31,7 +31,7 @@ import {
   ZERO_UTXO,
   parseUTXOEvents,
 } from "./lib/utils";
-import { loadProvingKeys } from "./utils";
+import { loadProvingKeys, prepareLockProof, prepareAssetLockProof } from "./utils";
 import { deployZeto } from "./lib/deploy";
 
 describe("DvP flows between fungible and non-fungible tokens based on Zeto with anonymity without encryption or nullifiers", function () {
@@ -163,6 +163,7 @@ describe("DvP flows between fungible and non-fungible tokens based on Zeto with 
       [Bob, {}],
     );
     const hash1 = getProofHash(proof1.encodedProof);
+    const lockProof1 = await prepareLockProof(Alice, [_utxo1, ZERO_UTXO]);
 
     // 1.3 Alice initiates the trade with Bob
     const tx1 = await zkDvP
@@ -188,6 +189,7 @@ describe("DvP flows between fungible and non-fungible tokens based on Zeto with 
       Alice,
     );
     const hash2 = getProofHash(proof2.encodedProof);
+    const lockProof2 = await prepareAssetLockProof(Bob, [utxo3, ZERO_UTXO]);
 
     await expect(
       zkDvP
@@ -206,13 +208,13 @@ describe("DvP flows between fungible and non-fungible tokens based on Zeto with 
     // 3. Alice sends her proof to complete the trade (the trade will still be pending completion)
     const tx2 = await zkDvP
       .connect(Alice.signer)
-      .completeTrade(tradeId, proof1.encodedProof);
+      .completeTrade(tradeId, proof1.encodedProof, lockProof1.encodedProof);
     const tx2Result = await tx2.wait();
 
     // 4. Bob sends his proof to complete the trade (the trade will be completed)
     const tx3 = await zkDvP
       .connect(Bob.signer)
-      .completeTrade(tradeId, proof2.encodedProof);
+      .completeTrade(tradeId, proof2.encodedProof, lockProof2.encodedProof);
     const tx3Result = await tx3.wait();
 
     // check that the trade is completed
@@ -444,44 +446,6 @@ describe("DvP flows between fungible and non-fungible tokens based on Zeto with 
             mockProofHash,
           ),
       ).rejectedWith("Payment outputs must be provided to accept the trade");
-    });
-
-    it("test proof locking", async function () {
-      const circuit1 = await loadCircuit("anon");
-      const { provingKeyFile: provingKey1 } = loadProvingKeys("anon");
-      const utxo1 = newUTXO(100, Alice);
-      const proof = await zetoAnonTests.prepareProof(
-        circuit1,
-        provingKey1,
-        Alice,
-        [utxo1, ZERO_UTXO],
-        [utxo1, ZERO_UTXO],
-        [Alice, {}],
-      );
-
-      await expect(
-        zkPayment
-          .connect(Alice.signer)
-          .lockProof(proof.encodedProof, await Alice.signer.getAddress()),
-      ).fulfilled;
-      await expect(
-        zkPayment
-          .connect(Bob.signer)
-          .lockProof(proof.encodedProof, await Bob.signer.getAddress()),
-      ).rejectedWith("Proof already locked by another party");
-      await expect(
-        zkPayment
-          .connect(Alice.signer)
-          .lockProof(proof.encodedProof, await Bob.signer.getAddress()),
-      ).fulfilled;
-      await expect(
-        zkPayment
-          .connect(Bob.signer)
-          .lockProof(
-            proof.encodedProof,
-            "0x0000000000000000000000000000000000000000",
-          ),
-      ).fulfilled;
     });
   });
 }).timeout(600000);
