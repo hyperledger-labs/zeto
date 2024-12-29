@@ -15,7 +15,6 @@
 // limitations under the License.
 pragma circom 2.2.1;
 
-include "./lib/check-positive.circom";
 include "./lib/check-hashes.circom";
 
 template checkHashesValue(nOutputs) {

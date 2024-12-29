@@ -42,7 +42,7 @@ describe("check_inputs_outputs_value circuit tests", () => {
     Alice.pubKey = keypair.pubKey;
     senderPrivateKey = formatPrivKeyForBabyJub(Alice.privKey);
 
-    // initialize the local storage for Alice to manage her UTXOs in the Spart Merkle Tree
+    // initialize the local storage for Alice to manage her UTXOs in the Spark Merkle Tree
     const storage1 = new InMemoryDB(str2Bytes(""));
     smtAlice = new Merkletree(storage1, true, SMT_HEIGHT);
   });

@@ -60,9 +60,14 @@ describe("check_hashes_value circuit tests", () => {
     let witness = await circuit.calculateWitness(
       {
         outputCommitments,
-        outputValues,
-        outputSalts: [salt1, salt2],
-        outputOwnerPublicKeys: [sender.pubKey, sender.pubKey],
+        outputCommitmentInputs: [
+          BigInt(outputValues[0]),
+          salt1,
+          ...sender.pubKey,
+          BigInt(outputValues[1]),
+          salt2,
+          ...sender.pubKey,
+        ],
       },
       true,
     );
@@ -91,9 +96,14 @@ describe("check_hashes_value circuit tests", () => {
     let witness = await circuit.calculateWitness(
       {
         outputCommitments,
-        outputValues,
-        outputSalts: [salt1, salt2],
-        outputOwnerPublicKeys: [sender.pubKey, sender.pubKey],
+        outputCommitmentInputs: [
+          BigInt(outputValues[0]),
+          salt1,
+          ...sender.pubKey,
+          BigInt(outputValues[1]),
+          salt2,
+          ...sender.pubKey,
+        ],
       },
       true,
     );
@@ -123,9 +133,14 @@ describe("check_hashes_value circuit tests", () => {
       await circuit.calculateWitness(
         {
           outputCommitments,
-          outputValues,
-          outputSalts: [salt1, salt1],
-          outputOwnerPublicKeys: [sender.pubKey, sender.pubKey],
+          outputCommitmentInputs: [
+            BigInt(outputValues[0]),
+            salt1,
+            ...sender.pubKey,
+            BigInt(outputValues[1]),
+            salt1,
+            ...sender.pubKey,
+          ],
         },
         true,
       );
@@ -133,11 +148,11 @@ describe("check_hashes_value circuit tests", () => {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckHashes_80 line: 47/); // hash check failed
+    expect(error).to.match(/Error in template CheckHashes_80 line: 62/); // hash check failed
   });
 
   it("should fail to generate a witness because of negative values in output commitments", async () => {
-    // in the finite field used in the Poseidion hash implementation, -100n is equivalent to
+    // in the finite field used in the Poseidon hash implementation, -100n is equivalent to
     // 21888242871839275222246405745257275088548364400416034343698204186575808495517n
     const outputValues = [-100, 200];
 
@@ -160,9 +175,14 @@ describe("check_hashes_value circuit tests", () => {
       await circuit.calculateWitness(
         {
           outputCommitments,
-          outputValues,
-          outputSalts: [salt1, salt1],
-          outputOwnerPublicKeys: [sender.pubKey, sender.pubKey],
+          outputCommitmentInputs: [
+            BigInt(outputValues[0]),
+            salt1,
+            ...sender.pubKey,
+            BigInt(outputValues[1]),
+            salt1,
+            ...sender.pubKey,
+          ],
         },
         true,
       );
@@ -170,11 +190,11 @@ describe("check_hashes_value circuit tests", () => {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckPositive_3 line: 36/); // positive range check failed
+    expect(error).to.match(/Error in template CheckPositiveValues_3 line: 34/); // positive range check failed
   });
 
   it("should fail to generate a witness because of using the inverse of a negative value in output commitments", async () => {
-    // in the finite field used in the Poseidion hash implementation, -100n is equivalent to
+    // in the finite field used in the Poseidon hash implementation, -100n is equivalent to
     // 21888242871839275222246405745257275088548364400416034343698204186575808495517n. This number
     // is considered negative by the circuit, because we allow the range of 0 to (2**40 - 1)
     const outputValues = [
@@ -201,9 +221,14 @@ describe("check_hashes_value circuit tests", () => {
       await circuit.calculateWitness(
         {
           outputCommitments,
-          outputValues,
-          outputSalts: [salt1, salt1],
-          outputOwnerPublicKeys: [sender.pubKey, sender.pubKey],
+          outputCommitmentInputs: [
+            BigInt(outputValues[0]),
+            salt1,
+            ...sender.pubKey,
+            BigInt(outputValues[1]),
+            salt1,
+            ...sender.pubKey,
+          ],
         },
         true,
       );
@@ -211,7 +236,7 @@ describe("check_hashes_value circuit tests", () => {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckPositive_3 line: 36/); // positive range check failed
+    expect(error).to.match(/Error in template CheckPositiveValues_3 line: 34/); // positive range check failed
   });
 
   it("should fail to generate a witness because a larger than MAX_VALUE is used in output", async () => {
@@ -236,9 +261,14 @@ describe("check_hashes_value circuit tests", () => {
       await circuit.calculateWitness(
         {
           outputCommitments,
-          outputValues,
-          outputSalts: [salt1, salt1],
-          outputOwnerPublicKeys: [sender.pubKey, sender.pubKey],
+          outputCommitmentInputs: [
+            BigInt(outputValues[0]),
+            salt1,
+            ...sender.pubKey,
+            BigInt(outputValues[1]),
+            salt1,
+            ...sender.pubKey,
+          ],
         },
         true,
       );
@@ -246,6 +276,6 @@ describe("check_hashes_value circuit tests", () => {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckPositive_3 line: 36/); // positive range check failed
+    expect(error).to.match(/Error in template CheckPositiveValues_3 line: 34/); // positive range check failed
   });
 });

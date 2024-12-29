@@ -14,16 +14,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
-const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
-const { Poseidon, newSalt } = require('../index.js');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
+const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
+const { Poseidon, newSalt } = require("../index.js");
 
 const ZERO_PUBKEY = [0n, 0n];
 const poseidonHash = Poseidon.poseidon4;
 
-describe('check_utxos_owner circuit tests', () => {
+describe("check_utxos_owner circuit tests", () => {
   let circuit;
   const sender = {};
   let senderPrivateKey;
@@ -31,7 +31,9 @@ describe('check_utxos_owner circuit tests', () => {
   before(async function () {
     this.timeout(60000);
 
-    circuit = await wasm_tester(join(__dirname, '../../circuits/check_utxos_owner.circom'));
+    circuit = await wasm_tester(
+      join(__dirname, "../../circuits/check_utxos_owner.circom"),
+    );
 
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;
@@ -39,7 +41,7 @@ describe('check_utxos_owner circuit tests', () => {
     senderPrivateKey = formatPrivKeyForBabyJub(sender.privKey);
   });
 
-  it('should return true for valid witness', async () => {
+  it("should return true for valid witness", async () => {
     const values = [32, 40];
 
     // create two input UTXOs, each has their own salt, but same owner
@@ -56,7 +58,7 @@ describe('check_utxos_owner circuit tests', () => {
         salts: [salt1, salt2],
         ownerPrivateKey: senderPrivateKey,
       },
-      true
+      true,
     );
 
     // console.log(witness.slice(0, 10));
@@ -70,7 +72,7 @@ describe('check_utxos_owner circuit tests', () => {
     expect(witness[9]).to.equal(BigInt(sender.pubKey[1]));
   });
 
-  it('should return true for valid witness using a single input value', async () => {
+  it("should return true for valid witness using a single input value", async () => {
     const values = [72, 0];
 
     // create two input UTXOs, each has their own salt, but same owner
@@ -85,7 +87,7 @@ describe('check_utxos_owner circuit tests', () => {
         salts: [salt1, 0],
         ownerPrivateKey: senderPrivateKey,
       },
-      true
+      true,
     );
 
     expect(witness[1]).to.equal(BigInt(commitments[0]));
@@ -95,7 +97,7 @@ describe('check_utxos_owner circuit tests', () => {
     expect(witness[9]).to.equal(BigInt(sender.pubKey[1]));
   });
 
-  it('should return true for valid witness using a single input value', async () => {
+  it("should return true for valid witness using a single input value", async () => {
     const values = [0, 72];
 
     // create two input UTXOs, each has their own salt, but same owner
@@ -110,7 +112,7 @@ describe('check_utxos_owner circuit tests', () => {
         salts: [0, salt1],
         ownerPrivateKey: senderPrivateKey,
       },
-      true
+      true,
     );
 
     expect(witness[1]).to.equal(BigInt(commitments[0]));
@@ -120,14 +122,22 @@ describe('check_utxos_owner circuit tests', () => {
     expect(witness[9]).to.equal(BigInt(sender.pubKey[1]));
   });
 
-  it('should fail to generate a witness because of invalid input commitments', async () => {
+  it("should fail to generate a witness because of invalid input commitments", async () => {
     const inputValues = [25, 100];
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(inputValues[0]), salt1, ...sender.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(inputValues[0]),
+      salt1,
+      ...sender.pubKey,
+    ]);
     const salt2 = newSalt();
-    const input2 = poseidonHash([BigInt(inputValues[1]), salt2, ...sender.pubKey]);
+    const input2 = poseidonHash([
+      BigInt(inputValues[1]),
+      salt2,
+      ...sender.pubKey,
+    ]);
     const inputCommitments = [input1 + BigInt(1), input2];
 
     let error;
@@ -139,7 +149,7 @@ describe('check_utxos_owner circuit tests', () => {
           salts: [salt1, salt2],
           ownerPrivateKey: senderPrivateKey,
         },
-        true
+        true,
       );
     } catch (e) {
       error = e;
@@ -148,14 +158,22 @@ describe('check_utxos_owner circuit tests', () => {
     expect(error).to.match(/Error in template CheckHashes_88 line: 47/); // hash check failed
   });
 
-  it('should fail to generate a witness because of invalid owner private key', async () => {
+  it("should fail to generate a witness because of invalid owner private key", async () => {
     const inputValues = [25, 100];
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(inputValues[0]), salt1, ...sender.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(inputValues[0]),
+      salt1,
+      ...sender.pubKey,
+    ]);
     const salt2 = newSalt();
-    const input2 = poseidonHash([BigInt(inputValues[1]), salt2, ...sender.pubKey]);
+    const input2 = poseidonHash([
+      BigInt(inputValues[1]),
+      salt2,
+      ...sender.pubKey,
+    ]);
     const inputCommitments = [input1, input2];
 
     let error;
@@ -167,7 +185,7 @@ describe('check_utxos_owner circuit tests', () => {
           salts: [salt1, salt2],
           ownerPrivateKey: senderPrivateKey + BigInt(1),
         },
-        true
+        true,
       );
     } catch (e) {
       error = e;
