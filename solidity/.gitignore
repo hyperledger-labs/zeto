@@ -5,6 +5,5 @@ cache
 typechain-types
 ignition/deployments
 .openzeppelin
-package-lock.json
 **/*costs.csv
 **/*_plot.png
