@@ -48,10 +48,8 @@ abstract contract ZetoBase is IZetoBase, ZetoCommon {
         uint256[] memory outputs
     ) internal view returns (bool) {
         // sort the inputs and outputs to detect duplicates
-        (
-            uint256[] memory sortedInputs,
-            uint256[] memory sortedOutputs
-        ) = sortInputsAndOutputs(inputs, outputs);
+        uint256[] memory sortedInputs = sortCommitments(inputs);
+        uint256[] memory sortedOutputs = sortCommitments(outputs);
 
         // Check the inputs are all unspent
         for (uint256 i = 0; i < sortedInputs.length; ++i) {

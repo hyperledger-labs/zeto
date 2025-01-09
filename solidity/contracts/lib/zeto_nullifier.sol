@@ -44,10 +44,8 @@ abstract contract ZetoNullifier is IZetoBase, ZetoCommon {
         uint256 root
     ) internal view returns (bool) {
         // sort the inputs and outputs to detect duplicates
-        (
-            uint256[] memory sortedInputs,
-            uint256[] memory sortedOutputs
-        ) = sortInputsAndOutputs(nullifiers, outputs);
+        uint256[] memory sortedInputs = sortCommitments(nullifiers);
+        uint256[] memory sortedOutputs = sortCommitments(outputs);
 
         // Check the inputs are all unspent
         for (uint256 i = 0; i < sortedInputs.length; ++i) {
@@ -133,7 +131,7 @@ abstract contract ZetoNullifier is IZetoBase, ZetoCommon {
         return _commitmentsTree.getRoot();
     }
 
-    function _getLeafNodeHash(uint256 utxo) internal pure returns (uint256) {
+    function _getLeafNodeHash(uint256 utxo) private pure returns (uint256) {
         uint256[3] memory params = [utxo, utxo, uint256(1)];
         return PoseidonUnit3L.poseidon(params);
     }

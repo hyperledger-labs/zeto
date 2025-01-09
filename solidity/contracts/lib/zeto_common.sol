@@ -55,20 +55,14 @@ abstract contract ZetoCommon is IZetoCommon, OwnableUpgradeable {
 
         return commitments;
     }
-    function sortInputsAndOutputs(
-        uint256[] memory inputs,
-        uint256[] memory outputs
-    ) internal pure returns (uint256[] memory, uint256[] memory) {
-        uint256[] memory sortedInputs = new uint256[](inputs.length);
-        uint256[] memory sortedOutputs = new uint256[](outputs.length);
-        for (uint256 i = 0; i < inputs.length; ++i) {
-            sortedInputs[i] = inputs[i];
+    function sortCommitments(
+        uint256[] memory utxos
+    ) internal pure returns (uint256[] memory) {
+        uint256[] memory sorted = new uint256[](utxos.length);
+        for (uint256 i = 0; i < utxos.length; ++i) {
+            sorted[i] = utxos[i];
         }
-        for (uint256 i = 0; i < outputs.length; ++i) {
-            sortedOutputs[i] = outputs[i];
-        }
-        sortedInputs = Arrays.sort(sortedInputs);
-        sortedOutputs = Arrays.sort(sortedOutputs);
-        return (sortedInputs, sortedOutputs);
+        sorted = Arrays.sort(sorted);
+        return sorted;
     }
 }

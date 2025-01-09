@@ -18,7 +18,9 @@ pragma solidity ^0.8.27;
 import {IZetoBase} from "./interfaces/izeto_base.sol";
 import {IZetoLockable, ILockVerifier, IBatchLockVerifier} from "./interfaces/izeto_lockable.sol";
 import {Commonlib} from "./common.sol";
+import {Arrays} from "@openzeppelin/contracts/utils/Arrays.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
+import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 /// @title A sample base implementation of a Zeto based token contract
@@ -35,15 +37,7 @@ abstract contract ZetoLock is IZetoBase, IZetoLockable, OwnableUpgradeable {
     using SmtLib for SmtLib.Data;
     mapping(uint256 => bool) private _nullifiersForLockedCommitments;
 
-    ILockVerifier internal _lockVerifier;
-    IBatchLockVerifier internal _batchLockVerifier;
-
-    function __ZetoLock_init(
-        ILockVerifier lockVerifier,
-        IBatchLockVerifier batchLockVerifier
-    ) public onlyInitializing {
-        _lockVerifier = lockVerifier;
-        _batchLockVerifier = batchLockVerifier;
+    function __ZetoLockNullifier_init() public onlyInitializing {
         _lockedCommitmentsTree.initialize(MAX_SMT_DEPTH);
     }
 
@@ -59,6 +53,23 @@ abstract contract ZetoLock is IZetoBase, IZetoLockable, OwnableUpgradeable {
         address delegate,
         bytes calldata data
     ) public {
+        // Check the outputs are all new UTXOs
+        uint256[] memory sortedOutputs = Arrays.sort(lockedOutputs);
+        for (uint256 i = 0; i < sortedOutputs.length; ++i) {
+            if (sortedOutputs[i] == 0) {
+                // skip the zero outputs
+                continue;
+            }
+            if (i > 0 && sortedOutputs[i] == sortedOutputs[i - 1]) {
+                revert UTXODuplicate(sortedOutputs[i]);
+            }
+            uint256 nodeHash = _getLeafNodeHash(sortedOutputs[i]);
+            SmtLib.Node memory node = _commitmentsTree.getNode(nodeHash);
+            if (node.nodeType != SmtLib.NodeType.EMPTY) {
+                revert UTXOAlreadyOwned(sortedOutputs[i]);
+            }
+        }
+
         for (uint256 i = 0; i < lockedOutputs.length; ++i) {
             if (lockedOutputs[i] == 0) {
                 continue;
@@ -120,5 +131,10 @@ abstract contract ZetoLock is IZetoBase, IZetoLockable, OwnableUpgradeable {
             }
         }
         return true;
+    }
+
+    function _getLeafNodeHash(uint256 utxo) private pure returns (uint256) {
+        uint256[3] memory params = [utxo, utxo, uint256(1)];
+        return PoseidonUnit3L.poseidon(params);
     }
 }
