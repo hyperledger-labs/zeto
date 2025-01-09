@@ -16,8 +16,9 @@
 pragma solidity ^0.8.27;
 
 import {IZetoBase} from "./interfaces/izeto_base.sol";
-import {IZetoLockable} from "./interfaces/izeto_lockable.sol";
+import {IZetoLockable, ILockVerifier, IBatchLockVerifier} from "./interfaces/izeto_lockable.sol";
 import {Commonlib} from "./common.sol";
+import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 /// @title A sample base implementation of a Zeto based token contract
@@ -30,12 +31,21 @@ abstract contract ZetoLock is IZetoBase, IZetoLockable, OwnableUpgradeable {
     // and prevent any other party from utilizing the uploaded proof to execute
     // a transaction, the input UTXOs or nullifiers can be locked and only usable
     // by the same party that did the locking.
-    mapping(uint256 => address) internal lockedUTXOs;
+    SmtLib.Data internal _lockedCommitmentsTree;
+    using SmtLib for SmtLib.Data;
+    mapping(uint256 => bool) private _nullifiersForLockedCommitments;
+
+    ILockVerifier internal _lockVerifier;
+    IBatchLockVerifier internal _batchLockVerifier;
 
     function __ZetoLock_init(
-        address lockVerifier,
-        address batchLockVerifier
-    ) public onlyInitializing {}
+        ILockVerifier lockVerifier,
+        IBatchLockVerifier batchLockVerifier
+    ) public onlyInitializing {
+        _lockVerifier = lockVerifier;
+        _batchLockVerifier = batchLockVerifier;
+        _lockedCommitmentsTree.initialize(MAX_SMT_DEPTH);
+    }
 
     // Locks the UTXOs so that they can only be spent by submitting the appropriate
     // proof from the Eth account designated as the "delegate". This function
