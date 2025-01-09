@@ -16,7 +16,7 @@
 pragma solidity ^0.8.27;
 
 import {Commonlib} from "./common.sol";
-import {IZetoCommon} from "./interfaces/izeto_common.sol";
+import {IZetoCommon, MAX_BATCH} from "./interfaces/izeto_common.sol";
 import {Arrays} from "@openzeppelin/contracts/utils/Arrays.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
@@ -28,16 +28,13 @@ abstract contract ZetoCommon is IZetoCommon, OwnableUpgradeable {
         __Ownable_init(initialOwner);
     }
     function checkAndPadCommitments(
-        uint256[] memory inputs,
-        uint256[] memory outputs,
-        uint256 batchMax
-    ) internal pure returns (uint256[] memory, uint256[] memory) {
-        uint256 inputLen = inputs.length;
-        uint256 outputLen = outputs.length;
+        uint256[] memory commitments
+    ) internal pure returns (uint256[] memory) {
+        uint256 len = commitments.length;
 
         // Check if inputs or outputs exceed batchMax and revert with custom error if necessary
-        if (inputLen > batchMax || outputLen > batchMax) {
-            revert UTXOArrayTooLarge(batchMax);
+        if (len > MAX_BATCH) {
+            revert UTXOArrayTooLarge(MAX_BATCH);
         }
 
         // Ensure both arrays are padded to the same length
@@ -46,19 +43,17 @@ abstract contract ZetoCommon is IZetoCommon, OwnableUpgradeable {
         // By default all tokens supports at least a circuit with 2 inputs and 2 outputs
         // which has a shorter proof generation time and should cover most use cases.
         // In addition, tokens can support circuits with bigger inputs
-        if (inputLen > 2 || outputLen > 2) {
+        if (len > 2) {
             // check whether a batch circuit is required
-
-            maxLength = batchMax; // Pad both to batchMax if one has more than 2 items
+            maxLength = MAX_BATCH; // Pad both to batchMax if one has more than 2 items
         } else {
             maxLength = 2; // Otherwise, pad both to 2
         }
 
-        // Pad both inputs and outputs to the determined maxLength
-        inputs = Commonlib.padUintArray(inputs, maxLength, 0);
-        outputs = Commonlib.padUintArray(outputs, maxLength, 0);
+        // Pad commitments to the determined maxLength
+        commitments = Commonlib.padUintArray(commitments, maxLength, 0);
 
-        return (inputs, outputs);
+        return commitments;
     }
     function sortInputsAndOutputs(
         uint256[] memory inputs,

@@ -43,12 +43,47 @@ abstract contract ZetoLock is IZetoBase, IZetoLockable, OwnableUpgradeable {
         _batchLockVerifier = batchLockVerifier;
     }
 
+    // Locks the UTXOs so that they can only be spent by submitting the appropriate
+    // proof from the Eth account designated as the "delegate". This function
     // should be called by escrow contracts that will use uploaded proofs
     // to execute transactions, in order to prevent the proof from being used
-    // by parties other than the escrow contract
-    function lockStates(
+    // by parties other than the escrow contract.
+    function _lock(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        uint256[] memory lockedOutputs,
+        address delegate,
+        bytes calldata data
+    ) public {
+        for (uint256 i = 0; i < lockedOutputs.length; ++i) {
+            if (lockedOutputs[i] == 0) {
+                continue;
+            }
+            if (
+                lockedUTXOs[lockedOutputs[i]] != address(0) &&
+                lockedUTXOs[lockedOutputs[i]] != msg.sender
+            ) {
+                revert UTXOAlreadyLocked(lockedOutputs[i]);
+            }
+            lockedUTXOs[lockedOutputs[i]] = delegate;
+        }
+
+        emit UTXOsLocked(
+            inputs,
+            outputs,
+            lockedOutputs,
+            delegate,
+            msg.sender,
+            data
+        );
+    }
+
+    // move the ability to spend the locked UTXOs to the delegate account.
+    // The sender must be the current delegate.
+    //
+    // Setting the delegate to address(0) will unlock the UTXOs.
+    function delegateLock(
         uint256[] memory utxos,
-        Commonlib.Proof calldata proof,
         address delegate,
         bytes calldata data
     ) public {
@@ -56,38 +91,13 @@ abstract contract ZetoLock is IZetoBase, IZetoLockable, OwnableUpgradeable {
             if (utxos[i] == 0) {
                 continue;
             }
-            if (
-                lockedUTXOs[utxos[i]] != address(0) &&
-                lockedUTXOs[utxos[i]] != msg.sender
-            ) {
-                revert UTXOAlreadyLocked(utxos[i]);
+            if (lockedUTXOs[utxos[i]] != msg.sender) {
+                revert NotLockDelegate(utxos[i], delegate, msg.sender);
             }
             lockedUTXOs[utxos[i]] = delegate;
         }
-        // verify that the proof is valid
-        if (utxos.length <= 2) {
-            uint256[2] memory utxosArray;
-            for (uint256 i = 0; i < utxos.length; ++i) {
-                utxosArray[i] = utxos[i];
-            }
-            for (uint256 i = utxos.length; i < 2; ++i) {
-                utxosArray[i] = 0;
-            }
 
-            require(_verifyLockProof(utxosArray, proof), "Invalid proof");
-        } else {
-            uint256[10] memory utxosArray;
-            for (uint256 i = 0; i < utxos.length; ++i) {
-                utxosArray[i] = utxos[i];
-            }
-            for (uint256 i = utxos.length; i < 10; ++i) {
-                utxosArray[i] = 0;
-            }
-
-            require(_verifyBatchLockProof(utxosArray, proof), "Invalid proof");
-        }
-
-        emit UTXOsLocked(utxos, delegate, msg.sender, data);
+        emit LockDelegateChanged(utxos, msg.sender, delegate, data);
     }
 
     function validateLockedStates(

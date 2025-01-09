@@ -16,7 +16,6 @@
 pragma solidity ^0.8.27;
 
 import {IZetoEncrypted} from "./lib/interfaces/izeto_encrypted.sol";
-import {MAX_BATCH} from "./lib/interfaces/izeto_common.sol";
 import {ILockVerifier, IBatchLockVerifier} from "./lib/interfaces/izeto_lockable.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckNullifierValue} from "./lib/verifier_check_nullifier_value.sol";
@@ -141,11 +140,8 @@ contract Zeto_AnonEncNullifier is
         bytes calldata data
     ) public returns (bool) {
         // Check and pad commitments
-        (nullifiers, outputs) = checkAndPadCommitments(
-            nullifiers,
-            outputs,
-            MAX_BATCH
-        );
+        nullifiers = checkAndPadCommitments(nullifiers);
+        outputs = checkAndPadCommitments(outputs);
         validateTransactionProposal(nullifiers, outputs, root);
         validateLockedStates(nullifiers);
 
@@ -246,11 +242,8 @@ contract Zeto_AnonEncNullifier is
         uint256[] memory outputs = new uint256[](nullifiers.length);
         outputs[0] = output;
         // Check and pad commitments
-        (nullifiers, outputs) = checkAndPadCommitments(
-            nullifiers,
-            outputs,
-            MAX_BATCH
-        );
+        nullifiers = checkAndPadCommitments(nullifiers);
+        outputs = checkAndPadCommitments(outputs);
         validateTransactionProposal(nullifiers, outputs, root);
         validateLockedStates(nullifiers);
         _withdrawWithNullifiers(amount, nullifiers, output, root, proof);

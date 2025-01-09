@@ -109,6 +109,10 @@ nav:
       - Non-Fungible:
           - Zeto_NfAnon: implementations/nf_anon.md
           - Zeto_NfAnonNullifier: implementations/nf_anon_nullifier.md
+  - Advanced Topics:
+      - UTXO array sizes in ZKP circuits: advanced/utxo-array-sizes.md
+      - ERC20 tokens integration: advanced/erc20-tokens-integration.md
+      - Locks for multi-step trade flows: advanced/locks.md
   - FAQs: faqs.md
   - Glossary: glossary.md
   - Contributing:

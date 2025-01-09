@@ -120,11 +120,8 @@ contract Zeto_AnonNullifier is
         bytes calldata data
     ) public returns (bool) {
         // Check and pad inputs and outputs based on the max size
-        (nullifiers, outputs) = checkAndPadCommitments(
-            nullifiers,
-            outputs,
-            MAX_BATCH
-        );
+        nullifiers = checkAndPadCommitments(nullifiers);
+        outputs = checkAndPadCommitments(outputs);
 
         validateTransactionProposal(nullifiers, outputs, root);
         validateLockedStates(nullifiers);
@@ -210,11 +207,8 @@ contract Zeto_AnonNullifier is
         uint256[] memory outputs = new uint256[](nullifiers.length);
         outputs[0] = output;
         // Check and pad inputs and outputs based on the max size
-        (nullifiers, outputs) = checkAndPadCommitments(
-            nullifiers,
-            outputs,
-            MAX_BATCH
-        );
+        nullifiers = checkAndPadCommitments(nullifiers);
+        outputs = checkAndPadCommitments(outputs);
         validateTransactionProposal(nullifiers, outputs, root);
         validateLockedStates(nullifiers);
         _withdrawWithNullifiers(amount, nullifiers, output, root, proof);

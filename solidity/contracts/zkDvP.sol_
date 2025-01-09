@@ -40,7 +40,6 @@ contract zkDvP {
         // inputs for the payment transaction
         uint256[2] paymentInputs;
         uint256[2] paymentOutputs;
-        bytes32 paymentProofHash;
         Commonlib.Proof paymentProof;
         // asset counterparty is the party that initiates the asset transaction
         // it does NOT need to be actual owner of the asset UTXOs. The ZK proof of
@@ -50,7 +49,6 @@ contract zkDvP {
         // inputs for the delivery transaction
         uint256 assetInput;
         uint256 assetOutput;
-        bytes32 assetProofHash;
         Commonlib.Proof assetProof;
     }
 
@@ -196,8 +194,7 @@ contract zkDvP {
 
     function completeTrade(
         uint256 tradeId,
-        Commonlib.Proof calldata proof,
-        Commonlib.Proof calldata lockProof
+        Commonlib.Proof calldata proof
     ) public {
         Trade memory trade = trades[tradeId];
         require(
@@ -212,12 +209,7 @@ contract zkDvP {
             for (uint256 i = 0; i < trade.paymentInputs.length; i++) {
                 lockedStates[i] = trade.paymentInputs[i];
             }
-            paymentToken.lockStates(
-                lockedStates,
-                lockProof,
-                address(this),
-                "0x"
-            );
+            paymentToken.lock(lockedStates, lockProof, address(this), "0x");
         } else if (trade.assetProofHash == proofHash) {
             trade.assetProof = proof;
             lockedStates = new uint256[](1);

@@ -21,7 +21,6 @@ import {Groth16Verifier_CheckNullifierValue} from "./lib/verifier_check_nullifie
 import {Groth16Verifier_CheckNullifierValueBatch} from "./lib/verifier_check_nullifier_value_batch.sol";
 import {Groth16Verifier_AnonEncNullifierNonRepudiation} from "./lib/verifier_anon_enc_nullifier_non_repudiation.sol";
 import {Groth16Verifier_AnonEncNullifierNonRepudiationBatch} from "./lib/verifier_anon_enc_nullifier_non_repudiation_batch.sol";
-import {MAX_BATCH} from "./lib/interfaces/izeto_common.sol";
 import {ILockVerifier, IBatchLockVerifier} from "./lib/interfaces/izeto_lockable.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
@@ -174,11 +173,8 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         bytes calldata data
     ) public returns (bool) {
         // Check and pad commitments
-        (nullifiers, outputs) = checkAndPadCommitments(
-            nullifiers,
-            outputs,
-            MAX_BATCH
-        );
+        nullifiers = checkAndPadCommitments(nullifiers);
+        outputs = checkAndPadCommitments(outputs);
         validateTransactionProposal(nullifiers, outputs, root);
         validateLockedStates(nullifiers);
 
@@ -296,11 +292,8 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         uint256[] memory outputs = new uint256[](nullifiers.length);
         outputs[0] = output;
         // Check and pad commitments
-        (nullifiers, outputs) = checkAndPadCommitments(
-            nullifiers,
-            outputs,
-            MAX_BATCH
-        );
+        nullifiers = checkAndPadCommitments(nullifiers);
+        outputs = checkAndPadCommitments(outputs);
         validateTransactionProposal(nullifiers, outputs, root);
         validateLockedStates(nullifiers);
         _withdrawWithNullifiers(amount, nullifiers, output, root, proof);

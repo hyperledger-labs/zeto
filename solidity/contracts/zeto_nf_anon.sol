@@ -97,4 +97,23 @@ contract Zeto_NfAnon is IZeto, ZetoBase, ZetoLock, UUPSUpgradeable {
     function mint(uint256[] memory utxos, bytes calldata data) public {
         _mint(utxos, data);
     }
+
+    function lock(
+        uint256 input,
+        uint256 lockedOutput,
+        Commonlib.Proof calldata proof,
+        address delegate,
+        bytes calldata data
+    ) public {
+        // spend as usual
+        transfer(input, lockedOutput, proof, data);
+
+        // lock the intended outputs
+        uint256[] memory inputs = new uint256[](1);
+        inputs[0] = input;
+        uint256[] memory emptyOutput = new uint256[](0);
+        uint256[] memory lockedOutputs = new uint256[](1);
+        lockedOutputs[0] = lockedOutput;
+        _lock(inputs, emptyOutput, lockedOutputs, delegate, data);
+    }
 }

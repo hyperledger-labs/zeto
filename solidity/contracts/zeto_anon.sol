@@ -16,7 +16,6 @@
 pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
-import {MAX_BATCH} from "./lib/interfaces/izeto_common.sol";
 import {ILockVerifier, IBatchLockVerifier} from "./lib/interfaces/izeto_lockable.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValue} from "./lib/verifier_check_inputs_outputs_value.sol";
@@ -112,7 +111,8 @@ contract Zeto_Anon is
         bytes calldata data
     ) public returns (bool) {
         // Check and pad inputs and outputs based on the max size
-        (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
+        inputs = checkAndPadCommitments(inputs);
+        outputs = checkAndPadCommitments(outputs);
 
         validateTransactionProposal(inputs, outputs);
         validateLockedStates(inputs);
@@ -189,7 +189,8 @@ contract Zeto_Anon is
         // Check and pad inputs and outputs based on the max size
         uint256[] memory outputs = new uint256[](inputs.length);
         outputs[0] = output;
-        (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
+        inputs = checkAndPadCommitments(inputs);
+        outputs = checkAndPadCommitments(outputs);
         validateTransactionProposal(inputs, outputs);
         validateLockedStates(inputs);
         _withdraw(amount, inputs, output, proof);
@@ -202,5 +203,29 @@ contract Zeto_Anon is
         bytes calldata data
     ) public onlyOwner {
         _mint(utxos, data);
+    }
+
+    function lock(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        uint256[] memory lockedOutputs,
+        Commonlib.Proof calldata proof,
+        address delegate,
+        bytes calldata data
+    ) public {
+        // merge the outputs and lockedOutputs and do a regular transfer
+        uint256[] memory allOutputs = new uint256[](
+            outputs.length + lockedOutputs.length
+        );
+        for (uint256 i = 0; i < outputs.length; i++) {
+            allOutputs[i] = outputs[i];
+        }
+        for (uint256 i = 0; i < lockedOutputs.length; i++) {
+            allOutputs[outputs.length + i] = lockedOutputs[i];
+        }
+        transfer(inputs, allOutputs, proof, data);
+
+        // lock the intended outputs
+        _lock(inputs, outputs, lockedOutputs, delegate, data);
     }
 }

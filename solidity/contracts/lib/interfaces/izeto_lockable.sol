@@ -19,10 +19,19 @@ import {Commonlib} from "../common.sol";
 
 interface IZetoLockable {
     error UTXOAlreadyLocked(uint256 utxo);
+    error NotLockDelegate(uint256 utxo, address delegate, address sender);
     event UTXOsLocked(
-        uint256[] utxos,
+        uint256[] inputs,
+        uint256[] outputs,
+        uint256[] lockedOutputs,
         address indexed delegate,
         address indexed submitter,
+        bytes data
+    );
+    event LockDelegateChanged(
+        uint256[] lockedOutputs,
+        address indexed oldDelegate,
+        address indexed newDelegate,
         bytes data
     );
 }

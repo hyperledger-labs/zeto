@@ -17,7 +17,6 @@ pragma solidity ^0.8.27;
 
 import {IZetoEncrypted} from "./lib/interfaces/izeto_encrypted.sol";
 import {ILockVerifier, IBatchLockVerifier} from "./lib/interfaces/izeto_lockable.sol";
-import {MAX_BATCH} from "./lib/interfaces/izeto_common.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValue} from "./lib/verifier_check_inputs_outputs_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValueBatch} from "./lib/verifier_check_inputs_outputs_value_batch.sol";
@@ -132,7 +131,8 @@ contract Zeto_AnonEnc is
         bytes calldata data
     ) public returns (bool) {
         // Check and pad commitments
-        (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
+        inputs = checkAndPadCommitments(inputs);
+        outputs = checkAndPadCommitments(outputs);
         validateTransactionProposal(inputs, outputs);
         validateLockedStates(inputs);
 
@@ -229,7 +229,8 @@ contract Zeto_AnonEnc is
         uint256[] memory outputs = new uint256[](inputs.length);
         outputs[0] = output;
         // Check and pad commitments
-        (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
+        inputs = checkAndPadCommitments(inputs);
+        outputs = checkAndPadCommitments(outputs);
         validateTransactionProposal(inputs, outputs);
         validateLockedStates(inputs);
         _withdraw(amount, inputs, output, proof);
