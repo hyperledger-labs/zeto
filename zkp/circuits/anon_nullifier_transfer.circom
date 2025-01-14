@@ -13,26 +13,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pragma solidity ^0.8.27;
+pragma circom 2.2.1;
 
-import {Commonlib} from "../common.sol";
+include "./basetokens/anon_nullifier__transfer_base.circom";
 
-interface IZetoLockable {
-    error UTXOAlreadyLocked(uint256 utxo);
-    error UTXONotLocked(uint256 utxo);
-    error NotLockDelegate(uint256 utxo, address delegate, address sender);
-    event UTXOsLocked(
-        uint256[] inputs,
-        uint256[] outputs,
-        uint256[] lockedOutputs,
-        address indexed delegate,
-        address indexed submitter,
-        bytes data
-    );
-    event LockDelegateChanged(
-        uint256[] lockedOutputs,
-        address indexed oldDelegate,
-        address indexed newDelegate,
-        bytes data
-    );
-}
+component main { public [ nullifiers, outputCommitments, root, enabled ] } = transfer(2, 2, 64);

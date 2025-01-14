@@ -20,15 +20,17 @@ import {MAX_BATCH} from "./lib/interfaces/izeto_common.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckNullifierValue} from "./lib/verifier_check_nullifier_value.sol";
 import {Groth16Verifier_CheckNullifierValueBatch} from "./lib/verifier_check_nullifier_value_batch.sol";
-import {Groth16Verifier_AnonNullifier} from "./lib/verifier_anon_nullifier.sol";
+import {Groth16Verifier_AnonNullifierTransfer} from "./lib/verifier_anon_nullifier_transfer.sol";
+import {Groth16Verifier_AnonNullifierTransferLocked} from "./lib/verifier_anon_nullifier_transferLocked.sol";
 import {Groth16Verifier_AnonNullifierBatch} from "./lib/verifier_anon_nullifier_batch.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
-import {ZetoLock} from "./lib/zeto_lock.sol";
 import {Commonlib} from "./lib/common.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {console} from "hardhat/console.sol";
 
 uint256 constant INPUT_SIZE = 7;
+uint256 constant INPUT_SIZE_LOCKED = 8;
 uint256 constant BATCH_INPUT_SIZE = 31;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and history masking
@@ -43,15 +45,16 @@ contract Zeto_AnonNullifier is
     IZeto,
     ZetoNullifier,
     ZetoFungibleWithdrawWithNullifiers,
-    ZetoLock,
     UUPSUpgradeable
 {
-    Groth16Verifier_AnonNullifier internal _verifier;
+    Groth16Verifier_AnonNullifierTransfer internal _verifier;
     Groth16Verifier_AnonNullifierBatch internal _batchVerifier;
+    Groth16Verifier_AnonNullifierTransferLocked internal _lockedVerifier;
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_AnonNullifier verifier,
+        Groth16Verifier_AnonNullifierTransfer verifier,
+        Groth16Verifier_AnonNullifierTransferLocked lockedVerifier,
         Groth16Verifier_CheckHashesValue depositVerifier,
         Groth16Verifier_CheckNullifierValue withdrawVerifier,
         Groth16Verifier_AnonNullifierBatch batchVerifier,
@@ -64,6 +67,7 @@ contract Zeto_AnonNullifier is
             batchWithdrawVerifier
         );
         _verifier = verifier;
+        _lockedVerifier = lockedVerifier;
         _batchVerifier = batchVerifier;
     }
 
@@ -73,13 +77,19 @@ contract Zeto_AnonNullifier is
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         uint256 root,
-        uint256 size
-    ) internal pure returns (uint256[] memory publicInputs) {
+        uint256 size,
+        bool locked
+    ) internal view returns (uint256[] memory publicInputs) {
         publicInputs = new uint256[](size);
         uint256 piIndex = 0;
         // copy input commitments
         for (uint256 i = 0; i < nullifiers.length; i++) {
             publicInputs[piIndex++] = nullifiers[i];
+        }
+        // when verifying locked transfers, additional public input
+        // for the lock delegate
+        if (locked) {
+            publicInputs[piIndex++] = uint256(uint160(msg.sender));
         }
         // copy root
         publicInputs[piIndex++] = root;
@@ -115,62 +125,34 @@ contract Zeto_AnonNullifier is
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public returns (bool) {
-        // Check and pad inputs and outputs based on the max size
         nullifiers = checkAndPadCommitments(nullifiers);
         outputs = checkAndPadCommitments(outputs);
+        preTransfer(nullifiers, outputs, root, proof);
+        uint256[] memory empty;
+        processInputsAndOutputs(nullifiers, outputs, empty, address(0));
 
-        validateTransactionProposal(nullifiers, outputs, root);
-        validateLockedStates(nullifiers);
-
-        // Check the proof
-        if (nullifiers.length > 2 || outputs.length > 2) {
-            uint256[] memory publicInputs = constructPublicInputs(
-                nullifiers,
-                outputs,
-                root,
-                BATCH_INPUT_SIZE
-            );
-            // construct the public inputs for batchVerifier
-            uint256[BATCH_INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
-
-            // Check the proof using batchVerifier
-            require(
-                _batchVerifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof"
-            );
-        } else {
-            uint256[] memory publicInputs = constructPublicInputs(
-                nullifiers,
-                outputs,
-                root,
-                INPUT_SIZE
-            );
-            // construct the public inputs for verifier
-            uint256[INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
-            // Check the proof
-            require(
-                _verifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof"
-            );
+        uint256[] memory nullifierArray = new uint256[](nullifiers.length);
+        uint256[] memory outputArray = new uint256[](outputs.length);
+        for (uint256 i = 0; i < nullifiers.length; ++i) {
+            nullifierArray[i] = nullifiers[i];
+            outputArray[i] = outputs[i];
         }
+        emit UTXOTransfer(nullifierArray, outputArray, msg.sender, data);
+        return true;
+    }
 
-        processInputsAndOutputs(nullifiers, outputs);
+    function transferLocked(
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
+        uint256 root,
+        Commonlib.Proof calldata proof,
+        bytes calldata data
+    ) public returns (bool) {
+        nullifiers = checkAndPadCommitments(nullifiers);
+        outputs = checkAndPadCommitments(outputs);
+        preTransferLocked(nullifiers, outputs, root, proof);
+        uint256[] memory empty;
+        processInputsAndOutputs(nullifiers, outputs, empty, address(0));
 
         uint256[] memory nullifierArray = new uint256[](nullifiers.length);
         uint256[] memory outputArray = new uint256[](outputs.length);
@@ -205,10 +187,10 @@ contract Zeto_AnonNullifier is
         // Check and pad inputs and outputs based on the max size
         nullifiers = checkAndPadCommitments(nullifiers);
         outputs = checkAndPadCommitments(outputs);
-        validateTransactionProposal(nullifiers, outputs, root);
-        validateLockedStates(nullifiers);
+        validateTransactionProposal(nullifiers, outputs, root, false);
         _withdrawWithNullifiers(amount, nullifiers, output, root, proof);
-        processInputsAndOutputs(nullifiers, outputs);
+        uint256[] memory empty;
+        processInputsAndOutputs(nullifiers, outputs, empty, address(0));
         emit UTXOWithdraw(amount, nullifiers, output, msg.sender, data);
     }
 
@@ -217,5 +199,162 @@ contract Zeto_AnonNullifier is
         bytes calldata data
     ) public onlyOwner {
         _mint(utxos, data);
+    }
+
+    function lock(
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
+        uint256[] memory lockedOutputs,
+        uint256 root,
+        Commonlib.Proof calldata proof,
+        address delegate,
+        bytes calldata data
+    ) public {
+        // merge the outputs and lockedOutputs and do a regular transfer
+        uint256[] memory allOutputs = new uint256[](
+            outputs.length + lockedOutputs.length
+        );
+        for (uint256 i = 0; i < outputs.length; i++) {
+            allOutputs[i] = outputs[i];
+        }
+        for (uint256 i = 0; i < lockedOutputs.length; i++) {
+            allOutputs[outputs.length + i] = lockedOutputs[i];
+        }
+        nullifiers = checkAndPadCommitments(nullifiers);
+        allOutputs = checkAndPadCommitments(allOutputs);
+        preTransfer(nullifiers, allOutputs, root, proof);
+
+        spendNullifiers(nullifiers);
+
+        // lock the intended outputs
+        _lock(nullifiers, outputs, lockedOutputs, delegate, data);
+    }
+
+    function unlock(
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
+        uint256 root,
+        Commonlib.Proof calldata proof,
+        bytes calldata data
+    ) public {
+        transferLocked(nullifiers, outputs, root, proof, data);
+    }
+
+    function preTransfer(
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
+        uint256 root,
+        Commonlib.Proof calldata proof
+    ) private {
+        validateTransactionProposal(nullifiers, outputs, root, false);
+
+        // Check the proof
+        if (nullifiers.length > 2 || outputs.length > 2) {
+            uint256[] memory publicInputs = constructPublicInputs(
+                nullifiers,
+                outputs,
+                root,
+                BATCH_INPUT_SIZE,
+                false
+            );
+            // construct the public inputs for batchVerifier
+            uint256[BATCH_INPUT_SIZE] memory fixedSizeInputs;
+            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
+                fixedSizeInputs[i] = publicInputs[i];
+            }
+
+            // Check the proof using batchVerifier
+            require(
+                _batchVerifier.verifyProof(
+                    proof.pA,
+                    proof.pB,
+                    proof.pC,
+                    fixedSizeInputs
+                ),
+                "Invalid proof"
+            );
+        } else {
+            uint256[] memory publicInputs = constructPublicInputs(
+                nullifiers,
+                outputs,
+                root,
+                INPUT_SIZE,
+                false
+            );
+            // construct the public inputs for verifier
+            uint256[INPUT_SIZE] memory fixedSizeInputs;
+            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
+                fixedSizeInputs[i] = publicInputs[i];
+            }
+            // Check the proof
+            require(
+                _verifier.verifyProof(
+                    proof.pA,
+                    proof.pB,
+                    proof.pC,
+                    fixedSizeInputs
+                ),
+                "Invalid proof"
+            );
+        }
+    }
+
+    function preTransferLocked(
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
+        uint256 root,
+        Commonlib.Proof calldata proof
+    ) private {
+        validateTransactionProposal(nullifiers, outputs, root, true);
+
+        // Check the proof
+        if (nullifiers.length > 2 || outputs.length > 2) {
+            uint256[] memory publicInputs = constructPublicInputs(
+                nullifiers,
+                outputs,
+                root,
+                BATCH_INPUT_SIZE,
+                true
+            );
+            // construct the public inputs for batchVerifier
+            uint256[BATCH_INPUT_SIZE] memory fixedSizeInputs;
+            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
+                fixedSizeInputs[i] = publicInputs[i];
+            }
+
+            // Check the proof using batchVerifier
+            require(
+                _batchVerifier.verifyProof(
+                    proof.pA,
+                    proof.pB,
+                    proof.pC,
+                    fixedSizeInputs
+                ),
+                "Invalid proof"
+            );
+        } else {
+            uint256[] memory publicInputs = constructPublicInputs(
+                nullifiers,
+                outputs,
+                root,
+                INPUT_SIZE_LOCKED,
+                true
+            );
+            // construct the public inputs for verifier
+            uint256[INPUT_SIZE_LOCKED] memory fixedSizeInputs;
+            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
+                fixedSizeInputs[i] = publicInputs[i];
+            }
+            // Check the proof
+            require(
+                _lockedVerifier.verifyProof(
+                    proof.pA,
+                    proof.pB,
+                    proof.pC,
+                    fixedSizeInputs
+                ),
+                "Invalid proof"
+            );
+        }
     }
 }

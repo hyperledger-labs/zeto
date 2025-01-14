@@ -201,7 +201,7 @@ contract zkDvP {
             trade.status == TradeStatus.ACCEPTED,
             "Trade must be in ACCEPTED state to complete"
         );
-        bytes32 proofHash = getProofHash(proof);
+        bytes32 proofHash = Commonlib.getProofHash(proof);
         uint256[] memory lockedStates;
         if (trade.paymentProofHash == proofHash) {
             trade.paymentProof = proof;
@@ -258,23 +258,6 @@ contract zkDvP {
             }
         }
         return true;
-    }
-
-    function getProofHash(
-        Commonlib.Proof calldata proof
-    ) private pure returns (bytes32) {
-        uint[8] memory inputs = [
-            proof.pA[0],
-            proof.pA[1],
-            proof.pB[0][0],
-            proof.pB[0][1],
-            proof.pB[1][0],
-            proof.pB[1][1],
-            proof.pC[0],
-            proof.pC[1]
-        ];
-
-        return keccak256(abi.encodePacked(inputs));
     }
 
     function isEmptyProof(

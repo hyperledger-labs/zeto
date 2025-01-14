@@ -18,7 +18,6 @@ pragma solidity ^0.8.27;
 import {IZeto} from "./lib/interfaces/izeto.sol";
 import {Groth16Verifier_NfAnonNullifier} from "./lib/verifier_nf_anon_nullifier.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
-import {ZetoLock} from "./lib/zeto_lock.sol";
 import {Commonlib} from "./lib/common.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
@@ -30,12 +29,7 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 ///        - the hashes in the input and output match the hash(value, salt, owner public key) formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
-contract Zeto_NfAnonNullifier is
-    IZeto,
-    ZetoNullifier,
-    ZetoLock,
-    UUPSUpgradeable
-{
+contract Zeto_NfAnonNullifier is IZeto, ZetoNullifier, UUPSUpgradeable {
     Groth16Verifier_NfAnonNullifier _verifier;
 
     function initialize(
@@ -70,15 +64,8 @@ contract Zeto_NfAnonNullifier is
         nullifiers[0] = nullifier;
         uint256[] memory outputs = new uint256[](1);
         outputs[0] = output;
-        require(
-            validateTransactionProposal(nullifiers, outputs, root),
-            "Invalid transaction proposal"
-        );
 
-        require(
-            validateLockedStates(nullifiers),
-            "The input nullifier is locked"
-        );
+        validateTransactionProposal(nullifiers, outputs, root, false);
 
         // construct the public inputs
         uint256[3] memory publicInputs;
@@ -92,7 +79,8 @@ contract Zeto_NfAnonNullifier is
             "Invalid proof"
         );
 
-        processInputsAndOutputs(nullifiers, outputs);
+        uint256[] memory empty;
+        processInputsAndOutputs(nullifiers, outputs, empty, address(0));
 
         emit UTXOTransfer(nullifiers, outputs, msg.sender, data);
         return true;

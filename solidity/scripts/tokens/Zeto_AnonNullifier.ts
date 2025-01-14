@@ -24,6 +24,7 @@ export async function deployDependencies() {
     depositVerifier,
     withdrawVerifier,
     verifier,
+    lockedVerifier,
     batchVerifier,
     batchWithdrawVerifier,
     smtLib,
@@ -34,6 +35,7 @@ export async function deployDependencies() {
     args: [
       await deployer.getAddress(),
       verifier.target,
+      lockedVerifier.target,
       depositVerifier.target,
       withdrawVerifier.target,
       batchVerifier.target,

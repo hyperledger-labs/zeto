@@ -32,7 +32,6 @@ import {
 import {
   loadProvingKeys,
   prepareDepositProof,
-  prepareLockProof,
   prepareWithdrawProof,
 } from "./utils";
 import { Zeto_Anon } from "../typechain-types";
@@ -410,7 +409,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
       console.log(`Method transfer() complete. Gas used: ${results?.gasUsed}`);
     });
 
-    it("lockStates() should fail when trying to lock again", async function () {
+    it("lock() should fail when trying to lock again", async function () {
       if (network.name !== "hardhat") {
         return;
       }

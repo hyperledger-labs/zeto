@@ -15,12 +15,7 @@
 // limitations under the License.
 pragma circom 2.2.1;
 
-include "../lib/check-positive.circom";
-include "../lib/check-hashes.circom";
-include "../lib/check-sum.circom";
-include "../lib/check-nullifiers.circom";
-include "../lib/check-smt-proof.circom";
-include "../node_modules/circomlib/circuits/babyjub.circom";
+include "./anon_nullifier_base.circom";
 
 // This version of the circuit performs the following operations:
 // - derive the sender's public key from the sender's private key
@@ -28,7 +23,7 @@ include "../node_modules/circomlib/circuits/babyjub.circom";
 // - check the input and output values sum to the same amount
 // - check the nullifiers are derived from the input commitments and the sender's private key
 // - check the nullifiers are included in the Merkle tree
-template Zeto(nInputs, nOutputs, nSMTLevels) {
+template transferLocked(nInputs, nOutputs, nSMTLevels) {
   signal input nullifiers[nInputs];
   signal input inputCommitments[nInputs];
   signal input inputValues[nInputs];
@@ -36,8 +31,7 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   // must be properly hashed and trimmed to be compatible with the BabyJub curve.
   // Reference: https://github.com/iden3/circomlib/blob/master/test/babyjub.js#L103
   signal input inputOwnerPrivateKey;
-  // values for the SMT leaf nodes, with the index being the input commitments
-  signal input smtNodeValues[nInputs];
+  signal input lockDelegate;
   signal input root;
   signal input merkleProof[nInputs][nSMTLevels];
   // allows merkle proof verifications for empty input elements to be skipped
@@ -47,31 +41,28 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   signal input outputOwnerPublicKeys[nOutputs][2];
   signal input outputSalts[nOutputs];
 
-  // derive the sender's public key from the secret input
-  // for the sender's private key. This step demonstrates
-  // the sender really owns the private key for the input
-  // UTXOs
-  var inputOwnerPubKeyAx, inputOwnerPubKeyAy;
-  (inputOwnerPubKeyAx, inputOwnerPubKeyAy) = BabyPbk()(in <== inputOwnerPrivateKey);
-
-  var inputOwnerPublicKeys[nInputs][2];
-  for (var i = 0; i < nInputs; i++) {
-    inputOwnerPublicKeys[i] = [inputOwnerPubKeyAx, inputOwnerPubKeyAy];
-  }
-
-  CheckPositive(nOutputs)(outputValues <== outputValues);
-
-  CheckHashes(nInputs)(commitments <== inputCommitments, values <== inputValues, salts <== inputSalts, ownerPublicKeys <== inputOwnerPublicKeys);
-
-  CheckHashes(nOutputs)(commitments <== outputCommitments, values <== outputValues, salts <== outputSalts, ownerPublicKeys <== outputOwnerPublicKeys);
-
-  CheckNullifiers(nInputs)(nullifiers <== nullifiers, values <== inputValues, salts <== inputSalts, ownerPrivateKey <== inputOwnerPrivateKey);
-
-  CheckSum(nInputs, nOutputs)(inputValues <== inputValues, outputValues <== outputValues);
-
   // With the above steps, we demonstrated that the nullifiers
   // are securely bound to the input commitments. Now we need to
   // demonstrate that the input commitments belong to the Sparse
   // Merkle Tree with the root `root`.
-  CheckSMTProof(nInputs, nSMTLevels)(root <== root, merkleProof <== merkleProof, enabled <== enabled, leafNodeIndexes <== inputCommitments, leafNodeValues <== smtNodeValues);
+  var lockDelegates[nInputs];
+  for (var i = 0; i < nInputs; i++) {
+    lockDelegates[i] = lockDelegate;
+  }
+
+  Zeto(nInputs, nOutputs, nSMTLevels)(
+    nullifiers <== nullifiers,
+    inputCommitments <== inputCommitments,
+    inputValues <== inputValues,
+    inputSalts <== inputSalts,
+    inputOwnerPrivateKey <== inputOwnerPrivateKey,
+    smtNodeValues <== lockDelegates,
+    root <== root,
+    merkleProof <== merkleProof,
+    enabled <== enabled,
+    outputCommitments <== outputCommitments,
+    outputValues <== outputValues,
+    outputOwnerPublicKeys <== outputOwnerPublicKeys,
+    outputSalts <== outputSalts
+  );
 }

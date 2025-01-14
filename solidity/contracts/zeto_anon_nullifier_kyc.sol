@@ -24,7 +24,6 @@ import {Groth16Verifier_AnonNullifierKyc} from "./lib/verifier_anon_nullifier_ky
 import {Groth16Verifier_AnonNullifierKycBatch} from "./lib/verifier_anon_nullifier_kyc_batch.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
-import {ZetoLock} from "./lib/zeto_lock.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -44,7 +43,6 @@ contract Zeto_AnonNullifierKyc is
     IZeto,
     ZetoNullifier,
     ZetoFungibleWithdrawWithNullifiers,
-    ZetoLock,
     Registry,
     UUPSUpgradeable
 {
@@ -129,8 +127,7 @@ contract Zeto_AnonNullifierKyc is
         nullifiers = checkAndPadCommitments(nullifiers);
         outputs = checkAndPadCommitments(outputs);
 
-        validateTransactionProposal(nullifiers, outputs, root);
-        validateLockedStates(nullifiers);
+        validateTransactionProposal(nullifiers, outputs, root, false);
 
         // Check the proof
         if (nullifiers.length > 2 || outputs.length > 2) {
@@ -180,7 +177,8 @@ contract Zeto_AnonNullifierKyc is
             );
         }
 
-        processInputsAndOutputs(nullifiers, outputs);
+        uint256[] memory empty;
+        processInputsAndOutputs(nullifiers, outputs, empty, address(0));
 
         uint256[] memory nullifierArray = new uint256[](nullifiers.length);
         uint256[] memory outputArray = new uint256[](outputs.length);
@@ -215,10 +213,11 @@ contract Zeto_AnonNullifierKyc is
         // Check and pad inputs and outputs based on the max size
         nullifiers = checkAndPadCommitments(nullifiers);
         outputs = checkAndPadCommitments(outputs);
-        validateTransactionProposal(nullifiers, outputs, root);
-        validateLockedStates(nullifiers);
+        validateTransactionProposal(nullifiers, outputs, root, false);
+
         _withdrawWithNullifiers(amount, nullifiers, output, root, proof);
-        processInputsAndOutputs(nullifiers, outputs);
+        uint256[] memory empty;
+        processInputsAndOutputs(nullifiers, outputs, empty, address(0));
         emit UTXOWithdraw(amount, nullifiers, output, msg.sender, data);
     }
 

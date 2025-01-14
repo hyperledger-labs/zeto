@@ -19,7 +19,6 @@ import {IZeto} from "./lib/interfaces/izeto.sol";
 import {Groth16Verifier_CheckUtxosNfOwner} from "./lib/verifier_check_utxos_nf_owner.sol";
 import {Groth16Verifier_NfAnon} from "./lib/verifier_nf_anon.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
-import {ZetoLock} from "./lib/zeto_lock.sol";
 import {Commonlib} from "./lib/common.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
@@ -29,7 +28,7 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 ///        - The sender owns the private key whose public key is part of the pre-image of the input UTXOs commitments
 ///          (aka the sender is authorized to spend the input UTXOs)
 ///        - The input UTXOs and output UTXOs are valid in terms of obeying mass conservation rules
-contract Zeto_NfAnon is IZeto, ZetoBase, ZetoLock, UUPSUpgradeable {
+contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
     Groth16Verifier_NfAnon internal _verifier;
 
     function initialize(
@@ -62,15 +61,8 @@ contract Zeto_NfAnon is IZeto, ZetoBase, ZetoLock, UUPSUpgradeable {
         inputs[0] = input;
         uint256[] memory outputs = new uint256[](1);
         outputs[0] = output;
-        require(
-            validateTransactionProposal(inputs, outputs),
-            "Invalid transaction proposal"
-        );
-
-        require(
-            validateLockedStates(inputs),
-            "At least one UTXO in the inputs are locked"
-        );
+        uint256[] memory lockedOutputs;
+        validateTransactionProposal(inputs, outputs, lockedOutputs);
 
         // construct the public inputs
         uint256[2] memory publicInputs;

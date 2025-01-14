@@ -22,8 +22,13 @@ import {
   BatchWithdrawNullifierVerifierModule,
 } from "./lib/deps";
 
-const VerifierModule = buildModule("Groth16Verifier_AnonNullifier", (m) => {
-  const verifier = m.contract("Groth16Verifier_AnonNullifier", []);
+const VerifierModule = buildModule("Groth16Verifier_AnonNullifierTransfer", (m) => {
+  const verifier = m.contract("Groth16Verifier_AnonNullifierTransfer", []);
+  return { verifier };
+});
+
+const LockedVerifierModule = buildModule("Groth16Verifier_AnonNullifierTransferLocked", (m) => {
+  const verifier = m.contract("Groth16Verifier_AnonNullifierTransferLocked", []);
   return { verifier };
 });
 
@@ -38,6 +43,7 @@ const BatchVerifierModule = buildModule(
 export default buildModule("Zeto_AnonNullifier", (m) => {
   const { smtLib, poseidon3 } = m.useModule(SmtLibModule);
   const { verifier } = m.useModule(VerifierModule);
+  const { verifier: lockedVerifier } = m.useModule(LockedVerifierModule);
   const { verifier: batchVerifier } = m.useModule(BatchVerifierModule);
   const { verifier: depositVerifier } = m.useModule(DepositVerifierModule);
   const { verifier: withdrawVerifier } = m.useModule(
@@ -51,6 +57,7 @@ export default buildModule("Zeto_AnonNullifier", (m) => {
     depositVerifier,
     withdrawVerifier,
     verifier,
+    lockedVerifier,
     batchVerifier,
     batchWithdrawVerifier,
     smtLib,

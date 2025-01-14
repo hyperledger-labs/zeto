@@ -15,6 +15,8 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
+import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
+
 /// @title A core library for Zeto based token contracts
 /// @author Kaleido, Inc.
 /// @dev Implements common utility functions, such as proofs hashing and sorting
@@ -58,5 +60,13 @@ library Commonlib {
         ];
 
         return keccak256(abi.encodePacked(inputs));
+    }
+
+    function getLeafNodeHash(
+        uint256 index,
+        uint256 value
+    ) internal pure returns (uint256) {
+        uint256[3] memory params = [index, value, uint256(1)];
+        return PoseidonUnit3L.poseidon(params);
     }
 }

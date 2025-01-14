@@ -26,7 +26,6 @@ import {Groth16Verifier_AnonEnc} from "./lib/verifier_anon_enc.sol";
 import {Groth16Verifier_AnonEncBatch} from "./lib/verifier_anon_enc_batch.sol";
 import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
-import {ZetoLock} from "./lib/zeto_lock.sol";
 import {Commonlib} from "./lib/common.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
@@ -46,7 +45,6 @@ contract Zeto_AnonEnc is
     IZetoEncrypted,
     ZetoBase,
     ZetoFungibleWithdraw,
-    ZetoLock,
     UUPSUpgradeable
 {
     Groth16Verifier_AnonEnc internal _verifier;
@@ -129,8 +127,8 @@ contract Zeto_AnonEnc is
         // Check and pad commitments
         inputs = checkAndPadCommitments(inputs);
         outputs = checkAndPadCommitments(outputs);
-        validateTransactionProposal(inputs, outputs);
-        validateLockedStates(inputs);
+        uint256[] memory lockedOutputs;
+        validateTransactionProposal(inputs, outputs, lockedOutputs);
 
         // Check the proof
         if (inputs.length > 2 || outputs.length > 2) {
@@ -184,7 +182,7 @@ contract Zeto_AnonEnc is
             );
         }
 
-        processInputsAndOutputs(inputs, outputs);
+        processInputsAndOutputs(inputs, outputs, lockedOutputs, false);
 
         uint256[] memory encryptedValuesArray = new uint256[](
             encryptedValues.length
@@ -227,10 +225,12 @@ contract Zeto_AnonEnc is
         // Check and pad commitments
         inputs = checkAndPadCommitments(inputs);
         outputs = checkAndPadCommitments(outputs);
-        validateTransactionProposal(inputs, outputs);
-        validateLockedStates(inputs);
+        uint256[] memory lockedOutputs;
+        validateTransactionProposal(inputs, outputs, lockedOutputs);
+
         _withdraw(amount, inputs, output, proof);
-        processInputsAndOutputs(inputs, outputs);
+
+        processInputsAndOutputs(inputs, outputs, lockedOutputs, false);
         emit UTXOWithdraw(amount, inputs, output, msg.sender, data);
     }
 

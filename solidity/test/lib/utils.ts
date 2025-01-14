@@ -217,6 +217,20 @@ export function parseUTXOEvents(
         trade: event?.args.trade,
       };
       returnValues.push(e);
+    } else if (event?.name === "UTXOsLocked") {
+      const e = {
+        outputs: event?.args.outputs,
+        lockedOutputs: event?.args.lockedOutputs,
+        delegate: event?.args.delegate,
+      };
+      returnValues.push(e);
+    } else if (event?.name === "LockDelegateChanged") {
+      const e = {
+        lockedOutputs: event?.args.lockedOutputs,
+        oldDelegate: event?.args.oldDelegate,
+        newDelegate: event?.args.newDelegate,
+      };
+      returnValues.push(e);
     }
   }
   return returnValues;
