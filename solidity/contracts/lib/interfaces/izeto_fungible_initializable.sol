@@ -22,8 +22,6 @@ interface IZetoFungibleInitializable {
         address _withdrawVerifier,
         address _verifier,
         address _batchVerifier,
-        address _batchWithdrawVerifier,
-        address _lockVerifier,
-        address _batchLockVerifier
+        address _batchWithdrawVerifier
     ) external;
 }

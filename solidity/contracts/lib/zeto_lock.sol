@@ -24,18 +24,13 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 ///        without using nullifiers. Each UTXO's spending status is explicitly tracked.
 /// @author Kaleido, Inc.
 /// @dev Implements common functionalities of Zeto based tokens without nullifiers
-abstract contract ZetoLock is IZetoBase, IZetoLockable, OwnableUpgradeable {
+abstract contract ZetoLock is IZetoBase, IZetoLockable {
     // used for multi-step transaction flows that require counterparties
     // to upload proofs. To protect the party that uploads their proof first,
     // and prevent any other party from utilizing the uploaded proof to execute
     // a transaction, the input UTXOs or nullifiers can be locked and only usable
     // by the same party that did the locking.
     mapping(uint256 => address) internal lockedUTXOs;
-
-    function __ZetoLock_init(
-        address lockVerifier,
-        address batchLockVerifier
-    ) public onlyInitializing {}
 
     // Locks the UTXOs so that they can only be spent by submitting the appropriate
     // proof from the Eth account designated as the "delegate". This function

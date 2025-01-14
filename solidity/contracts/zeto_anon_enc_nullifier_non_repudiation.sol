@@ -21,7 +21,6 @@ import {Groth16Verifier_CheckNullifierValue} from "./lib/verifier_check_nullifie
 import {Groth16Verifier_CheckNullifierValueBatch} from "./lib/verifier_check_nullifier_value_batch.sol";
 import {Groth16Verifier_AnonEncNullifierNonRepudiation} from "./lib/verifier_anon_enc_nullifier_non_repudiation.sol";
 import {Groth16Verifier_AnonEncNullifierNonRepudiationBatch} from "./lib/verifier_anon_enc_nullifier_non_repudiation_batch.sol";
-import {ILockVerifier, IBatchLockVerifier} from "./lib/interfaces/izeto_lockable.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {ZetoLock} from "./lib/zeto_lock.sol";
@@ -68,9 +67,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         Groth16Verifier_CheckHashesValue depositVerifier,
         Groth16Verifier_CheckNullifierValue withdrawVerifier,
         Groth16Verifier_AnonEncNullifierNonRepudiationBatch batchVerifier,
-        Groth16Verifier_CheckNullifierValueBatch batchWithdrawVerifier,
-        ILockVerifier lockVerifier,
-        IBatchLockVerifier batchLockVerifier
+        Groth16Verifier_CheckNullifierValueBatch batchWithdrawVerifier
     ) public initializer {
         __ZetoNullifier_init(initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(
@@ -78,7 +75,6 @@ contract Zeto_AnonEncNullifierNonRepudiation is
             withdrawVerifier,
             batchWithdrawVerifier
         );
-        __ZetoLock_init(lockVerifier, batchLockVerifier);
         _verifier = verifier;
         _batchVerifier = batchVerifier;
     }

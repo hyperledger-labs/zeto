@@ -19,8 +19,6 @@ import {
   DepositVerifierModule,
   WithdrawVerifierModule,
   BatchWithdrawVerifierModule,
-  LockVerifierModule,
-  BatchLockVerifierModule,
 } from "./lib/deps";
 
 const VerifierModule = buildModule("Groth16Verifier_AnonEnc", (m) => {
@@ -41,15 +39,11 @@ export default buildModule("Zeto_AnonEnc", (m) => {
   const { verifier: batchWithdrawVerifier } = m.useModule(
     BatchWithdrawVerifierModule,
   );
-  const { verifier: lockVerifier } = m.useModule(LockVerifierModule);
-  const { verifier: batchLockVerifier } = m.useModule(BatchLockVerifierModule);
   return {
     depositVerifier,
     withdrawVerifier,
     verifier,
     batchVerifier,
     batchWithdrawVerifier,
-    lockVerifier,
-    batchLockVerifier,
   };
 });

@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import { SmtLibModule, NfLockNullifiersVerifierModule } from "./lib/deps";
+import { SmtLibModule } from "./lib/deps";
 
 const VerifierModule = buildModule("Groth16Verifier_NfAnonNullifier", (m) => {
   const verifier = m.contract("Groth16Verifier_NfAnonNullifier", []);
@@ -25,7 +25,6 @@ const VerifierModule = buildModule("Groth16Verifier_NfAnonNullifier", (m) => {
 export default buildModule("Zeto_NfAnonNullifier", (m) => {
   const { smtLib, poseidon3 } = m.useModule(SmtLibModule);
   const { verifier } = m.useModule(VerifierModule);
-  const { verifier: lockVerifier } = m.useModule(NfLockNullifiersVerifierModule);
 
-  return { verifier, lockVerifier, smtLib, poseidon3 };
+  return { verifier, smtLib, poseidon3 };
 });

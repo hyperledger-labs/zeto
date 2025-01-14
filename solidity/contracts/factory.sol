@@ -29,11 +29,9 @@ contract ZetoTokenFactory is Ownable {
         address implementation;
         address depositVerifier;
         address withdrawVerifier;
-        address lockVerifier;
         address verifier;
         address batchVerifier;
         address batchWithdrawVerifier;
-        address batchLockVerifier;
     }
 
     event ZetoTokenDeployed(address indexed zetoToken);
@@ -86,14 +84,6 @@ contract ZetoTokenFactory is Ownable {
             args.batchWithdrawVerifier != address(0),
             "Factory: batchWithdrawVerifier address is required"
         );
-        require(
-            args.lockVerifier != address(0),
-            "Factory: lockVerifier address is required"
-        );
-        require(
-            args.batchLockVerifier != address(0),
-            "Factory: batchLockVerifier address is required"
-        );
         address instance = Clones.clone(args.implementation);
         require(
             instance != address(0),
@@ -105,9 +95,7 @@ contract ZetoTokenFactory is Ownable {
             args.depositVerifier,
             args.withdrawVerifier,
             args.batchVerifier,
-            args.batchWithdrawVerifier,
-            args.lockVerifier,
-            args.batchLockVerifier
+            args.batchWithdrawVerifier
         );
         emit ZetoTokenDeployed(instance);
         return instance;
@@ -122,10 +110,6 @@ contract ZetoTokenFactory is Ownable {
             args.implementation != address(0),
             "Factory: failed to find implementation"
         );
-        require(
-            args.lockVerifier != address(0),
-            "Factory: lockVerifier address is required"
-        );
         address instance = Clones.clone(args.implementation);
         require(
             instance != address(0),
@@ -133,8 +117,7 @@ contract ZetoTokenFactory is Ownable {
         );
         (IZetoNonFungibleInitializable(instance)).initialize(
             initialOwner,
-            args.verifier,
-            args.lockVerifier
+            args.verifier
         );
         emit ZetoTokenDeployed(instance);
         return instance;

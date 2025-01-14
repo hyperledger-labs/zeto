@@ -16,9 +16,5 @@
 pragma solidity ^0.8.27;
 
 interface IZetoNonFungibleInitializable {
-    function initialize(
-        address initialOwner,
-        address _verifier,
-        address _lockVerifier
-    ) external;
+    function initialize(address initialOwner, address _verifier) external;
 }

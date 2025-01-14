@@ -26,8 +26,6 @@ export async function deployDependencies() {
     verifier,
     batchVerifier,
     batchWithdrawVerifier,
-    lockVerifier,
-    batchLockVerifier,
   } = await ignition.deploy(zetoModule);
   return {
     deployer,
@@ -38,8 +36,6 @@ export async function deployDependencies() {
       withdrawVerifier.target,
       batchVerifier.target,
       batchWithdrawVerifier.target,
-      lockVerifier.target,
-      batchLockVerifier.target,
     ],
   };
 }

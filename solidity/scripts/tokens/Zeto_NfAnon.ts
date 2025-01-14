@@ -20,13 +20,12 @@ import zetoModule from "../../ignition/modules/zeto_nf_anon";
 export async function deployDependencies() {
   const [deployer] = await ethers.getSigners();
 
-  const { verifier, lockVerifier } = await ignition.deploy(zetoModule);
+  const { verifier } = await ignition.deploy(zetoModule);
   return {
     deployer,
     args: [
       await deployer.getAddress(),
       verifier.target,
-      lockVerifier.target,
     ],
   };
 }

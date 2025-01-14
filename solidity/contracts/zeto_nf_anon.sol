@@ -17,8 +17,6 @@ pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
 import {Groth16Verifier_CheckUtxosNfOwner} from "./lib/verifier_check_utxos_nf_owner.sol";
-import {ILockVerifier, IBatchLockVerifier} from "./lib/interfaces/izeto_lockable.sol";
-
 import {Groth16Verifier_NfAnon} from "./lib/verifier_nf_anon.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
 import {ZetoLock} from "./lib/zeto_lock.sol";
@@ -36,11 +34,9 @@ contract Zeto_NfAnon is IZeto, ZetoBase, ZetoLock, UUPSUpgradeable {
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_NfAnon verifier,
-        ILockVerifier lockVerifier
+        Groth16Verifier_NfAnon verifier
     ) public initializer {
         __ZetoBase_init(initialOwner);
-        __ZetoLock_init(lockVerifier, IBatchLockVerifier(address(0)));
         _verifier = verifier;
     }
 

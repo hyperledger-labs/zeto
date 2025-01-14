@@ -56,11 +56,9 @@ export async function deployZeto(tokenName: string) {
       withdrawVerifier,
       batchVerifier,
       batchWithdrawVerifier,
-      lockVerifier,
-      batchLockVerifier,
     ] = args;
     if (!isFungible) {
-      ([deployerAddr, verifier, lockVerifier] = args);
+      ([deployerAddr, verifier] = args);
     }
 
     // we want to test the effectiveness of the factory contract
@@ -80,10 +78,6 @@ export async function deployZeto(tokenName: string) {
         batchVerifier || "0x0000000000000000000000000000000000000000",
       batchWithdrawVerifier:
         batchWithdrawVerifier || "0x0000000000000000000000000000000000000000",
-      lockVerifier:
-        lockVerifier || "0x0000000000000000000000000000000000000000",
-      batchLockVerifier:
-        batchLockVerifier || "0x0000000000000000000000000000000000000000",
     };
     const tx1 = await factory
       .connect(deployer)

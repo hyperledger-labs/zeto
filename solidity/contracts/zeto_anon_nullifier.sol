@@ -17,7 +17,6 @@ pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
 import {MAX_BATCH} from "./lib/interfaces/izeto_common.sol";
-import {ILockVerifier, IBatchLockVerifier} from "./lib/interfaces/izeto_lockable.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckNullifierValue} from "./lib/verifier_check_nullifier_value.sol";
 import {Groth16Verifier_CheckNullifierValueBatch} from "./lib/verifier_check_nullifier_value_batch.sol";
@@ -56,9 +55,7 @@ contract Zeto_AnonNullifier is
         Groth16Verifier_CheckHashesValue depositVerifier,
         Groth16Verifier_CheckNullifierValue withdrawVerifier,
         Groth16Verifier_AnonNullifierBatch batchVerifier,
-        Groth16Verifier_CheckNullifierValueBatch batchWithdrawVerifier,
-        ILockVerifier lockVerifier,
-        IBatchLockVerifier batchLockVerifier
+        Groth16Verifier_CheckNullifierValueBatch batchWithdrawVerifier
     ) public initializer {
         __ZetoNullifier_init(initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(
@@ -66,7 +63,6 @@ contract Zeto_AnonNullifier is
             withdrawVerifier,
             batchWithdrawVerifier
         );
-        __ZetoLock_init(lockVerifier, batchLockVerifier);
         _verifier = verifier;
         _batchVerifier = batchVerifier;
     }

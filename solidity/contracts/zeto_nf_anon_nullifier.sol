@@ -16,7 +16,6 @@
 pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
-import {ILockVerifier, IBatchLockVerifier} from "./lib/interfaces/izeto_lockable.sol";
 import {Groth16Verifier_NfAnonNullifier} from "./lib/verifier_nf_anon_nullifier.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoLock} from "./lib/zeto_lock.sol";
@@ -41,11 +40,9 @@ contract Zeto_NfAnonNullifier is
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_NfAnonNullifier verifier,
-        ILockVerifier lockVerifier
+        Groth16Verifier_NfAnonNullifier verifier
     ) public initializer {
         __ZetoNullifier_init(initialOwner);
-        __ZetoLock_init(lockVerifier, IBatchLockVerifier(address(0)));
         _verifier = verifier;
     }
 
