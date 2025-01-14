@@ -18,16 +18,31 @@ pragma circom 2.2.1;
 include "../node_modules/circomlib/circuits/poseidon.circom";
 include "../node_modules/circomlib/circuits/comparators.circom";
 
+bus CommitmentInputs(){
+    signal value;
+    signal salt;
+    signal ownerPublicKey[2];
+}
+
+template CheckPositiveValues(numInputs) {
+  input CommitmentInputs() commitmentInputs[numInputs];
+
+  // check that the output values are within the expected range. we don't allow negative values
+  for (var i = 0; i < numInputs; i++) {
+    var greaterEqThanZero;
+    greaterEqThanZero = GreaterEqThan(100)(in <== [commitmentInputs[i].value, 0]);
+    greaterEqThanZero === 1;
+  }
+}
+
 // CheckHashes is a circuit that checks the integrity of transactions of Fungible Tokens
 //   - check that the commitments are the hash of the values, salts and owner public keys
 //
 // commitment = hash(value, salt, owner public key)
 //
 template CheckHashes(numInputs) {
-  signal input commitments[numInputs];
-  signal input values[numInputs];
-  signal input salts[numInputs];
-  signal input ownerPublicKeys[numInputs][2];
+  signal input commitmentHashes[numInputs];
+  input CommitmentInputs() commitmentInputs[numInputs];
 
   // hash the input values
   for (var i = 0; i < numInputs; i++) {
@@ -35,14 +50,14 @@ template CheckHashes(numInputs) {
     // commitment at the current index is 0; this is because in zkp circuits we
     // must always perform the same computation (have the the same constraints)
     var calculatedHash;
-    calculatedHash = Poseidon(4)([values[i], salts[i], ownerPublicKeys[i][0], ownerPublicKeys[i][1]]);
+    calculatedHash = Poseidon(4)([commitmentInputs[i].value, commitmentInputs[i].salt, commitmentInputs[i].ownerPublicKey[0], commitmentInputs[i].ownerPublicKey[1]]);
 
     // check that the input commitments match the calculated hashes
     var isCommitmentZero;
-    isCommitmentZero = IsZero()(in <== commitments[i]);
+    isCommitmentZero = IsZero()(in <== commitmentHashes[i]);
 
     var isHashEqual;
-    isHashEqual = IsEqual()(in <== [commitments[i], (1 - isCommitmentZero) * calculatedHash /* ensure when commitment is 0, compare with 0 */]);
+    isHashEqual = IsEqual()(in <== [commitmentHashes[i], (1 - isCommitmentZero) * calculatedHash /* ensure when commitment is 0, compare with 0 */]);
 
     isHashEqual === 1;
   }

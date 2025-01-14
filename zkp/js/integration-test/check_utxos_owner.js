@@ -21,8 +21,6 @@ const { Poseidon, newSalt, loadCircuit } = require("../index.js");
 const { loadProvingKeys } = require("./utils.js");
 
 const poseidonHash = Poseidon.poseidon4;
-const poseidonHash3 = Poseidon.poseidon3;
-
 describe("check_utxos_owner circuit tests", () => {
   let circuit, provingKeyFile, verificationKey, smtAlice;
 
@@ -31,9 +29,8 @@ describe("check_utxos_owner circuit tests", () => {
 
   before(async () => {
     circuit = await loadCircuit("check_utxos_owner");
-    ({ provingKeyFile, verificationKey } = loadProvingKeys(
-      "check_utxos_owner",
-    ));
+    ({ provingKeyFile, verificationKey } =
+      loadProvingKeys("check_utxos_owner"));
 
     let keypair = genKeypair();
     Alice.privKey = keypair.privKey;
@@ -47,17 +44,9 @@ describe("check_utxos_owner circuit tests", () => {
     // create two input UTXOs, each has their own salt, but same owner
     const senderPrivateKey = formatPrivKeyForBabyJub(Alice.privKey);
     const salt1 = newSalt();
-    const input1 = poseidonHash([
-      BigInt(values[0]),
-      salt1,
-      ...Alice.pubKey,
-    ]);
+    const input1 = poseidonHash([BigInt(values[0]), salt1, ...Alice.pubKey]);
     const salt2 = newSalt();
-    const input2 = poseidonHash([
-      BigInt(values[1]),
-      salt2,
-      ...Alice.pubKey,
-    ]);
+    const input2 = poseidonHash([BigInt(values[1]), salt2, ...Alice.pubKey]);
     const commitments = [input1, input2];
 
     const startTime = Date.now();
@@ -94,9 +83,7 @@ describe("check_utxos_owner circuit tests", () => {
       ...Alice.pubKey,
     ]);
     let tamperedPublicSignals = publicSignals.map((ps) =>
-      ps.toString() === commitments[0].toString()
-        ? tamperedCommitment
-        : ps,
+      ps.toString() === commitments[0].toString() ? tamperedCommitment : ps,
     );
 
     verifyResult = await groth16.verify(

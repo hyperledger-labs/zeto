@@ -14,15 +14,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
-const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
-const { Poseidon, newSalt } = require('../index.js');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
+const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
+const { Poseidon, newSalt } = require("../index.js");
 
 const poseidonHash3 = Poseidon.poseidon3;
 
-describe('check_nullifiers_owner circuit tests', () => {
+describe("check_nullifiers_owner circuit tests", () => {
   let circuit;
   const sender = {};
   const receiver = {};
@@ -31,7 +31,9 @@ describe('check_nullifiers_owner circuit tests', () => {
   before(async function () {
     this.timeout(60000);
 
-    circuit = await wasm_tester(join(__dirname, '../../circuits/check_nullifiers_owner.circom'));
+    circuit = await wasm_tester(
+      join(__dirname, "../../circuits/check_nullifiers_owner.circom"),
+    );
 
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;
@@ -43,14 +45,22 @@ describe('check_nullifiers_owner circuit tests', () => {
     receiver.pubKey = keypair.pubKey;
   });
 
-  it('should return true for valid witness', async () => {
+  it("should return true for valid witness", async () => {
     const values = [32, 40];
     const salt1 = newSalt();
     const salt2 = newSalt();
 
     // create two input nullifiers, corresponding to the input UTXOs
-    const nullifier1 = poseidonHash3([BigInt(values[0]), salt1, senderPrivateKey]);
-    const nullifier2 = poseidonHash3([BigInt(values[1]), salt2, senderPrivateKey]);
+    const nullifier1 = poseidonHash3([
+      BigInt(values[0]),
+      salt1,
+      senderPrivateKey,
+    ]);
+    const nullifier2 = poseidonHash3([
+      BigInt(values[1]),
+      salt2,
+      senderPrivateKey,
+    ]);
     const nullifiers = [nullifier1, nullifier2];
 
     const witness = await circuit.calculateWitness(
@@ -60,7 +70,7 @@ describe('check_nullifiers_owner circuit tests', () => {
         salts: [salt1, salt2],
         ownerPrivateKey: senderPrivateKey,
       },
-      true
+      true,
     );
 
     // console.log('nullifiers', nullifiers);
@@ -76,14 +86,22 @@ describe('check_nullifiers_owner circuit tests', () => {
     expect(witness[7]).to.equal(senderPrivateKey);
   });
 
-  it('should fail to generate a witness because incorrect values are not used', async () => {
+  it("should fail to generate a witness because incorrect values are not used", async () => {
     const values = [15, 100];
     const salt1 = newSalt();
     const salt2 = newSalt();
 
     // create two input nullifiers, corresponding to the input UTXOs
-    const nullifier1 = poseidonHash3([BigInt(values[0]), salt1, senderPrivateKey]);
-    const nullifier2 = poseidonHash3([BigInt(values[1] + 1), salt2, senderPrivateKey]);
+    const nullifier1 = poseidonHash3([
+      BigInt(values[0]),
+      salt1,
+      senderPrivateKey,
+    ]);
+    const nullifier2 = poseidonHash3([
+      BigInt(values[1] + 1),
+      salt2,
+      senderPrivateKey,
+    ]);
     const nullifiers = [nullifier1, nullifier2];
 
     let err;
@@ -95,7 +113,7 @@ describe('check_nullifiers_owner circuit tests', () => {
           salts: [salt1, salt2],
           ownerPrivateKey: senderPrivateKey,
         },
-        true
+        true,
       );
     } catch (e) {
       err = e;

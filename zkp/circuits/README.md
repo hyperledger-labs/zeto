@@ -111,7 +111,7 @@ When using the groth16 proving system, per-circuit set up ceremony must be condu
 
 ### Export the verification key
 
-The verification key is used by verifier code (either offchain with a JS library or onchain with Solidity). This can be derived from the proving key above.
+The verification key is used by verifier code (either off-chain with a JS library or onchain with Solidity). This can be derived from the proving key above.
 
 ```console
 snarkjs zkey export verificationkey ~/proving-keys/CIRCUIT_FILE_NAME.zkey ~/proving-keys/CIRCUIT_FILE_NAME-vkey.json
