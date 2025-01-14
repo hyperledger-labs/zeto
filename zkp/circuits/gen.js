@@ -184,7 +184,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGeneration) => {
   }
   log(circuit, `Exporting verification key`);
   const { stdout: vkOut, stderr: vkErr } = await execAsync(
-    `npx snarkjs zkey export verification key ${zkeyOutput} ${path.join(
+    `npx snarkjs zkey export verificationkey ${zkeyOutput} ${path.join(
       provingKeysRoot,
       `${circuit}-vkey.json`,
     )}`,
@@ -212,7 +212,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGeneration) => {
     `verifier_${circuit}.sol`,
   );
   const { stdout: svOut, stderr: svErr } = await execAsync(
-    `npx snarkjs zkey export solidity verifier ${zkeyOutput} ${solidityFile}`,
+    `npx snarkjs zkey export solidityverifier ${zkeyOutput} ${solidityFile}`,
   );
   if (verbose) {
     if (svOut) {
