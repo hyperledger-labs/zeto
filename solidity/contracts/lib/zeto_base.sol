@@ -56,7 +56,8 @@ abstract contract ZetoBase is IZetoBase, IZetoLockable, ZetoCommon {
     function validateTransactionProposal(
         uint256[] memory inputs,
         uint256[] memory outputs,
-        uint256[] memory lockedOutputs
+        uint256[] memory lockedOutputs,
+        bool inputsLocked
     ) internal view returns (bool) {
         uint256[] memory allOutputs = new uint256[](
             outputs.length + lockedOutputs.length
@@ -81,27 +82,38 @@ abstract contract ZetoBase is IZetoBase, IZetoLockable, ZetoCommon {
                 revert UTXODuplicate(sortedInputs[i]);
             }
             if (
-                _utxos[sortedInputs[i]] == UTXOStatus.UNKNOWN &&
-                _lockedUtxos[sortedInputs[i]] == UTXOStatus.UNKNOWN
+                _lockedUtxos[sortedInputs[i]] == UTXOStatus.UNKNOWN &&
+                _utxos[sortedInputs[i]] == UTXOStatus.UNKNOWN
             ) {
                 revert UTXONotMinted(sortedInputs[i]);
             }
             if (
-                _utxos[sortedInputs[i]] == UTXOStatus.SPENT ||
-                _lockedUtxos[sortedInputs[i]] == UTXOStatus.SPENT
+                (inputsLocked &&
+                    _lockedUtxos[sortedInputs[i]] == UTXOStatus.SPENT) ||
+                (!inputsLocked && _utxos[sortedInputs[i]] == UTXOStatus.SPENT)
             ) {
                 revert UTXOAlreadySpent(sortedInputs[i]);
             }
             if (
-                _lockedUtxos[sortedInputs[i]] == UTXOStatus.UNSPENT &&
-                delegates[sortedInputs[i]] != msg.sender &&
-                delegates[sortedInputs[i]] != address(0)
+                !inputsLocked &&
+                _lockedUtxos[sortedInputs[i]] == UTXOStatus.UNSPENT
             ) {
                 revert UTXOAlreadyLocked(sortedInputs[i]);
             }
+            if (
+                inputsLocked &&
+                delegates[sortedInputs[i]] != msg.sender &&
+                delegates[sortedInputs[i]] != address(0)
+            ) {
+                revert NotLockDelegate(
+                    sortedInputs[i],
+                    delegates[sortedInputs[i]],
+                    msg.sender
+                );
+            }
         }
 
-        // Check the outputs are all new UTXOs across both locked and unlocked UTXOs maps
+        // Check for duplicate outputs
         for (uint256 i = 0; i < sortedOutputs.length; ++i) {
             if (sortedOutputs[i] == 0) {
                 // skip the zero outputs
@@ -110,15 +122,21 @@ abstract contract ZetoBase is IZetoBase, IZetoLockable, ZetoCommon {
             if (i > 0 && sortedOutputs[i] == sortedOutputs[i - 1]) {
                 revert UTXODuplicate(sortedOutputs[i]);
             }
-            if (_utxos[sortedOutputs[i]] == UTXOStatus.SPENT) {
-                revert UTXOAlreadySpent(sortedOutputs[i]);
-            } else if (_utxos[sortedOutputs[i]] == UTXOStatus.UNSPENT) {
-                revert UTXOAlreadyOwned(sortedOutputs[i]);
+        }
+
+        for (uint256 i = 0; i < outputs.length; ++i) {
+            if (_utxos[outputs[i]] == UTXOStatus.SPENT) {
+                revert UTXOAlreadySpent(outputs[i]);
+            } else if (_utxos[outputs[i]] == UTXOStatus.UNSPENT) {
+                revert UTXOAlreadyOwned(outputs[i]);
             }
-            if (_lockedUtxos[sortedOutputs[i]] == UTXOStatus.SPENT) {
-                revert UTXOAlreadySpent(sortedOutputs[i]);
-            } else if (_lockedUtxos[sortedOutputs[i]] == UTXOStatus.UNSPENT) {
-                revert UTXOAlreadyOwned(sortedOutputs[i]);
+        }
+
+        for (uint256 i = 0; i < lockedOutputs.length; ++i) {
+            if (_lockedUtxos[lockedOutputs[i]] == UTXOStatus.SPENT) {
+                revert UTXOAlreadySpent(lockedOutputs[i]);
+            } else if (_lockedUtxos[lockedOutputs[i]] == UTXOStatus.UNSPENT) {
+                revert UTXOAlreadyOwned(lockedOutputs[i]);
             }
         }
         return true;

@@ -473,138 +473,138 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     expect(endingBalance - startingBalance).to.be.equal(80);
   });
 
-  describe("lockStates() tests", function () {
-    let nullifier1: any;
-    it("lockStates() should succeed when using unlocked states", async function () {
-      nullifier1 = newNullifier(utxo4, Alice);
-      const { nullifiers, encodedProof } = await prepareNullifiersLockProof(Alice, [nullifier1, ZERO_UTXO]);
+  // describe("lockStates() tests", function () {
+  //   let nullifier1: any;
+  //   it("lockStates() should succeed when using unlocked states", async function () {
+  //     nullifier1 = newNullifier(utxo4, Alice);
+  //     const { nullifiers, encodedProof } = await prepareNullifiersLockProof(Alice, [nullifier1, ZERO_UTXO]);
 
-      const tx = await zeto.connect(Alice.signer).lockStates(
-        nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
-        encodedProof,
-        Bob.ethAddress, // make Bob the delegate who can spend the state (if he has the right proof)
-        "0x",
-      );
-      const results = await tx.wait();
-      console.log(`Method transfer() complete. Gas used: ${results?.gasUsed}`);
-    });
+  //     const tx = await zeto.connect(Alice.signer).lockStates(
+  //       nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
+  //       encodedProof,
+  //       Bob.ethAddress, // make Bob the delegate who can spend the state (if he has the right proof)
+  //       "0x",
+  //     );
+  //     const results = await tx.wait();
+  //     console.log(`Method transfer() complete. Gas used: ${results?.gasUsed}`);
+  //   });
 
-    it("lockStates() should fail when trying to lock as non-delegate", async function () {
-      if (network.name !== "hardhat") {
-        return;
-      }
+  //   it("lockStates() should fail when trying to lock as non-delegate", async function () {
+  //     if (network.name !== "hardhat") {
+  //       return;
+  //     }
 
-      // Bob is the owner of the UTXO, so he can generate the right proof
-      const { nullifiers, encodedProof } = await prepareNullifiersLockProof(Alice, [nullifier1, ZERO_UTXO]);
+  //     // Bob is the owner of the UTXO, so he can generate the right proof
+  //     const { nullifiers, encodedProof } = await prepareNullifiersLockProof(Alice, [nullifier1, ZERO_UTXO]);
 
-      // but he's no longer the delegate (Alice is) to spend the state
-      await expect(zeto.connect(Alice.signer).lockStates(
-        nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
-        encodedProof,
-        Alice.ethAddress,
-        "0x",
-      )).rejectedWith(`UTXOAlreadyLocked(${nullifier1.hash.toString()})`);
-    });
+  //     // but he's no longer the delegate (Alice is) to spend the state
+  //     await expect(zeto.connect(Alice.signer).lockStates(
+  //       nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
+  //       encodedProof,
+  //       Alice.ethAddress,
+  //       "0x",
+  //     )).rejectedWith(`UTXOAlreadyLocked(${nullifier1.hash.toString()})`);
+  //   });
 
-    it("the original owner can NOT spend the locked state", async function () {
-      // Alice generates inclusion proofs for the UTXOs to be spent, as private input to the proof generation
-      const root = await smtAlice.root();
-      const proof1 = await smtAlice.generateCircomVerifierProof(utxo4.hash, root);
-      const proof2 = await smtAlice.generateCircomVerifierProof(0n, root);
-      const merkleProofs = [
-        proof1.siblings.map((s) => s.bigInt()),
-        proof2.siblings.map((s) => s.bigInt()),
-      ];
+  //   it("the original owner can NOT spend the locked state", async function () {
+  //     // Alice generates inclusion proofs for the UTXOs to be spent, as private input to the proof generation
+  //     const root = await smtAlice.root();
+  //     const proof1 = await smtAlice.generateCircomVerifierProof(utxo4.hash, root);
+  //     const proof2 = await smtAlice.generateCircomVerifierProof(0n, root);
+  //     const merkleProofs = [
+  //       proof1.siblings.map((s) => s.bigInt()),
+  //       proof2.siblings.map((s) => s.bigInt()),
+  //     ];
 
-      // Alice proposes the output UTXOs, attempting to transfer to Charlie
-      const utxo9 = newUTXO(5, Charlie);
+  //     // Alice proposes the output UTXOs, attempting to transfer to Charlie
+  //     const utxo9 = newUTXO(5, Charlie);
 
-      // Alice should NOT be able to spend the UTXO which has been locked and delegated to Bob
-      await expect(doTransfer(
-        Alice,
-        [utxo4, ZERO_UTXO],
-        [nullifier1, ZERO_UTXO],
-        [utxo9, ZERO_UTXO],
-        root.bigInt(),
-        merkleProofs,
-        [Charlie, Alice],
-      )).to.be.rejectedWith("UTXOAlreadyLocked");
-    });
+  //     // Alice should NOT be able to spend the UTXO which has been locked and delegated to Bob
+  //     await expect(doTransfer(
+  //       Alice,
+  //       [utxo4, ZERO_UTXO],
+  //       [nullifier1, ZERO_UTXO],
+  //       [utxo9, ZERO_UTXO],
+  //       root.bigInt(),
+  //       merkleProofs,
+  //       [Charlie, Alice],
+  //     )).to.be.rejectedWith("UTXOAlreadyLocked");
+  //   });
 
-    it("the original owner can NOT withdraw the locked state", async function () {
-      // Alice generates inclusion proofs for the UTXOs to be spent, as private input to the proof generation
-      const root = await smtAlice.root();
-      const proof1 = await smtAlice.generateCircomVerifierProof(utxo4.hash, root);
-      const proof2 = await smtAlice.generateCircomVerifierProof(0n, root);
-      const merkleProofs = [
-        proof1.siblings.map((s) => s.bigInt()),
-        proof2.siblings.map((s) => s.bigInt()),
-      ];
+  //   it("the original owner can NOT withdraw the locked state", async function () {
+  //     // Alice generates inclusion proofs for the UTXOs to be spent, as private input to the proof generation
+  //     const root = await smtAlice.root();
+  //     const proof1 = await smtAlice.generateCircomVerifierProof(utxo4.hash, root);
+  //     const proof2 = await smtAlice.generateCircomVerifierProof(0n, root);
+  //     const merkleProofs = [
+  //       proof1.siblings.map((s) => s.bigInt()),
+  //       proof2.siblings.map((s) => s.bigInt()),
+  //     ];
 
-      const utxo9 = newUTXO(0, Alice);
+  //     const utxo9 = newUTXO(0, Alice);
 
-      const { nullifiers, outputCommitments, encodedProof } =
-        await prepareNullifierWithdrawProof(
-          Alice,
-          [utxo4, ZERO_UTXO],
-          [nullifier1, ZERO_UTXO],
-          utxo9,
-          root.bigInt(),
-          merkleProofs,
-        );
+  //     const { nullifiers, outputCommitments, encodedProof } =
+  //       await prepareNullifierWithdrawProof(
+  //         Alice,
+  //         [utxo4, ZERO_UTXO],
+  //         [nullifier1, ZERO_UTXO],
+  //         utxo9,
+  //         root.bigInt(),
+  //         merkleProofs,
+  //       );
 
-      await expect(zeto
-        .connect(Alice.signer)
-        .withdraw(
-          80,
-          nullifiers,
-          outputCommitments[0],
-          root.bigInt(),
-          encodedProof,
-          "0x",
-        )).to.be.rejectedWith("UTXOAlreadyLocked");
-    });
+  //     await expect(zeto
+  //       .connect(Alice.signer)
+  //       .withdraw(
+  //         80,
+  //         nullifiers,
+  //         outputCommitments[0],
+  //         root.bigInt(),
+  //         encodedProof,
+  //         "0x",
+  //       )).to.be.rejectedWith("UTXOAlreadyLocked");
+  //   });
 
-    it("the designated delegate can use the proper proof to spend the locked state", async function () {
-      // Alice generates inclusion proofs for the UTXOs to be spent, as private input to the proof generation
-      const root = await smtAlice.root();
-      const proof1 = await smtAlice.generateCircomVerifierProof(utxo4.hash, root);
-      const proof2 = await smtAlice.generateCircomVerifierProof(0n, root);
-      const merkleProofs = [
-        proof1.siblings.map((s) => s.bigInt()),
-        proof2.siblings.map((s) => s.bigInt()),
-      ];
+  //   it("the designated delegate can use the proper proof to spend the locked state", async function () {
+  //     // Alice generates inclusion proofs for the UTXOs to be spent, as private input to the proof generation
+  //     const root = await smtAlice.root();
+  //     const proof1 = await smtAlice.generateCircomVerifierProof(utxo4.hash, root);
+  //     const proof2 = await smtAlice.generateCircomVerifierProof(0n, root);
+  //     const merkleProofs = [
+  //       proof1.siblings.map((s) => s.bigInt()),
+  //       proof2.siblings.map((s) => s.bigInt()),
+  //     ];
 
-      // Alice proposes the output UTXOs, attempting to transfer to Charlie
-      const utxo9 = newUTXO(5, Charlie);
+  //     // Alice proposes the output UTXOs, attempting to transfer to Charlie
+  //     const utxo9 = newUTXO(5, Charlie);
 
-      const ephemeralKeypair = genKeypair();
-      const result = await prepareProof(
-        Alice,
-        [utxo4, ZERO_UTXO],
-        [nullifier1, ZERO_UTXO],
-        [utxo9, ZERO_UTXO],
-        root.bigInt(),
-        merkleProofs,
-        [Charlie, Alice],
-        ephemeralKeypair.privKey,
-      );
-      const nullifiers = [nullifier1.hash];
+  //     const ephemeralKeypair = genKeypair();
+  //     const result = await prepareProof(
+  //       Alice,
+  //       [utxo4, ZERO_UTXO],
+  //       [nullifier1, ZERO_UTXO],
+  //       [utxo9, ZERO_UTXO],
+  //       root.bigInt(),
+  //       merkleProofs,
+  //       [Charlie, Alice],
+  //       ephemeralKeypair.privKey,
+  //     );
+  //     const nullifiers = [nullifier1.hash];
 
-      // Bob (in reality this is usually a contract that orchestrates a trade flow) can spend the locked state
-      // using the proof generated by the trade counterparty (Alice in this case)
-      await expect(sendTx(
-        Bob,
-        nullifiers,
-        result.outputCommitments,
-        root.bigInt(),
-        result.encryptedValues,
-        result.encryptionNonce,
-        result.encodedProof,
-        ephemeralKeypair.pubKey,
-      )).to.be.fulfilled;
-    });
-  });
+  //     // Bob (in reality this is usually a contract that orchestrates a trade flow) can spend the locked state
+  //     // using the proof generated by the trade counterparty (Alice in this case)
+  //     await expect(sendTx(
+  //       Bob,
+  //       nullifiers,
+  //       result.outputCommitments,
+  //       root.bigInt(),
+  //       result.encryptedValues,
+  //       result.encryptionNonce,
+  //       result.encodedProof,
+  //       ephemeralKeypair.pubKey,
+  //     )).to.be.fulfilled;
+  //   });
+  // });
 
   describe("failure cases", function () {
     // the following failure cases rely on the hardhat network

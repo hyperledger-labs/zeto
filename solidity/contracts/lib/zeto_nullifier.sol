@@ -236,8 +236,6 @@ abstract contract ZetoNullifier is IZetoBase, IZetoLockable, ZetoCommon {
 
     // move the ability to spend the locked UTXOs to the delegate account.
     // The sender must be the current delegate.
-    //
-    // Setting the delegate to address(0) will unlock the UTXOs.
     function delegateLock(
         uint256[] memory utxos,
         address delegate,

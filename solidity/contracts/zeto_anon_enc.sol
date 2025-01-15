@@ -19,8 +19,6 @@ import {IZetoEncrypted} from "./lib/interfaces/izeto_encrypted.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValue} from "./lib/verifier_check_inputs_outputs_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValueBatch} from "./lib/verifier_check_inputs_outputs_value_batch.sol";
-import {Groth16Verifier_CheckUtxosOwner} from "./lib/verifier_check_utxos_owner.sol";
-import {Groth16Verifier_CheckUtxosOwnerBatch} from "./lib/verifier_check_utxos_owner_batch.sol";
 
 import {Groth16Verifier_AnonEnc} from "./lib/verifier_anon_enc.sol";
 import {Groth16Verifier_AnonEncBatch} from "./lib/verifier_anon_enc_batch.sol";
@@ -128,7 +126,7 @@ contract Zeto_AnonEnc is
         inputs = checkAndPadCommitments(inputs);
         outputs = checkAndPadCommitments(outputs);
         uint256[] memory lockedOutputs;
-        validateTransactionProposal(inputs, outputs, lockedOutputs);
+        validateTransactionProposal(inputs, outputs, lockedOutputs, false);
 
         // Check the proof
         if (inputs.length > 2 || outputs.length > 2) {
@@ -226,7 +224,7 @@ contract Zeto_AnonEnc is
         inputs = checkAndPadCommitments(inputs);
         outputs = checkAndPadCommitments(outputs);
         uint256[] memory lockedOutputs;
-        validateTransactionProposal(inputs, outputs, lockedOutputs);
+        validateTransactionProposal(inputs, outputs, lockedOutputs, false);
 
         _withdraw(amount, inputs, output, proof);
 

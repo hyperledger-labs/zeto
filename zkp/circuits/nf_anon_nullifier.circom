@@ -56,7 +56,7 @@ template Zeto(nSMTLevels) {
 
   CheckNullifiersForTokenIdAndUri(1)(nullifiers <== [nullifier], tokenIds <== [tokenId], tokenUris <== [tokenUri], salts <== [inputSalt], ownerPrivateKey <== inputOwnerPrivateKey);
 
-  CheckSMTProof(1, nSMTLevels)(root <== root, merkleProof <== [merkleProof], enabled <== [1], leafNodeIndexes <== [inputCommitment]);
+  CheckSMTProof(1, nSMTLevels)(root <== root, merkleProof <== [merkleProof], enabled <== [1], leafNodeIndexes <== [inputCommitment], leafNodeValues <== [inputCommitment]);
 }
 
 component main { public [ nullifier, outputCommitment, root ] } = Zeto(64);

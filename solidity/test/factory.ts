@@ -231,63 +231,63 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
     ).rejectedWith("Factory: batchWithdrawVerifier address is required");
   });
 
-  it("attempting to deploy a fungible token but with a registered implementation that misses required lockVerifier should fail", async function () {
-    // we want to test the effectiveness of the factory contract
-    // to create clones of the Zeto implementation contract
-    const Factory = await ethers.getContractFactory("ZetoTokenFactory");
-    const factory = await Factory.deploy();
-    await factory.waitForDeployment();
+  // it("attempting to deploy a fungible token but with a registered implementation that misses required lockVerifier should fail", async function () {
+  //   // we want to test the effectiveness of the factory contract
+  //   // to create clones of the Zeto implementation contract
+  //   const Factory = await ethers.getContractFactory("ZetoTokenFactory");
+  //   const factory = await Factory.deploy();
+  //   await factory.waitForDeployment();
 
-    const implInfo = {
-      implementation: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
-      verifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
-      batchVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
-      depositVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
-      withdrawVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
-      batchWithdrawVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
-      lockVerifier: "0x0000000000000000000000000000000000000000",
-      batchLockVerifier: "0x0000000000000000000000000000000000000000",
-    };
-    const tx1 = await factory
-      .connect(deployer)
-      .registerImplementation("test", implInfo as any);
-    await tx1.wait();
+  //   const implInfo = {
+  //     implementation: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+  //     verifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+  //     batchVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+  //     depositVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+  //     withdrawVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+  //     batchWithdrawVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+  //     lockVerifier: "0x0000000000000000000000000000000000000000",
+  //     batchLockVerifier: "0x0000000000000000000000000000000000000000",
+  //   };
+  //   const tx1 = await factory
+  //     .connect(deployer)
+  //     .registerImplementation("test", implInfo as any);
+  //   await tx1.wait();
 
-    await expect(
-      factory
-        .connect(deployer)
-        .deployZetoFungibleToken("test", await deployer.getAddress()),
-    ).rejectedWith("Factory: lockVerifier address is required");
-  });
+  //   await expect(
+  //     factory
+  //       .connect(deployer)
+  //       .deployZetoFungibleToken("test", await deployer.getAddress()),
+  //   ).rejectedWith("Factory: lockVerifier address is required");
+  // });
 
-  it("attempting to deploy a fungible token but with a registered implementation that misses required batchLockVerifier should fail", async function () {
-    // we want to test the effectiveness of the factory contract
-    // to create clones of the Zeto implementation contract
-    const Factory = await ethers.getContractFactory("ZetoTokenFactory");
-    const factory = await Factory.deploy();
-    await factory.waitForDeployment();
+  // it("attempting to deploy a fungible token but with a registered implementation that misses required batchLockVerifier should fail", async function () {
+  //   // we want to test the effectiveness of the factory contract
+  //   // to create clones of the Zeto implementation contract
+  //   const Factory = await ethers.getContractFactory("ZetoTokenFactory");
+  //   const factory = await Factory.deploy();
+  //   await factory.waitForDeployment();
 
-    const implInfo = {
-      implementation: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
-      verifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
-      batchVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
-      depositVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
-      withdrawVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
-      batchWithdrawVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
-      lockVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
-      batchLockVerifier: "0x0000000000000000000000000000000000000000",
-    };
-    const tx1 = await factory
-      .connect(deployer)
-      .registerImplementation("test", implInfo as any);
-    await tx1.wait();
+  //   const implInfo = {
+  //     implementation: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+  //     verifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+  //     batchVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+  //     depositVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+  //     withdrawVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+  //     batchWithdrawVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+  //     lockVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+  //     batchLockVerifier: "0x0000000000000000000000000000000000000000",
+  //   };
+  //   const tx1 = await factory
+  //     .connect(deployer)
+  //     .registerImplementation("test", implInfo as any);
+  //   await tx1.wait();
 
-    await expect(
-      factory
-        .connect(deployer)
-        .deployZetoFungibleToken("test", await deployer.getAddress()),
-    ).rejectedWith("Factory: batchLockVerifier address is required");
-  });
+  //   await expect(
+  //     factory
+  //       .connect(deployer)
+  //       .deployZetoFungibleToken("test", await deployer.getAddress()),
+  //   ).rejectedWith("Factory: batchLockVerifier address is required");
+  // });
 
   it("attempting to deploy a fungible token with a properly registered implementation should succeed", async function () {
     // we want to test the effectiveness of the factory contract

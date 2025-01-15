@@ -127,7 +127,8 @@ contract Zeto_AnonNullifier is
     ) public returns (bool) {
         nullifiers = checkAndPadCommitments(nullifiers);
         outputs = checkAndPadCommitments(outputs);
-        preTransfer(nullifiers, outputs, root, proof);
+        validateTransactionProposal(nullifiers, outputs, root, false);
+        checkProof(nullifiers, outputs, root, proof);
         uint256[] memory empty;
         processInputsAndOutputs(nullifiers, outputs, empty, address(0));
 
@@ -150,7 +151,8 @@ contract Zeto_AnonNullifier is
     ) public returns (bool) {
         nullifiers = checkAndPadCommitments(nullifiers);
         outputs = checkAndPadCommitments(outputs);
-        preTransferLocked(nullifiers, outputs, root, proof);
+        validateTransactionProposal(nullifiers, outputs, root, true);
+        checkProofLocked(nullifiers, outputs, root, proof);
         uint256[] memory empty;
         processInputsAndOutputs(nullifiers, outputs, empty, address(0));
 
@@ -222,7 +224,8 @@ contract Zeto_AnonNullifier is
         }
         nullifiers = checkAndPadCommitments(nullifiers);
         allOutputs = checkAndPadCommitments(allOutputs);
-        preTransfer(nullifiers, allOutputs, root, proof);
+        validateTransactionProposal(nullifiers, outputs, root, false);
+        checkProof(nullifiers, allOutputs, root, proof);
 
         spendNullifiers(nullifiers);
 
@@ -240,15 +243,12 @@ contract Zeto_AnonNullifier is
         transferLocked(nullifiers, outputs, root, proof, data);
     }
 
-    function preTransfer(
+    function checkProof(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         uint256 root,
         Commonlib.Proof calldata proof
     ) private {
-        validateTransactionProposal(nullifiers, outputs, root, false);
-
-        // Check the proof
         if (nullifiers.length > 2 || outputs.length > 2) {
             uint256[] memory publicInputs = constructPublicInputs(
                 nullifiers,
@@ -299,15 +299,12 @@ contract Zeto_AnonNullifier is
         }
     }
 
-    function preTransferLocked(
+    function checkProofLocked(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         uint256 root,
         Commonlib.Proof calldata proof
     ) private {
-        validateTransactionProposal(nullifiers, outputs, root, true);
-
-        // Check the proof
         if (nullifiers.length > 2 || outputs.length > 2) {
             uint256[] memory publicInputs = constructPublicInputs(
                 nullifiers,

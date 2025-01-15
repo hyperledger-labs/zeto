@@ -19,8 +19,6 @@ import {IZeto} from "./lib/interfaces/izeto.sol";
 import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValue} from "./lib/verifier_check_inputs_outputs_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValueBatch} from "./lib/verifier_check_inputs_outputs_value_batch.sol";
-import {Groth16Verifier_CheckUtxosOwner} from "./lib/verifier_check_utxos_owner.sol";
-import {Groth16Verifier_CheckUtxosOwnerBatch} from "./lib/verifier_check_utxos_owner_batch.sol";
 
 import {Groth16Verifier_Anon} from "./lib/verifier_anon.sol";
 import {Groth16Verifier_AnonBatch} from "./lib/verifier_anon_batch.sol";
@@ -64,9 +62,11 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
     /**
-     * @dev the main function of the contract.
+     * @dev transfer funds by spending the input UTXOs (owned by the sender) and creating
+     * output UTXOs (owned by the receiver). Some of the output UTXOs may be owned by the
+     * sender, to return the change.
      *
-     * @param inputs Array of UTXOs to be spent by the transaction.
+     * @param inputs Array of UTXOs to be spent by the transaction. They must be unlocked.
      * @param outputs Array of new UTXOs to generate, for future transactions to spend.
      * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
      *      that the outputs are valid in terms of obeying mass conservation rules.
@@ -84,7 +84,38 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         outputs = checkAndPadCommitments(outputs);
 
         uint256[] memory lockedOutputs;
-        validateTransactionProposal(inputs, outputs, lockedOutputs);
+        validateTransactionProposal(inputs, outputs, lockedOutputs, false);
+        checkProof(inputs, outputs, proof);
+
+        processInputsAndOutputs(inputs, outputs, lockedOutputs, false);
+        emit UTXOTransfer(inputs, outputs, msg.sender, data);
+
+        return true;
+    }
+
+    /**
+     * @dev transfer funds that have been previously locked by the sender. The submitted must
+     * be the current delegate of the locked UTXOs.
+     *
+     * @param inputs Array of UTXOs to be spent by the transaction, they must be locked.
+     * @param outputs Array of new UTXOs to generate, for future transactions to spend. They are unlocked.
+     * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
+     *      that the outputs are valid in terms of obeying mass conservation rules.
+     *
+     * Emits a {UTXOTransfer} event.
+     */
+    function transferLocked(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        Commonlib.Proof calldata proof,
+        bytes calldata data
+    ) public returns (bool) {
+        // Check and pad inputs and outputs based on the max size
+        inputs = checkAndPadCommitments(inputs);
+        outputs = checkAndPadCommitments(outputs);
+
+        uint256[] memory lockedOutputs;
+        validateTransactionProposal(inputs, outputs, lockedOutputs, true);
 
         // Check the proof
         checkProof(inputs, outputs, proof);
@@ -118,7 +149,7 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         inputs = checkAndPadCommitments(inputs);
         outputs = checkAndPadCommitments(outputs);
         uint256[] memory lockedOutputs;
-        validateTransactionProposal(inputs, outputs, lockedOutputs);
+        validateTransactionProposal(inputs, outputs, lockedOutputs, false);
 
         _withdraw(amount, inputs, output, proof);
         processInputsAndOutputs(inputs, outputs, lockedOutputs, false);
@@ -140,7 +171,7 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         address delegate,
         bytes calldata data
     ) public {
-        validateTransactionProposal(inputs, outputs, lockedOutputs);
+        validateTransactionProposal(inputs, outputs, lockedOutputs, false);
 
         // Check the proof
         // merge the outputs and lockedOutputs and do a regular transfer
@@ -159,6 +190,15 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
 
         // lock the intended outputs
         _lock(inputs, outputs, lockedOutputs, delegate, data);
+    }
+
+    function unlock(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        Commonlib.Proof calldata proof,
+        bytes calldata data
+    ) public {
+        transferLocked(inputs, outputs, proof, data);
     }
 
     function checkProof(
