@@ -15,10 +15,7 @@
 // limitations under the License.
 pragma circom 2.2.1;
 
-include "./lib/check-nullifiers-tokenid-uri.circom";
-include "./lib/check-hashes-tokenid-uri.circom";
-include "./lib/check-smt-proof.circom";
-include "./node_modules/circomlib/circuits/babyjub.circom";
+include "./basetokens/nf_anon_nullifier_base.circom";
 
 // This version of the circuit performs the following operations:
 // - derive the sender's public key from the sender's private key
@@ -26,7 +23,7 @@ include "./node_modules/circomlib/circuits/babyjub.circom";
 // - check the input and output values sum to the same amount
 // - check the nullifiers are derived from the input commitments and the sender's private key
 // - check the nullifiers are included in the Merkle tree
-template Zeto(nSMTLevels) {
+template transfer(nSMTLevels) {
   signal input tokenId;
   signal input tokenUri;
   signal input nullifier;
@@ -41,22 +38,20 @@ template Zeto(nSMTLevels) {
   signal input outputOwnerPublicKey[2];
   signal input outputSalt;
 
-  // derive the sender's public key from the secret input
-  // for the sender's private key. This step demonstrates
-  // the sender really owns the private key for the input
-  // UTXOs
-  var inputOwnerPubKeyAx, inputOwnerPubKeyAy;
-  (inputOwnerPubKeyAx, inputOwnerPubKeyAy) = BabyPbk()(in <== inputOwnerPrivateKey);
-
-  var inputOwnerPublicKeys[1][2] = [[inputOwnerPubKeyAx, inputOwnerPubKeyAy]];
-
-  CheckHashesForTokenIdAndUri(1)(tokenIds <== [tokenId], tokenUris <== [tokenUri], commitments <== [inputCommitment], salts <== [inputSalt], ownerPublicKeys <== inputOwnerPublicKeys);
-
-  CheckHashesForTokenIdAndUri(1)(tokenIds <== [tokenId], tokenUris <== [tokenUri], commitments <== [outputCommitment], salts <== [outputSalt], ownerPublicKeys <== [outputOwnerPublicKey]);
-
-  CheckNullifiersForTokenIdAndUri(1)(nullifiers <== [nullifier], tokenIds <== [tokenId], tokenUris <== [tokenUri], salts <== [inputSalt], ownerPrivateKey <== inputOwnerPrivateKey);
-
-  CheckSMTProof(1, nSMTLevels)(root <== root, merkleProof <== [merkleProof], enabled <== [1], leafNodeIndexes <== [inputCommitment], leafNodeValues <== [inputCommitment]);
+  Zeto(nSMTLevels)(
+    tokenId <== tokenId,
+    tokenUri <== tokenUri,
+    nullifier <== nullifier,
+    inputCommitment <== inputCommitment,
+    inputSalt <== inputSalt,
+    inputOwnerPrivateKey <== inputOwnerPrivateKey,
+    smtNodeValue <== inputCommitment,
+    root <== root,
+    merkleProof <== merkleProof,
+    outputCommitment <== outputCommitment,
+    outputOwnerPublicKey <== outputOwnerPublicKey,
+    outputSalt <== outputSalt
+  );
 }
 
-component main { public [ nullifier, outputCommitment, root ] } = Zeto(64);
+component main { public [ nullifier, outputCommitment, root ] } = transfer(64);
