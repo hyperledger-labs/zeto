@@ -409,6 +409,13 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
       console.log(`Method transfer() complete. Gas used: ${results?.gasUsed}`);
     });
 
+    it("locked() should return true for locked UTXOs, and false for unlocked or spent UTXOs", async function () {
+      expect(await zeto.locked(lockedUtxo1.hash)).to.deep.equal([true, Alice.ethAddress]);
+      expect(await zeto.locked(lockedUtxo2.hash)).to.deep.equal([true, Alice.ethAddress]);
+      expect(await zeto.locked(utxo7.hash)).to.deep.equal([false, "0x0000000000000000000000000000000000000000"]);
+      expect(await zeto.locked(utxo1.hash)).to.deep.equal([false, "0x0000000000000000000000000000000000000000"]);
+    });
+
     it("lock() should fail when trying to lock again", async function () {
       if (network.name !== "hardhat") {
         return;

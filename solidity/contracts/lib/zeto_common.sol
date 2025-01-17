@@ -29,7 +29,7 @@ abstract contract ZetoCommon is IZetoCommon, OwnableUpgradeable {
     }
     function checkAndPadCommitments(
         uint256[] memory commitments
-    ) internal pure returns (uint256[] memory) {
+    ) public pure returns (uint256[] memory) {
         uint256 len = commitments.length;
 
         // Check if inputs or outputs exceed batchMax and revert with custom error if necessary

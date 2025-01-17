@@ -246,4 +246,11 @@ abstract contract ZetoBase is IZetoBase, IZetoLockable, ZetoCommon {
 
         emit LockDelegateChanged(utxos, msg.sender, delegate, data);
     }
+
+    function locked(uint256 utxo) public view returns (bool, address) {
+        if (_lockedUtxos[utxo] == UTXOStatus.UNSPENT) {
+            return (true, delegates[utxo]);
+        }
+        return (false, address(0));
+    }
 }

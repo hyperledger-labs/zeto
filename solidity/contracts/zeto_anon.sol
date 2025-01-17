@@ -85,7 +85,7 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
 
         uint256[] memory lockedOutputs;
         validateTransactionProposal(inputs, outputs, lockedOutputs, false);
-        checkProof(inputs, outputs, proof);
+        verifyProof(inputs, outputs, proof);
 
         processInputsAndOutputs(inputs, outputs, lockedOutputs, false);
         emit UTXOTransfer(inputs, outputs, msg.sender, data);
@@ -118,7 +118,7 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         validateTransactionProposal(inputs, outputs, lockedOutputs, true);
 
         // Check the proof
-        checkProof(inputs, outputs, proof);
+        verifyProof(inputs, outputs, proof);
 
         processInputsAndOutputs(inputs, outputs, lockedOutputs, false);
         emit UTXOTransfer(inputs, outputs, msg.sender, data);
@@ -184,7 +184,7 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         for (uint256 i = 0; i < lockedOutputs.length; i++) {
             allOutputs[outputs.length + i] = lockedOutputs[i];
         }
-        checkProof(inputs, allOutputs, proof);
+        verifyProof(inputs, allOutputs, proof);
 
         processInputsAndOutputs(inputs, outputs, lockedOutputs, false);
 
@@ -201,11 +201,11 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         transferLocked(inputs, outputs, proof, data);
     }
 
-    function checkProof(
+    function verifyProof(
         uint256[] memory inputs,
         uint256[] memory outputs,
         Commonlib.Proof calldata proof
-    ) private view {
+    ) public view returns (bool) {
         if (inputs.length > 2 || outputs.length > 2) {
             uint256[] memory publicInputs = constructPublicInputs(
                 inputs,
@@ -250,6 +250,7 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
                 "Invalid proof"
             );
         }
+        return true;
     }
 
     function constructPublicInputs(

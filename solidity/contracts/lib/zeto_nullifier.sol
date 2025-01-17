@@ -21,6 +21,7 @@ import {MAX_SMT_DEPTH} from "./interfaces/izeto_nullifier.sol";
 import {IZetoLockable} from "./interfaces/izeto_lockable.sol";
 import {ZetoCommon} from "./zeto_common.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
+import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
 // import {console} from "hardhat/console.sol";
 
 /// @title A sample base implementation of a Zeto based token contract with nullifiers
@@ -83,13 +84,13 @@ abstract contract ZetoNullifier is IZetoBase, IZetoLockable, ZetoCommon {
             }
             SmtLib.Node memory node;
             if (isLocked) {
-                uint256 nodeHash = Commonlib.getLeafNodeHash(
+                uint256 nodeHash = getLeafNodeHash(
                     sortedOutputs[i],
                     uint256(uint160(msg.sender))
                 );
                 node = _lockedCommitmentsTree.getNode(nodeHash);
             } else {
-                uint256 nodeHash = Commonlib.getLeafNodeHash(
+                uint256 nodeHash = getLeafNodeHash(
                     sortedOutputs[i],
                     sortedOutputs[i]
                 );
@@ -154,7 +155,7 @@ abstract contract ZetoNullifier is IZetoBase, IZetoLockable, ZetoCommon {
             if (utxo == 0) {
                 continue;
             }
-            uint256 nodeHash = Commonlib.getLeafNodeHash(utxo, utxo);
+            uint256 nodeHash = getLeafNodeHash(utxo, utxo);
             SmtLib.Node memory node = _commitmentsTree.getNode(nodeHash);
 
             if (node.nodeType != SmtLib.NodeType.EMPTY) {
@@ -193,10 +194,7 @@ abstract contract ZetoNullifier is IZetoBase, IZetoLockable, ZetoCommon {
                 // skip the zero outputs
                 continue;
             }
-            uint256 nodeHash = Commonlib.getLeafNodeHash(
-                outputs[i],
-                outputs[i]
-            );
+            uint256 nodeHash = getLeafNodeHash(outputs[i], outputs[i]);
             SmtLib.Node memory node = _commitmentsTree.getNode(nodeHash);
             if (node.nodeType != SmtLib.NodeType.EMPTY) {
                 revert UTXOAlreadyOwned(outputs[i]);
@@ -210,7 +208,7 @@ abstract contract ZetoNullifier is IZetoBase, IZetoLockable, ZetoCommon {
                 // skip the zero outputs
                 continue;
             }
-            uint256 nodeHash = Commonlib.getLeafNodeHash(
+            uint256 nodeHash = getLeafNodeHash(
                 lockedOutputs[i],
                 uint256(uint160(delegate))
             );
@@ -245,7 +243,7 @@ abstract contract ZetoNullifier is IZetoBase, IZetoLockable, ZetoCommon {
             if (utxos[i] == 0) {
                 continue;
             }
-            uint256 nodeHash = Commonlib.getLeafNodeHash(
+            uint256 nodeHash = getLeafNodeHash(
                 utxos[i],
                 uint256(uint160(msg.sender))
             );
@@ -263,5 +261,13 @@ abstract contract ZetoNullifier is IZetoBase, IZetoLockable, ZetoCommon {
         }
 
         emit LockDelegateChanged(utxos, msg.sender, delegate, data);
+    }
+
+    function getLeafNodeHash(
+        uint256 index,
+        uint256 value
+    ) internal pure returns (uint256) {
+        uint256[3] memory params = [index, value, uint256(1)];
+        return PoseidonUnit3L.poseidon(params);
     }
 }
