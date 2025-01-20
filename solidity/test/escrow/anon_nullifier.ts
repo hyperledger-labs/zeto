@@ -18,13 +18,15 @@ import { ethers, ignition, network } from "hardhat";
 import { Signer, encodeBytes32String, ZeroHash, lock } from "ethers";
 import { expect } from "chai";
 import { loadCircuit, getProofHash } from "zeto-js";
-import zkEscrowModule from "../../ignition/modules/test/escrow1";
-import zetoAnonTests from "../zeto_anon";
+import { Merkletree, InMemoryDB, str2Bytes } from "@iden3/js-merkletree";
+import zkEscrowModule from "../../ignition/modules/test/escrow2";
+import zetoAnonNullifierTests from "../zeto_anon_nullifier";
 import {
   UTXO,
   User,
   newUser,
   newUTXO,
+  newNullifier,
   doMint,
   ZERO_UTXO,
   parseUTXOEvents,
@@ -32,7 +34,7 @@ import {
 import { loadProvingKeys } from "../utils";
 import { deployZeto } from "../lib/deploy";
 
-describe("Escrow flow for payment with Zeto_Anon", function () {
+describe("Escrow flow for payment with Zeto_AnonNullifier", function () {
   let Alice: User;
   let Bob: User;
   let Charlie: User;
@@ -47,13 +49,16 @@ describe("Escrow flow for payment with Zeto_Anon", function () {
 
   // UTXOs involved in the escrow flow
   let lockedPayment1: UTXO;
+  let nullifier1: UTXO;
   let paymentToBob: UTXO;
 
   // other variables
   let deployer: Signer;
-  let circuit: any;
-  let provingKey: string;
+  let circuit: any, circuitLocked: any;
+  let provingKey: string, provingKeyLocked: string;
   let paymentId: any;
+  let smtAlice: Merkletree, smtAliceLocked: Merkletree;
+  let smtBob: Merkletree;
 
   before(async function () {
     if (network.name !== "hardhat") {
@@ -66,14 +71,22 @@ describe("Escrow flow for payment with Zeto_Anon", function () {
     Bob = await newUser(b);
     Charlie = await newUser(c);
 
-    circuit = await loadCircuit("anon");
-    ({ provingKeyFile: provingKey } = loadProvingKeys("anon"));
+    circuit = await loadCircuit("anon_nullifier_transfer");
+    ({ provingKeyFile: provingKey } = loadProvingKeys("anon_nullifier_transfer"));
+    circuitLocked = await loadCircuit("anon_nullifier_transferLocked");
+    ({ provingKeyFile: provingKeyLocked } = loadProvingKeys("anon_nullifier_transferLocked"));
 
-    ({ deployer, zeto: zkPayment } = await deployZeto("Zeto_Anon"));
+    const storage1 = new InMemoryDB(str2Bytes(""));
+    smtAlice = new Merkletree(storage1, true, 64);
+
+    const storage2 = new InMemoryDB(str2Bytes(""));
+    smtAliceLocked = new Merkletree(storage2, true, 64);
+
+    ({ deployer, zeto: zkPayment } = await deployZeto("Zeto_AnonNullifier"));
     console.log(`ZK Payment contract deployed at ${zkPayment.target}`);
     ({ zkEscrow } = await ignition.deploy(zkEscrowModule, {
       parameters: {
-        zkEscrow1: {
+        zkEscrow2: {
           paymentToken: zkPayment.target,
         },
       },
@@ -90,22 +103,41 @@ describe("Escrow flow for payment with Zeto_Anon", function () {
       const event = zkPayment.interface.parseLog(log as any);
       expect(event.args.outputs.length).to.equal(2);
     }
+
+    await smtAlice.add(payment1.hash, payment1.hash);
+    await smtAlice.add(payment2.hash, payment2.hash);
   });
 
   it("Alice locks some payment tokens and designates the escrow as the delegate", async function () {
+    // Alice generates the nullifiers for the UTXOs to be spent
+    const nullifier1 = newNullifier(payment1, Alice);
+
+    // Alice generates inclusion proofs for the UTXOs to be spent
+    let root = await smtAlice.root();
+    const proof1 = await smtAlice.generateCircomVerifierProof(payment1.hash, root);
+    const proof2 = await smtAlice.generateCircomVerifierProof(0n, root);
+    const merkleProofs = [
+      proof1.siblings.map((s) => s.bigInt()),
+      proof2.siblings.map((s) => s.bigInt()),
+    ];
+
     lockedPayment1 = newUTXO(payment1.value!, Alice, payment1.salt!);
-    const { inputCommitments, outputCommitments, encodedProof } = await zetoAnonTests.prepareProof(
+    const { inputCommitments, outputCommitments, encodedProof } = await zetoAnonNullifierTests.prepareProof(
       circuit,
       provingKey,
       Alice,
       [payment1, ZERO_UTXO],
+      [nullifier1, ZERO_UTXO],
       [lockedPayment1, ZERO_UTXO],
-      [Alice, {}],
+      root.bigInt(),
+      merkleProofs,
+      [Alice, Alice],
     );
     const tx = await zkPayment.connect(Alice.signer).lock(
-      inputCommitments,
+      [nullifier1.hash],
       [],
       outputCommitments,
+      root.bigInt(),
       encodedProof,
       zkEscrow.target,
       "0x"
@@ -121,12 +153,15 @@ describe("Escrow flow for payment with Zeto_Anon", function () {
     const check = newUTXO(lockedPayment1.value!, Alice, lockedPayment1.salt);
     expect(lockedUTXO).to.equal(check.hash);
     expect(lockDelegate).to.equal(zkEscrow.target);
+
+    await smtAliceLocked.add(lockedPayment1.hash, ethers.toBigInt(zkEscrow.target));
   });
 
   it("Alice initiates a payment transaction to Bob through the escrow", async function () {
+    nullifier1 = newNullifier(lockedPayment1, Alice);
     paymentToBob = newUTXO(lockedPayment1.value!, Bob, lockedPayment1.salt);
     const tx = await zkEscrow.connect(Alice.signer).initiatePayment(
-      [lockedPayment1.hash],
+      [nullifier1.hash],
       [paymentToBob.hash],
       "0x"
     );
@@ -140,16 +175,28 @@ describe("Escrow flow for payment with Zeto_Anon", function () {
   });
 
   it("Alice approves the payment by submitting a valid proof that can successfully verify the proposed payment", async function () {
-    const { encodedProof } = await zetoAnonTests.prepareProof(
-      circuit,
-      provingKey,
+    let root = await smtAliceLocked.root();
+    const proof1 = await smtAliceLocked.generateCircomVerifierProof(lockedPayment1.hash, root);
+    const proof2 = await smtAliceLocked.generateCircomVerifierProof(0n, root);
+    const merkleProofs = [
+      proof1.siblings.map((s) => s.bigInt()),
+      proof2.siblings.map((s) => s.bigInt()),
+    ];
+    const { encodedProof } = await zetoAnonNullifierTests.prepareProof(
+      circuitLocked,
+      provingKeyLocked,
       Alice,
       [lockedPayment1, ZERO_UTXO],
+      [nullifier1, ZERO_UTXO],
       [paymentToBob, ZERO_UTXO],
-      [Bob, {}],
+      root.bigInt(),
+      merkleProofs,
+      [Bob, Bob],
+      zkEscrow.target,
     );
     const tx = await zkEscrow.connect(Alice.signer).approvePayment(
       paymentId,
+      root.bigInt(),
       encodedProof,
       "0x"
     );

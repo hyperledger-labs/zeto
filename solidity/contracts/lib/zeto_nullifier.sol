@@ -22,7 +22,7 @@ import {IZetoLockable} from "./interfaces/izeto_lockable.sol";
 import {ZetoCommon} from "./zeto_common.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
-// import {console} from "hardhat/console.sol";
+import {console} from "hardhat/console.sol";
 
 /// @title A sample base implementation of a Zeto based token contract with nullifiers
 /// @author Kaleido, Inc.
@@ -69,6 +69,8 @@ abstract contract ZetoNullifier is IZetoBase, IZetoLockable, ZetoCommon {
                 revert UTXODuplicate(sortedInputs[i]);
             }
             if (_nullifiers[sortedInputs[i]] == true) {
+                console.log("nullifier");
+                console.log(sortedInputs[i]);
                 revert UTXOAlreadySpent(sortedInputs[i]);
             }
         }
@@ -261,6 +263,18 @@ abstract contract ZetoNullifier is IZetoBase, IZetoLockable, ZetoCommon {
         }
 
         emit LockDelegateChanged(utxos, msg.sender, delegate, data);
+    }
+
+    function locked(
+        uint256 utxo,
+        address delegate
+    ) public view returns (bool, address) {
+        uint256 nodeHash = getLeafNodeHash(utxo, uint256(uint160(delegate)));
+        SmtLib.Node memory node = _lockedCommitmentsTree.getNode(nodeHash);
+        if (node.nodeType == SmtLib.NodeType.EMPTY) {
+            return (false, address(0));
+        }
+        return (true, address(uint160(node.value)));
     }
 
     function getLeafNodeHash(

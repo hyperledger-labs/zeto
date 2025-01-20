@@ -16,10 +16,10 @@
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-export default buildModule("zkEscrow", (m) => {
+export default buildModule("zkEscrow2", (m) => {
   const paymentTokenAddress = m.getParameter("paymentToken");
-  const paymentToken = m.contractAt("Zeto_Anon", paymentTokenAddress);
+  const paymentToken = m.contractAt("Zeto_AnonNullifier", paymentTokenAddress);
 
-  const zkEscrow = m.contract("zkEscrow", [paymentToken]);
+  const zkEscrow = m.contract("zkEscrow2", [paymentToken]);
   return { zkEscrow };
 });

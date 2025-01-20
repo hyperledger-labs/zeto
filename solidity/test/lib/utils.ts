@@ -229,6 +229,7 @@ export function parseUTXOEvents(
       e = {
         paymentId: event?.args.paymentId,
         lockedInputs: event?.args.lockedInputs,
+        nullifiers: event?.args.nullifiers,
         outputs: event?.args.outputs,
       }
     } else if (event?.name === "PaymentApproved" || event?.name === "PaymentCompleted") {

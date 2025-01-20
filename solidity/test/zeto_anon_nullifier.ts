@@ -471,7 +471,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
           proof1.siblings.map((s) => s.bigInt()),
           proof2.siblings.map((s) => s.bigInt()),
         ];
-        const { outputCommitments, encodedProof } = await prepareProof(Bob, [utxo7, ZERO_UTXO], [nullifier1, ZERO_UTXO], [lockedUtxo1, ZERO_UTXO], root.bigInt(), merkleProofs, [Bob, Bob]);
+        const { outputCommitments, encodedProof } = await prepareProof(circuit, provingKey, Bob, [utxo7, ZERO_UTXO], [nullifier1, ZERO_UTXO], [lockedUtxo1, ZERO_UTXO], root.bigInt(), merkleProofs, [Bob, Bob]);
 
         const tx = await zeto.connect(Bob.signer).lock(
           [nullifier1.hash],
@@ -512,7 +512,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
           proof1.siblings.map((s) => s.bigInt()),
           proof2.siblings.map((s) => s.bigInt()),
         ];
-        const { outputCommitments, encodedProof } = await prepareProof(Bob, [lockedUtxo1, ZERO_UTXO], [nullifier1, ZERO_UTXO], [utxo1, ZERO_UTXO], root.bigInt(), merkleProofs, [Bob, Bob], Alice);
+        const { outputCommitments, encodedProof } = await prepareProof(circuitForLocked, provingKeyForLocked, Bob, [lockedUtxo1, ZERO_UTXO], [nullifier1, ZERO_UTXO], [utxo1, ZERO_UTXO], root.bigInt(), merkleProofs, [Bob, Bob], Alice.ethAddress);
 
         await expect(zeto.connect(Bob.signer).lock(
           [nullifier1.hash],
@@ -589,6 +589,8 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
         utxo10 = newUTXO(5, Bob);
 
         const result = await prepareProof(
+          circuitForLocked,
+          provingKeyForLocked,
           Bob,
           [lockedUtxo1, ZERO_UTXO],
           [nullifier1, ZERO_UTXO],
@@ -596,7 +598,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
           root.bigInt(),
           merkleProofs,
           [Alice, Bob],
-          Alice, // current lock delegate
+          Alice.ethAddress, // current lock delegate
         );
         const nullifiers = [nullifier1.hash];
 
@@ -644,7 +646,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
           proof1.siblings.map((s) => s.bigInt()),
           proof2.siblings.map((s) => s.bigInt()),
         ];
-        const { outputCommitments, encodedProof } = await prepareProof(Bob, [utxo10, ZERO_UTXO], [nullifier1, ZERO_UTXO], [lockedUtxo2, ZERO_UTXO], root.bigInt(), merkleProofs, [Bob, Bob]);
+        const { outputCommitments, encodedProof } = await prepareProof(circuit, provingKey, Bob, [utxo10, ZERO_UTXO], [nullifier1, ZERO_UTXO], [lockedUtxo2, ZERO_UTXO], root.bigInt(), merkleProofs, [Bob, Bob]);
 
         const tx = await zeto.connect(Bob.signer).lock(
           [nullifier1.hash],
@@ -692,6 +694,8 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
         utxo11 = newUTXO(4, Bob);
 
         const result = await prepareProof(
+          circuitForLocked,
+          provingKeyForLocked,
           Bob,
           [lockedUtxo2, ZERO_UTXO],
           [nullifier1, ZERO_UTXO],
@@ -699,7 +703,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
           root.bigInt(),
           merkleProofs,
           [Alice, Bob],
-          Charlie, // current lock delegate
+          Charlie.ethAddress, // current lock delegate
         );
         const nullifiers = [nullifier1.hash];
 
@@ -938,7 +942,11 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
     let nullifiers: BigNumberish[];
     let outputCommitments: BigNumberish[];
     let encodedProof: any;
+    const circuitToUse = lockDelegate ? circuitForLocked : (inputs.length > 2 ? batchCircuit : circuit);
+    const provingKeyToUse = lockDelegate ? provingKeyForLocked : (inputs.length > 2 ? batchProvingKey : provingKey);
     const result = await prepareProof(
+      circuitToUse,
+      provingKeyToUse,
       signer,
       inputs,
       _nullifiers,
@@ -946,7 +954,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
       root,
       merkleProofs,
       owners,
-      lockDelegate,
+      lockDelegate?.ethAddress,
     );
     nullifiers = _nullifiers.map(
       (nullifier) => nullifier.hash,
@@ -970,81 +978,6 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
         acc.push((o.salt || 0n) as BigNumberish);
         return acc;
       }, [] as BigNumberish[]),
-    };
-  }
-
-  async function prepareProof(
-    signer: User,
-    inputs: UTXO[],
-    _nullifiers: UTXO[],
-    outputs: UTXO[],
-    root: BigInt,
-    merkleProof: BigInt[][],
-    owners: User[],
-    lockDelegate?: User,
-  ) {
-    const nullifiers = _nullifiers.map((nullifier) => nullifier.hash) as [
-      BigNumberish,
-      BigNumberish,
-    ];
-    const inputCommitments: BigNumberish[] = inputs.map(
-      (input) => input.hash,
-    ) as BigNumberish[];
-    const inputValues = inputs.map((input) => BigInt(input.value || 0n));
-    const inputSalts = inputs.map((input) => input.salt || 0n);
-    const outputCommitments: BigNumberish[] = outputs.map(
-      (output) => output.hash,
-    ) as BigNumberish[];
-    const outputValues = outputs.map((output) => BigInt(output.value || 0n));
-    const outputOwnerPublicKeys: BigNumberish[][] = owners.map(
-      (owner) => owner.babyJubPublicKey,
-    ) as BigNumberish[][];
-
-    const startWitnessCalculation = Date.now();
-    const inputObj: any = {
-      nullifiers,
-      inputCommitments,
-      inputValues,
-      inputSalts,
-      inputOwnerPrivateKey: signer.formattedPrivateKey,
-      root,
-      enabled: nullifiers.map((n) => (n !== 0n ? 1 : 0)),
-      merkleProof,
-      outputCommitments,
-      outputValues,
-      outputSalts: outputs.map((output) => output.salt || 0n),
-      outputOwnerPublicKeys,
-    };
-    if (lockDelegate) {
-      inputObj['lockDelegate'] = ethers.toBigInt(lockDelegate.ethAddress);
-    }
-
-    let circuitToUse = (lockDelegate) ? circuitForLocked : circuit;
-    let provingKeyToUse = (lockDelegate) ? provingKeyForLocked : provingKey;
-    if (inputCommitments.length > 2 || outputCommitments.length > 2) {
-      circuitToUse = batchCircuit;
-      provingKeyToUse = batchProvingKey;
-    }
-
-    const witness = await circuitToUse.calculateWTNSBin(inputObj, true);
-    const timeWithnessCalculation = Date.now() - startWitnessCalculation;
-
-    const startProofGeneration = Date.now();
-    const { proof, publicSignals } = (await groth16.prove(
-      provingKeyToUse,
-      witness,
-    )) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
-    const timeProofGeneration = Date.now() - startProofGeneration;
-
-    console.log(
-      `Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`,
-    );
-
-    const encodedProof = encodeProof(proof);
-    return {
-      inputCommitments,
-      outputCommitments,
-      encodedProof,
     };
   }
 
@@ -1082,3 +1015,77 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
     return results;
   }
 });
+
+async function prepareProof(
+  circuit: any,
+  provingKey: any,
+  signer: User,
+  inputs: UTXO[],
+  _nullifiers: UTXO[],
+  outputs: UTXO[],
+  root: BigInt,
+  merkleProof: BigInt[][],
+  owners: User[],
+  lockDelegate?: string,
+) {
+  const nullifiers = _nullifiers.map((nullifier) => nullifier.hash) as [
+    BigNumberish,
+    BigNumberish,
+  ];
+  const inputCommitments: BigNumberish[] = inputs.map(
+    (input) => input.hash,
+  ) as BigNumberish[];
+  const inputValues = inputs.map((input) => BigInt(input.value || 0n));
+  const inputSalts = inputs.map((input) => input.salt || 0n);
+  const outputCommitments: BigNumberish[] = outputs.map(
+    (output) => output.hash,
+  ) as BigNumberish[];
+  const outputValues = outputs.map((output) => BigInt(output.value || 0n));
+  const outputOwnerPublicKeys: BigNumberish[][] = owners.map(
+    (owner) => owner.babyJubPublicKey,
+  ) as BigNumberish[][];
+
+  const startWitnessCalculation = Date.now();
+  const inputObj: any = {
+    nullifiers,
+    inputCommitments,
+    inputValues,
+    inputSalts,
+    inputOwnerPrivateKey: signer.formattedPrivateKey,
+    root,
+    enabled: nullifiers.map((n) => (n !== 0n ? 1 : 0)),
+    merkleProof,
+    outputCommitments,
+    outputValues,
+    outputSalts: outputs.map((output) => output.salt || 0n),
+    outputOwnerPublicKeys,
+  };
+  if (lockDelegate) {
+    inputObj['lockDelegate'] = ethers.toBigInt(lockDelegate);
+  }
+
+  const witness = await circuit.calculateWTNSBin(inputObj, true);
+  const timeWithnessCalculation = Date.now() - startWitnessCalculation;
+
+  const startProofGeneration = Date.now();
+  const { proof, publicSignals } = (await groth16.prove(
+    provingKey,
+    witness,
+  )) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
+  const timeProofGeneration = Date.now() - startProofGeneration;
+
+  console.log(
+    `Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`,
+  );
+
+  const encodedProof = encodeProof(proof);
+  return {
+    inputCommitments,
+    outputCommitments,
+    encodedProof,
+  };
+}
+
+module.exports = {
+  prepareProof,
+};

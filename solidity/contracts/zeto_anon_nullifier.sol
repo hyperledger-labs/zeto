@@ -128,7 +128,7 @@ contract Zeto_AnonNullifier is
         nullifiers = checkAndPadCommitments(nullifiers);
         outputs = checkAndPadCommitments(outputs);
         validateTransactionProposal(nullifiers, outputs, root, false);
-        checkProof(nullifiers, outputs, root, proof);
+        verifyProof(nullifiers, outputs, root, proof);
         uint256[] memory empty;
         processInputsAndOutputs(nullifiers, outputs, empty, address(0));
 
@@ -152,7 +152,7 @@ contract Zeto_AnonNullifier is
         nullifiers = checkAndPadCommitments(nullifiers);
         outputs = checkAndPadCommitments(outputs);
         validateTransactionProposal(nullifiers, outputs, root, true);
-        checkProofLocked(nullifiers, outputs, root, proof);
+        verifyProofLocked(nullifiers, outputs, root, proof);
         uint256[] memory empty;
         processInputsAndOutputs(nullifiers, outputs, empty, address(0));
 
@@ -225,7 +225,7 @@ contract Zeto_AnonNullifier is
         nullifiers = checkAndPadCommitments(nullifiers);
         allOutputs = checkAndPadCommitments(allOutputs);
         validateTransactionProposal(nullifiers, outputs, root, false);
-        checkProof(nullifiers, allOutputs, root, proof);
+        verifyProof(nullifiers, allOutputs, root, proof);
 
         spendNullifiers(nullifiers);
 
@@ -243,12 +243,12 @@ contract Zeto_AnonNullifier is
         transferLocked(nullifiers, outputs, root, proof, data);
     }
 
-    function checkProof(
+    function verifyProof(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         uint256 root,
         Commonlib.Proof calldata proof
-    ) private {
+    ) public view returns (bool) {
         if (nullifiers.length > 2 || outputs.length > 2) {
             uint256[] memory publicInputs = constructPublicInputs(
                 nullifiers,
@@ -297,14 +297,15 @@ contract Zeto_AnonNullifier is
                 "Invalid proof"
             );
         }
+        return true;
     }
 
-    function checkProofLocked(
+    function verifyProofLocked(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         uint256 root,
         Commonlib.Proof calldata proof
-    ) private {
+    ) public view returns (bool) {
         if (nullifiers.length > 2 || outputs.length > 2) {
             uint256[] memory publicInputs = constructPublicInputs(
                 nullifiers,
@@ -353,5 +354,6 @@ contract Zeto_AnonNullifier is
                 "Invalid proof"
             );
         }
+        return true;
     }
 }

@@ -22,7 +22,7 @@ import {Zeto_Anon} from "../zeto_anon.sol";
 /// @title A sample on-chain implementation of an escrow contract using Zeto tokens
 /// @author Kaleido, Inc.
 /// @dev Implements escrow based payment flows with Zeto_Anon tokens
-contract zkEscrow {
+contract zkEscrow1 {
     enum PaymentStatus {
         UNKNOWN, // this is the default value for the empty payment slots
         INITIATED,
