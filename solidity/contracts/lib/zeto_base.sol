@@ -88,9 +88,8 @@ abstract contract ZetoBase is IZetoBase, IZetoLockable, ZetoCommon {
                 revert UTXONotMinted(sortedInputs[i]);
             }
             if (
-                (inputsLocked &&
-                    _lockedUtxos[sortedInputs[i]] == UTXOStatus.SPENT) ||
-                (!inputsLocked && _utxos[sortedInputs[i]] == UTXOStatus.SPENT)
+                _lockedUtxos[sortedInputs[i]] == UTXOStatus.SPENT ||
+                _utxos[sortedInputs[i]] == UTXOStatus.SPENT
             ) {
                 revert UTXOAlreadySpent(sortedInputs[i]);
             }
@@ -125,17 +124,29 @@ abstract contract ZetoBase is IZetoBase, IZetoLockable, ZetoCommon {
         }
 
         for (uint256 i = 0; i < outputs.length; ++i) {
-            if (_utxos[outputs[i]] == UTXOStatus.SPENT) {
+            if (
+                _utxos[outputs[i]] == UTXOStatus.SPENT ||
+                _lockedUtxos[outputs[i]] == UTXOStatus.SPENT
+            ) {
                 revert UTXOAlreadySpent(outputs[i]);
-            } else if (_utxos[outputs[i]] == UTXOStatus.UNSPENT) {
+            } else if (
+                _utxos[outputs[i]] == UTXOStatus.UNSPENT ||
+                _lockedUtxos[outputs[i]] == UTXOStatus.UNSPENT
+            ) {
                 revert UTXOAlreadyOwned(outputs[i]);
             }
         }
 
         for (uint256 i = 0; i < lockedOutputs.length; ++i) {
-            if (_lockedUtxos[lockedOutputs[i]] == UTXOStatus.SPENT) {
+            if (
+                _lockedUtxos[lockedOutputs[i]] == UTXOStatus.SPENT ||
+                _utxos[lockedOutputs[i]] == UTXOStatus.SPENT
+            ) {
                 revert UTXOAlreadySpent(lockedOutputs[i]);
-            } else if (_lockedUtxos[lockedOutputs[i]] == UTXOStatus.UNSPENT) {
+            } else if (
+                _lockedUtxos[lockedOutputs[i]] == UTXOStatus.UNSPENT ||
+                _utxos[lockedOutputs[i]] == UTXOStatus.UNSPENT
+            ) {
                 revert UTXOAlreadyOwned(lockedOutputs[i]);
             }
         }
