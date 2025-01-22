@@ -22,15 +22,24 @@ import {
   BatchWithdrawNullifierVerifierModule,
 } from "./lib/deps";
 
-const VerifierModule = buildModule("Groth16Verifier_AnonNullifierTransfer", (m) => {
-  const verifier = m.contract("Groth16Verifier_AnonNullifierTransfer", []);
-  return { verifier };
-});
+const VerifierModule = buildModule(
+  "Groth16Verifier_AnonNullifierTransfer",
+  (m) => {
+    const verifier = m.contract("Groth16Verifier_AnonNullifierTransfer", []);
+    return { verifier };
+  },
+);
 
-const LockedVerifierModule = buildModule("Groth16Verifier_AnonNullifierTransferLocked", (m) => {
-  const verifier = m.contract("Groth16Verifier_AnonNullifierTransferLocked", []);
-  return { verifier };
-});
+const LockedVerifierModule = buildModule(
+  "Groth16Verifier_AnonNullifierTransferLocked",
+  (m) => {
+    const verifier = m.contract(
+      "Groth16Verifier_AnonNullifierTransferLocked",
+      [],
+    );
+    return { verifier };
+  },
+);
 
 const BatchVerifierModule = buildModule(
   "Groth16Verifier_AnonNullifierBatch",

@@ -231,11 +231,14 @@ export function parseUTXOEvents(
         lockedInputs: event?.args.lockedInputs,
         nullifiers: event?.args.nullifiers,
         outputs: event?.args.outputs,
-      }
-    } else if (event?.name === "PaymentApproved" || event?.name === "PaymentCompleted") {
+      };
+    } else if (
+      event?.name === "PaymentApproved" ||
+      event?.name === "PaymentCompleted"
+    ) {
       e = {
         paymentId: event?.args.paymentId,
-      }
+      };
     }
     returnValues.push(e);
   }

@@ -31,7 +31,11 @@ import {
   ZERO_UTXO,
   parseUTXOEvents,
 } from "./lib/utils";
-import { loadProvingKeys, prepareLockProof, prepareAssetLockProof } from "./utils";
+import {
+  loadProvingKeys,
+  prepareLockProof,
+  prepareAssetLockProof,
+} from "./utils";
 import { deployZeto } from "./lib/deploy";
 
 describe("DvP flows between fungible and non-fungible tokens based on Zeto with anonymity without encryption or nullifiers", function () {

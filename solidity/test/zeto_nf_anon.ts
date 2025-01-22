@@ -20,7 +20,14 @@ import { expect } from "chai";
 import { loadCircuit, tokenUriHash, encodeProof } from "zeto-js";
 import { groth16 } from "snarkjs";
 import { formatPrivKeyForBabyJub, stringifyBigInts } from "maci-crypto";
-import { User, UTXO, newUser, newAssetUTXO, doMint, ZERO_UTXO } from "./lib/utils";
+import {
+  User,
+  UTXO,
+  newUser,
+  newAssetUTXO,
+  doMint,
+  ZERO_UTXO,
+} from "./lib/utils";
 import { loadProvingKeys, prepareAssetLockProof } from "./utils";
 import { deployZeto } from "./lib/deploy";
 
@@ -123,20 +130,30 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
   });
 
   describe("lock() tests", function () {
-    describe('lock -> delegate -> spend', function () {
+    describe("lock -> delegate -> spend", function () {
       let lockedUtxo1: UTXO;
 
       it("lock() should succeed when using unlocked states", async function () {
         lockedUtxo1 = newAssetUTXO(utxo3.tokenId!, utxo3.uri!, Charlie);
-        const { inputCommitment, outputCommitment, encodedProof } = await prepareProof(circuit, provingKey, Charlie, utxo3, lockedUtxo1, Charlie);
+        const { inputCommitment, outputCommitment, encodedProof } =
+          await prepareProof(
+            circuit,
+            provingKey,
+            Charlie,
+            utxo3,
+            lockedUtxo1,
+            Charlie,
+          );
 
-        await expect(zeto.connect(Charlie.signer).lock(
-          inputCommitment,
-          outputCommitment,
-          encodedProof,
-          Alice.ethAddress, // make Alice the delegate who can spend the state (if she has the right proof)
-          "0x",
-        )).to.be.fulfilled;
+        await expect(
+          zeto.connect(Charlie.signer).lock(
+            inputCommitment,
+            outputCommitment,
+            encodedProof,
+            Alice.ethAddress, // make Alice the delegate who can spend the state (if she has the right proof)
+            "0x",
+          ),
+        ).to.be.fulfilled;
       });
 
       it("lock() should fail when trying to lock again", async function () {
@@ -145,36 +162,72 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
         }
 
         // Charlie is the owner of the UTXO, so he can generate the right proof
-        const utxo1 = newAssetUTXO(lockedUtxo1.tokenId!, lockedUtxo1.uri!, Charlie);
-        const { inputCommitment, outputCommitment, encodedProof } = await prepareProof(circuit, provingKey, Charlie, lockedUtxo1, utxo1, Charlie);
-        await expect(zeto.connect(Charlie.signer).lock(
-          inputCommitment,
-          outputCommitment,
-          encodedProof,
-          Bob.ethAddress,
-          "0x",
-        )).rejectedWith(`UTXOAlreadyLocked(${lockedUtxo1.hash.toString()})`);
+        const utxo1 = newAssetUTXO(
+          lockedUtxo1.tokenId!,
+          lockedUtxo1.uri!,
+          Charlie,
+        );
+        const { inputCommitment, outputCommitment, encodedProof } =
+          await prepareProof(
+            circuit,
+            provingKey,
+            Charlie,
+            lockedUtxo1,
+            utxo1,
+            Charlie,
+          );
+        await expect(
+          zeto
+            .connect(Charlie.signer)
+            .lock(
+              inputCommitment,
+              outputCommitment,
+              encodedProof,
+              Bob.ethAddress,
+              "0x",
+            ),
+        ).rejectedWith(`UTXOAlreadyLocked(${lockedUtxo1.hash.toString()})`);
       });
 
       it("the original owner can NOT use the proper proof to spend the locked state", async function () {
-        const utxo1 = newAssetUTXO(lockedUtxo1.tokenId!, lockedUtxo1.uri!, Alice);
-        await expect(doTransfer(Charlie, lockedUtxo1, utxo1, Alice)).to.be.rejectedWith("UTXOAlreadyLocked");
+        const utxo1 = newAssetUTXO(
+          lockedUtxo1.tokenId!,
+          lockedUtxo1.uri!,
+          Alice,
+        );
+        await expect(
+          doTransfer(Charlie, lockedUtxo1, utxo1, Alice),
+        ).to.be.rejectedWith("UTXOAlreadyLocked");
       });
 
       it("the current delegate can move the lock to a new delegate", async function () {
-        await expect(zeto.connect(Alice.signer).delegateLock([lockedUtxo1.hash], Bob.ethAddress, "0x")).to.be.fulfilled;
+        await expect(
+          zeto
+            .connect(Alice.signer)
+            .delegateLock([lockedUtxo1.hash], Bob.ethAddress, "0x"),
+        ).to.be.fulfilled;
       });
 
       it("the designated delegate can use the proper proof to spend the locked state", async function () {
         const utxo1 = newAssetUTXO(lockedUtxo1.tokenId!, lockedUtxo1.uri!, Bob);
-        const { inputCommitment, outputCommitment, encodedProof } = await prepareProof(circuit, provingKey, Charlie, lockedUtxo1, utxo1, Bob);
+        const { inputCommitment, outputCommitment, encodedProof } =
+          await prepareProof(
+            circuit,
+            provingKey,
+            Charlie,
+            lockedUtxo1,
+            utxo1,
+            Bob,
+          );
         // Alice (in reality this is usually a contract that orchestrates a trade flow) can spend the locked state
         // using the proof generated by the trade counterparty (Charlie in this case)
-        await expect(sendTx(Bob, inputCommitment, outputCommitment, encodedProof, true)).to.be.fulfilled;
+        await expect(
+          sendTx(Bob, inputCommitment, outputCommitment, encodedProof, true),
+        ).to.be.fulfilled;
       });
     });
 
-    describe('lock -> unlock -> spend', function () {
+    describe("lock -> unlock -> spend", function () {
       let lockedUtxo1: UTXO;
       let utxo1: UTXO;
 
@@ -185,28 +238,47 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
         await doMint(zeto, deployer, [utxo1]);
 
         lockedUtxo1 = newAssetUTXO(utxo1.tokenId!, utxo1.uri!, Alice);
-        const { inputCommitment, outputCommitment, encodedProof } = await prepareProof(circuit, provingKey, Alice, utxo1, lockedUtxo1, Alice);
+        const { inputCommitment, outputCommitment, encodedProof } =
+          await prepareProof(
+            circuit,
+            provingKey,
+            Alice,
+            utxo1,
+            lockedUtxo1,
+            Alice,
+          );
 
-        await expect(zeto.connect(Alice.signer).lock(
-          inputCommitment,
-          outputCommitment,
-          encodedProof,
-          Bob.ethAddress,
-          "0x",
-        )).to.be.fulfilled;
+        await expect(
+          zeto
+            .connect(Alice.signer)
+            .lock(
+              inputCommitment,
+              outputCommitment,
+              encodedProof,
+              Bob.ethAddress,
+              "0x",
+            ),
+        ).to.be.fulfilled;
       });
 
       it("unlock() should succeed when using locked states", async function () {
         utxo1 = newAssetUTXO(lockedUtxo1.tokenId!, lockedUtxo1.uri!, Alice);
-        const { inputCommitment, outputCommitment, encodedProof } = await prepareProof(circuit, provingKey, Alice, lockedUtxo1, utxo1, Alice);
+        const { inputCommitment, outputCommitment, encodedProof } =
+          await prepareProof(
+            circuit,
+            provingKey,
+            Alice,
+            lockedUtxo1,
+            utxo1,
+            Alice,
+          );
 
         // Bob as the current delegate can unlock the state
-        await expect(zeto.connect(Bob.signer).unlock(
-          inputCommitment,
-          outputCommitment,
-          encodedProof,
-          "0x",
-        )).to.be.fulfilled;
+        await expect(
+          zeto
+            .connect(Bob.signer)
+            .unlock(inputCommitment, outputCommitment, encodedProof, "0x"),
+        ).to.be.fulfilled;
       });
 
       it("current owner can spend an unlocked UTXO as usual", async function () {

@@ -17,15 +17,24 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { SmtLibModule } from "./lib/deps";
 
-const VerifierModule = buildModule("Groth16Verifier_NfAnonNullifierTransfer", (m) => {
-  const verifier = m.contract("Groth16Verifier_NfAnonNullifierTransfer", []);
-  return { verifier };
-});
+const VerifierModule = buildModule(
+  "Groth16Verifier_NfAnonNullifierTransfer",
+  (m) => {
+    const verifier = m.contract("Groth16Verifier_NfAnonNullifierTransfer", []);
+    return { verifier };
+  },
+);
 
-const LockedVerifierModule = buildModule("Groth16Verifier_NfAnonNullifierTransferLocked", (m) => {
-  const verifier = m.contract("Groth16Verifier_NfAnonNullifierTransferLocked", []);
-  return { verifier };
-});
+const LockedVerifierModule = buildModule(
+  "Groth16Verifier_NfAnonNullifierTransferLocked",
+  (m) => {
+    const verifier = m.contract(
+      "Groth16Verifier_NfAnonNullifierTransferLocked",
+      [],
+    );
+    return { verifier };
+  },
+);
 
 export default buildModule("Zeto_NfAnonNullifier", (m) => {
   const { smtLib, poseidon3 } = m.useModule(SmtLibModule);

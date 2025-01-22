@@ -23,9 +23,6 @@ export async function deployDependencies() {
   const { verifier } = await ignition.deploy(zetoModule);
   return {
     deployer,
-    args: [
-      await deployer.getAddress(),
-      verifier.target,
-    ],
+    args: [await deployer.getAddress(), verifier.target],
   };
 }

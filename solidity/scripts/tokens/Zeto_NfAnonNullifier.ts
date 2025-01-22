@@ -20,14 +20,11 @@ import zetoModule from "../../ignition/modules/zeto_nf_anon_nullifier";
 export async function deployDependencies() {
   const [deployer] = await ethers.getSigners();
 
-  const { verifier, lockedVerifier, smtLib, poseidon3 } = await ignition.deploy(zetoModule);
+  const { verifier, lockedVerifier, smtLib, poseidon3 } =
+    await ignition.deploy(zetoModule);
   return {
     deployer,
-    args: [
-      await deployer.getAddress(),
-      verifier.target,
-      lockedVerifier.target,
-    ],
+    args: [await deployer.getAddress(), verifier.target, lockedVerifier.target],
     libraries: {
       SmtLib: smtLib.target,
       PoseidonUnit3L: poseidon3.target,

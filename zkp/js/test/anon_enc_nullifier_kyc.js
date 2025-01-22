@@ -353,6 +353,6 @@ describe("main circuit tests for Zeto fungible tokens with encryption and anonym
     }
     // console.log(err);
     expect(err).to.match(/Error in template Zeto_267 line: 102/);
-    expect(err).to.match(/Error in template CheckSMTProof_253 line: 37/);
+    expect(err).to.match(/Error in template CheckSMTProof_253 line: 38/);
   });
 });

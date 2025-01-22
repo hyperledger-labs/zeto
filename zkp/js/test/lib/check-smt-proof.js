@@ -78,6 +78,7 @@ describe("check-smt-proof circuit tests", () => {
     const witness = await circuit.calculateWitness(
       {
         leafNodeIndexes: [input1],
+        leafNodeValues: [input1],
         root: proof1.root.bigInt(),
         merkleProof: [proof1.siblings.map((s) => s.bigInt())],
         enabled: [1],

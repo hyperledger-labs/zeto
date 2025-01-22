@@ -94,22 +94,25 @@ describe("Escrow flow for payment with Zeto_Anon", function () {
 
   it("Alice locks some payment tokens and designates the escrow as the delegate", async function () {
     lockedPayment1 = newUTXO(payment1.value!, Alice, payment1.salt!);
-    const { inputCommitments, outputCommitments, encodedProof } = await zetoAnonTests.prepareProof(
-      circuit,
-      provingKey,
-      Alice,
-      [payment1, ZERO_UTXO],
-      [lockedPayment1, ZERO_UTXO],
-      [Alice, {}],
-    );
-    const tx = await zkPayment.connect(Alice.signer).lock(
-      inputCommitments,
-      [],
-      outputCommitments,
-      encodedProof,
-      zkEscrow.target,
-      "0x"
-    );
+    const { inputCommitments, outputCommitments, encodedProof } =
+      await zetoAnonTests.prepareProof(
+        circuit,
+        provingKey,
+        Alice,
+        [payment1, ZERO_UTXO],
+        [lockedPayment1, ZERO_UTXO],
+        [Alice, {}],
+      );
+    const tx = await zkPayment
+      .connect(Alice.signer)
+      .lock(
+        inputCommitments,
+        [],
+        outputCommitments,
+        encodedProof,
+        zkEscrow.target,
+        "0x",
+      );
     const result = await tx.wait();
     const events = parseUTXOEvents(zkPayment, result);
 
@@ -125,11 +128,9 @@ describe("Escrow flow for payment with Zeto_Anon", function () {
 
   it("Alice initiates a payment transaction to Bob through the escrow", async function () {
     paymentToBob = newUTXO(lockedPayment1.value!, Bob, lockedPayment1.salt);
-    const tx = await zkEscrow.connect(Alice.signer).initiatePayment(
-      [lockedPayment1.hash],
-      [paymentToBob.hash],
-      "0x"
-    );
+    const tx = await zkEscrow
+      .connect(Alice.signer)
+      .initiatePayment([lockedPayment1.hash], [paymentToBob.hash], "0x");
     const result = await tx.wait();
     const events = parseUTXOEvents(zkEscrow, result);
     // simulate Bob listening to the payment events and verifying the proposed payment
@@ -148,11 +149,9 @@ describe("Escrow flow for payment with Zeto_Anon", function () {
       [paymentToBob, ZERO_UTXO],
       [Bob, {}],
     );
-    const tx = await zkEscrow.connect(Alice.signer).approvePayment(
-      paymentId,
-      encodedProof,
-      "0x"
-    );
+    const tx = await zkEscrow
+      .connect(Alice.signer)
+      .approvePayment(paymentId, encodedProof, "0x");
     const result = await tx.wait();
     // simulate Bob listening to the escrow events and verifying the payment has been approved.
     // the escrow contract guaratees that the proof is valid
@@ -162,7 +161,9 @@ describe("Escrow flow for payment with Zeto_Anon", function () {
   });
 
   it("Bob, or anyone, can call the escrow to finalize the payment and receive the locked UTXO", async function () {
-    const tx = await zkEscrow.connect(Bob.signer).completePayment(paymentId, "0x");
+    const tx = await zkEscrow
+      .connect(Bob.signer)
+      .completePayment(paymentId, "0x");
     const result = await tx.wait();
     // simulate Bob listening to the payment events and verifying
     // the expected UTXO has been transferred to him

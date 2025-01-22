@@ -14,19 +14,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { groth16 } = require('snarkjs');
-const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
-const { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } = require('@iden3/js-merkletree');
-const ethers = require('ethers');
-const { Poseidon, newSalt, loadCircuit } = require('../index.js');
-const { loadProvingKeys } = require('./utils.js');
+const { expect } = require("chai");
+const { groth16 } = require("snarkjs");
+const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
+const {
+  Merkletree,
+  InMemoryDB,
+  str2Bytes,
+  ZERO_HASH,
+} = require("@iden3/js-merkletree");
+const ethers = require("ethers");
+const { Poseidon, newSalt, loadCircuit } = require("../index.js");
+const { loadProvingKeys } = require("./utils.js");
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
 const poseidonHash3 = Poseidon.poseidon3;
 
-describe('main circuit tests for Zeto fungible tokens with anonymity using nullifiers and without encryption', () => {
+describe("main circuit tests for Zeto fungible tokens with anonymity using nullifiers and without encryption", () => {
   let circuit, provingKeyFile, verificationKey, smtAlice, smtBob;
 
   const Alice = {};
@@ -44,32 +49,50 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
     Bob.pubKey = keypair.pubKey;
   });
 
-  describe('transfer()', () => {
+  describe("transfer()", () => {
     before(async () => {
-      circuit = await loadCircuit('anon_nullifier_transfer');
-      ({ provingKeyFile, verificationKey } = loadProvingKeys('anon_nullifier_transfer'));
+      circuit = await loadCircuit("anon_nullifier_transfer");
+      ({ provingKeyFile, verificationKey } = loadProvingKeys(
+        "anon_nullifier_transfer",
+      ));
 
       // initialize the local storage for Alice to manage her UTXOs in the Spart Merkle Tree
-      const storage1 = new InMemoryDB(str2Bytes(''));
+      const storage1 = new InMemoryDB(str2Bytes(""));
       smtAlice = new Merkletree(storage1, true, SMT_HEIGHT);
 
       // initialize the local storage for Bob to manage his UTXOs in the Spart Merkle Tree
-      const storage2 = new InMemoryDB(str2Bytes(''));
+      const storage2 = new InMemoryDB(str2Bytes(""));
       smtBob = new Merkletree(storage2, true, SMT_HEIGHT);
     });
 
-    it('should generate a valid proof that can be verified successfully and fail when public signals are tampered', async () => {
+    it("should generate a valid proof that can be verified successfully and fail when public signals are tampered", async () => {
       const inputValues = [15, 100];
       const outputValues = [80, 35];
       const salt1 = newSalt();
-      const input1 = poseidonHash([BigInt(inputValues[0]), salt1, ...Alice.pubKey]);
+      const input1 = poseidonHash([
+        BigInt(inputValues[0]),
+        salt1,
+        ...Alice.pubKey,
+      ]);
       const salt2 = newSalt();
-      const input2 = poseidonHash([BigInt(inputValues[1]), salt2, ...Alice.pubKey]);
+      const input2 = poseidonHash([
+        BigInt(inputValues[1]),
+        salt2,
+        ...Alice.pubKey,
+      ]);
       const inputCommitments = [input1, input2];
 
       // create the nullifiers for the input UTXOs
-      const nullifier1 = poseidonHash3([BigInt(inputValues[0]), salt1, senderPrivateKey]);
-      const nullifier2 = poseidonHash3([BigInt(inputValues[1]), salt2, senderPrivateKey]);
+      const nullifier1 = poseidonHash3([
+        BigInt(inputValues[0]),
+        salt1,
+        senderPrivateKey,
+      ]);
+      const nullifier2 = poseidonHash3([
+        BigInt(inputValues[1]),
+        salt2,
+        senderPrivateKey,
+      ]);
       const nullifiers = [nullifier1, nullifier2];
 
       // calculate the root of the SMT
@@ -77,13 +100,27 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
       await smtAlice.add(input2, input2);
 
       // generate the merkle proof for the inputs
-      const proof1 = await smtAlice.generateCircomVerifierProof(input1, ZERO_HASH);
-      const proof2 = await smtAlice.generateCircomVerifierProof(input2, ZERO_HASH);
+      const proof1 = await smtAlice.generateCircomVerifierProof(
+        input1,
+        ZERO_HASH,
+      );
+      const proof2 = await smtAlice.generateCircomVerifierProof(
+        input2,
+        ZERO_HASH,
+      );
 
       // create two output UTXOs, they share the same salt, and different owner
       const salt3 = newSalt();
-      const output1 = poseidonHash([BigInt(outputValues[0]), salt3, ...Bob.pubKey]);
-      const output2 = poseidonHash([BigInt(outputValues[1]), salt3, ...Alice.pubKey]);
+      const output1 = poseidonHash([
+        BigInt(outputValues[0]),
+        salt3,
+        ...Bob.pubKey,
+      ]);
+      const output2 = poseidonHash([
+        BigInt(outputValues[1]),
+        salt3,
+        ...Alice.pubKey,
+      ]);
       const outputCommitments = [output1, output2];
 
       const startTime = Date.now();
@@ -95,63 +132,103 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
           inputSalts: [salt1, salt2],
           inputOwnerPrivateKey: senderPrivateKey,
           root: proof1.root.bigInt(),
-          merkleProof: [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())],
+          merkleProof: [
+            proof1.siblings.map((s) => s.bigInt()),
+            proof2.siblings.map((s) => s.bigInt()),
+          ],
           enabled: [1, 1],
           outputCommitments,
           outputValues,
           outputSalts: [salt3, salt3],
           outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
         },
-        true
+        true,
       );
 
-      const { proof, publicSignals } = await groth16.prove(provingKeyFile, witness);
-      console.log('Proving time: ', (Date.now() - startTime) / 1000, 's');
+      const { proof, publicSignals } = await groth16.prove(
+        provingKeyFile,
+        witness,
+      );
+      console.log("Proving time: ", (Date.now() - startTime) / 1000, "s");
 
-      let verifyResult = await groth16.verify(verificationKey, publicSignals, proof);
+      let verifyResult = await groth16.verify(
+        verificationKey,
+        publicSignals,
+        proof,
+      );
       expect(verifyResult).to.be.true;
       // console.log('nullifiers', nullifiers);
       // console.log('inputCommitments', inputCommitments);
       // console.log('outputCommitments', outputCommitments);
       // console.log('root', proof1.root.bigInt());
       // console.log('public signals', publicSignals);
-      const tamperedOutputHash = poseidonHash([BigInt(100), salt3, ...Bob.pubKey]);
-      let tamperedPublicSignals = publicSignals.map((ps) => (ps.toString() === outputCommitments[0].toString() ? tamperedOutputHash : ps));
+      const tamperedOutputHash = poseidonHash([
+        BigInt(100),
+        salt3,
+        ...Bob.pubKey,
+      ]);
+      let tamperedPublicSignals = publicSignals.map((ps) =>
+        ps.toString() === outputCommitments[0].toString()
+          ? tamperedOutputHash
+          : ps,
+      );
       // console.log("tampered public signals", tamperedPublicSignals);
 
-      verifyResult = await groth16.verify(verificationKey, tamperedPublicSignals, proof);
+      verifyResult = await groth16.verify(
+        verificationKey,
+        tamperedPublicSignals,
+        proof,
+      );
       expect(verifyResult).to.be.false;
     }).timeout(600000);
   });
 
-  describe('transferLocked()', () => {
+  describe("transferLocked()", () => {
     before(async () => {
-      circuit = await loadCircuit('anon_nullifier_transferLocked');
-      ({ provingKeyFile, verificationKey } = loadProvingKeys('anon_nullifier_transferLocked'));
+      circuit = await loadCircuit("anon_nullifier_transferLocked");
+      ({ provingKeyFile, verificationKey } = loadProvingKeys(
+        "anon_nullifier_transferLocked",
+      ));
 
       // initialize the local storage for Alice to manage her UTXOs in the Spart Merkle Tree
-      const storage1 = new InMemoryDB(str2Bytes(''));
+      const storage1 = new InMemoryDB(str2Bytes(""));
       smtAlice = new Merkletree(storage1, true, SMT_HEIGHT);
 
       // initialize the local storage for Bob to manage his UTXOs in the Spart Merkle Tree
-      const storage2 = new InMemoryDB(str2Bytes(''));
+      const storage2 = new InMemoryDB(str2Bytes(""));
       smtBob = new Merkletree(storage2, true, SMT_HEIGHT);
     });
 
-    it('should generate a valid proof that can be verified successfully and fail when public signals are tampered', async () => {
-      const delegateAddress = '0x1234567890123456789012345678901234567890';
+    it("should generate a valid proof that can be verified successfully and fail when public signals are tampered", async () => {
+      const delegateAddress = "0x1234567890123456789012345678901234567890";
       const lockDelegate = ethers.toBigInt(delegateAddress);
       const inputValues = [15, 100];
       const outputValues = [80, 35];
       const salt1 = newSalt();
-      const input1 = poseidonHash([BigInt(inputValues[0]), salt1, ...Alice.pubKey]);
+      const input1 = poseidonHash([
+        BigInt(inputValues[0]),
+        salt1,
+        ...Alice.pubKey,
+      ]);
       const salt2 = newSalt();
-      const input2 = poseidonHash([BigInt(inputValues[1]), salt2, ...Alice.pubKey]);
+      const input2 = poseidonHash([
+        BigInt(inputValues[1]),
+        salt2,
+        ...Alice.pubKey,
+      ]);
       const inputCommitments = [input1, input2];
 
       // create the nullifiers for the input UTXOs
-      const nullifier1 = poseidonHash3([BigInt(inputValues[0]), salt1, senderPrivateKey]);
-      const nullifier2 = poseidonHash3([BigInt(inputValues[1]), salt2, senderPrivateKey]);
+      const nullifier1 = poseidonHash3([
+        BigInt(inputValues[0]),
+        salt1,
+        senderPrivateKey,
+      ]);
+      const nullifier2 = poseidonHash3([
+        BigInt(inputValues[1]),
+        salt2,
+        senderPrivateKey,
+      ]);
       const nullifiers = [nullifier1, nullifier2];
 
       // calculate the root of the SMT
@@ -159,13 +236,27 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
       await smtAlice.add(input2, lockDelegate);
 
       // generate the merkle proof for the inputs
-      const proof1 = await smtAlice.generateCircomVerifierProof(input1, ZERO_HASH);
-      const proof2 = await smtAlice.generateCircomVerifierProof(input2, ZERO_HASH);
+      const proof1 = await smtAlice.generateCircomVerifierProof(
+        input1,
+        ZERO_HASH,
+      );
+      const proof2 = await smtAlice.generateCircomVerifierProof(
+        input2,
+        ZERO_HASH,
+      );
 
       // create two output UTXOs, they share the same salt, and different owner
       const salt3 = newSalt();
-      const output1 = poseidonHash([BigInt(outputValues[0]), salt3, ...Bob.pubKey]);
-      const output2 = poseidonHash([BigInt(outputValues[1]), salt3, ...Alice.pubKey]);
+      const output1 = poseidonHash([
+        BigInt(outputValues[0]),
+        salt3,
+        ...Bob.pubKey,
+      ]);
+      const output2 = poseidonHash([
+        BigInt(outputValues[1]),
+        salt3,
+        ...Alice.pubKey,
+      ]);
       const outputCommitments = [output1, output2];
 
       const startTime = Date.now();
@@ -178,32 +269,54 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
           inputOwnerPrivateKey: senderPrivateKey,
           lockDelegate,
           root: proof1.root.bigInt(),
-          merkleProof: [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())],
+          merkleProof: [
+            proof1.siblings.map((s) => s.bigInt()),
+            proof2.siblings.map((s) => s.bigInt()),
+          ],
           enabled: [1, 1],
           outputCommitments,
           outputValues,
           outputSalts: [salt3, salt3],
           outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
         },
-        true
+        true,
       );
 
-      const { proof, publicSignals } = await groth16.prove(provingKeyFile, witness);
-      console.log('Proving time: ', (Date.now() - startTime) / 1000, 's');
+      const { proof, publicSignals } = await groth16.prove(
+        provingKeyFile,
+        witness,
+      );
+      console.log("Proving time: ", (Date.now() - startTime) / 1000, "s");
 
-      let verifyResult = await groth16.verify(verificationKey, publicSignals, proof);
+      let verifyResult = await groth16.verify(
+        verificationKey,
+        publicSignals,
+        proof,
+      );
       expect(verifyResult).to.be.true;
-      console.log('nullifiers', nullifiers);
-      console.log('inputCommitments', inputCommitments);
-      console.log('outputCommitments', outputCommitments);
-      console.log('lockDelegate', lockDelegate);
-      console.log('root', proof1.root.bigInt());
-      console.log('public signals', publicSignals);
-      const tamperedOutputHash = poseidonHash([BigInt(100), salt3, ...Bob.pubKey]);
-      let tamperedPublicSignals = publicSignals.map((ps) => (ps.toString() === outputCommitments[0].toString() ? tamperedOutputHash : ps));
+      console.log("nullifiers", nullifiers);
+      console.log("inputCommitments", inputCommitments);
+      console.log("outputCommitments", outputCommitments);
+      console.log("lockDelegate", lockDelegate);
+      console.log("root", proof1.root.bigInt());
+      console.log("public signals", publicSignals);
+      const tamperedOutputHash = poseidonHash([
+        BigInt(100),
+        salt3,
+        ...Bob.pubKey,
+      ]);
+      let tamperedPublicSignals = publicSignals.map((ps) =>
+        ps.toString() === outputCommitments[0].toString()
+          ? tamperedOutputHash
+          : ps,
+      );
       // console.log("tampered public signals", tamperedPublicSignals);
 
-      verifyResult = await groth16.verify(verificationKey, tamperedPublicSignals, proof);
+      verifyResult = await groth16.verify(
+        verificationKey,
+        tamperedPublicSignals,
+        proof,
+      );
       expect(verifyResult).to.be.false;
     }).timeout(600000);
   });

@@ -59,9 +59,13 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
     ({ deployer, zeto } = await deployZeto("Zeto_NfAnonNullifier"));
 
     circuit = await loadCircuit("nf_anon_nullifier_transfer");
-    ({ provingKeyFile: provingKey } = loadProvingKeys("nf_anon_nullifier_transfer"));
+    ({ provingKeyFile: provingKey } = loadProvingKeys(
+      "nf_anon_nullifier_transfer",
+    ));
     circuitLocked = await loadCircuit("nf_anon_nullifier_transferLocked");
-    ({ provingKeyFile: provingKeyLocked } = loadProvingKeys("nf_anon_nullifier_transferLocked"));
+    ({ provingKeyFile: provingKeyLocked } = loadProvingKeys(
+      "nf_anon_nullifier_transferLocked",
+    ));
 
     const storage1 = new InMemoryDB(str2Bytes(""));
     smtAlice = new Merkletree(storage1, true, 64);
@@ -180,7 +184,7 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
     await smtAlice.add(events[0].outputs[0], events[0].outputs[0]);
   }).timeout(600000);
 
-  describe('lock() tests', function () {
+  describe("lock() tests", function () {
     let lockedUtxo: UTXO;
     let smtAliceLocked: Merkletree;
 
@@ -199,13 +203,38 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
 
       const nullifier = newAssetNullifier(_utxo1, Alice);
       let root = await smtAlice.root();
-      const proof1 = await smtAlice.generateCircomVerifierProof(_utxo1.hash, root);
+      const proof1 = await smtAlice.generateCircomVerifierProof(
+        _utxo1.hash,
+        root,
+      );
       const merkleProof = proof1.siblings.map((s) => s.bigInt());
       lockedUtxo = newAssetUTXO(_utxo1.tokenId!, _utxo1.uri!, Alice);
-      const { outputCommitment, encodedProof } = await prepareProof(Alice, _utxo1, nullifier, lockedUtxo, root.bigInt(), merkleProof, Alice);
-      await expect(zeto.connect(Alice.signer).lock(nullifier.hash, outputCommitment, root.bigInt(), encodedProof, Bob.ethAddress, "0x")).to.be.fulfilled;
+      const { outputCommitment, encodedProof } = await prepareProof(
+        Alice,
+        _utxo1,
+        nullifier,
+        lockedUtxo,
+        root.bigInt(),
+        merkleProof,
+        Alice,
+      );
+      await expect(
+        zeto
+          .connect(Alice.signer)
+          .lock(
+            nullifier.hash,
+            outputCommitment,
+            root.bigInt(),
+            encodedProof,
+            Bob.ethAddress,
+            "0x",
+          ),
+      ).to.be.fulfilled;
 
-      await smtAliceLocked.add(lockedUtxo.hash, ethers.toBigInt(Bob.ethAddress));
+      await smtAliceLocked.add(
+        lockedUtxo.hash,
+        ethers.toBigInt(Bob.ethAddress),
+      );
     });
 
     it("onchain SMT root for the locked UTXOs should be equal to the offchain SMT root", async function () {
@@ -217,29 +246,79 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
     it("lock a UTXO that has already been locked should fail", async function () {
       const nullifier = newAssetNullifier(lockedUtxo, Alice);
       let root = await smtAliceLocked.root();
-      const proof1 = await smtAliceLocked.generateCircomVerifierProof(lockedUtxo.hash, root);
+      const proof1 = await smtAliceLocked.generateCircomVerifierProof(
+        lockedUtxo.hash,
+        root,
+      );
       const merkleProof = proof1.siblings.map((s) => s.bigInt());
       const _utxo1 = newAssetUTXO(lockedUtxo.tokenId!, lockedUtxo.uri!, Alice);
-      const { outputCommitment, encodedProof } = await prepareProof(Alice, lockedUtxo, nullifier, _utxo1, root.bigInt(), merkleProof, Alice, Bob);
-      await expect(zeto.connect(Alice.signer).lock(nullifier.hash, outputCommitment, root.bigInt(), encodedProof, Bob.ethAddress, "0x")).to.be.rejectedWith("UTXORootNotFound");
+      const { outputCommitment, encodedProof } = await prepareProof(
+        Alice,
+        lockedUtxo,
+        nullifier,
+        _utxo1,
+        root.bigInt(),
+        merkleProof,
+        Alice,
+        Bob,
+      );
+      await expect(
+        zeto
+          .connect(Alice.signer)
+          .lock(
+            nullifier.hash,
+            outputCommitment,
+            root.bigInt(),
+            encodedProof,
+            Bob.ethAddress,
+            "0x",
+          ),
+      ).to.be.rejectedWith("UTXORootNotFound");
     });
 
     it("the owner trying to spend a locked UTXO should fail", async function () {
       const nullifier = newAssetNullifier(lockedUtxo, Alice);
       let root = await smtAliceLocked.root();
-      const proof1 = await smtAliceLocked.generateCircomVerifierProof(lockedUtxo.hash, root);
+      const proof1 = await smtAliceLocked.generateCircomVerifierProof(
+        lockedUtxo.hash,
+        root,
+      );
       const merkleProof = proof1.siblings.map((s) => s.bigInt());
       const _utxo1 = newAssetUTXO(lockedUtxo.tokenId!, lockedUtxo.uri!, Bob);
-      const { outputCommitment, encodedProof } = await prepareProof(Alice, lockedUtxo, nullifier, _utxo1, root.bigInt(), merkleProof, Bob, Bob);
-      await expect(zeto.connect(Alice.signer).transfer(nullifier.hash, outputCommitment, root.bigInt(), encodedProof, "0x")).to.be.rejectedWith("UTXORootNotFound");
+      const { outputCommitment, encodedProof } = await prepareProof(
+        Alice,
+        lockedUtxo,
+        nullifier,
+        _utxo1,
+        root.bigInt(),
+        merkleProof,
+        Bob,
+        Bob,
+      );
+      await expect(
+        zeto
+          .connect(Alice.signer)
+          .transfer(
+            nullifier.hash,
+            outputCommitment,
+            root.bigInt(),
+            encodedProof,
+            "0x",
+          ),
+      ).to.be.rejectedWith("UTXORootNotFound");
     });
 
     it("the current delegate can move the lock to a new delegate", async function () {
-      const tx = await zeto.connect(Bob.signer).delegateLock([lockedUtxo.hash], Charlie.ethAddress, "0x");
+      const tx = await zeto
+        .connect(Bob.signer)
+        .delegateLock([lockedUtxo.hash], Charlie.ethAddress, "0x");
       const result = await tx.wait();
       const events = parseUTXOEvents(zeto, result);
       // this should update the existing leaf node value from address of Alice to Charlie
-      await smtAliceLocked.update(events[0].lockedOutputs[0], ethers.toBigInt(events[0].newDelegate));
+      await smtAliceLocked.update(
+        events[0].lockedOutputs[0],
+        ethers.toBigInt(events[0].newDelegate),
+      );
     });
 
     it("onchain SMT root for the locked UTXOs should be equal to the offchain SMT root", async function () {
@@ -251,11 +330,33 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
     it("the new delegate can spend the locked UTXO using a valid proof from the current owner", async function () {
       const nullifier = newAssetNullifier(lockedUtxo, Alice);
       let root = await smtAliceLocked.root();
-      const proof1 = await smtAliceLocked.generateCircomVerifierProof(lockedUtxo.hash, root);
+      const proof1 = await smtAliceLocked.generateCircomVerifierProof(
+        lockedUtxo.hash,
+        root,
+      );
       const merkleProof = proof1.siblings.map((s) => s.bigInt());
       const _utxo1 = newAssetUTXO(lockedUtxo.tokenId!, lockedUtxo.uri!, Bob);
-      const { outputCommitment, encodedProof } = await prepareProof(Alice, lockedUtxo, nullifier, _utxo1, root.bigInt(), merkleProof, Bob, Charlie);
-      await expect(zeto.connect(Charlie.signer).transferLocked(nullifier.hash, outputCommitment, root.bigInt(), encodedProof, "0x")).to.be.fulfilled;
+      const { outputCommitment, encodedProof } = await prepareProof(
+        Alice,
+        lockedUtxo,
+        nullifier,
+        _utxo1,
+        root.bigInt(),
+        merkleProof,
+        Bob,
+        Charlie,
+      );
+      await expect(
+        zeto
+          .connect(Charlie.signer)
+          .transferLocked(
+            nullifier.hash,
+            outputCommitment,
+            root.bigInt(),
+            encodedProof,
+            "0x",
+          ),
+      ).to.be.fulfilled;
     });
   });
 
@@ -419,11 +520,11 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
       outputOwnerPublicKey,
     };
     if (lockDelegate) {
-      inputObj['lockDelegate'] = ethers.toBigInt(lockDelegate.ethAddress);
+      inputObj["lockDelegate"] = ethers.toBigInt(lockDelegate.ethAddress);
     }
 
-    let circuitToUse = (lockDelegate) ? circuitLocked : circuit;
-    let provingKeyToUse = (lockDelegate) ? provingKeyLocked : provingKey;
+    let circuitToUse = lockDelegate ? circuitLocked : circuit;
+    let provingKeyToUse = lockDelegate ? provingKeyLocked : provingKey;
     const witness = await circuitToUse.calculateWTNSBin(inputObj, true);
     const timeWithnessCalculation = Date.now() - startWitnessCalculation;
 
@@ -459,7 +560,8 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
       .transfer(nullifier, outputCommitment, root, encodedProof, "0x");
     const results: ContractTransactionReceipt | null = await tx.wait();
     console.log(
-      `Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${results?.gasUsed
+      `Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${
+        results?.gasUsed
       }`,
     );
     return results;
