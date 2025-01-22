@@ -38,7 +38,7 @@ describe("main circuit tests for Zeto non-fungible tokens with anonymity using n
   let senderPrivateKey;
 
   before(async () => {
-    circuit = await loadCircuit("nf_anon_nullifier");
+    circuit = await loadCircuit("nf_anon_nullifier_transfer");
     ({ provingKeyFile, verificationKey } =
       loadProvingKeys("nf_anon_nullifier"));
 

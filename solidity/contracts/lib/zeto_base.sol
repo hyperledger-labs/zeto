@@ -203,9 +203,8 @@ abstract contract ZetoBase is IZetoBase, IZetoLockable, ZetoCommon {
     }
     // Locks the UTXOs so that they can only be spent by submitting the appropriate
     // proof from the Eth account designated as the "delegate". This function
-    // should be called by escrow contracts that will use uploaded proofs
-    // to execute transactions, in order to prevent the proof from being used
-    // by parties other than the escrow contract.
+    // should be called by a participant, to designate an escrow contract as the delegate,
+    // which can use uploaded proofs to execute transactions.
     function _lock(
         uint256[] memory inputs,
         uint256[] memory outputs,
@@ -221,7 +220,11 @@ abstract contract ZetoBase is IZetoBase, IZetoLockable, ZetoCommon {
                 delegates[lockedOutputs[i]] != address(0) &&
                 delegates[lockedOutputs[i]] != msg.sender
             ) {
-                revert UTXOAlreadyLocked(lockedOutputs[i]);
+                revert NotLockDelegate(
+                    lockedOutputs[i],
+                    delegates[lockedOutputs[i]],
+                    msg.sender
+                );
             }
             delegates[lockedOutputs[i]] = delegate;
         }
