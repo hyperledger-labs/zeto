@@ -294,12 +294,12 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
         proof,
       );
       expect(verifyResult).to.be.true;
-      console.log("nullifiers", nullifiers);
-      console.log("inputCommitments", inputCommitments);
-      console.log("outputCommitments", outputCommitments);
-      console.log("lockDelegate", lockDelegate);
-      console.log("root", proof1.root.bigInt());
-      console.log("public signals", publicSignals);
+      // console.log("nullifiers", nullifiers);
+      // console.log("inputCommitments", inputCommitments);
+      // console.log("outputCommitments", outputCommitments);
+      // console.log("lockDelegate", lockDelegate);
+      // console.log("root", proof1.root.bigInt());
+      // console.log("public signals", publicSignals);
       const tamperedOutputHash = poseidonHash([
         BigInt(100),
         salt3,
