@@ -272,7 +272,7 @@ func (s *E2ETestSuite) TestZeto_anon_enc_SuccessfulProving() {
 }
 
 func (s *E2ETestSuite) TestZeto_anon_nullifier_SuccessfulProving() {
-	calc, provingKey, err := loadCircuit("anon_nullifier")
+	calc, provingKey, err := loadCircuit("anon_nullifier_transfer")
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
 
@@ -583,7 +583,7 @@ func (s *E2ETestSuite) TestZeto_nf_anon_SuccessfulProvingWithConcurrency() {
 }
 
 func (s *E2ETestSuite) TestZeto_nf_anon_nullifier_SuccessfulProving() {
-	calc, provingKey, err := loadCircuit("nf_anon_nullifier")
+	calc, provingKey, err := loadCircuit("nf_anon_nullifier_transfer")
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
 
