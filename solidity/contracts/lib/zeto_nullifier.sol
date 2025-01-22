@@ -69,8 +69,6 @@ abstract contract ZetoNullifier is IZetoBase, IZetoLockable, ZetoCommon {
                 revert UTXODuplicate(sortedInputs[i]);
             }
             if (_nullifiers[sortedInputs[i]] == true) {
-                console.log("nullifier");
-                console.log(sortedInputs[i]);
                 revert UTXOAlreadySpent(sortedInputs[i]);
             }
         }

@@ -121,7 +121,7 @@ describe("Escrow flow for payment with Zeto_AnonNullifier", function () {
       proof2.siblings.map((s) => s.bigInt()),
     ];
 
-    lockedPayment1 = newUTXO(payment1.value!, Alice, payment1.salt!);
+    lockedPayment1 = newUTXO(payment1.value!, Alice);
     const { inputCommitments, outputCommitments, encodedProof } = await zetoAnonNullifierTests.prepareProof(
       circuit,
       provingKey,
@@ -159,7 +159,7 @@ describe("Escrow flow for payment with Zeto_AnonNullifier", function () {
 
   it("Alice initiates a payment transaction to Bob through the escrow", async function () {
     nullifier1 = newNullifier(lockedPayment1, Alice);
-    paymentToBob = newUTXO(lockedPayment1.value!, Bob, lockedPayment1.salt);
+    paymentToBob = newUTXO(lockedPayment1.value!, Bob);
     const tx = await zkEscrow.connect(Alice.signer).initiatePayment(
       [nullifier1.hash],
       [paymentToBob.hash],
@@ -169,8 +169,7 @@ describe("Escrow flow for payment with Zeto_AnonNullifier", function () {
     const events = parseUTXOEvents(zkEscrow, result);
     // simulate Bob listening to the payment events and verifying the proposed payment
     const proposedPayment = events[0].outputs[0];
-    const check = newUTXO(lockedPayment1.value!, Bob, lockedPayment1.salt);
-    expect(proposedPayment).to.equal(check.hash);
+    expect(proposedPayment).to.equal(paymentToBob.hash);
     paymentId = events[0].paymentId;
   });
 
