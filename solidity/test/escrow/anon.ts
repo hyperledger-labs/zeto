@@ -93,7 +93,7 @@ describe("Escrow flow for payment with Zeto_Anon", function () {
   });
 
   it("Alice locks some payment tokens and designates the escrow as the delegate", async function () {
-    lockedPayment1 = newUTXO(payment1.value!, Alice, payment1.salt!);
+    lockedPayment1 = newUTXO(payment1.value!, Alice);
     const { inputCommitments, outputCommitments, encodedProof } =
       await zetoAnonTests.prepareProof(
         circuit,
@@ -121,8 +121,7 @@ describe("Escrow flow for payment with Zeto_Anon", function () {
     const lockDelegate = events[0].delegate;
     // Alice's trading partner is sent the secrets for the locked UTXO (which is still owned by Alice)
     // in an off-chain message. so they can be used to verify the locked UTXO, and the lock delegate
-    const check = newUTXO(lockedPayment1.value!, Alice, lockedPayment1.salt);
-    expect(lockedUTXO).to.equal(check.hash);
+    expect(lockedUTXO).to.equal(lockedPayment1.hash);
     expect(lockDelegate).to.equal(zkEscrow.target);
   });
 
