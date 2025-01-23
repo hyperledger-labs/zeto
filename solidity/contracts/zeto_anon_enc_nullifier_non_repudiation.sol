@@ -16,11 +16,11 @@
 pragma solidity ^0.8.27;
 
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
-import {Groth16Verifier_CheckNullifierValue} from "./lib/verifier_check_nullifier_value.sol";
-import {Groth16Verifier_CheckNullifierValueBatch} from "./lib/verifier_check_nullifier_value_batch.sol";
-import {Groth16Verifier_AnonEncNullifierNonRepudiation} from "./lib/verifier_anon_enc_nullifier_non_repudiation.sol";
-import {Groth16Verifier_AnonEncNullifierNonRepudiationBatch} from "./lib/verifier_anon_enc_nullifier_non_repudiation_batch.sol";
+import {Groth16Verifier_CheckHashesValue} from "./verifiers/verifier_check_hashes_value.sol";
+import {Groth16Verifier_CheckNullifierValue} from "./verifiers/verifier_check_nullifier_value.sol";
+import {Groth16Verifier_CheckNullifierValueBatch} from "./verifiers/verifier_check_nullifier_value_batch.sol";
+import {Groth16Verifier_AnonEncNullifierNonRepudiation} from "./verifiers/verifier_anon_enc_nullifier_non_repudiation.sol";
+import {Groth16Verifier_AnonEncNullifierNonRepudiationBatch} from "./verifiers/verifier_anon_enc_nullifier_non_repudiation_batch.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Commonlib} from "./lib/common.sol";

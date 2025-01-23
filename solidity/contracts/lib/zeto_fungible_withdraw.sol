@@ -15,9 +15,9 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {Groth16Verifier_CheckHashesValue} from "./verifier_check_hashes_value.sol";
-import {Groth16Verifier_CheckInputsOutputsValue} from "./verifier_check_inputs_outputs_value.sol";
-import {Groth16Verifier_CheckInputsOutputsValueBatch} from "./verifier_check_inputs_outputs_value_batch.sol";
+import {Groth16Verifier_CheckHashesValue} from "../verifiers/verifier_check_hashes_value.sol";
+import {Groth16Verifier_CheckInputsOutputsValue} from "../verifiers/verifier_check_inputs_outputs_value.sol";
+import {Groth16Verifier_CheckInputsOutputsValueBatch} from "../verifiers/verifier_check_inputs_outputs_value_batch.sol";
 import {ZetoFungible} from "./zeto_fungible.sol";
 import {Commonlib} from "./common.sol";
 

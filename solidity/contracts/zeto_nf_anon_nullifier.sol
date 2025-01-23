@@ -16,8 +16,8 @@
 pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
-import {Groth16Verifier_NfAnonNullifierTransfer} from "./lib/verifier_nf_anon_nullifier_transfer.sol";
-import {Groth16Verifier_NfAnonNullifierTransferLocked} from "./lib/verifier_nf_anon_nullifier_transferLocked.sol";
+import {Groth16Verifier_NfAnonNullifierTransfer} from "./verifiers/verifier_nf_anon_nullifier_transfer.sol";
+import {Groth16Verifier_NfAnonNullifierTransferLocked} from "./verifiers/verifier_nf_anon_nullifier_transferLocked.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {Commonlib} from "./lib/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";

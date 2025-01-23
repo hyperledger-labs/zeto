@@ -16,11 +16,11 @@
 pragma solidity ^0.8.27;
 
 import {IZetoEncrypted} from "./lib/interfaces/izeto_encrypted.sol";
-import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
-import {Groth16Verifier_CheckNullifierValue} from "./lib/verifier_check_nullifier_value.sol";
-import {Groth16Verifier_CheckNullifierValueBatch} from "./lib/verifier_check_nullifier_value_batch.sol";
-import {Groth16Verifier_AnonEncNullifierKyc} from "./lib/verifier_anon_enc_nullifier_kyc.sol";
-import {Groth16Verifier_AnonEncNullifierKycBatch} from "./lib/verifier_anon_enc_nullifier_kyc_batch.sol";
+import {Groth16Verifier_CheckHashesValue} from "./verifiers/verifier_check_hashes_value.sol";
+import {Groth16Verifier_CheckNullifierValue} from "./verifiers/verifier_check_nullifier_value.sol";
+import {Groth16Verifier_CheckNullifierValueBatch} from "./verifiers/verifier_check_nullifier_value_batch.sol";
+import {Groth16Verifier_AnonEncNullifierKyc} from "./verifiers/verifier_anon_enc_nullifier_kyc.sol";
+import {Groth16Verifier_AnonEncNullifierKycBatch} from "./verifiers/verifier_anon_enc_nullifier_kyc_batch.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Registry} from "./lib/registry.sol";

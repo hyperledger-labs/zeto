@@ -16,12 +16,11 @@
 pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
-import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
-import {Groth16Verifier_CheckInputsOutputsValue} from "./lib/verifier_check_inputs_outputs_value.sol";
-import {Groth16Verifier_CheckInputsOutputsValueBatch} from "./lib/verifier_check_inputs_outputs_value_batch.sol";
-
-import {Groth16Verifier_Anon} from "./lib/verifier_anon.sol";
-import {Groth16Verifier_AnonBatch} from "./lib/verifier_anon_batch.sol";
+import {Groth16Verifier_CheckHashesValue} from "./verifiers/verifier_check_hashes_value.sol";
+import {Groth16Verifier_CheckInputsOutputsValue} from "./verifiers/verifier_check_inputs_outputs_value.sol";
+import {Groth16Verifier_CheckInputsOutputsValueBatch} from "./verifiers/verifier_check_inputs_outputs_value_batch.sol";
+import {Groth16Verifier_Anon} from "./verifiers/verifier_anon.sol";
+import {Groth16Verifier_AnonBatch} from "./verifiers/verifier_anon_batch.sol";
 import {Commonlib} from "./lib/common.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";

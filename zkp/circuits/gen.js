@@ -208,7 +208,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
     "..",
     "solidity",
     "contracts",
-    "lib",
+    "verifiers",
     `verifier_${circuit}.sol`,
   );
   const { stdout: svOut, stderr: svErr } = await execAsync(
