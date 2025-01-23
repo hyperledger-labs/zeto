@@ -58,12 +58,12 @@ contract Zeto_AnonNullifier is
     function initialize(
         address initialOwner,
         Groth16Verifier_AnonNullifierTransfer verifier,
-        Groth16Verifier_AnonNullifierTransferLocked lockedVerifier,
         Groth16Verifier_CheckHashesValue depositVerifier,
         Groth16Verifier_CheckNullifierValue withdrawVerifier,
         Groth16Verifier_AnonNullifierTransferBatch batchVerifier,
-        Groth16Verifier_AnonNullifierTransferLockedBatch batchLockedVerifier,
-        Groth16Verifier_CheckNullifierValueBatch batchWithdrawVerifier
+        Groth16Verifier_CheckNullifierValueBatch batchWithdrawVerifier,
+        Groth16Verifier_AnonNullifierTransferLocked lockedVerifier,
+        Groth16Verifier_AnonNullifierTransferLockedBatch batchLockedVerifier
     ) public initializer {
         __ZetoNullifier_init(initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(

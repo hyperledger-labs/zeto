@@ -47,7 +47,9 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         Groth16Verifier_CheckHashesValue depositVerifier,
         Groth16Verifier_CheckInputsOutputsValue withdrawVerifier,
         Groth16Verifier_AnonBatch batchVerifier,
-        Groth16Verifier_CheckInputsOutputsValueBatch batchWithdrawVerifier
+        Groth16Verifier_CheckInputsOutputsValueBatch batchWithdrawVerifier,
+        address _lockedVerifier, // not used
+        address _batchLockedVerifier // not used
     ) public initializer {
         __ZetoBase_init(initialOwner);
         __ZetoFungibleWithdraw_init(

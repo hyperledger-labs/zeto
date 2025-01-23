@@ -38,6 +38,8 @@ export async function deployDependencies() {
       withdrawVerifier.target,
       batchVerifier.target,
       batchWithdrawVerifier.target,
+      "0x0000000000000000000000000000000000000000",
+      "0x0000000000000000000000000000000000000000",
     ],
     libraries: {
       SmtLib: smtLib.target,

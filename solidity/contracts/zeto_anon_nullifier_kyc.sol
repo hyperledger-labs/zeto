@@ -55,7 +55,9 @@ contract Zeto_AnonNullifierKyc is
         Groth16Verifier_CheckHashesValue depositVerifier,
         Groth16Verifier_CheckNullifierValue withdrawVerifier,
         Groth16Verifier_AnonNullifierKycBatch batchVerifier,
-        Groth16Verifier_CheckNullifierValueBatch batchWithdrawVerifier
+        Groth16Verifier_CheckNullifierValueBatch batchWithdrawVerifier,
+        address _lockedVerifier, // not used
+        address _batchLockedVerifier // not used
     ) public initializer {
         __Registry_init();
         __ZetoNullifier_init(initialOwner);

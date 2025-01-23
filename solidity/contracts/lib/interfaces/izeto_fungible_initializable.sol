@@ -18,10 +18,12 @@ pragma solidity ^0.8.27;
 interface IZetoFungibleInitializable {
     function initialize(
         address initialOwner,
+        address _verifier,
         address _depositVerifier,
         address _withdrawVerifier,
-        address _verifier,
         address _batchVerifier,
-        address _batchWithdrawVerifier
+        address _batchWithdrawVerifier,
+        address _lockedVerifier,
+        address _batchLockedVerifier
     ) external;
 }

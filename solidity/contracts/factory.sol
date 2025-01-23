@@ -32,6 +32,8 @@ contract ZetoTokenFactory is Ownable {
         address verifier;
         address batchVerifier;
         address batchWithdrawVerifier;
+        address lockedVerifier;
+        address batchLockedVerifier;
     }
 
     event ZetoTokenDeployed(address indexed zetoToken);
@@ -95,7 +97,9 @@ contract ZetoTokenFactory is Ownable {
             args.depositVerifier,
             args.withdrawVerifier,
             args.batchVerifier,
-            args.batchWithdrawVerifier
+            args.batchWithdrawVerifier,
+            args.lockedVerifier,
+            args.batchLockedVerifier
         );
         emit ZetoTokenDeployed(instance);
         return instance;
@@ -117,7 +121,8 @@ contract ZetoTokenFactory is Ownable {
         );
         (IZetoNonFungibleInitializable(instance)).initialize(
             initialOwner,
-            args.verifier
+            args.verifier,
+            args.lockedVerifier
         );
         emit ZetoTokenDeployed(instance);
         return instance;

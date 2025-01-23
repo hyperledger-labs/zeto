@@ -53,7 +53,9 @@ contract Zeto_AnonEncNullifier is
         Groth16Verifier_CheckHashesValue depositVerifier,
         Groth16Verifier_CheckNullifierValue withdrawVerifier,
         Groth16Verifier_AnonEncNullifierBatch batchVerifier,
-        Groth16Verifier_CheckNullifierValueBatch batchWithdrawVerifier
+        Groth16Verifier_CheckNullifierValueBatch batchWithdrawVerifier,
+        address _lockedVerifier, // not used
+        address _batchLockedVerifier // not used
     ) public initializer {
         __ZetoNullifier_init(initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(
