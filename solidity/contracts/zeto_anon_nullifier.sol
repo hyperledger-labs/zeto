@@ -22,7 +22,8 @@ import {Groth16Verifier_CheckNullifierValue} from "./lib/verifier_check_nullifie
 import {Groth16Verifier_CheckNullifierValueBatch} from "./lib/verifier_check_nullifier_value_batch.sol";
 import {Groth16Verifier_AnonNullifierTransfer} from "./lib/verifier_anon_nullifier_transfer.sol";
 import {Groth16Verifier_AnonNullifierTransferLocked} from "./lib/verifier_anon_nullifier_transferLocked.sol";
-import {Groth16Verifier_AnonNullifierBatch} from "./lib/verifier_anon_nullifier_batch.sol";
+import {Groth16Verifier_AnonNullifierTransferBatch} from "./lib/verifier_anon_nullifier_transfer_batch.sol";
+import {Groth16Verifier_AnonNullifierTransferLockedBatch} from "./lib/verifier_anon_nullifier_transferLocked_batch.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Commonlib} from "./lib/common.sol";
@@ -32,6 +33,7 @@ import {console} from "hardhat/console.sol";
 uint256 constant INPUT_SIZE = 7;
 uint256 constant INPUT_SIZE_LOCKED = 8;
 uint256 constant BATCH_INPUT_SIZE = 31;
+uint256 constant BATCH_INPUT_SIZE_LOCKED = 32;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and history masking
 /// @author Kaleido, Inc.
@@ -48,8 +50,10 @@ contract Zeto_AnonNullifier is
     UUPSUpgradeable
 {
     Groth16Verifier_AnonNullifierTransfer internal _verifier;
-    Groth16Verifier_AnonNullifierBatch internal _batchVerifier;
+    Groth16Verifier_AnonNullifierTransferBatch internal _batchVerifier;
     Groth16Verifier_AnonNullifierTransferLocked internal _lockedVerifier;
+    Groth16Verifier_AnonNullifierTransferLockedBatch
+        internal _batchLockedVerifier;
 
     function initialize(
         address initialOwner,
@@ -57,7 +61,8 @@ contract Zeto_AnonNullifier is
         Groth16Verifier_AnonNullifierTransferLocked lockedVerifier,
         Groth16Verifier_CheckHashesValue depositVerifier,
         Groth16Verifier_CheckNullifierValue withdrawVerifier,
-        Groth16Verifier_AnonNullifierBatch batchVerifier,
+        Groth16Verifier_AnonNullifierTransferBatch batchVerifier,
+        Groth16Verifier_AnonNullifierTransferLockedBatch batchLockedVerifier,
         Groth16Verifier_CheckNullifierValueBatch batchWithdrawVerifier
     ) public initializer {
         __ZetoNullifier_init(initialOwner);
@@ -69,6 +74,7 @@ contract Zeto_AnonNullifier is
         _verifier = verifier;
         _lockedVerifier = lockedVerifier;
         _batchVerifier = batchVerifier;
+        _batchLockedVerifier = batchLockedVerifier;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -311,18 +317,18 @@ contract Zeto_AnonNullifier is
                 nullifiers,
                 outputs,
                 root,
-                BATCH_INPUT_SIZE,
+                BATCH_INPUT_SIZE_LOCKED,
                 true
             );
             // construct the public inputs for batchVerifier
-            uint256[BATCH_INPUT_SIZE] memory fixedSizeInputs;
+            uint256[BATCH_INPUT_SIZE_LOCKED] memory fixedSizeInputs;
             for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
                 fixedSizeInputs[i] = publicInputs[i];
             }
 
             // Check the proof using batchVerifier
             require(
-                _batchVerifier.verifyProof(
+                _batchLockedVerifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,

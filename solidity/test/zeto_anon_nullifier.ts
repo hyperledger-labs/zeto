@@ -85,9 +85,9 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
     ({ provingKeyFile: provingKeyForLocked } = loadProvingKeys(
       "anon_nullifier_transferLocked",
     ));
-    batchCircuit = await loadCircuit("anon_nullifier_batch");
+    batchCircuit = await loadCircuit("anon_nullifier_transfer_batch");
     ({ provingKeyFile: batchProvingKey } = loadProvingKeys(
-      "anon_nullifier_batch",
+      "anon_nullifier_transfer_batch",
     ));
   });
 

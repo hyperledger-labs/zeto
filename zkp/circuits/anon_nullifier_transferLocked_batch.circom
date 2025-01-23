@@ -15,6 +15,6 @@
 // limitations under the License.
 pragma circom 2.2.1;
 
-include "./basetokens/anon_nullifier_base.circom";
+include "./basetokens/anon_nullifier__transferLocked_base.circom";
 
-component main { public [ nullifiers, outputCommitments, root, enabled ] } = Zeto(10, 10, 64);
+component main { public [ nullifiers, lockDelegate, outputCommitments, root, enabled ] } = transferLocked(10, 10, 64);
