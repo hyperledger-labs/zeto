@@ -15,10 +15,19 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-interface IZetoNonFungibleInitializable {
+interface IZetoInitializable {
+    struct VerifiersInfo {
+        address verifier;
+        address depositVerifier;
+        address withdrawVerifier;
+        address batchVerifier;
+        address batchWithdrawVerifier;
+        address lockedVerifier;
+        address batchLockedVerifier;
+    }
+
     function initialize(
         address initialOwner,
-        address _verifier,
-        address _lockedVerifier
+        VerifiersInfo memory verifiersInfo
     ) external;
 }

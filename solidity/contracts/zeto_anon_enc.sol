@@ -25,6 +25,7 @@ import {Groth16Verifier_AnonEncBatch} from "./lib/verifier_anon_enc_batch.sol";
 import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
 import {Commonlib} from "./lib/common.sol";
+import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 uint256 constant INPUT_SIZE = 15;
@@ -41,6 +42,7 @@ uint256 constant BATCH_INPUT_SIZE = 63;
 ///          the ECDH protocol between the sender and receiver (this guarantees data availability for the receiver)
 contract Zeto_AnonEnc is
     IZetoEncrypted,
+    IZetoInitializable,
     ZetoBase,
     ZetoFungibleWithdraw,
     UUPSUpgradeable
@@ -50,22 +52,22 @@ contract Zeto_AnonEnc is
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_AnonEnc verifier,
-        Groth16Verifier_CheckHashesValue depositVerifier,
-        Groth16Verifier_CheckInputsOutputsValue withdrawVerifier,
-        Groth16Verifier_AnonEncBatch batchVerifier,
-        Groth16Verifier_CheckInputsOutputsValueBatch batchWithdrawVerifier,
-        address _lockedVerifier, // not used
-        address _batchLockedVerifier // not used
+        IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
         __ZetoBase_init(initialOwner);
         __ZetoFungibleWithdraw_init(
-            depositVerifier,
-            withdrawVerifier,
-            batchWithdrawVerifier
+            (Groth16Verifier_CheckHashesValue)(verifiers.depositVerifier),
+            (Groth16Verifier_CheckInputsOutputsValue)(
+                verifiers.withdrawVerifier
+            ),
+            (Groth16Verifier_CheckInputsOutputsValueBatch)(
+                verifiers.batchWithdrawVerifier
+            )
         );
-        _verifier = verifier;
-        _batchVerifier = batchVerifier;
+        _verifier = (Groth16Verifier_AnonEnc)(verifiers.verifier);
+        _batchVerifier = (Groth16Verifier_AnonEncBatch)(
+            verifiers.batchVerifier
+        );
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}

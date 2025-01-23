@@ -20,6 +20,7 @@ import {Groth16Verifier_NfAnonNullifierTransfer} from "./lib/verifier_nf_anon_nu
 import {Groth16Verifier_NfAnonNullifierTransferLocked} from "./lib/verifier_nf_anon_nullifier_transferLocked.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {Commonlib} from "./lib/common.sol";
+import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /// @title A sample implementation of a Zeto based non-fungible token with anonymity and history masking
@@ -30,18 +31,26 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 ///        - the hashes in the input and output match the hash(value, salt, owner public key) formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
-contract Zeto_NfAnonNullifier is IZeto, ZetoNullifier, UUPSUpgradeable {
+contract Zeto_NfAnonNullifier is
+    IZeto,
+    IZetoInitializable,
+    ZetoNullifier,
+    UUPSUpgradeable
+{
     Groth16Verifier_NfAnonNullifierTransfer _verifier;
     Groth16Verifier_NfAnonNullifierTransferLocked _lockedVerifier;
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_NfAnonNullifierTransfer verifier,
-        Groth16Verifier_NfAnonNullifierTransferLocked lockedVerifier
+        IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
         __ZetoNullifier_init(initialOwner);
-        _verifier = verifier;
-        _lockedVerifier = lockedVerifier;
+        _verifier = (Groth16Verifier_NfAnonNullifierTransfer)(
+            verifiers.verifier
+        );
+        _lockedVerifier = (Groth16Verifier_NfAnonNullifierTransferLocked)(
+            verifiers.lockedVerifier
+        );
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}

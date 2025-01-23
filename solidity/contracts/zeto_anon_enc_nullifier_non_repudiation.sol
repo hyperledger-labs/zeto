@@ -24,6 +24,7 @@ import {Groth16Verifier_AnonEncNullifierNonRepudiationBatch} from "./lib/verifie
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Commonlib} from "./lib/common.sol";
+import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 
 uint256 constant INPUT_SIZE = 36;
 uint256 constant BATCH_INPUT_SIZE = 140;
@@ -38,6 +39,7 @@ uint256 constant BATCH_INPUT_SIZE = 140;
 ///        - the encrypted value in the input is derived from the receiver's UTXO value and encrypted with a shared secret using the ECDH protocol between the sender and receiver (this guarantees data availability for the receiver)
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 contract Zeto_AnonEncNullifierNonRepudiation is
+    IZetoInitializable,
     ZetoNullifier,
     ZetoFungibleWithdrawWithNullifiers,
     UUPSUpgradeable
@@ -61,22 +63,22 @@ contract Zeto_AnonEncNullifierNonRepudiation is
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_AnonEncNullifierNonRepudiation verifier,
-        Groth16Verifier_CheckHashesValue depositVerifier,
-        Groth16Verifier_CheckNullifierValue withdrawVerifier,
-        Groth16Verifier_AnonEncNullifierNonRepudiationBatch batchVerifier,
-        Groth16Verifier_CheckNullifierValueBatch batchWithdrawVerifier,
-        address _lockedVerifier, // not used
-        address _batchLockedVerifier // not used
+        IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
         __ZetoNullifier_init(initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(
-            depositVerifier,
-            withdrawVerifier,
-            batchWithdrawVerifier
+            (Groth16Verifier_CheckHashesValue)(verifiers.depositVerifier),
+            (Groth16Verifier_CheckNullifierValue)(verifiers.withdrawVerifier),
+            (Groth16Verifier_CheckNullifierValueBatch)(
+                verifiers.batchWithdrawVerifier
+            )
         );
-        _verifier = verifier;
-        _batchVerifier = batchVerifier;
+        _verifier = (Groth16Verifier_AnonEncNullifierNonRepudiation)(
+            verifiers.verifier
+        );
+        _batchVerifier = (Groth16Verifier_AnonEncNullifierNonRepudiationBatch)(
+            verifiers.batchVerifier
+        );
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}

@@ -19,6 +19,7 @@ import {IZeto} from "./lib/interfaces/izeto.sol";
 import {Groth16Verifier_NfAnon} from "./lib/verifier_nf_anon.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
 import {Commonlib} from "./lib/common.sol";
+import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /// @title A sample implementation of a Zeto based non-fungible token with anonymity and no encryption
@@ -27,16 +28,15 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 ///        - The sender owns the private key whose public key is part of the pre-image of the input UTXOs commitments
 ///          (aka the sender is authorized to spend the input UTXOs)
 ///        - The input UTXOs and output UTXOs are valid in terms of obeying mass conservation rules
-contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
+contract Zeto_NfAnon is IZeto, IZetoInitializable, ZetoBase, UUPSUpgradeable {
     Groth16Verifier_NfAnon internal _verifier;
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_NfAnon verifier,
-        address _lockedVerifier // not used
+        IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
         __ZetoBase_init(initialOwner);
-        _verifier = verifier;
+        _verifier = (Groth16Verifier_NfAnon)(verifiers.verifier);
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}

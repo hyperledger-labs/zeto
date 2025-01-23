@@ -24,6 +24,7 @@ import {Groth16Verifier_Anon} from "./lib/verifier_anon.sol";
 import {Groth16Verifier_AnonBatch} from "./lib/verifier_anon_batch.sol";
 import {Commonlib} from "./lib/common.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
+import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
@@ -37,28 +38,32 @@ uint256 constant BATCH_INPUT_SIZE = 20;
 ///        - the sum of the input values match the sum of output values
 ///        - the hashes in the input and output match the `hash(value, salt, owner public key)` formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
-contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
+contract Zeto_Anon is
+    IZeto,
+    IZetoInitializable,
+    ZetoBase,
+    ZetoFungibleWithdraw,
+    UUPSUpgradeable
+{
     Groth16Verifier_Anon internal _verifier;
     Groth16Verifier_AnonBatch internal _batchVerifier;
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_Anon verifier,
-        Groth16Verifier_CheckHashesValue depositVerifier,
-        Groth16Verifier_CheckInputsOutputsValue withdrawVerifier,
-        Groth16Verifier_AnonBatch batchVerifier,
-        Groth16Verifier_CheckInputsOutputsValueBatch batchWithdrawVerifier,
-        address _lockedVerifier, // not used
-        address _batchLockedVerifier // not used
+        VerifiersInfo calldata verifiers
     ) public initializer {
         __ZetoBase_init(initialOwner);
         __ZetoFungibleWithdraw_init(
-            depositVerifier,
-            withdrawVerifier,
-            batchWithdrawVerifier
+            (Groth16Verifier_CheckHashesValue)(verifiers.depositVerifier),
+            (Groth16Verifier_CheckInputsOutputsValue)(
+                verifiers.withdrawVerifier
+            ),
+            (Groth16Verifier_CheckInputsOutputsValueBatch)(
+                verifiers.batchWithdrawVerifier
+            )
         );
-        _verifier = verifier;
-        _batchVerifier = batchVerifier;
+        _verifier = (Groth16Verifier_Anon)(verifiers.verifier);
+        _batchVerifier = (Groth16Verifier_AnonBatch)(verifiers.batchVerifier);
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}

@@ -27,6 +27,7 @@ import {Groth16Verifier_AnonNullifierTransferLockedBatch} from "./lib/verifier_a
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Commonlib} from "./lib/common.sol";
+import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {console} from "hardhat/console.sol";
 
@@ -45,6 +46,7 @@ uint256 constant BATCH_INPUT_SIZE_LOCKED = 32;
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 contract Zeto_AnonNullifier is
     IZeto,
+    IZetoInitializable,
     ZetoNullifier,
     ZetoFungibleWithdrawWithNullifiers,
     UUPSUpgradeable
@@ -57,24 +59,26 @@ contract Zeto_AnonNullifier is
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_AnonNullifierTransfer verifier,
-        Groth16Verifier_CheckHashesValue depositVerifier,
-        Groth16Verifier_CheckNullifierValue withdrawVerifier,
-        Groth16Verifier_AnonNullifierTransferBatch batchVerifier,
-        Groth16Verifier_CheckNullifierValueBatch batchWithdrawVerifier,
-        Groth16Verifier_AnonNullifierTransferLocked lockedVerifier,
-        Groth16Verifier_AnonNullifierTransferLockedBatch batchLockedVerifier
+        IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
         __ZetoNullifier_init(initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(
-            depositVerifier,
-            withdrawVerifier,
-            batchWithdrawVerifier
+            (Groth16Verifier_CheckHashesValue)(verifiers.depositVerifier),
+            (Groth16Verifier_CheckNullifierValue)(verifiers.withdrawVerifier),
+            (Groth16Verifier_CheckNullifierValueBatch)(
+                verifiers.batchWithdrawVerifier
+            )
         );
-        _verifier = verifier;
-        _lockedVerifier = lockedVerifier;
-        _batchVerifier = batchVerifier;
-        _batchLockedVerifier = batchLockedVerifier;
+        _verifier = (Groth16Verifier_AnonNullifierTransfer)(verifiers.verifier);
+        _lockedVerifier = (Groth16Verifier_AnonNullifierTransferLocked)(
+            verifiers.lockedVerifier
+        );
+        _batchVerifier = (Groth16Verifier_AnonNullifierTransferBatch)(
+            verifiers.batchVerifier
+        );
+        _batchLockedVerifier = (
+            Groth16Verifier_AnonNullifierTransferLockedBatch
+        )(verifiers.batchLockedVerifier);
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}

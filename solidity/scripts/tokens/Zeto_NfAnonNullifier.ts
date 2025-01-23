@@ -24,7 +24,18 @@ export async function deployDependencies() {
     await ignition.deploy(zetoModule);
   return {
     deployer,
-    args: [await deployer.getAddress(), verifier.target, lockedVerifier.target],
+    args: [
+      await deployer.getAddress(),
+      {
+        verifier: verifier.target,
+        depositVerifier: "0x0000000000000000000000000000000000000000",
+        withdrawVerifier: "0x0000000000000000000000000000000000000000",
+        batchVerifier: "0x0000000000000000000000000000000000000000",
+        batchWithdrawVerifier: "0x0000000000000000000000000000000000000000",
+        lockedVerifier: lockedVerifier.target,
+        batchLockedVerifier: "0x0000000000000000000000000000000000000000",
+      }
+    ],
     libraries: {
       SmtLib: smtLib.target,
       PoseidonUnit3L: poseidon3.target,

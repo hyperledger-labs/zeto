@@ -23,6 +23,17 @@ export async function deployDependencies() {
   const { verifier } = await ignition.deploy(zetoModule);
   return {
     deployer,
-    args: [await deployer.getAddress(), verifier.target, "0x0000000000000000000000000000000000000000"],
+    args: [
+      await deployer.getAddress(),
+      {
+        verifier: verifier.target,
+        depositVerifier: "0x0000000000000000000000000000000000000000",
+        withdrawVerifier: "0x0000000000000000000000000000000000000000",
+        batchVerifier: "0x0000000000000000000000000000000000000000",
+        batchWithdrawVerifier: "0x0000000000000000000000000000000000000000",
+        lockedVerifier: "0x0000000000000000000000000000000000000000",
+        batchLockedVerifier: "0x0000000000000000000000000000000000000000",
+      }
+    ],
   };
 }
