@@ -51,15 +51,8 @@ export async function deployZeto(tokenName: string) {
     ({ deployer, zetoImpl, erc20, args } = result as any);
     let [
       deployerAddr,
-      verifier,
-      depositVerifier,
-      withdrawVerifier,
-      batchVerifier,
-      batchWithdrawVerifier,
+      verifiers,
     ] = args;
-    if (!isFungible) {
-      [deployerAddr, verifier] = args;
-    }
 
     // we want to test the effectiveness of the factory contract
     // to create clones of the Zeto implementation contract
@@ -69,15 +62,7 @@ export async function deployZeto(tokenName: string) {
 
     const implInfo = {
       implementation: zetoImpl.target,
-      depositVerifier:
-        depositVerifier || "0x0000000000000000000000000000000000000000",
-      withdrawVerifier:
-        withdrawVerifier || "0x0000000000000000000000000000000000000000",
-      verifier,
-      batchVerifier:
-        batchVerifier || "0x0000000000000000000000000000000000000000",
-      batchWithdrawVerifier:
-        batchWithdrawVerifier || "0x0000000000000000000000000000000000000000",
+      verifiers,
     };
     const tx1 = await factory
       .connect(deployer)
