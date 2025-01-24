@@ -16,8 +16,8 @@
 pragma solidity ^0.8.27;
 
 import {Commonlib} from "./common.sol";
-import {IZetoBase} from "./interfaces/izeto_base.sol";
-import {MAX_SMT_DEPTH} from "./interfaces/izeto_nullifier.sol";
+import {IZeto} from "./interfaces/izeto.sol";
+import {MAX_SMT_DEPTH} from "./interfaces/izeto.sol";
 import {IZetoLockable} from "./interfaces/izeto_lockable.sol";
 import {ZetoCommon} from "./zeto_common.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
@@ -27,7 +27,7 @@ import {console} from "hardhat/console.sol";
 /// @title A sample base implementation of a Zeto based token contract with nullifiers
 /// @author Kaleido, Inc.
 /// @dev Implements common functionalities of Zeto based tokens using nullifiers
-abstract contract ZetoNullifier is IZetoBase, IZetoLockable, ZetoCommon {
+abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
     // used for tracking regular (unlocked) UTXOs
     SmtLib.Data internal _commitmentsTree;
     // used for locked UTXOs tracking. multi-step transaction flows that require counterparties

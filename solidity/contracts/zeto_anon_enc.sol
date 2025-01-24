@@ -15,7 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {IZetoEncrypted} from "./lib/interfaces/izeto_encrypted.sol";
+import {IZeto} from "./lib/interfaces/izeto.sol";
 import {Groth16Verifier_CheckHashesValue} from "./verifiers/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValue} from "./verifiers/verifier_check_inputs_outputs_value.sol";
 import {Groth16Verifier_CheckInputsOutputsValueBatch} from "./verifiers/verifier_check_inputs_outputs_value_batch.sol";
@@ -40,7 +40,7 @@ uint256 constant BATCH_INPUT_SIZE = 63;
 ///        - the encrypted value in the input is derived from the receiver's UTXO value and encrypted with a shared secret using
 ///          the ECDH protocol between the sender and receiver (this guarantees data availability for the receiver)
 contract Zeto_AnonEnc is
-    IZetoEncrypted,
+    IZeto,
     IZetoInitializable,
     ZetoBase,
     ZetoFungibleWithdraw,

@@ -16,7 +16,7 @@
 pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
-import {MAX_BATCH} from "./lib/interfaces/izeto_common.sol";
+import {MAX_BATCH} from "./lib/interfaces/izeto.sol";
 import {Groth16Verifier_CheckHashesValue} from "./verifiers/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckNullifierValue} from "./verifiers/verifier_check_nullifier_value.sol";
 import {Groth16Verifier_CheckNullifierValueBatch} from "./verifiers/verifier_check_nullifier_value_batch.sol";

@@ -15,7 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {IZetoEncrypted} from "./lib/interfaces/izeto_encrypted.sol";
+import {IZeto} from "./lib/interfaces/izeto.sol";
 import {Groth16Verifier_CheckHashesValue} from "./verifiers/verifier_check_hashes_value.sol";
 import {Groth16Verifier_CheckNullifierValue} from "./verifiers/verifier_check_nullifier_value.sol";
 import {Groth16Verifier_CheckNullifierValueBatch} from "./verifiers/verifier_check_nullifier_value_batch.sol";
@@ -41,7 +41,7 @@ uint256 constant BATCH_INPUT_SIZE = 75;
 ///        - the encrypted value in the input is derived from the receiver's UTXO value and encrypted with a shared secret using the ECDH protocol between the sender and receiver (this guarantees data availability for the receiver)
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 contract Zeto_AnonEncNullifierKyc is
-    IZetoEncrypted,
+    IZeto,
     IZetoInitializable,
     ZetoNullifier,
     ZetoFungibleWithdrawWithNullifiers,

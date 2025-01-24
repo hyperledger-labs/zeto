@@ -16,14 +16,14 @@
 pragma solidity ^0.8.27;
 
 import {Commonlib} from "./common.sol";
-import {IZetoCommon, MAX_BATCH} from "./interfaces/izeto_common.sol";
+import {IZeto, MAX_BATCH} from "./interfaces/izeto.sol";
 import {Arrays} from "@openzeppelin/contracts/utils/Arrays.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 /// @title A sample base implementation of a Zeto based token contract
 /// @author Kaleido, Inc.
 /// @dev Implements common functionalities of Zeto based tokens
-abstract contract ZetoCommon is IZetoCommon, OwnableUpgradeable {
+abstract contract ZetoCommon is IZeto, OwnableUpgradeable {
     function __ZetoCommon_init(address initialOwner) internal onlyInitializing {
         __Ownable_init(initialOwner);
     }

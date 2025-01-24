@@ -15,7 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {IZetoBase} from "./interfaces/izeto_base.sol";
+import {IZeto} from "./interfaces/izeto.sol";
 import {IZetoLockable} from "./interfaces/izeto_lockable.sol";
 import {Commonlib} from "./common.sol";
 import {ZetoCommon} from "./zeto_common.sol";
@@ -24,7 +24,7 @@ import {ZetoCommon} from "./zeto_common.sol";
 ///        without using nullifiers. Each UTXO's spending status is explicitly tracked.
 /// @author Kaleido, Inc.
 /// @dev Implements common functionalities of Zeto based tokens without nullifiers
-abstract contract ZetoBase is IZetoBase, IZetoLockable, ZetoCommon {
+abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
     enum UTXOStatus {
         UNKNOWN, // default value for the empty UTXO slots
         UNSPENT,
