@@ -53,9 +53,9 @@ contract Zeto_AnonNullifier is
 {
     Groth16Verifier_AnonNullifierTransfer internal _verifier;
     Groth16Verifier_AnonNullifierTransferBatch internal _batchVerifier;
-    Groth16Verifier_AnonNullifierTransferLocked internal _lockedVerifier;
+    Groth16Verifier_AnonNullifierTransferLocked internal _lockVerifier;
     Groth16Verifier_AnonNullifierTransferLockedBatch
-        internal _batchLockedVerifier;
+        internal _batchLockVerifier;
 
     function initialize(
         address initialOwner,
@@ -70,15 +70,15 @@ contract Zeto_AnonNullifier is
             )
         );
         _verifier = (Groth16Verifier_AnonNullifierTransfer)(verifiers.verifier);
-        _lockedVerifier = (Groth16Verifier_AnonNullifierTransferLocked)(
-            verifiers.lockedVerifier
+        _lockVerifier = (Groth16Verifier_AnonNullifierTransferLocked)(
+            verifiers.lockVerifier
         );
         _batchVerifier = (Groth16Verifier_AnonNullifierTransferBatch)(
             verifiers.batchVerifier
         );
-        _batchLockedVerifier = (
-            Groth16Verifier_AnonNullifierTransferLockedBatch
-        )(verifiers.batchLockedVerifier);
+        _batchLockVerifier = (Groth16Verifier_AnonNullifierTransferLockedBatch)(
+            verifiers.batchLockVerifier
+        );
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -332,7 +332,7 @@ contract Zeto_AnonNullifier is
 
             // Check the proof using batchVerifier
             require(
-                _batchLockedVerifier.verifyProof(
+                _batchLockVerifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,
@@ -355,7 +355,7 @@ contract Zeto_AnonNullifier is
             }
             // Check the proof
             require(
-                _lockedVerifier.verifyProof(
+                _lockVerifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,

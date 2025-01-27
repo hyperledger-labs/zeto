@@ -22,8 +22,8 @@ interface IZetoInitializable {
         address withdrawVerifier;
         address batchVerifier;
         address batchWithdrawVerifier;
-        address lockedVerifier;
-        address batchLockedVerifier;
+        address lockVerifier;
+        address batchLockVerifier;
     }
 
     function initialize(

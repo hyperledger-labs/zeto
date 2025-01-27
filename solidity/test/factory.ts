@@ -43,8 +43,8 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
         depositVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
         withdrawVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
         batchWithdrawVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
-        lockedVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
-        batchLockedVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+        lockVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+        batchLockVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
       }
     };
     await expect(
@@ -67,8 +67,8 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
         depositVerifier: "0x0000000000000000000000000000000000000000",
         withdrawVerifier: "0x0000000000000000000000000000000000000000",
         batchWithdrawVerifier: "0x0000000000000000000000000000000000000000",
-        lockedVerifier: "0x0000000000000000000000000000000000000000",
-        batchLockedVerifier: "0x0000000000000000000000000000000000000000",
+        lockVerifier: "0x0000000000000000000000000000000000000000",
+        batchLockVerifier: "0x0000000000000000000000000000000000000000",
       }
     };
     await expect(
@@ -91,8 +91,8 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
         depositVerifier: "0x0000000000000000000000000000000000000000",
         withdrawVerifier: "0x0000000000000000000000000000000000000000",
         batchWithdrawVerifier: "0x0000000000000000000000000000000000000000",
-        lockedVerifier: "0x0000000000000000000000000000000000000000",
-        batchLockedVerifier: "0x0000000000000000000000000000000000000000",
+        lockVerifier: "0x0000000000000000000000000000000000000000",
+        batchLockVerifier: "0x0000000000000000000000000000000000000000",
       }
     };
     await expect(
@@ -115,8 +115,8 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
         depositVerifier: "0x0000000000000000000000000000000000000000",
         withdrawVerifier: "0x0000000000000000000000000000000000000000",
         batchWithdrawVerifier: "0x0000000000000000000000000000000000000000",
-        lockedVerifier: "0x0000000000000000000000000000000000000000",
-        batchLockedVerifier: "0x0000000000000000000000000000000000000000",
+        lockVerifier: "0x0000000000000000000000000000000000000000",
+        batchLockVerifier: "0x0000000000000000000000000000000000000000",
       }
     };
     await expect(
@@ -139,8 +139,8 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
         depositVerifier: "0x0000000000000000000000000000000000000000",
         withdrawVerifier: "0x0000000000000000000000000000000000000000",
         batchWithdrawVerifier: "0x0000000000000000000000000000000000000000",
-        lockedVerifier: "0x0000000000000000000000000000000000000000",
-        batchLockedVerifier: "0x0000000000000000000000000000000000000000",
+        lockVerifier: "0x0000000000000000000000000000000000000000",
+        batchLockVerifier: "0x0000000000000000000000000000000000000000",
       }
     };
     const tx1 = await factory
@@ -169,8 +169,8 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
         depositVerifier: "0x0000000000000000000000000000000000000000",
         withdrawVerifier: "0x0000000000000000000000000000000000000000",
         batchWithdrawVerifier: "0x0000000000000000000000000000000000000000",
-        lockedVerifier: "0x0000000000000000000000000000000000000000",
-        batchLockedVerifier: "0x0000000000000000000000000000000000000000",
+        lockVerifier: "0x0000000000000000000000000000000000000000",
+        batchLockVerifier: "0x0000000000000000000000000000000000000000",
       }
     };
     const tx1 = await factory
@@ -200,8 +200,8 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
         depositVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
         withdrawVerifier: "0x0000000000000000000000000000000000000000",
         batchWithdrawVerifier: "0x0000000000000000000000000000000000000000",
-        lockedVerifier: "0x0000000000000000000000000000000000000000",
-        batchLockedVerifier: "0x0000000000000000000000000000000000000000",
+        lockVerifier: "0x0000000000000000000000000000000000000000",
+        batchLockVerifier: "0x0000000000000000000000000000000000000000",
       }
     };
     const tx1 = await factory
@@ -231,8 +231,8 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
         depositVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
         withdrawVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
         batchWithdrawVerifier: "0x0000000000000000000000000000000000000000",
-        lockedVerifier: "0x0000000000000000000000000000000000000000",
-        batchLockedVerifier: "0x0000000000000000000000000000000000000000",
+        lockVerifier: "0x0000000000000000000000000000000000000000",
+        batchLockVerifier: "0x0000000000000000000000000000000000000000",
       }
     };
     const tx1 = await factory
@@ -320,8 +320,8 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
         depositVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
         withdrawVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
         batchWithdrawVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
-        lockedVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
-        batchLockedVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+        lockVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
+        batchLockVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
       }
     };
     const tx1 = await factory

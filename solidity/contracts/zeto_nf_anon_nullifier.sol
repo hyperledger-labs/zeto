@@ -38,7 +38,7 @@ contract Zeto_NfAnonNullifier is
     UUPSUpgradeable
 {
     Groth16Verifier_NfAnonNullifierTransfer _verifier;
-    Groth16Verifier_NfAnonNullifierTransferLocked _lockedVerifier;
+    Groth16Verifier_NfAnonNullifierTransferLocked _lockVerifier;
 
     function initialize(
         address initialOwner,
@@ -48,8 +48,8 @@ contract Zeto_NfAnonNullifier is
         _verifier = (Groth16Verifier_NfAnonNullifierTransfer)(
             verifiers.verifier
         );
-        _lockedVerifier = (Groth16Verifier_NfAnonNullifierTransferLocked)(
-            verifiers.lockedVerifier
+        _lockVerifier = (Groth16Verifier_NfAnonNullifierTransferLocked)(
+            verifiers.lockVerifier
         );
     }
 
@@ -177,7 +177,7 @@ contract Zeto_NfAnonNullifier is
 
         // Check the proof
         require(
-            _lockedVerifier.verifyProof(
+            _lockVerifier.verifyProof(
                 proof.pA,
                 proof.pB,
                 proof.pC,

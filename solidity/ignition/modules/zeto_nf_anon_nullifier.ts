@@ -25,7 +25,7 @@ const VerifierModule = buildModule(
   },
 );
 
-const LockedVerifierModule = buildModule(
+const LockVerifierModule = buildModule(
   "Groth16Verifier_NfAnonNullifierTransferLocked",
   (m) => {
     const verifier = m.contract(
@@ -39,7 +39,7 @@ const LockedVerifierModule = buildModule(
 export default buildModule("Zeto_NfAnonNullifier", (m) => {
   const { smtLib, poseidon3 } = m.useModule(SmtLibModule);
   const { verifier } = m.useModule(VerifierModule);
-  const { verifier: lockedVerifier } = m.useModule(LockedVerifierModule);
+  const { verifier: lockVerifier } = m.useModule(LockVerifierModule);
 
-  return { verifier, lockedVerifier, smtLib, poseidon3 };
+  return { verifier, lockVerifier, smtLib, poseidon3 };
 });
