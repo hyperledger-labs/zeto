@@ -82,22 +82,14 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
             if (i > 0 && sortedOutputs[i] == sortedOutputs[i - 1]) {
                 revert UTXODuplicate(sortedOutputs[i]);
             }
-            SmtLib.Node memory node;
+            bool existsInTree;
             if (isLocked) {
-                uint256 nodeHash = getLeafNodeHash(
-                    sortedOutputs[i],
-                    uint256(uint160(msg.sender))
-                );
-                node = _lockedCommitmentsTree.getNode(nodeHash);
+                (existsInTree, ) = existsAsLocked(sortedOutputs[i], msg.sender);
             } else {
-                uint256 nodeHash = getLeafNodeHash(
-                    sortedOutputs[i],
-                    sortedOutputs[i]
-                );
-                node = _commitmentsTree.getNode(nodeHash);
+                existsInTree = exists(sortedOutputs[i]);
             }
 
-            if (node.nodeType != SmtLib.NodeType.EMPTY) {
+            if (existsInTree) {
                 revert UTXOAlreadyOwned(sortedOutputs[i]);
             }
         }
@@ -155,10 +147,11 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
             if (utxo == 0) {
                 continue;
             }
-            uint256 nodeHash = getLeafNodeHash(utxo, utxo);
-            SmtLib.Node memory node = _commitmentsTree.getNode(nodeHash);
 
-            if (node.nodeType != SmtLib.NodeType.EMPTY) {
+            if (exists(utxo)) {
+                revert UTXOAlreadyOwned(utxo);
+            }
+            if (everExistedAsLocked(utxo, msg.sender)) {
                 revert UTXOAlreadyOwned(utxo);
             }
 
@@ -194,9 +187,7 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
                 // skip the zero outputs
                 continue;
             }
-            uint256 nodeHash = getLeafNodeHash(outputs[i], outputs[i]);
-            SmtLib.Node memory node = _commitmentsTree.getNode(nodeHash);
-            if (node.nodeType != SmtLib.NodeType.EMPTY) {
+            if (exists(outputs[i])) {
                 revert UTXOAlreadyOwned(outputs[i]);
             }
             _commitmentsTree.addLeaf(outputs[i], outputs[i]);
@@ -208,12 +199,9 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
                 // skip the zero outputs
                 continue;
             }
-            uint256 nodeHash = getLeafNodeHash(
-                lockedOutputs[i],
-                uint256(uint160(delegate))
-            );
-            SmtLib.Node memory node = _lockedCommitmentsTree.getNode(nodeHash);
-            if (node.nodeType != SmtLib.NodeType.EMPTY) {
+            bool existsInTree;
+            (existsInTree, ) = existsAsLocked(lockedOutputs[i], delegate);
+            if (existsInTree) {
                 revert UTXOAlreadyLocked(lockedOutputs[i]);
             }
             _lockedCommitmentsTree.addLeaf(
@@ -243,15 +231,16 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
             if (utxos[i] == 0) {
                 continue;
             }
-            uint256 nodeHash = getLeafNodeHash(
+            bool existsInTree;
+            address currentDelegate;
+            (existsInTree, currentDelegate) = existsAsLocked(
                 utxos[i],
-                uint256(uint160(msg.sender))
+                msg.sender
             );
-            SmtLib.Node memory node = _lockedCommitmentsTree.getNode(nodeHash);
-            if (node.nodeType == SmtLib.NodeType.EMPTY) {
+            if (!existsInTree) {
                 revert UTXONotLocked(utxos[i]);
             }
-            if (node.value != uint256(uint160(msg.sender))) {
+            if (currentDelegate != msg.sender) {
                 revert NotLockDelegate(utxos[i], delegate, msg.sender);
             }
             _lockedCommitmentsTree.addLeaf(
@@ -267,12 +256,7 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
         uint256 utxo,
         address delegate
     ) public view returns (bool, address) {
-        uint256 nodeHash = getLeafNodeHash(utxo, uint256(uint160(delegate)));
-        SmtLib.Node memory node = _lockedCommitmentsTree.getNode(nodeHash);
-        if (node.nodeType == SmtLib.NodeType.EMPTY) {
-            return (false, address(0));
-        }
-        return (true, address(uint160(node.value)));
+        return existsAsLocked(utxo, delegate);
     }
 
     function getLeafNodeHash(
@@ -281,5 +265,42 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
     ) internal pure returns (uint256) {
         uint256[3] memory params = [index, value, uint256(1)];
         return PoseidonUnit3L.poseidon(params);
+    }
+
+    // check the existence of a UTXO in the commitments tree. we take a shortcut
+    // by checking the list of nodes by their node hash, because the commitments
+    // tree is append-only, no updates or deletions are allowed. As a result, all
+    // nodes in the list are valid leaf nodes, aka there are no orphaned nodes.
+    function exists(uint256 utxo) public view returns (bool) {
+        uint256 nodeHash = getLeafNodeHash(utxo, utxo);
+        SmtLib.Node memory node = _commitmentsTree.getNode(nodeHash);
+        return node.nodeType != SmtLib.NodeType.EMPTY;
+    }
+
+    // check if an UTXO has ever existed in the locked commitments tree. Because
+    // this tree allows updates to an existing leaf node, we check the node list
+    // which includes the orphaned nodes after updates.
+    function everExistedAsLocked(
+        uint256 utxo,
+        address delegate
+    ) public view returns (bool) {
+        uint256 nodeHash = getLeafNodeHash(utxo, uint256(uint160(delegate)));
+        SmtLib.Node memory node = _lockedCommitmentsTree.getNode(nodeHash);
+        return node.nodeType != SmtLib.NodeType.EMPTY;
+    }
+
+    // check the existence of a locked UTXO in the locked commitments tree. Because
+    // this tree allows updates to an existing leaf node, we need to check the node
+    // by its merkle proof, which is built from the current tree and disregards the
+    // orphaned nodes after updates.
+    function existsAsLocked(
+        uint256 utxo,
+        address delegate
+    ) public view returns (bool, address) {
+        SmtLib.Proof memory proof = _lockedCommitmentsTree.getProof(utxo);
+        return (
+            proof.existence && proof.value == uint256(uint160(delegate)),
+            address(uint160(proof.value))
+        );
     }
 }

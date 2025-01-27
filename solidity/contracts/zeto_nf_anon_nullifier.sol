@@ -148,7 +148,7 @@ contract Zeto_NfAnonNullifier is
         uint256[] memory outputs,
         uint256 root,
         Commonlib.Proof calldata proof
-    ) internal {
+    ) internal view {
         // construct the public inputs
         uint256[3] memory publicInputs;
         publicInputs[0] = nullifiers[0];
@@ -167,7 +167,7 @@ contract Zeto_NfAnonNullifier is
         uint256[] memory outputs,
         uint256 root,
         Commonlib.Proof calldata proof
-    ) internal {
+    ) internal view {
         // construct the public inputs
         uint256[4] memory publicInputs;
         publicInputs[0] = nullifiers[0];
