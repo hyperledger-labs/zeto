@@ -38,7 +38,7 @@ It's very easy to enable the ERC20 integration on any fungible Zeto implementati
 
 ## deposit/withdraw vs. mint
 
-A solution developer who considers using the ERC20 integration feature must take into account how this works alongside the `mint` function. If the mint function is used in addition to `deposit`, there may not be sufficient ERC20 balance in the Zeto contract to support all the `withdraw` calls.
+A solution developer who considers using the ERC20 integration feature must take into account how this works alongside the `mint` function. While the `mint` function preserves the privacy of new token issuance inside the Zeto contract, it could lead to an insufficient balance in the ERC20 contract when the `withdraw` function is invoked.
 
 Consider the following sequence of events:
 
