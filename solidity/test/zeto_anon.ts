@@ -386,6 +386,38 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     let lockedUtxo1: UTXO;
     let lockedUtxo2: UTXO;
 
+    it("lock() should fail when duplicate UTXOs are provided", async function () {
+      const resusedUtxo = newUTXO(7, Bob);
+      const spareUtxo = newUTXO(1, Bob);
+      const inflatedInputUtxos = [utxo7, ZERO_UTXO, ZERO_UTXO];
+      const inflatedOutputUtxos = [resusedUtxo, spareUtxo, resusedUtxo];
+      const inflatedOutputOwners = [Bob, Bob, Bob];
+      for (let i = 0; i < 7; i++) {
+        inflatedInputUtxos.push(ZERO_UTXO);
+        inflatedOutputUtxos.push(ZERO_UTXO);
+        inflatedOutputOwners.push(Bob);
+      }
+
+      const result = await prepareProof(
+        batchCircuit,
+        batchProvingKey,
+        Bob,
+        inflatedInputUtxos,
+        inflatedOutputUtxos,
+        inflatedOutputOwners,
+      );
+      await expect(
+        zeto.connect(Bob.signer).lock(
+          result.inputCommitments,
+          [result.outputCommitments[0]], // unlocked output
+          result.outputCommitments, // locked output
+          result.encodedProof,
+          Alice.ethAddress, // make Alice the delegate who can spend the state (if she has the right proof)
+          "0x",
+        ),
+      ).rejectedWith(`UTXODuplicate(${resusedUtxo.hash.toString()})`);
+    });
+
     it("lock() should succeed when using unlocked states", async function () {
       lockedUtxo1 = newUTXO(10, Bob);
       lockedUtxo2 = newUTXO(5, Bob);
