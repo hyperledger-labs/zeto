@@ -41,10 +41,7 @@ template transferLocked(nInputs, nOutputs, nSMTLevels) {
   signal input outputOwnerPublicKeys[nOutputs][2];
   signal input outputSalts[nOutputs];
 
-  // With the above steps, we demonstrated that the nullifiers
-  // are securely bound to the input commitments. Now we need to
-  // demonstrate that the input commitments belong to the Sparse
-  // Merkle Tree with the root `root`.
+  // we assume a single lock delegate for all locked inputs
   var lockDelegates[nInputs];
   for (var i = 0; i < nInputs; i++) {
     lockDelegates[i] = lockDelegate;
