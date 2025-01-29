@@ -16,19 +16,14 @@
 pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
-import {MAX_BATCH} from "./lib/interfaces/izeto_common.sol";
-import {ILockVerifier, IBatchLockVerifier} from "./lib/interfaces/izeto_lockable.sol";
-import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
-import {Groth16Verifier_CheckInputsOutputsValue} from "./lib/verifier_check_inputs_outputs_value.sol";
-import {Groth16Verifier_CheckInputsOutputsValueBatch} from "./lib/verifier_check_inputs_outputs_value_batch.sol";
-import {Groth16Verifier_CheckUtxosOwner} from "./lib/verifier_check_utxos_owner.sol";
-import {Groth16Verifier_CheckUtxosOwnerBatch} from "./lib/verifier_check_utxos_owner_batch.sol";
-
-import {Groth16Verifier_Anon} from "./lib/verifier_anon.sol";
-import {Groth16Verifier_AnonBatch} from "./lib/verifier_anon_batch.sol";
+import {Groth16Verifier_CheckHashesValue} from "./verifiers/verifier_check_hashes_value.sol";
+import {Groth16Verifier_CheckInputsOutputsValue} from "./verifiers/verifier_check_inputs_outputs_value.sol";
+import {Groth16Verifier_CheckInputsOutputsValueBatch} from "./verifiers/verifier_check_inputs_outputs_value_batch.sol";
+import {Groth16Verifier_Anon} from "./verifiers/verifier_anon.sol";
+import {Groth16Verifier_AnonBatch} from "./verifiers/verifier_anon_batch.sol";
 import {Commonlib} from "./lib/common.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
-import {ZetoLock} from "./lib/zeto_lock.sol";
+import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
@@ -44,9 +39,9 @@ uint256 constant BATCH_INPUT_SIZE = 20;
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
 contract Zeto_Anon is
     IZeto,
+    IZetoInitializable,
     ZetoBase,
     ZetoFungibleWithdraw,
-    ZetoLock,
     UUPSUpgradeable
 {
     Groth16Verifier_Anon internal _verifier;
@@ -54,51 +49,30 @@ contract Zeto_Anon is
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_Anon verifier,
-        Groth16Verifier_CheckHashesValue depositVerifier,
-        Groth16Verifier_CheckInputsOutputsValue withdrawVerifier,
-        Groth16Verifier_AnonBatch batchVerifier,
-        Groth16Verifier_CheckInputsOutputsValueBatch batchWithdrawVerifier,
-        ILockVerifier lockVerifier,
-        IBatchLockVerifier batchLockVerifier
+        VerifiersInfo calldata verifiers
     ) public initializer {
         __ZetoBase_init(initialOwner);
         __ZetoFungibleWithdraw_init(
-            depositVerifier,
-            withdrawVerifier,
-            batchWithdrawVerifier
+            (Groth16Verifier_CheckHashesValue)(verifiers.depositVerifier),
+            (Groth16Verifier_CheckInputsOutputsValue)(
+                verifiers.withdrawVerifier
+            ),
+            (Groth16Verifier_CheckInputsOutputsValueBatch)(
+                verifiers.batchWithdrawVerifier
+            )
         );
-        __ZetoLock_init(lockVerifier, batchLockVerifier);
-        _verifier = verifier;
-        _batchVerifier = batchVerifier;
+        _verifier = (Groth16Verifier_Anon)(verifiers.verifier);
+        _batchVerifier = (Groth16Verifier_AnonBatch)(verifiers.batchVerifier);
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
-    function constructPublicInputs(
-        uint256[] memory inputs,
-        uint256[] memory outputs,
-        uint256 size
-    ) internal pure returns (uint256[] memory publicInputs) {
-        publicInputs = new uint256[](size);
-        uint256 piIndex = 0;
-        // copy input commitments
-        for (uint256 i = 0; i < inputs.length; i++) {
-            publicInputs[piIndex++] = inputs[i];
-        }
-
-        // copy output commitments
-        for (uint256 i = 0; i < outputs.length; i++) {
-            publicInputs[piIndex++] = outputs[i];
-        }
-
-        return publicInputs;
-    }
-
     /**
-     * @dev the main function of the contract.
+     * @dev transfer funds by spending the input UTXOs (owned by the sender) and creating
+     * output UTXOs (owned by the receiver). Some of the output UTXOs may be owned by the
+     * sender, to return the change.
      *
-     * @param inputs Array of UTXOs to be spent by the transaction.
+     * @param inputs Array of UTXOs to be spent by the transaction. They must be unlocked.
      * @param outputs Array of new UTXOs to generate, for future transactions to spend.
      * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
      *      that the outputs are valid in terms of obeying mass conservation rules.
@@ -112,12 +86,132 @@ contract Zeto_Anon is
         bytes calldata data
     ) public returns (bool) {
         // Check and pad inputs and outputs based on the max size
-        (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
+        inputs = checkAndPadCommitments(inputs);
+        outputs = checkAndPadCommitments(outputs);
 
-        validateTransactionProposal(inputs, outputs);
-        validateLockedStates(inputs);
+        uint256[] memory lockedOutputs;
+        validateTransactionProposal(inputs, outputs, lockedOutputs, false);
+        verifyProof(inputs, outputs, proof);
+
+        processInputsAndOutputs(inputs, outputs, lockedOutputs, false);
+        emit UTXOTransfer(inputs, outputs, msg.sender, data);
+
+        return true;
+    }
+
+    /**
+     * @dev transfer funds that have been previously locked by the sender. The submitted must
+     * be the current delegate of the locked UTXOs.
+     *
+     * @param inputs Array of UTXOs to be spent by the transaction, they must be locked.
+     * @param outputs Array of new UTXOs to generate, for future transactions to spend. They are unlocked.
+     * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
+     *      that the outputs are valid in terms of obeying mass conservation rules.
+     *
+     * Emits a {UTXOTransfer} event.
+     */
+    function transferLocked(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        Commonlib.Proof calldata proof,
+        bytes calldata data
+    ) public returns (bool) {
+        // Check and pad inputs and outputs based on the max size
+        inputs = checkAndPadCommitments(inputs);
+        outputs = checkAndPadCommitments(outputs);
+
+        uint256[] memory lockedOutputs;
+        validateTransactionProposal(inputs, outputs, lockedOutputs, true);
 
         // Check the proof
+        verifyProof(inputs, outputs, proof);
+
+        processInputsAndOutputs(inputs, outputs, lockedOutputs, false);
+        emit UTXOTransfer(inputs, outputs, msg.sender, data);
+
+        return true;
+    }
+
+    function deposit(
+        uint256 amount,
+        uint256[] memory outputs,
+        Commonlib.Proof calldata proof,
+        bytes calldata data
+    ) public {
+        _deposit(amount, outputs, proof);
+        _mint(outputs, data);
+    }
+
+    function withdraw(
+        uint256 amount,
+        uint256[] memory inputs,
+        uint256 output,
+        Commonlib.Proof calldata proof,
+        bytes calldata data
+    ) public {
+        // Check and pad inputs and outputs based on the max size
+        uint256[] memory outputs = new uint256[](inputs.length);
+        outputs[0] = output;
+        inputs = checkAndPadCommitments(inputs);
+        outputs = checkAndPadCommitments(outputs);
+        uint256[] memory lockedOutputs;
+        validateTransactionProposal(inputs, outputs, lockedOutputs, false);
+
+        _withdraw(amount, inputs, output, proof);
+        processInputsAndOutputs(inputs, outputs, lockedOutputs, false);
+        emit UTXOWithdraw(amount, inputs, output, msg.sender, data);
+    }
+
+    function mint(
+        uint256[] memory utxos,
+        bytes calldata data
+    ) public onlyOwner {
+        _mint(utxos, data);
+    }
+
+    function lock(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        uint256[] memory lockedOutputs,
+        Commonlib.Proof calldata proof,
+        address delegate,
+        bytes calldata data
+    ) public {
+        validateTransactionProposal(inputs, outputs, lockedOutputs, false);
+
+        // Check the proof
+        // merge the outputs and lockedOutputs and do a regular transfer
+        uint256[] memory allOutputs = new uint256[](
+            outputs.length + lockedOutputs.length
+        );
+        for (uint256 i = 0; i < outputs.length; i++) {
+            allOutputs[i] = outputs[i];
+        }
+        for (uint256 i = 0; i < lockedOutputs.length; i++) {
+            allOutputs[outputs.length + i] = lockedOutputs[i];
+        }
+        verifyProof(inputs, allOutputs, proof);
+
+        processInputsAndOutputs(inputs, outputs, lockedOutputs, false);
+
+        // lock the intended outputs
+        _lock(inputs, outputs, lockedOutputs, delegate, data);
+    }
+
+    function unlock(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        Commonlib.Proof calldata proof,
+        bytes calldata data
+    ) public {
+        transferLocked(inputs, outputs, proof, data);
+    }
+
+    function verifyProof(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        Commonlib.Proof calldata proof
+    ) public view returns (bool) {
         if (inputs.length > 2 || outputs.length > 2) {
             uint256[] memory publicInputs = constructPublicInputs(
                 inputs,
@@ -162,45 +256,26 @@ contract Zeto_Anon is
                 "Invalid proof"
             );
         }
-
-        processInputsAndOutputs(inputs, outputs);
-        emit UTXOTransfer(inputs, outputs, msg.sender, data);
-
         return true;
     }
 
-    function deposit(
-        uint256 amount,
-        uint256[] memory outputs,
-        Commonlib.Proof calldata proof,
-        bytes calldata data
-    ) public {
-        _deposit(amount, outputs, proof);
-        _mint(outputs, data);
-    }
-
-    function withdraw(
-        uint256 amount,
+    function constructPublicInputs(
         uint256[] memory inputs,
-        uint256 output,
-        Commonlib.Proof calldata proof,
-        bytes calldata data
-    ) public {
-        // Check and pad inputs and outputs based on the max size
-        uint256[] memory outputs = new uint256[](inputs.length);
-        outputs[0] = output;
-        (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
-        validateTransactionProposal(inputs, outputs);
-        validateLockedStates(inputs);
-        _withdraw(amount, inputs, output, proof);
-        processInputsAndOutputs(inputs, outputs);
-        emit UTXOWithdraw(amount, inputs, output, msg.sender, data);
-    }
+        uint256[] memory outputs,
+        uint256 size
+    ) internal pure returns (uint256[] memory publicInputs) {
+        publicInputs = new uint256[](size);
+        uint256 piIndex = 0;
+        // copy input commitments
+        for (uint256 i = 0; i < inputs.length; i++) {
+            publicInputs[piIndex++] = inputs[i];
+        }
 
-    function mint(
-        uint256[] memory utxos,
-        bytes calldata data
-    ) public onlyOwner {
-        _mint(utxos, data);
+        // copy output commitments
+        for (uint256 i = 0; i < outputs.length; i++) {
+            publicInputs[piIndex++] = outputs[i];
+        }
+
+        return publicInputs;
     }
 }

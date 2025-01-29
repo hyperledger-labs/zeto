@@ -41,7 +41,7 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
     this.timeout(60000);
 
     circuit = await wasm_tester(
-      join(__dirname, "../../circuits/anon_nullifier.circom"),
+      join(__dirname, "../../circuits/anon_nullifier_transfer.circom"),
     );
 
     let keypair = genKeypair();

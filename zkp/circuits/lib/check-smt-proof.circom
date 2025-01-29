@@ -22,6 +22,7 @@ include "../node_modules/circomlib/circuits/smt/smtverifier.circom";
 //
 template CheckSMTProof(numInputs, nSMTLevels) {
   signal input leafNodeIndexes[numInputs];
+  signal input leafNodeValues[numInputs];
   signal input root;
   signal input merkleProof[numInputs][nSMTLevels];
   signal input enabled[numInputs];
@@ -34,6 +35,6 @@ template CheckSMTProof(numInputs, nSMTLevels) {
     // The old values are only used in exclusion proofs. 
     // As such they are always 0 for inclusion proofs.
     // TODO: update when exclusion proofs are supported
-    SMTVerifier(nSMTLevels)(enabled <== enabled[i], root <== root, siblings <== siblings, key <== leafNodeIndexes[i], value <== leafNodeIndexes[i], fnc <== 0 /* 0: inclusion proof, 1: exclusion proof */, oldKey <== 0, oldValue <== 0, isOld0 <== 0);
+    SMTVerifier(nSMTLevels)(enabled <== enabled[i], root <== root, siblings <== siblings, key <== leafNodeIndexes[i], value <== leafNodeValues[i], fnc <== 0 /* 0: inclusion proof, 1: exclusion proof */, oldKey <== 0, oldValue <== 0, isOld0 <== 0);
   }
 }

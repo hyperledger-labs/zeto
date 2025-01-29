@@ -17,8 +17,7 @@ pragma solidity ^0.8.27;
 
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IZetoFungibleInitializable} from "./lib/interfaces/izeto_fungible_initializable.sol";
-import {IZetoNonFungibleInitializable} from "./lib/interfaces/izeto_nf_initializable.sol";
+import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 
 contract ZetoTokenFactory is Ownable {
     // all the addresses needed by the factory to
@@ -27,13 +26,7 @@ contract ZetoTokenFactory is Ownable {
     // the rest of the addresses are used to initialize
     struct ImplementationInfo {
         address implementation;
-        address depositVerifier;
-        address withdrawVerifier;
-        address lockVerifier;
-        address verifier;
-        address batchVerifier;
-        address batchWithdrawVerifier;
-        address batchLockVerifier;
+        IZetoInitializable.VerifiersInfo verifiers;
     }
 
     event ZetoTokenDeployed(address indexed zetoToken);
@@ -51,7 +44,7 @@ contract ZetoTokenFactory is Ownable {
             "Factory: implementation address is required"
         );
         require(
-            implementation.verifier != address(0),
+            implementation.verifiers.verifier != address(0),
             "Factory: verifier address is required"
         );
         // the depositVerifier and withdrawVerifier are optional
@@ -71,44 +64,27 @@ contract ZetoTokenFactory is Ownable {
         // check that the registered implementation is for a fungible token
         // and has the required verifier addresses
         require(
-            args.depositVerifier != address(0),
+            args.verifiers.depositVerifier != address(0),
             "Factory: depositVerifier address is required"
         );
         require(
-            args.withdrawVerifier != address(0),
+            args.verifiers.withdrawVerifier != address(0),
             "Factory: withdrawVerifier address is required"
         );
         require(
-            args.batchVerifier != address(0),
+            args.verifiers.batchVerifier != address(0),
             "Factory: batchVerifier address is required"
         );
         require(
-            args.batchWithdrawVerifier != address(0),
+            args.verifiers.batchWithdrawVerifier != address(0),
             "Factory: batchWithdrawVerifier address is required"
-        );
-        require(
-            args.lockVerifier != address(0),
-            "Factory: lockVerifier address is required"
-        );
-        require(
-            args.batchLockVerifier != address(0),
-            "Factory: batchLockVerifier address is required"
         );
         address instance = Clones.clone(args.implementation);
         require(
             instance != address(0),
             "Factory: failed to clone implementation"
         );
-        (IZetoFungibleInitializable(instance)).initialize(
-            initialOwner,
-            args.verifier,
-            args.depositVerifier,
-            args.withdrawVerifier,
-            args.batchVerifier,
-            args.batchWithdrawVerifier,
-            args.lockVerifier,
-            args.batchLockVerifier
-        );
+        (IZetoInitializable(instance)).initialize(initialOwner, args.verifiers);
         emit ZetoTokenDeployed(instance);
         return instance;
     }
@@ -122,20 +98,12 @@ contract ZetoTokenFactory is Ownable {
             args.implementation != address(0),
             "Factory: failed to find implementation"
         );
-        require(
-            args.lockVerifier != address(0),
-            "Factory: lockVerifier address is required"
-        );
         address instance = Clones.clone(args.implementation);
         require(
             instance != address(0),
             "Factory: failed to clone implementation"
         );
-        (IZetoNonFungibleInitializable(instance)).initialize(
-            initialOwner,
-            args.verifier,
-            args.lockVerifier
-        );
+        (IZetoInitializable(instance)).initialize(initialOwner, args.verifiers);
         emit ZetoTokenDeployed(instance);
         return instance;
     }

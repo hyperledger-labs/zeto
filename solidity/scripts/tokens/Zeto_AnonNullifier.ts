@@ -24,10 +24,10 @@ export async function deployDependencies() {
     depositVerifier,
     withdrawVerifier,
     verifier,
-    batchVerifier,
-    batchWithdrawVerifier,
     lockVerifier,
+    batchVerifier,
     batchLockVerifier,
+    batchWithdrawVerifier,
     smtLib,
     poseidon3,
   } = await ignition.deploy(zetoModule);
@@ -35,13 +35,15 @@ export async function deployDependencies() {
     deployer,
     args: [
       await deployer.getAddress(),
-      verifier.target,
-      depositVerifier.target,
-      withdrawVerifier.target,
-      batchVerifier.target,
-      batchWithdrawVerifier.target,
-      lockVerifier.target,
-      batchLockVerifier.target,
+      {
+        verifier: verifier.target,
+        depositVerifier: depositVerifier.target,
+        withdrawVerifier: withdrawVerifier.target,
+        batchVerifier: batchVerifier.target,
+        batchWithdrawVerifier: batchWithdrawVerifier.target,
+        lockVerifier: lockVerifier.target,
+        batchLockVerifier: batchLockVerifier.target,
+      }
     ],
     libraries: {
       SmtLib: smtLib.target,

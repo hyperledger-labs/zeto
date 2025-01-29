@@ -15,17 +15,27 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {IZetoBase} from "./interfaces/izeto_base.sol";
+import {Commonlib} from "./common.sol";
+import {IZeto} from "./interfaces/izeto.sol";
+import {MAX_SMT_DEPTH} from "./interfaces/izeto.sol";
+import {IZetoLockable} from "./interfaces/izeto_lockable.sol";
 import {ZetoCommon} from "./zeto_common.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
+import {console} from "hardhat/console.sol";
 
 /// @title A sample base implementation of a Zeto based token contract with nullifiers
 /// @author Kaleido, Inc.
 /// @dev Implements common functionalities of Zeto based tokens using nullifiers
-abstract contract ZetoNullifier is IZetoBase, ZetoCommon {
-    uint256 public constant MAX_SMT_DEPTH = 64;
+abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
+    // used for tracking regular (unlocked) UTXOs
     SmtLib.Data internal _commitmentsTree;
+    // used for locked UTXOs tracking. multi-step transaction flows that require counterparties
+    // to upload proofs. To protect the party that uploads their proof first,
+    // and prevent any other party from utilizing the uploaded proof to execute
+    // a transaction, the input UTXOs or nullifiers can be locked and only usable
+    // by the same party that did the locking.
+    SmtLib.Data internal _lockedCommitmentsTree;
     using SmtLib for SmtLib.Data;
     mapping(uint256 => bool) private _nullifiers;
 
@@ -36,18 +46,18 @@ abstract contract ZetoNullifier is IZetoBase, ZetoCommon {
     ) internal onlyInitializing {
         __ZetoCommon_init(initialOwner);
         _commitmentsTree.initialize(MAX_SMT_DEPTH);
+        _lockedCommitmentsTree.initialize(MAX_SMT_DEPTH);
     }
 
     function validateTransactionProposal(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
-        uint256 root
+        uint256 root,
+        bool isLocked
     ) internal view returns (bool) {
         // sort the inputs and outputs to detect duplicates
-        (
-            uint256[] memory sortedInputs,
-            uint256[] memory sortedOutputs
-        ) = sortInputsAndOutputs(nullifiers, outputs);
+        uint256[] memory sortedInputs = sortCommitments(nullifiers);
+        uint256[] memory sortedOutputs = sortCommitments(outputs);
 
         // Check the inputs are all unspent
         for (uint256 i = 0; i < sortedInputs.length; ++i) {
@@ -72,9 +82,14 @@ abstract contract ZetoNullifier is IZetoBase, ZetoCommon {
             if (i > 0 && sortedOutputs[i] == sortedOutputs[i - 1]) {
                 revert UTXODuplicate(sortedOutputs[i]);
             }
-            uint256 nodeHash = _getLeafNodeHash(sortedOutputs[i]);
-            SmtLib.Node memory node = _commitmentsTree.getNode(nodeHash);
-            if (node.nodeType != SmtLib.NodeType.EMPTY) {
+            bool existsInTree;
+            if (isLocked) {
+                (existsInTree, ) = existsAsLocked(sortedOutputs[i], msg.sender);
+            } else {
+                existsInTree = exists(sortedOutputs[i]);
+            }
+
+            if (existsInTree) {
                 revert UTXOAlreadyOwned(sortedOutputs[i]);
             }
         }
@@ -82,7 +97,9 @@ abstract contract ZetoNullifier is IZetoBase, ZetoCommon {
         // Check if the root has existed before. It does not need to be the latest root.
         // Our SMT is append-only, so if the root has existed before, and the merklet proof
         // is valid, then the leaves still exist in the tree.
-        if (!_commitmentsTree.rootExists(root)) {
+        if (isLocked && !_lockedCommitmentsTree.rootExists(root)) {
+            revert UTXORootNotFound(root);
+        } else if (!isLocked && !_commitmentsTree.rootExists(root)) {
             revert UTXORootNotFound(root);
         }
 
@@ -91,16 +108,30 @@ abstract contract ZetoNullifier is IZetoBase, ZetoCommon {
 
     function processInputsAndOutputs(
         uint256[] memory nullifiers,
-        uint256[] memory outputs
+        uint256[] memory outputs,
+        uint256[] memory lockedOutputs,
+        address delegate
     ) internal {
-        for (uint256 i = 0; i < nullifiers.length; ++i) {
-            if (nullifiers[i] != 0) {
-                _nullifiers[nullifiers[i]] = true;
-            }
-        }
+        spendNullifiers(nullifiers);
         for (uint256 i = 0; i < outputs.length; ++i) {
             if (outputs[i] != 0) {
                 _commitmentsTree.addLeaf(outputs[i], outputs[i]);
+            }
+        }
+        for (uint256 i = 0; i < lockedOutputs.length; ++i) {
+            if (lockedOutputs[i] != 0) {
+                _lockedCommitmentsTree.addLeaf(
+                    lockedOutputs[i],
+                    uint256(uint160(delegate))
+                );
+            }
+        }
+    }
+
+    function spendNullifiers(uint256[] memory nullifiers) internal {
+        for (uint256 i = 0; i < nullifiers.length; ++i) {
+            if (nullifiers[i] != 0) {
+                _nullifiers[nullifiers[i]] = true;
             }
         }
     }
@@ -116,10 +147,11 @@ abstract contract ZetoNullifier is IZetoBase, ZetoCommon {
             if (utxo == 0) {
                 continue;
             }
-            uint256 nodeHash = _getLeafNodeHash(utxo);
-            SmtLib.Node memory node = _commitmentsTree.getNode(nodeHash);
 
-            if (node.nodeType != SmtLib.NodeType.EMPTY) {
+            if (exists(utxo)) {
+                revert UTXOAlreadyOwned(utxo);
+            }
+            if (everExistedAsLocked(utxo, msg.sender)) {
                 revert UTXOAlreadyOwned(utxo);
             }
 
@@ -133,8 +165,142 @@ abstract contract ZetoNullifier is IZetoBase, ZetoCommon {
         return _commitmentsTree.getRoot();
     }
 
-    function _getLeafNodeHash(uint256 utxo) internal pure returns (uint256) {
-        uint256[3] memory params = [utxo, utxo, uint256(1)];
+    function getRootForLocked() public view returns (uint256) {
+        return _lockedCommitmentsTree.getRoot();
+    }
+
+    // Locks the UTXOs so that they can only be spent by submitting the appropriate
+    // proof from the Eth account designated as the "delegate". This function
+    // should be called by escrow contracts that will use uploaded proofs
+    // to execute transactions, in order to prevent the proof from being used
+    // by parties other than the escrow contract.
+    function _lock(
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
+        uint256[] memory lockedOutputs,
+        address delegate,
+        bytes calldata data
+    ) public {
+        // Check the outputs are all new UTXOs
+        for (uint256 i = 0; i < outputs.length; ++i) {
+            if (outputs[i] == 0) {
+                // skip the zero outputs
+                continue;
+            }
+            if (exists(outputs[i])) {
+                revert UTXOAlreadyOwned(outputs[i]);
+            }
+            _commitmentsTree.addLeaf(outputs[i], outputs[i]);
+        }
+
+        // Check the locked outputs are all new UTXOs
+        for (uint256 i = 0; i < lockedOutputs.length; ++i) {
+            if (lockedOutputs[i] == 0) {
+                // skip the zero outputs
+                continue;
+            }
+            bool existsInTree;
+            (existsInTree, ) = existsAsLocked(lockedOutputs[i], delegate);
+            if (existsInTree) {
+                revert UTXOAlreadyLocked(lockedOutputs[i]);
+            }
+            _lockedCommitmentsTree.addLeaf(
+                lockedOutputs[i],
+                uint256(uint160(delegate))
+            );
+        }
+
+        emit UTXOsLocked(
+            nullifiers,
+            outputs,
+            lockedOutputs,
+            delegate,
+            msg.sender,
+            data
+        );
+    }
+
+    // move the ability to spend the locked UTXOs to the delegate account.
+    // The sender must be the current delegate.
+    function delegateLock(
+        uint256[] memory utxos,
+        address delegate,
+        bytes calldata data
+    ) public {
+        for (uint256 i = 0; i < utxos.length; ++i) {
+            if (utxos[i] == 0) {
+                continue;
+            }
+            bool existsInTree;
+            address currentDelegate;
+            (existsInTree, currentDelegate) = existsAsLocked(
+                utxos[i],
+                msg.sender
+            );
+            if (!existsInTree) {
+                revert UTXONotLocked(utxos[i]);
+            }
+            if (currentDelegate != msg.sender) {
+                revert NotLockDelegate(utxos[i], delegate, msg.sender);
+            }
+            _lockedCommitmentsTree.addLeaf(
+                utxos[i],
+                uint256(uint160(delegate))
+            );
+        }
+
+        emit LockDelegateChanged(utxos, msg.sender, delegate, data);
+    }
+
+    function locked(
+        uint256 utxo,
+        address delegate
+    ) public view returns (bool, address) {
+        return existsAsLocked(utxo, delegate);
+    }
+
+    function getLeafNodeHash(
+        uint256 index,
+        uint256 value
+    ) internal pure returns (uint256) {
+        uint256[3] memory params = [index, value, uint256(1)];
         return PoseidonUnit3L.poseidon(params);
+    }
+
+    // check the existence of a UTXO in the commitments tree. we take a shortcut
+    // by checking the list of nodes by their node hash, because the commitments
+    // tree is append-only, no updates or deletions are allowed. As a result, all
+    // nodes in the list are valid leaf nodes, aka there are no orphaned nodes.
+    function exists(uint256 utxo) public view returns (bool) {
+        uint256 nodeHash = getLeafNodeHash(utxo, utxo);
+        SmtLib.Node memory node = _commitmentsTree.getNode(nodeHash);
+        return node.nodeType != SmtLib.NodeType.EMPTY;
+    }
+
+    // check if an UTXO has ever existed in the locked commitments tree. Because
+    // this tree allows updates to an existing leaf node, we check the node list
+    // which includes the orphaned nodes after updates.
+    function everExistedAsLocked(
+        uint256 utxo,
+        address delegate
+    ) public view returns (bool) {
+        uint256 nodeHash = getLeafNodeHash(utxo, uint256(uint160(delegate)));
+        SmtLib.Node memory node = _lockedCommitmentsTree.getNode(nodeHash);
+        return node.nodeType != SmtLib.NodeType.EMPTY;
+    }
+
+    // check the existence of a locked UTXO in the locked commitments tree. Because
+    // this tree allows updates to an existing leaf node, we need to check the node
+    // by its merkle proof, which is built from the current tree and disregards the
+    // orphaned nodes after updates.
+    function existsAsLocked(
+        uint256 utxo,
+        address delegate
+    ) public view returns (bool, address) {
+        SmtLib.Proof memory proof = _lockedCommitmentsTree.getProof(utxo);
+        return (
+            proof.existence && proof.value == uint256(uint160(delegate)),
+            address(uint160(proof.value))
+        );
     }
 }

@@ -41,7 +41,7 @@ describe("main circuit tests for Zeto non-fungible tokens with anonymity using n
     this.timeout(60000);
 
     circuit = await wasm_tester(
-      join(__dirname, "../../circuits/nf_anon_nullifier.circom"),
+      join(__dirname, "../../circuits/nf_anon_nullifier_transfer.circom"),
     );
 
     let keypair = genKeypair();
@@ -194,7 +194,7 @@ describe("main circuit tests for Zeto non-fungible tokens with anonymity using n
       err = e;
     }
     // console.log(err);
-    expect(err).to.match(/Error in template Zeto_319 line: 55/);
+    expect(err).to.match(/Error in template Zeto_319 line: 56/);
     expect(err).to.match(
       /Error in template CheckHashesForTokenIdAndUri_88 line: 51/,
     );
@@ -262,7 +262,7 @@ describe("main circuit tests for Zeto non-fungible tokens with anonymity using n
       err = e;
     }
     // console.log(err);
-    expect(err).to.match(/Error in template Zeto_319 line: 55/);
+    expect(err).to.match(/Error in template Zeto_319 line: 56/);
     expect(err).to.match(
       /Error in template CheckHashesForTokenIdAndUri_88 line: 51/,
     );

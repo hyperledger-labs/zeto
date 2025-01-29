@@ -15,21 +15,16 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {IZetoEncrypted} from "./lib/interfaces/izeto_encrypted.sol";
-import {ILockVerifier, IBatchLockVerifier} from "./lib/interfaces/izeto_lockable.sol";
-import {MAX_BATCH} from "./lib/interfaces/izeto_common.sol";
-import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
-import {Groth16Verifier_CheckInputsOutputsValue} from "./lib/verifier_check_inputs_outputs_value.sol";
-import {Groth16Verifier_CheckInputsOutputsValueBatch} from "./lib/verifier_check_inputs_outputs_value_batch.sol";
-import {Groth16Verifier_CheckUtxosOwner} from "./lib/verifier_check_utxos_owner.sol";
-import {Groth16Verifier_CheckUtxosOwnerBatch} from "./lib/verifier_check_utxos_owner_batch.sol";
-
-import {Groth16Verifier_AnonEnc} from "./lib/verifier_anon_enc.sol";
-import {Groth16Verifier_AnonEncBatch} from "./lib/verifier_anon_enc_batch.sol";
+import {IZeto} from "./lib/interfaces/izeto.sol";
+import {Groth16Verifier_CheckHashesValue} from "./verifiers/verifier_check_hashes_value.sol";
+import {Groth16Verifier_CheckInputsOutputsValue} from "./verifiers/verifier_check_inputs_outputs_value.sol";
+import {Groth16Verifier_CheckInputsOutputsValueBatch} from "./verifiers/verifier_check_inputs_outputs_value_batch.sol";
+import {Groth16Verifier_AnonEnc} from "./verifiers/verifier_anon_enc.sol";
+import {Groth16Verifier_AnonEncBatch} from "./verifiers/verifier_anon_enc_batch.sol";
 import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
-import {ZetoLock} from "./lib/zeto_lock.sol";
 import {Commonlib} from "./lib/common.sol";
+import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 uint256 constant INPUT_SIZE = 15;
@@ -45,10 +40,10 @@ uint256 constant BATCH_INPUT_SIZE = 63;
 ///        - the encrypted value in the input is derived from the receiver's UTXO value and encrypted with a shared secret using
 ///          the ECDH protocol between the sender and receiver (this guarantees data availability for the receiver)
 contract Zeto_AnonEnc is
-    IZetoEncrypted,
+    IZeto,
+    IZetoInitializable,
     ZetoBase,
     ZetoFungibleWithdraw,
-    ZetoLock,
     UUPSUpgradeable
 {
     Groth16Verifier_AnonEnc internal _verifier;
@@ -56,23 +51,22 @@ contract Zeto_AnonEnc is
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_AnonEnc verifier,
-        Groth16Verifier_CheckHashesValue depositVerifier,
-        Groth16Verifier_CheckInputsOutputsValue withdrawVerifier,
-        Groth16Verifier_AnonEncBatch batchVerifier,
-        Groth16Verifier_CheckInputsOutputsValueBatch batchWithdrawVerifier,
-        ILockVerifier lockVerifier,
-        IBatchLockVerifier batchLockVerifier
+        IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
         __ZetoBase_init(initialOwner);
         __ZetoFungibleWithdraw_init(
-            depositVerifier,
-            withdrawVerifier,
-            batchWithdrawVerifier
+            (Groth16Verifier_CheckHashesValue)(verifiers.depositVerifier),
+            (Groth16Verifier_CheckInputsOutputsValue)(
+                verifiers.withdrawVerifier
+            ),
+            (Groth16Verifier_CheckInputsOutputsValueBatch)(
+                verifiers.batchWithdrawVerifier
+            )
         );
-        __ZetoLock_init(lockVerifier, batchLockVerifier);
-        _verifier = verifier;
-        _batchVerifier = batchVerifier;
+        _verifier = (Groth16Verifier_AnonEnc)(verifiers.verifier);
+        _batchVerifier = (Groth16Verifier_AnonEncBatch)(
+            verifiers.batchVerifier
+        );
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -132,9 +126,10 @@ contract Zeto_AnonEnc is
         bytes calldata data
     ) public returns (bool) {
         // Check and pad commitments
-        (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
-        validateTransactionProposal(inputs, outputs);
-        validateLockedStates(inputs);
+        inputs = checkAndPadCommitments(inputs);
+        outputs = checkAndPadCommitments(outputs);
+        uint256[] memory lockedOutputs;
+        validateTransactionProposal(inputs, outputs, lockedOutputs, false);
 
         // Check the proof
         if (inputs.length > 2 || outputs.length > 2) {
@@ -188,7 +183,7 @@ contract Zeto_AnonEnc is
             );
         }
 
-        processInputsAndOutputs(inputs, outputs);
+        processInputsAndOutputs(inputs, outputs, lockedOutputs, false);
 
         uint256[] memory encryptedValuesArray = new uint256[](
             encryptedValues.length
@@ -229,11 +224,14 @@ contract Zeto_AnonEnc is
         uint256[] memory outputs = new uint256[](inputs.length);
         outputs[0] = output;
         // Check and pad commitments
-        (inputs, outputs) = checkAndPadCommitments(inputs, outputs, MAX_BATCH);
-        validateTransactionProposal(inputs, outputs);
-        validateLockedStates(inputs);
+        inputs = checkAndPadCommitments(inputs);
+        outputs = checkAndPadCommitments(outputs);
+        uint256[] memory lockedOutputs;
+        validateTransactionProposal(inputs, outputs, lockedOutputs, false);
+
         _withdraw(amount, inputs, output, proof);
-        processInputsAndOutputs(inputs, outputs);
+
+        processInputsAndOutputs(inputs, outputs, lockedOutputs, false);
         emit UTXOWithdraw(amount, inputs, output, msg.sender, data);
     }
 

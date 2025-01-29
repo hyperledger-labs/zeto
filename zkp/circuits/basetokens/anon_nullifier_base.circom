@@ -36,6 +36,8 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   // must be properly hashed and trimmed to be compatible with the BabyJub curve.
   // Reference: https://github.com/iden3/circomlib/blob/master/test/babyjub.js#L103
   signal input inputOwnerPrivateKey;
+  // values for the SMT leaf nodes, with the index being the input commitments
+  signal input smtNodeValues[nInputs];
   signal input root;
   signal input merkleProof[nInputs][nSMTLevels];
   // allows merkle proof verifications for empty input elements to be skipped
@@ -71,5 +73,5 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   // are securely bound to the input commitments. Now we need to
   // demonstrate that the input commitments belong to the Sparse
   // Merkle Tree with the root `root`.
-  CheckSMTProof(nInputs, nSMTLevels)(root <== root, merkleProof <== merkleProof, enabled <== enabled, leafNodeIndexes <== inputCommitments);
+  CheckSMTProof(nInputs, nSMTLevels)(root <== root, merkleProof <== merkleProof, enabled <== enabled, leafNodeIndexes <== inputCommitments, leafNodeValues <== smtNodeValues);
 }

@@ -15,12 +15,35 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {IZetoBase} from "./izeto_base.sol";
+uint256 constant MAX_BATCH = 10;
+uint256 constant MAX_SMT_DEPTH = 64;
+interface IZeto {
+    error UTXODuplicate(uint256 utxo);
+    error UTXOArrayTooLarge(uint256 maxAllowed);
+    error UTXONotMinted(uint256 utxo);
+    error UTXOAlreadyOwned(uint256 utxo);
+    error UTXOAlreadySpent(uint256 utxo);
 
-interface IZeto is IZetoBase {
+    event UTXOMint(uint256[] outputs, address indexed submitter, bytes data);
     event UTXOTransfer(
         uint256[] inputs,
         uint256[] outputs,
+        address indexed submitter,
+        bytes data
+    );
+    event UTXOTransferWithEncryptedValues(
+        uint256[] inputs,
+        uint256[] outputs,
+        uint256 encryptionNonce,
+        uint256[2] ecdhPublicKey,
+        uint256[] encryptedValues,
+        address indexed submitter,
+        bytes data
+    );
+    event UTXOWithdraw(
+        uint256 amount,
+        uint256[] inputs,
+        uint256 output,
         address indexed submitter,
         bytes data
     );

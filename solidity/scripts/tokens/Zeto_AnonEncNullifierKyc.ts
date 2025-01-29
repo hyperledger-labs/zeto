@@ -26,8 +26,6 @@ export async function deployDependencies() {
     verifier,
     batchVerifier,
     batchWithdrawVerifier,
-    lockVerifier,
-    batchLockVerifier,
     smtLib,
     poseidon2,
     poseidon3,
@@ -36,13 +34,15 @@ export async function deployDependencies() {
     deployer,
     args: [
       await deployer.getAddress(),
-      verifier.target,
-      depositVerifier.target,
-      withdrawVerifier.target,
-      batchVerifier.target,
-      batchWithdrawVerifier.target,
-      lockVerifier.target,
-      batchLockVerifier.target,
+      {
+        verifier: verifier.target,
+        depositVerifier: depositVerifier.target,
+        withdrawVerifier: withdrawVerifier.target,
+        batchVerifier: batchVerifier.target,
+        batchWithdrawVerifier: batchWithdrawVerifier.target,
+        lockVerifier: "0x0000000000000000000000000000000000000000",
+        batchLockVerifier: "0x0000000000000000000000000000000000000000",
+      }
     ],
     libraries: {
       SmtLib: smtLib.target,

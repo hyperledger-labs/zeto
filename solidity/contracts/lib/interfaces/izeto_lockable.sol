@@ -19,28 +19,20 @@ import {Commonlib} from "../common.sol";
 
 interface IZetoLockable {
     error UTXOAlreadyLocked(uint256 utxo);
+    error UTXONotLocked(uint256 utxo);
+    error NotLockDelegate(uint256 utxo, address delegate, address sender);
     event UTXOsLocked(
-        uint256[] utxos,
+        uint256[] inputs,
+        uint256[] outputs,
+        uint256[] lockedOutputs,
         address indexed delegate,
         address indexed submitter,
         bytes data
     );
-}
-
-interface ILockVerifier {
-    function verifyProof(
-        uint[2] calldata _pA,
-        uint[2][2] calldata _pB,
-        uint[2] calldata _pC,
-        uint[2] calldata _pubSignals
-    ) external view returns (bool);
-}
-
-interface IBatchLockVerifier {
-    function verifyProof(
-        uint[2] calldata _pA,
-        uint[2][2] calldata _pB,
-        uint[2] calldata _pC,
-        uint[10] calldata _pubSignals
-    ) external view returns (bool);
+    event LockDelegateChanged(
+        uint256[] lockedOutputs,
+        address indexed oldDelegate,
+        address indexed newDelegate,
+        bytes data
+    );
 }

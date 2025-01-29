@@ -15,19 +15,17 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {IZetoEncrypted} from "./lib/interfaces/izeto_encrypted.sol";
-import {ILockVerifier, IBatchLockVerifier} from "./lib/interfaces/izeto_lockable.sol";
-import {MAX_BATCH} from "./lib/interfaces/izeto_common.sol";
-import {Groth16Verifier_CheckHashesValue} from "./lib/verifier_check_hashes_value.sol";
-import {Groth16Verifier_CheckNullifierValue} from "./lib/verifier_check_nullifier_value.sol";
-import {Groth16Verifier_CheckNullifierValueBatch} from "./lib/verifier_check_nullifier_value_batch.sol";
-import {Groth16Verifier_AnonEncNullifierKyc} from "./lib/verifier_anon_enc_nullifier_kyc.sol";
-import {Groth16Verifier_AnonEncNullifierKycBatch} from "./lib/verifier_anon_enc_nullifier_kyc_batch.sol";
+import {IZeto} from "./lib/interfaces/izeto.sol";
+import {Groth16Verifier_CheckHashesValue} from "./verifiers/verifier_check_hashes_value.sol";
+import {Groth16Verifier_CheckNullifierValue} from "./verifiers/verifier_check_nullifier_value.sol";
+import {Groth16Verifier_CheckNullifierValueBatch} from "./verifiers/verifier_check_nullifier_value_batch.sol";
+import {Groth16Verifier_AnonEncNullifierKyc} from "./verifiers/verifier_anon_enc_nullifier_kyc.sol";
+import {Groth16Verifier_AnonEncNullifierKycBatch} from "./verifiers/verifier_anon_enc_nullifier_kyc_batch.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
-import {ZetoLock} from "./lib/zeto_lock.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
+import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 uint256 constant INPUT_SIZE = 19;
@@ -43,10 +41,10 @@ uint256 constant BATCH_INPUT_SIZE = 75;
 ///        - the encrypted value in the input is derived from the receiver's UTXO value and encrypted with a shared secret using the ECDH protocol between the sender and receiver (this guarantees data availability for the receiver)
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 contract Zeto_AnonEncNullifierKyc is
-    IZetoEncrypted,
+    IZeto,
+    IZetoInitializable,
     ZetoNullifier,
     ZetoFungibleWithdrawWithNullifiers,
-    ZetoLock,
     Registry,
     UUPSUpgradeable
 {
@@ -55,24 +53,21 @@ contract Zeto_AnonEncNullifierKyc is
 
     function initialize(
         address initialOwner,
-        Groth16Verifier_AnonEncNullifierKyc verifier,
-        Groth16Verifier_CheckHashesValue depositVerifier,
-        Groth16Verifier_CheckNullifierValue withdrawVerifier,
-        Groth16Verifier_AnonEncNullifierKycBatch batchVerifier,
-        Groth16Verifier_CheckNullifierValueBatch batchWithdrawVerifier,
-        ILockVerifier lockVerifier,
-        IBatchLockVerifier batchLockVerifier
+        IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
         __Registry_init();
         __ZetoNullifier_init(initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(
-            depositVerifier,
-            withdrawVerifier,
-            batchWithdrawVerifier
+            (Groth16Verifier_CheckHashesValue)(verifiers.depositVerifier),
+            (Groth16Verifier_CheckNullifierValue)(verifiers.withdrawVerifier),
+            (Groth16Verifier_CheckNullifierValueBatch)(
+                verifiers.batchWithdrawVerifier
+            )
         );
-        __ZetoLock_init(lockVerifier, batchLockVerifier);
-        _verifier = verifier;
-        _batchVerifier = batchVerifier;
+        _verifier = (Groth16Verifier_AnonEncNullifierKyc)(verifiers.verifier);
+        _batchVerifier = (Groth16Verifier_AnonEncNullifierKycBatch)(
+            verifiers.batchVerifier
+        );
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -151,13 +146,9 @@ contract Zeto_AnonEncNullifierKyc is
         bytes calldata data
     ) public returns (bool) {
         // Check and pad commitments
-        (nullifiers, outputs) = checkAndPadCommitments(
-            nullifiers,
-            outputs,
-            MAX_BATCH
-        );
-        validateTransactionProposal(nullifiers, outputs, root);
-        validateLockedStates(nullifiers);
+        nullifiers = checkAndPadCommitments(nullifiers);
+        outputs = checkAndPadCommitments(outputs);
+        validateTransactionProposal(nullifiers, outputs, root, false);
 
         // Check the proof
         if (nullifiers.length > 2 || outputs.length > 2) {
@@ -214,7 +205,8 @@ contract Zeto_AnonEncNullifierKyc is
         }
 
         // accept the transaction to consume the input UTXOs and produce new UTXOs
-        processInputsAndOutputs(nullifiers, outputs);
+        uint256[] memory empty;
+        processInputsAndOutputs(nullifiers, outputs, empty, address(0));
 
         uint256[] memory encryptedValuesArray = new uint256[](
             encryptedValues.length
@@ -261,16 +253,13 @@ contract Zeto_AnonEncNullifierKyc is
         uint256[] memory outputs = new uint256[](nullifiers.length);
         outputs[0] = output;
         // Check and pad commitments
-        (nullifiers, outputs) = checkAndPadCommitments(
-            nullifiers,
-            outputs,
-            MAX_BATCH
-        );
-        validateTransactionProposal(nullifiers, outputs, root);
-        validateLockedStates(nullifiers);
+        nullifiers = checkAndPadCommitments(nullifiers);
+        outputs = checkAndPadCommitments(outputs);
+        validateTransactionProposal(nullifiers, outputs, root, false);
 
         _withdrawWithNullifiers(amount, nullifiers, output, root, proof);
-        processInputsAndOutputs(nullifiers, outputs);
+        uint256[] memory empty;
+        processInputsAndOutputs(nullifiers, outputs, empty, address(0));
         emit UTXOWithdraw(amount, nullifiers, output, msg.sender, data);
     }
 

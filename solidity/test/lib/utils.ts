@@ -176,15 +176,15 @@ export function parseUTXOEvents(
   let returnValues: any[] = [];
   for (const log of result.logs || []) {
     const event = zetoTokenContract.interface.parseLog(log as any);
+    let e: any;
     if (event?.name === "UTXOTransfer") {
-      const transfer = {
+      e = {
         inputs: event?.args.inputs,
         outputs: event?.args.outputs,
         submitter: event?.args.submitter,
       };
-      returnValues.push(transfer);
     } else if (event?.name === "UTXOTransferWithEncryptedValues") {
-      const transfer = {
+      e = {
         inputs: event?.args.inputs,
         outputs: event?.args.outputs,
         encryptedValues: event?.args.encryptedValues,
@@ -192,9 +192,8 @@ export function parseUTXOEvents(
         submitter: event?.args.submitter,
         ecdhPublicKey: event?.args.ecdhPublicKey,
       };
-      returnValues.push(transfer);
     } else if (event?.name === "UTXOTransferNonRepudiation") {
-      const transfer = {
+      e = {
         inputs: event?.args.inputs,
         outputs: event?.args.outputs,
         encryptedValuesForReceiver: event?.args.encryptedValuesForReceiver,
@@ -203,21 +202,45 @@ export function parseUTXOEvents(
         submitter: event?.args.submitter,
         ecdhPublicKey: event?.args.ecdhPublicKey,
       };
-      returnValues.push(transfer);
     } else if (event?.name === "UTXOMint") {
-      const mint = {
+      e = {
         outputs: event?.args.outputs,
         receivers: event?.args.receivers,
         submitter: event?.args.submitter,
       };
-      returnValues.push(mint);
     } else if (event?.name === "TradeCompleted") {
-      const e = {
+      e = {
         tradeId: event?.args.tradeId,
         trade: event?.args.trade,
       };
-      returnValues.push(e);
+    } else if (event?.name === "UTXOsLocked") {
+      e = {
+        outputs: event?.args.outputs,
+        lockedOutputs: event?.args.lockedOutputs,
+        delegate: event?.args.delegate,
+      };
+    } else if (event?.name === "LockDelegateChanged") {
+      e = {
+        lockedOutputs: event?.args.lockedOutputs,
+        oldDelegate: event?.args.oldDelegate,
+        newDelegate: event?.args.newDelegate,
+      };
+    } else if (event?.name === "PaymentInitiated") {
+      e = {
+        paymentId: event?.args.paymentId,
+        lockedInputs: event?.args.lockedInputs,
+        nullifiers: event?.args.nullifiers,
+        outputs: event?.args.outputs,
+      };
+    } else if (
+      event?.name === "PaymentApproved" ||
+      event?.name === "PaymentCompleted"
+    ) {
+      e = {
+        paymentId: event?.args.paymentId,
+      };
     }
+    returnValues.push(e);
   }
   return returnValues;
 }
