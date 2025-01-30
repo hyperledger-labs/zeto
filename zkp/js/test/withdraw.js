@@ -18,19 +18,13 @@ const { expect } = require("chai");
 const { join } = require("path");
 const { wasm: wasm_tester } = require("circom_tester");
 const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
-const {
-  Merkletree,
-  InMemoryDB,
-  str2Bytes,
-  ZERO_HASH,
-} = require("@iden3/js-merkletree");
+const { Merkletree, InMemoryDB, str2Bytes } = require("@iden3/js-merkletree");
 const { Poseidon, newSalt } = require("../index.js");
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
-const poseidonHash3 = Poseidon.poseidon3;
 
-describe("check_nullifiers_value circuit tests", () => {
+describe("withdraw circuit tests", () => {
   let circuit, smtAlice;
 
   const Alice = {};
@@ -40,7 +34,7 @@ describe("check_nullifiers_value circuit tests", () => {
     this.timeout(60000);
 
     circuit = await wasm_tester(
-      join(__dirname, "../../circuits/check_nullifiers_value.circom"),
+      join(__dirname, "../../circuits/withdraw.circom"),
     );
 
     let keypair = genKeypair();
@@ -72,33 +66,6 @@ describe("check_nullifiers_value circuit tests", () => {
     ]);
     const inputCommitments = [input1, input2];
 
-    // create the nullifiers for the inputs
-    const nullifier1 = poseidonHash3([
-      BigInt(inputValues[0]),
-      salt1,
-      senderPrivateKey,
-    ]);
-    const nullifier2 = poseidonHash3([
-      BigInt(inputValues[1]),
-      salt2,
-      senderPrivateKey,
-    ]);
-    const nullifiers = [nullifier1, nullifier2];
-
-    // calculate the root of the SMT
-    await smtAlice.add(input1, input1);
-    await smtAlice.add(input2, input2);
-
-    // generate the merkle proof for the inputs
-    const proof1 = await smtAlice.generateCircomVerifierProof(
-      input1,
-      ZERO_HASH,
-    );
-    const proof2 = await smtAlice.generateCircomVerifierProof(
-      input2,
-      ZERO_HASH,
-    );
-
     // create output UTXOs
     const salt3 = newSalt();
     const output1 = poseidonHash([
@@ -110,17 +77,10 @@ describe("check_nullifiers_value circuit tests", () => {
 
     const witness = await circuit.calculateWitness(
       {
-        nullifiers,
         inputCommitments,
         inputValues,
         inputSalts: [salt1, salt2],
         inputOwnerPrivateKey: senderPrivateKey,
-        root: proof1.root.bigInt(),
-        merkleProof: [
-          proof1.siblings.map((s) => s.bigInt()),
-          proof2.siblings.map((s) => s.bigInt()),
-        ],
-        enabled: [1, 1],
         outputCommitments,
         outputValues,
         outputSalts: [salt3],
@@ -141,9 +101,8 @@ describe("check_nullifiers_value circuit tests", () => {
     // console.log('outputOwnerPublicKeys', [Alice.pubKey]);
 
     expect(witness[1]).to.equal(BigInt(70)); // output should be the difference between the inputs and outputs
-    expect(witness[2]).to.equal(BigInt(nullifiers[0]));
-    expect(witness[3]).to.equal(BigInt(nullifiers[1]));
-    expect(witness[4]).to.equal(proof1.root.bigInt());
+    expect(witness[2]).to.equal(BigInt(inputCommitments[0]));
+    expect(witness[3]).to.equal(BigInt(inputCommitments[1]));
   });
 
   it("should succeed for valid witness - single input", async () => {
@@ -159,24 +118,6 @@ describe("check_nullifiers_value circuit tests", () => {
     ]);
     const inputCommitments = [input1, 0];
 
-    // create the nullifiers for the inputs
-    const nullifier1 = poseidonHash3([
-      BigInt(inputValues[0]),
-      salt1,
-      senderPrivateKey,
-    ]);
-    const nullifiers = [nullifier1, 0];
-
-    // calculate the root of the SMT
-    await smtAlice.add(input1, input1);
-
-    // generate the merkle proof for the inputs
-    const proof1 = await smtAlice.generateCircomVerifierProof(
-      input1,
-      ZERO_HASH,
-    );
-    const proof2 = await smtAlice.generateCircomVerifierProof(0, ZERO_HASH);
-
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
     const output1 = poseidonHash([
@@ -188,17 +129,10 @@ describe("check_nullifiers_value circuit tests", () => {
 
     const witness = await circuit.calculateWitness(
       {
-        nullifiers,
         inputCommitments,
         inputValues,
         inputSalts: [salt1, 0],
         inputOwnerPrivateKey: senderPrivateKey,
-        root: proof1.root.bigInt(),
-        merkleProof: [
-          proof1.siblings.map((s) => s.bigInt()),
-          proof2.siblings.map((s) => s.bigInt()),
-        ],
-        enabled: [1, 0],
         outputCommitments,
         outputValues,
         outputSalts: [salt3],
@@ -208,8 +142,5 @@ describe("check_nullifiers_value circuit tests", () => {
     );
 
     expect(witness[1]).to.equal(BigInt(62));
-    expect(witness[2]).to.equal(BigInt(nullifiers[0]));
-    expect(witness[3]).to.equal(BigInt(nullifiers[1]));
-    expect(witness[4]).to.equal(proof1.root.bigInt());
   });
 });

@@ -39,8 +39,9 @@ describe("main circuit tests for Zeto non-fungible tokens with anonymity using n
 
   before(async () => {
     circuit = await loadCircuit("nf_anon_nullifier_transfer");
-    ({ provingKeyFile, verificationKey } =
-      loadProvingKeys("nf_anon_nullifier_transfer"));
+    ({ provingKeyFile, verificationKey } = loadProvingKeys(
+      "nf_anon_nullifier_transfer",
+    ));
 
     let keypair = genKeypair();
     Alice.privKey = keypair.privKey;

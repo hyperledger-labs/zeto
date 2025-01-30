@@ -16,9 +16,9 @@
 pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
-import {Groth16Verifier_CheckHashesValue} from "./verifiers/verifier_check_hashes_value.sol";
-import {Groth16Verifier_CheckInputsOutputsValue} from "./verifiers/verifier_check_inputs_outputs_value.sol";
-import {Groth16Verifier_CheckInputsOutputsValueBatch} from "./verifiers/verifier_check_inputs_outputs_value_batch.sol";
+import {Groth16Verifier_Deposit} from "./verifiers/verifier_deposit.sol";
+import {Groth16Verifier_Withdraw} from "./verifiers/verifier_withdraw.sol";
+import {Groth16Verifier_WithdrawBatch} from "./verifiers/verifier_withdraw_batch.sol";
 import {Groth16Verifier_Anon} from "./verifiers/verifier_anon.sol";
 import {Groth16Verifier_AnonBatch} from "./verifiers/verifier_anon_batch.sol";
 import {Commonlib} from "./lib/common.sol";
@@ -53,13 +53,9 @@ contract Zeto_Anon is
     ) public initializer {
         __ZetoBase_init(initialOwner);
         __ZetoFungibleWithdraw_init(
-            (Groth16Verifier_CheckHashesValue)(verifiers.depositVerifier),
-            (Groth16Verifier_CheckInputsOutputsValue)(
-                verifiers.withdrawVerifier
-            ),
-            (Groth16Verifier_CheckInputsOutputsValueBatch)(
-                verifiers.batchWithdrawVerifier
-            )
+            (Groth16Verifier_Deposit)(verifiers.depositVerifier),
+            (Groth16Verifier_Withdraw)(verifiers.withdrawVerifier),
+            (Groth16Verifier_WithdrawBatch)(verifiers.batchWithdrawVerifier)
         );
         _verifier = (Groth16Verifier_Anon)(verifiers.verifier);
         _batchVerifier = (Groth16Verifier_AnonBatch)(verifiers.batchVerifier);

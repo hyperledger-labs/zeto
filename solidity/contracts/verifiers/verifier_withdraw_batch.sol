@@ -20,7 +20,7 @@
 
 pragma solidity >=0.7.0 <0.9.0;
 
-contract Groth16Verifier_CheckHashesValue {
+contract Groth16Verifier_WithdrawBatch {
     // Scalar field size
     uint256 constant r    = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
     // Base field size
@@ -43,17 +43,44 @@ contract Groth16Verifier_CheckHashesValue {
     uint256 constant deltay2 = 8495653923123431417604973247489272438418190587263600148770280649306958101930;
 
     
-    uint256 constant IC0x = 2307354954028535885903689007465428281272507194341944906729923116892457651028;
-    uint256 constant IC0y = 18317082585014852436012943307523034226775545124297724006987091822933679889688;
+    uint256 constant IC0x = 11850228197322031025292557434932671890161936824077308468210790908293207072924;
+    uint256 constant IC0y = 6893259731019057437405676388909128655532485251583581436654001261817316492042;
     
-    uint256 constant IC1x = 9823078414985920028166240098609183317806812005541408670311863075271319782599;
-    uint256 constant IC1y = 21169809119767924886674856411695162922226985520675510254111600604145344841116;
+    uint256 constant IC1x = 2006033914856993104498728774510647014907556901365120840081985788005085672877;
+    uint256 constant IC1y = 17998253871634013819947875029169762624761142023665224612184627772687545109066;
     
-    uint256 constant IC2x = 18060008279311253505225559405605419538591653225155932292814897921219171234932;
-    uint256 constant IC2y = 5328891514929110844206381425710026387341744471211840718140965961485460953346;
+    uint256 constant IC2x = 4103698097399567127443406312274977477704849480651460747611513946765797717650;
+    uint256 constant IC2y = 14061531011628110005004422945666586153343603854939977082502069897494983071140;
     
-    uint256 constant IC3x = 7714106404362931584249889467880240815365109986173140789727464920387500965085;
-    uint256 constant IC3y = 18287915263365891664367002800360558725249421205814513620031419421740942877372;
+    uint256 constant IC3x = 1081801818436862436123803025513171589801770974010030819523757416738043101371;
+    uint256 constant IC3y = 17766404609523059407522090862288372808635192419184335699917406989996778289632;
+    
+    uint256 constant IC4x = 20415608612532298955462888484347815669481487604986331499669256195555733969602;
+    uint256 constant IC4y = 10638824484686472166456926783532682456490430014700330920588119111029631080106;
+    
+    uint256 constant IC5x = 17275185952641587403276037722941598987472868849544217030799251568414406466780;
+    uint256 constant IC5y = 21714607879138969434716190600943333110382701295499903843570917739702494065203;
+    
+    uint256 constant IC6x = 4659675731303993028072126817057309725534763325688077491391090804756661478020;
+    uint256 constant IC6y = 4660722410143123749044946187682625600717822642741877499345909528796926131881;
+    
+    uint256 constant IC7x = 5584696329789630436104217319153439843027445128668775749518301879021575421283;
+    uint256 constant IC7y = 8952329233834312061052778542237211314786796372036148761716551956710544370485;
+    
+    uint256 constant IC8x = 5022224465274436342515852518035873423709676068453480465629667789163739923585;
+    uint256 constant IC8y = 20255877445762712434251369549951930671955272416174469752691737340628883502605;
+    
+    uint256 constant IC9x = 1103099261013390886619279979996247511276694573710876139033964026114177329302;
+    uint256 constant IC9y = 15026537481902009121153440626085927594454837889200988192228924261619670149230;
+    
+    uint256 constant IC10x = 19925939224338564341139692228321332998486308579749363621833687249457651756856;
+    uint256 constant IC10y = 9670096421457763052088018388303959323171539679010562182079320134010252443894;
+    
+    uint256 constant IC11x = 9417965438556844072422086173944694102685930539743150254476465397958899879891;
+    uint256 constant IC11y = 13969685951803644264035150268010763674733552318608793075532576712150525603519;
+    
+    uint256 constant IC12x = 8167311546999867918768697292516647876655821444461431579263790163291433609213;
+    uint256 constant IC12y = 1676897108687545698278927404819192092431872234325958996807871837997778022554;
     
  
     // Memory data
@@ -62,7 +89,7 @@ contract Groth16Verifier_CheckHashesValue {
 
     uint16 constant pLastMem = 896;
 
-    function verifyProof(uint[2] calldata _pA, uint[2][2] calldata _pB, uint[2] calldata _pC, uint[3] calldata _pubSignals) public view returns (bool) {
+    function verifyProof(uint[2] calldata _pA, uint[2][2] calldata _pB, uint[2] calldata _pC, uint[12] calldata _pubSignals) public view returns (bool) {
         assembly {
             function checkField(v) {
                 if iszero(lt(v, r)) {
@@ -111,6 +138,24 @@ contract Groth16Verifier_CheckHashesValue {
                 g1_mulAccC(_pVk, IC2x, IC2y, calldataload(add(pubSignals, 32)))
                 
                 g1_mulAccC(_pVk, IC3x, IC3y, calldataload(add(pubSignals, 64)))
+                
+                g1_mulAccC(_pVk, IC4x, IC4y, calldataload(add(pubSignals, 96)))
+                
+                g1_mulAccC(_pVk, IC5x, IC5y, calldataload(add(pubSignals, 128)))
+                
+                g1_mulAccC(_pVk, IC6x, IC6y, calldataload(add(pubSignals, 160)))
+                
+                g1_mulAccC(_pVk, IC7x, IC7y, calldataload(add(pubSignals, 192)))
+                
+                g1_mulAccC(_pVk, IC8x, IC8y, calldataload(add(pubSignals, 224)))
+                
+                g1_mulAccC(_pVk, IC9x, IC9y, calldataload(add(pubSignals, 256)))
+                
+                g1_mulAccC(_pVk, IC10x, IC10y, calldataload(add(pubSignals, 288)))
+                
+                g1_mulAccC(_pVk, IC11x, IC11y, calldataload(add(pubSignals, 320)))
+                
+                g1_mulAccC(_pVk, IC12x, IC12y, calldataload(add(pubSignals, 352)))
                 
 
                 // -A
@@ -170,6 +215,24 @@ contract Groth16Verifier_CheckHashesValue {
             checkField(calldataload(add(_pubSignals, 32)))
             
             checkField(calldataload(add(_pubSignals, 64)))
+            
+            checkField(calldataload(add(_pubSignals, 96)))
+            
+            checkField(calldataload(add(_pubSignals, 128)))
+            
+            checkField(calldataload(add(_pubSignals, 160)))
+            
+            checkField(calldataload(add(_pubSignals, 192)))
+            
+            checkField(calldataload(add(_pubSignals, 224)))
+            
+            checkField(calldataload(add(_pubSignals, 256)))
+            
+            checkField(calldataload(add(_pubSignals, 288)))
+            
+            checkField(calldataload(add(_pubSignals, 320)))
+            
+            checkField(calldataload(add(_pubSignals, 352)))
             
 
             // Validate all evaluations

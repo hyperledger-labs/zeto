@@ -30,17 +30,16 @@ const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
 const poseidonHash3 = Poseidon.poseidon3;
 
-describe("check_nullifiers_value circuit tests", () => {
+describe("withdraw_nullifier circuit tests", () => {
   let circuit, provingKeyFile, verificationKey, smtAlice;
 
   const Alice = {};
   let senderPrivateKey;
 
   before(async () => {
-    circuit = await loadCircuit("check_nullifiers_value");
-    ({ provingKeyFile, verificationKey } = loadProvingKeys(
-      "check_nullifiers_value",
-    ));
+    circuit = await loadCircuit("withdraw_nullifier");
+    ({ provingKeyFile, verificationKey } =
+      loadProvingKeys("withdraw_nullifier"));
 
     let keypair = genKeypair();
     Alice.privKey = keypair.privKey;
