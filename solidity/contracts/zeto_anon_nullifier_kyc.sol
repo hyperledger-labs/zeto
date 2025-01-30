@@ -16,9 +16,9 @@
 pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
-import {Groth16Verifier_CheckHashesValue} from "./verifiers/verifier_check_hashes_value.sol";
-import {Groth16Verifier_CheckNullifierValue} from "./verifiers/verifier_check_nullifier_value.sol";
-import {Groth16Verifier_CheckNullifierValueBatch} from "./verifiers/verifier_check_nullifier_value_batch.sol";
+import {Groth16Verifier_Deposit} from "./verifiers/verifier_deposit.sol";
+import {Groth16Verifier_WithdrawNullifier} from "./verifiers/verifier_withdraw_nullifier.sol";
+import {Groth16Verifier_WithdrawNullifierBatch} from "./verifiers/verifier_withdraw_nullifier_batch.sol";
 import {Groth16Verifier_AnonNullifierKyc} from "./verifiers/verifier_anon_nullifier_kyc.sol";
 import {Groth16Verifier_AnonNullifierKycBatch} from "./verifiers/verifier_anon_nullifier_kyc_batch.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
@@ -57,9 +57,9 @@ contract Zeto_AnonNullifierKyc is
         __Registry_init();
         __ZetoNullifier_init(initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(
-            (Groth16Verifier_CheckHashesValue)(verifiers.depositVerifier),
-            (Groth16Verifier_CheckNullifierValue)(verifiers.withdrawVerifier),
-            (Groth16Verifier_CheckNullifierValueBatch)(
+            (Groth16Verifier_Deposit)(verifiers.depositVerifier),
+            (Groth16Verifier_WithdrawNullifier)(verifiers.withdrawVerifier),
+            (Groth16Verifier_WithdrawNullifierBatch)(
                 verifiers.batchWithdrawVerifier
             )
         );

@@ -15,8 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {Groth16Verifier_CheckHashesValue} from "../verifiers/verifier_check_hashes_value.sol";
-import {Groth16Verifier_CheckNullifierValue} from "../verifiers/verifier_check_nullifier_value.sol";
+import {Groth16Verifier_Deposit} from "../verifiers/verifier_deposit.sol";
 import {Commonlib} from "./common.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -28,14 +27,14 @@ abstract contract ZetoFungible is OwnableUpgradeable {
     // _depositVerifier library for checking UTXOs against a claimed value.
     // this can be used in the optional deposit calls to verify that
     // the UTXOs match the deposited value
-    Groth16Verifier_CheckHashesValue internal _depositVerifier;
+    Groth16Verifier_Deposit internal _depositVerifier;
 
     error WithdrawArrayTooLarge(uint256 maxAllowed);
 
     IERC20 internal _erc20;
 
     function __ZetoFungible_init(
-        Groth16Verifier_CheckHashesValue depositVerifier
+        Groth16Verifier_Deposit depositVerifier
     ) public onlyInitializing {
         _depositVerifier = depositVerifier;
     }

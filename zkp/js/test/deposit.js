@@ -23,7 +23,7 @@ const { Poseidon, newSalt } = require("../index.js");
 const MAX_VALUE = 2n ** 100n - 1n;
 const poseidonHash = Poseidon.poseidon4;
 
-describe("check_hashes_value circuit tests", () => {
+describe("deposit circuit tests", () => {
   let circuit;
   const sender = {};
 
@@ -31,7 +31,7 @@ describe("check_hashes_value circuit tests", () => {
     this.timeout(60000);
 
     circuit = await wasm_tester(
-      join(__dirname, "../../circuits/check_hashes_value.circom"),
+      join(__dirname, "../../circuits/deposit.circom"),
     );
 
     let keypair = genKeypair();

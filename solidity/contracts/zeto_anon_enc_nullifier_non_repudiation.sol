@@ -16,9 +16,9 @@
 pragma solidity ^0.8.27;
 
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {Groth16Verifier_CheckHashesValue} from "./verifiers/verifier_check_hashes_value.sol";
-import {Groth16Verifier_CheckNullifierValue} from "./verifiers/verifier_check_nullifier_value.sol";
-import {Groth16Verifier_CheckNullifierValueBatch} from "./verifiers/verifier_check_nullifier_value_batch.sol";
+import {Groth16Verifier_Deposit} from "./verifiers/verifier_deposit.sol";
+import {Groth16Verifier_WithdrawNullifier} from "./verifiers/verifier_withdraw_nullifier.sol";
+import {Groth16Verifier_WithdrawNullifierBatch} from "./verifiers/verifier_withdraw_nullifier_batch.sol";
 import {Groth16Verifier_AnonEncNullifierNonRepudiation} from "./verifiers/verifier_anon_enc_nullifier_non_repudiation.sol";
 import {Groth16Verifier_AnonEncNullifierNonRepudiationBatch} from "./verifiers/verifier_anon_enc_nullifier_non_repudiation_batch.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
@@ -67,9 +67,9 @@ contract Zeto_AnonEncNullifierNonRepudiation is
     ) public initializer {
         __ZetoNullifier_init(initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(
-            (Groth16Verifier_CheckHashesValue)(verifiers.depositVerifier),
-            (Groth16Verifier_CheckNullifierValue)(verifiers.withdrawVerifier),
-            (Groth16Verifier_CheckNullifierValueBatch)(
+            (Groth16Verifier_Deposit)(verifiers.depositVerifier),
+            (Groth16Verifier_WithdrawNullifier)(verifiers.withdrawVerifier),
+            (Groth16Verifier_WithdrawNullifierBatch)(
                 verifiers.batchWithdrawVerifier
             )
         );

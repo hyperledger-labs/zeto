@@ -15,9 +15,9 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {Groth16Verifier_CheckHashesValue} from "../verifiers/verifier_check_hashes_value.sol";
-import {Groth16Verifier_CheckNullifierValue} from "../verifiers/verifier_check_nullifier_value.sol";
-import {Groth16Verifier_CheckNullifierValueBatch} from "../verifiers/verifier_check_nullifier_value_batch.sol";
+import {Groth16Verifier_Deposit} from "../verifiers/verifier_deposit.sol";
+import {Groth16Verifier_WithdrawNullifier} from "../verifiers/verifier_withdraw_nullifier.sol";
+import {Groth16Verifier_WithdrawNullifierBatch} from "../verifiers/verifier_withdraw_nullifier_batch.sol";
 import {ZetoFungible} from "./zeto_fungible.sol";
 import {Commonlib} from "./common.sol";
 
@@ -31,13 +31,13 @@ abstract contract ZetoFungibleWithdrawWithNullifiers is ZetoFungible {
     // nullifierVerifier library for checking nullifiers against a claimed value.
     // this can be used in the optional withdraw calls to verify that the nullifiers
     // match the withdrawn value
-    Groth16Verifier_CheckNullifierValue internal _withdrawVerifier;
-    Groth16Verifier_CheckNullifierValueBatch internal _batchWithdrawVerifier;
+    Groth16Verifier_WithdrawNullifier internal _withdrawVerifier;
+    Groth16Verifier_WithdrawNullifierBatch internal _batchWithdrawVerifier;
 
     function __ZetoFungibleWithdrawWithNullifiers_init(
-        Groth16Verifier_CheckHashesValue depositVerifier,
-        Groth16Verifier_CheckNullifierValue withdrawVerifier,
-        Groth16Verifier_CheckNullifierValueBatch batchWithdrawVerifier
+        Groth16Verifier_Deposit depositVerifier,
+        Groth16Verifier_WithdrawNullifier withdrawVerifier,
+        Groth16Verifier_WithdrawNullifierBatch batchWithdrawVerifier
     ) internal onlyInitializing {
         __ZetoFungible_init(depositVerifier);
         _withdrawVerifier = withdrawVerifier;

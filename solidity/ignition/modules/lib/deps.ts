@@ -31,40 +31,40 @@ export const SmtLibModule = buildModule("SmtLib", (m) => {
 });
 
 export const DepositVerifierModule = buildModule(
-  "Groth16Verifier_CheckHashesValue",
+  "Groth16Verifier_Deposit",
   (m) => {
-    const verifier = m.contract("Groth16Verifier_CheckHashesValue", []);
+    const verifier = m.contract("Groth16Verifier_Deposit", []);
     return { verifier };
   },
 );
 
 export const WithdrawNullifierVerifierModule = buildModule(
-  "Groth16Verifier_CheckNullifierValue",
+  "Groth16Verifier_WithdrawNullifier",
   (m) => {
-    const verifier = m.contract("Groth16Verifier_CheckNullifierValue", []);
+    const verifier = m.contract("Groth16Verifier_WithdrawNullifier", []);
     return { verifier };
   },
 );
 export const BatchWithdrawNullifierVerifierModule = buildModule(
-  "Groth16Verifier_CheckNullifierValueBatch",
+  "Groth16Verifier_WithdrawNullifierBatch",
   (m) => {
-    const verifier = m.contract("Groth16Verifier_CheckNullifierValueBatch", []);
+    const verifier = m.contract("Groth16Verifier_WithdrawNullifierBatch", []);
     return { verifier };
   },
 );
 
 export const WithdrawVerifierModule = buildModule(
-  "Groth16Verifier_CheckInputsOutputsValue",
+  "Groth16Verifier_Withdraw",
   (m) => {
-    const verifier = m.contract("Groth16Verifier_CheckInputsOutputsValue", []);
+    const verifier = m.contract("Groth16Verifier_Withdraw", []);
     return { verifier };
   },
 );
 export const BatchWithdrawVerifierModule = buildModule(
-  "Groth16Verifier_CheckInputsOutputsValueBatch",
+  "Groth16Verifier_WithdrawBatch",
   (m) => {
     const verifier = m.contract(
-      "Groth16Verifier_CheckInputsOutputsValueBatch",
+      "Groth16Verifier_WithdrawBatch",
       [],
     );
     return { verifier };

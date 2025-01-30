@@ -67,8 +67,8 @@ export async function prepareDepositProof(signer: User, outputs: [UTXO, UTXO]) {
     outputOwnerPublicKeys,
   };
 
-  const circuit = await loadCircuit("check_hashes_value");
-  const { provingKeyFile } = loadProvingKeys("check_hashes_value");
+  const circuit = await loadCircuit("deposit");
+  const { provingKeyFile } = loadProvingKeys("deposit");
 
   const startWitnessCalculation = Date.now();
   const witness = await circuit.calculateWTNSBin(inputObj, true);
@@ -128,11 +128,11 @@ export async function prepareNullifierWithdrawProof(
     outputSalts: [output.salt || 0n],
     outputOwnerPublicKeys,
   };
-  let circuit = await loadCircuit("check_nullifiers_value");
-  let { provingKeyFile } = loadProvingKeys("check_nullifiers_value");
+  let circuit = await loadCircuit("withdraw_nullifier");
+  let { provingKeyFile } = loadProvingKeys("withdraw_nullifier");
   if (inputCommitments.length > 2) {
-    circuit = await loadCircuit("check_nullifiers_value_batch");
-    ({ provingKeyFile } = loadProvingKeys("check_nullifiers_value_batch"));
+    circuit = await loadCircuit("withdraw_nullifier_batch");
+    ({ provingKeyFile } = loadProvingKeys("withdraw_nullifier_batch"));
   }
 
   const startWitnessCalculation = Date.now();
@@ -185,11 +185,11 @@ export async function prepareWithdrawProof(
     outputOwnerPublicKeys,
   };
 
-  let circuit = await loadCircuit("check_inputs_outputs_value");
-  let { provingKeyFile } = loadProvingKeys("check_inputs_outputs_value");
+  let circuit = await loadCircuit("withdraw");
+  let { provingKeyFile } = loadProvingKeys("withdraw");
   if (inputCommitments.length > 2) {
-    circuit = await loadCircuit("check_inputs_outputs_value_batch");
-    ({ provingKeyFile } = loadProvingKeys("check_inputs_outputs_value_batch"));
+    circuit = await loadCircuit("withdraw_batch");
+    ({ provingKeyFile } = loadProvingKeys("withdraw_batch"));
   }
 
   const startWitnessCalculation = Date.now();

@@ -15,27 +15,24 @@
 // limitations under the License.
 
 const { expect } = require("chai");
-const { join } = require("path");
-const { wasm: wasm_tester } = require("circom_tester");
+const { groth16 } = require("snarkjs");
 const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
 const { Merkletree, InMemoryDB, str2Bytes } = require("@iden3/js-merkletree");
-const { Poseidon, newSalt } = require("../index.js");
+const { Poseidon, newSalt, loadCircuit } = require("../index.js");
+const { loadProvingKeys } = require("./utils.js");
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
 
-describe("check_inputs_outputs_value circuit tests", () => {
-  let circuit, smtAlice;
+describe("withdraw circuit tests", () => {
+  let circuit, provingKeyFile, verificationKey, smtAlice;
 
   const Alice = {};
   let senderPrivateKey;
 
-  before(async function () {
-    this.timeout(60000);
-
-    circuit = await wasm_tester(
-      join(__dirname, "../../circuits/check_inputs_outputs_value.circom"),
-    );
+  before(async () => {
+    circuit = await loadCircuit("withdraw");
+    ({ provingKeyFile, verificationKey } = loadProvingKeys("withdraw"));
 
     let keypair = genKeypair();
     Alice.privKey = keypair.privKey;
@@ -47,11 +44,12 @@ describe("check_inputs_outputs_value circuit tests", () => {
     smtAlice = new Merkletree(storage1, true, SMT_HEIGHT);
   });
 
-  it("should succeed for valid witness", async () => {
-    const inputValues = [32, 40];
-    const outputValues = [2];
+  it("should generate a valid proof that can be verified successfully and fail when public signals are tampered", async () => {
+    const inputValues = [15, 100];
+    const outputValues = [35];
 
     // create two input UTXOs, each has their own salt, but same owner
+    const senderPrivateKey = formatPrivKeyForBabyJub(Alice.privKey);
     const salt1 = newSalt();
     const input1 = poseidonHash([
       BigInt(inputValues[0]),
@@ -66,7 +64,7 @@ describe("check_inputs_outputs_value circuit tests", () => {
     ]);
     const inputCommitments = [input1, input2];
 
-    // create output UTXOs
+    // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
     const output1 = poseidonHash([
       BigInt(outputValues[0]),
@@ -75,7 +73,8 @@ describe("check_inputs_outputs_value circuit tests", () => {
     ]);
     const outputCommitments = [output1];
 
-    const witness = await circuit.calculateWitness(
+    const startTime = Date.now();
+    const witness = await circuit.calculateWTNSBin(
       {
         inputCommitments,
         inputValues,
@@ -89,58 +88,40 @@ describe("check_inputs_outputs_value circuit tests", () => {
       true,
     );
 
-    // console.log('witness', witness.slice(0, 10));
+    const { proof, publicSignals } = await groth16.prove(
+      provingKeyFile,
+      witness,
+    );
+    console.log("Proving time: ", (Date.now() - startTime) / 1000, "s");
+
+    let verifyResult = await groth16.verify(
+      verificationKey,
+      publicSignals,
+      proof,
+    );
+    expect(verifyResult).to.be.true;
     // console.log('nullifiers', nullifiers);
     // console.log('inputCommitments', inputCommitments);
-    // console.log('inputValues', inputValues);
-    // console.log('inputSalts', [salt1, salt2]);
     // console.log('outputCommitments', outputCommitments);
     // console.log('root', proof1.root.bigInt());
-    // console.log('outputValues', outputValues);
-    // console.log('outputSalt', salt3);
-    // console.log('outputOwnerPublicKeys', [Alice.pubKey]);
-
-    expect(witness[1]).to.equal(BigInt(70)); // output should be the difference between the inputs and outputs
-    expect(witness[2]).to.equal(BigInt(inputCommitments[0]));
-    expect(witness[3]).to.equal(BigInt(inputCommitments[1]));
-  });
-
-  it("should succeed for valid witness - single input", async () => {
-    const inputValues = [72, 0];
-    const outputValues = [10];
-
-    // create two input UTXOs, each has their own salt, but same owner
-    const salt1 = newSalt();
-    const input1 = poseidonHash([
-      BigInt(inputValues[0]),
-      salt1,
-      ...Alice.pubKey,
-    ]);
-    const inputCommitments = [input1, 0];
-
-    // create two output UTXOs, they share the same salt, and different owner
-    const salt3 = newSalt();
-    const output1 = poseidonHash([
-      BigInt(outputValues[0]),
+    // console.log("public signals", publicSignals);
+    const tamperedOutputHash = poseidonHash([
+      BigInt(100),
       salt3,
       ...Alice.pubKey,
     ]);
-    const outputCommitments = [output1];
-
-    const witness = await circuit.calculateWitness(
-      {
-        inputCommitments,
-        inputValues,
-        inputSalts: [salt1, 0],
-        inputOwnerPrivateKey: senderPrivateKey,
-        outputCommitments,
-        outputValues,
-        outputSalts: [salt3],
-        outputOwnerPublicKeys: [Alice.pubKey],
-      },
-      true,
+    let tamperedPublicSignals = publicSignals.map((ps) =>
+      ps.toString() === outputCommitments[0].toString()
+        ? tamperedOutputHash
+        : ps,
     );
+    // console.log("tampered public signals", tamperedPublicSignals);
 
-    expect(witness[1]).to.equal(BigInt(62));
-  });
+    verifyResult = await groth16.verify(
+      verificationKey,
+      tamperedPublicSignals,
+      proof,
+    );
+    expect(verifyResult).to.be.false;
+  }).timeout(600000);
 });

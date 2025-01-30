@@ -22,11 +22,11 @@ const { loadProvingKeys } = require("./utils.js");
 
 const poseidonHash = Poseidon.poseidon4;
 
-describe("check-hashes-value circuit tests", () => {
+describe("deposit circuit tests", () => {
   let circuit;
   const sender = {};
   before(async () => {
-    circuit = await loadCircuit("check_hashes_value");
+    circuit = await loadCircuit("deposit");
     let keypair = genKeypair();
     sender.privKey = keypair.privKey;
     sender.pubKey = keypair.pubKey;
@@ -70,8 +70,7 @@ describe("check-hashes-value circuit tests", () => {
       },
       true,
     );
-    const { provingKeyFile, verificationKey } =
-      loadProvingKeys("check_hashes_value");
+    const { provingKeyFile, verificationKey } = loadProvingKeys("deposit");
     const startTime = Date.now();
     const { proof, publicSignals } = await groth16.prove(
       provingKeyFile,
