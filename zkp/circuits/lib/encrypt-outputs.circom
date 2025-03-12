@@ -1,4 +1,4 @@
-pragma circom 2.2.1;
+pragma circom 2.2.2;
 
 include "./ecdh.circom";
 include "./encrypt.circom";

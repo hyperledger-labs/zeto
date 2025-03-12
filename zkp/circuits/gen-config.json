@@ -1,5 +1,5 @@
 {
-  "circomVersion": "2.2.1",
+  "circomVersion": "2.2.2",
   "circuits": {
     "anon": {
       "ptau": "powersOfTau28_hez_final_13",

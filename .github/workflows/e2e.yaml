@@ -30,7 +30,7 @@ jobs:
         with:
           uri: https://github.com/iden3/circom/releases/download/v2.2.1/circom-linux-amd64
           name: circom
-          version: 2.2.1
+          version: 2.2.2
 
       - name: Setup node.js
         uses: actions/setup-node@v4
