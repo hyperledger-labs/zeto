@@ -28,7 +28,7 @@ jobs:
       - name: Install circom
         uses: supplypike/setup-bin@v4
         with:
-          uri: https://github.com/iden3/circom/releases/download/v2.2.1/circom-linux-amd64
+          uri: https://github.com/iden3/circom/releases/download/v2.2.2/circom-linux-amd64
           name: circom
           version: 2.2.2
 
