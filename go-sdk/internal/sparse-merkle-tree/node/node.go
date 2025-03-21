@@ -38,9 +38,10 @@ type nodeIndex [32]byte
 // node is an implementation of the Node interface
 type node struct {
 	nodeType   core.NodeType
-	index      core.NodeIndex
+	i          core.NodeIndex // the index of the node
+	v          *big.Int       // the value of the node
 	refKey     core.NodeRef
-	value      core.Indexable
+	state      core.Indexable // private states to be hashed into the index
 	leftChild  core.NodeRef
 	rightChild core.NodeRef
 }
@@ -51,17 +52,27 @@ func NewEmptyNode() core.Node {
 	return &node{nodeType: core.NodeTypeEmpty}
 }
 
-func NewLeafNode(v core.Indexable) (core.Node, error) {
-	n := &node{nodeType: core.NodeTypeLeaf, value: v}
-	// the leaf node's index is calculated as follows:
-	// 1. calculate the index (aka hash) of the value object, call it hV
-	// 2. calculate hash(hV, hV, 1)
-	idx, err := n.value.CalculateIndex()
+func NewLeafNode(s core.Indexable, v ...*big.Int) (core.Node, error) {
+	n := &node{nodeType: core.NodeTypeLeaf, state: s}
+	idx, err := n.state.CalculateIndex()
 	if err != nil {
 		return nil, err
 	}
-	n.index = idx
-	elements := []*big.Int{idx.BigInt(), idx.BigInt(), big.NewInt(1)}
+	n.i = idx
+
+	if len(v) > 0 {
+		n.v = v[0]
+	}
+	// the leaf node's reference is calculated as follows:
+	// 1. get the node's index, call it hKey
+	// 2. calculate the hash of the value object, call it hValue. if no value is provided, use hKey
+	// 2. calculate hash(hKey, hValue, 1)
+	hKey := n.i.BigInt()
+	hValue := n.v
+	if hValue == nil {
+		hValue = hKey
+	}
+	elements := []*big.Int{hKey, hValue, big.NewInt(1)}
 	hash, err := poseidon.Hash(elements)
 	if err != nil {
 		return nil, err
@@ -86,15 +97,15 @@ func (n *node) Type() core.NodeType {
 }
 
 func (n *node) Index() core.NodeIndex {
-	return n.index
+	return n.i
 }
 
 func (n *node) Ref() core.NodeRef {
 	return n.refKey
 }
 
-func (n *node) Value() core.Indexable {
-	return n.value
+func (n *node) Value() *big.Int {
+	return n.v
 }
 
 func (n *node) LeftChild() core.NodeRef {

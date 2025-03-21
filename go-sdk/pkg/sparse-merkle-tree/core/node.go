@@ -55,8 +55,8 @@ type NodeIndex interface {
 	ToPath(int) []bool
 }
 
-// Indexable is the interface that wraps the value object of a
-// Node, which is required to produce a unique index for the node.
+// Indexable is the interface that wraps the internal state object of a
+// Node, which is used to produce a unique index for the node.
 type Indexable interface {
 	CalculateIndex() (NodeIndex, error)
 }
@@ -70,14 +70,13 @@ type Node interface {
 	// calculate the index from the values of a leaf node, which determines
 	// the position of the leaf node in the bottom level of the tree
 	Index() NodeIndex
+	// calculate the index from the values of a leaf node, which determines
+	// the position of the leaf node in the bottom level of the tree
+	Value() *big.Int
 	// calculated by combining the index and value of the node, as
 	// the reference to the node from its parent in the tree, as well as the
 	// key to the storage record for the node
 	Ref() NodeRef
-	// returns the value object. only leaf nodes have a value object. If the
-	// client is the owner of a UTXO, the value object includes the secret values.
-	// otherwise the value object is simply the index of the node.
-	Value() Indexable
 	// returns the index of the left child. Only branch nodes have a left child.
 	LeftChild() NodeRef
 	// returns the index of the right child. Only branch nodes have a right child.
