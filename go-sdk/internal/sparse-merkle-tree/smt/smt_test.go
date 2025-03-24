@@ -253,6 +253,52 @@ func (s *MerkleTreeTestSuite) TestGenerateProof() {
 	assert.False(s.T(), proof3.IsOld0)
 }
 
+func (s *MerkleTreeTestSuite) TestGenerateProofWithValue() {
+	const levels = 64
+	mt, _ := NewMerkleTree(s.db, levels)
+
+	x, _ := new(big.Int).SetString("5942093613500723806297813179240005997319949155197126751651583942828687054842", 10)
+	y, _ := new(big.Int).SetString("2705857439293983766697920596184407125756255052151793307734211470588083660177", 10)
+	alice := &babyjub.PublicKey{
+		X: x,
+		Y: y,
+	}
+	salt1, _ := new(big.Int).SetString("892402318960242780398177635659111260182315141240454518439802375724353727618", 10)
+
+	value, _ := new(big.Int).SetString("103929005307130220006098923584552504982110632080", 10)
+
+	utxo1 := node.NewFungible(big.NewInt(15), alice, salt1)
+	node1, err := node.NewLeafNode(utxo1, value)
+	assert.NoError(s.T(), err)
+	err = mt.AddLeaf(node1)
+	assert.NoError(s.T(), err)
+
+	salt2, _ := new(big.Int).SetString("20958393090813127612863788731259135207417921338630643176495259330913242296380", 10)
+	utxo2 := node.NewFungible(big.NewInt(100), alice, salt2)
+	node2, err := node.NewLeafNode(utxo2, value)
+	assert.NoError(s.T(), err)
+	err = mt.AddLeaf(node2)
+	assert.NoError(s.T(), err)
+
+	target1 := node1.Index().BigInt()
+	target2 := node2.Index().BigInt()
+
+	proofs, foundValues, err := mt.GenerateProofs([]*big.Int{target1, target2}, mt.Root())
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), value, foundValues[0])
+	assert.True(s.T(), proofs[0].(*proof).existence)
+	valid := VerifyProof(mt.Root(), proofs[0], node1)
+	assert.True(s.T(), valid)
+	assert.Equal(s.T(), value, foundValues[1])
+	assert.True(s.T(), proofs[1].(*proof).existence)
+	valid = VerifyProof(mt.Root(), proofs[1], node2)
+	assert.True(s.T(), valid)
+
+	proof3, err := proofs[0].ToCircomVerifierProof(target1, foundValues[0], mt.Root(), levels)
+	assert.NoError(s.T(), err)
+	assert.False(s.T(), proof3.IsOld0)
+}
+
 func (s *MerkleTreeTestSuite) TestVerifyProof() {
 	const levels = 100
 	mt, _ := NewMerkleTree(s.db, levels)
