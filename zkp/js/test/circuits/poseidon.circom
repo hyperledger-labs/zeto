@@ -1,4 +1,4 @@
-pragma circom 2.2.1;
+pragma circom 2.2.2;
 
 include "../../../circuits/lib/poseidon.circom";
 

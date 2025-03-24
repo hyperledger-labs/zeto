@@ -45,7 +45,7 @@ const ptauDownload = process.env.PTAU_DOWNLOAD_PATH || argv.ptauDownloadPath;
 const specificCircuits = argv.c;
 const verbose = argv.v;
 const compileOnly = argv.compileOnly;
-const parallelLimit = parseInt(process.env.GEN_CONCURRENCY, 10) || 4; // Default to compile 4 circuits in parallel 
+const parallelLimit = parseInt(process.env.GEN_CONCURRENCY, 10) || 4; // Default to compile 4 circuits in parallel
 
 // check env vars
 if (!circuitsRoot) {
@@ -255,65 +255,63 @@ const run = async () => {
   const circuitsArray = Object.entries(circuits);
   const activePromises = new Set();
 
+  let snarkjsVersion;
+  // first check cirom version and snarkjs version matches the one in the package.json
+  try {
+    const { stdout: circomVersion } = await execAsync("circom --version");
+    // Trigger error to get snarkjs version
+    try {
+      await execAsync("npx snarkjs --version");
+    } catch (error) {
+      // Extract snarkjs version from error message
+      snarkjsVersion = error.stdout.match(/snarkjs@([\d.]+)/)?.[1];
+      if (!snarkjsVersion) {
+        throw new Error("Failed to extract SnarkJS version from error output.");
+      }
+    }
+    const { stdout: packageJson } = await execAsync("cat package.json");
+
+    const packageJsonObj = JSON.parse(packageJson);
+    const expectedCircomVersion = genConfig.circomVersion;
+
+    // Sanitize and extract version numbers
+    const circomVersionTrimmed = circomVersion
+      .trim()
+      .replace("circom compiler ", "");
+    let hasMismatch = false;
+    if (circomVersionTrimmed !== expectedCircomVersion) {
+      console.error(
+        `Error: circom version mismatch with the version in gen-config.json :\n` +
+          `\tExpected circom: ${expectedCircomVersion}, got: ${circomVersionTrimmed}\n` +
+          `\tFollow https://docs.circom.io/getting-started/installation/ to update your circom\n`,
+      );
+      hasMismatch = true;
+    }
+
+    if (snarkjsVersion !== packageJsonObj.devDependencies.snarkjs) {
+      console.error(
+        `Error: snarkjs version mismatch with package.json:\n` +
+          `\tExpected snarkjs: ${packageJsonObj.devDependencies.snarkjs}, got: ${snarkjsVersion}\n` +
+          `\tUse npm to update your snarkjs node module\n`,
+      );
+      hasMismatch = true;
+    }
+    if (hasMismatch) {
+      process.exit(1);
+    }
+
+    console.log("Version check passed.");
+  } catch (error) {
+    console.error(`An error occurred: ${error.message}`);
+    process.exit(1);
+  }
+
   for (const [
     circuit,
     { ptau, skipSolidityGenaration, batchPtau },
   ] of circuitsArray) {
     if (onlyCircuits && !onlyCircuits.includes(circuit)) {
       continue;
-    }
-
-    let snarkjsVersion;
-    // first check cirom version and snarkjs version matches the one in the package.json
-    try {
-      const { stdout: circomVersion } = await execAsync("circom --version");
-      // Trigger error to get snarkjs version
-      try {
-        await execAsync("npx snarkjs --version");
-      } catch (error) {
-        // Extract snarkjs version from error message
-        snarkjsVersion = error.stdout.match(/snarkjs@([\d.]+)/)?.[1];
-        if (!snarkjsVersion) {
-          throw new Error(
-            "Failed to extract SnarkJS version from error output.",
-          );
-        }
-      }
-      const { stdout: packageJson } = await execAsync("cat package.json");
-
-      const packageJsonObj = JSON.parse(packageJson);
-      const expectedCircomVersion = genConfig.circomVersion;
-
-      // Sanitize and extract version numbers
-      const circomVersionTrimmed = circomVersion
-        .trim()
-        .replace("circom compiler ", "");
-      let hasMismatch = false;
-      if (circomVersionTrimmed !== expectedCircomVersion) {
-        console.error(
-          `Error: circom version mismatch with the version in gen-config.json :\n` +
-            `\tExpected circom: ${expectedCircomVersion}, got: ${circomVersionTrimmed}\n` +
-            `\tFollow https://docs.circom.io/getting-started/installation/ to update your circom\n`,
-        );
-        hasMismatch = true;
-      }
-
-      if (snarkjsVersion !== packageJsonObj.devDependencies.snarkjs) {
-        console.error(
-          `Error: snarkjs version mismatch with package.json:\n` +
-            `\tExpected snarkjs: ${packageJsonObj.devDependencies.snarkjs}, got: ${snarkjsVersion}\n` +
-            `\tUse npm to update your snarkjs node module\n`,
-        );
-        hasMismatch = true;
-      }
-      if (hasMismatch) {
-        process.exit(1);
-      }
-
-      console.log("Version check passed.");
-    } catch (error) {
-      console.error(`An error occurred: ${error.message}`);
-      process.exit(1);
     }
 
     const pcPromise = processCircuit(circuit, ptau, skipSolidityGenaration);
