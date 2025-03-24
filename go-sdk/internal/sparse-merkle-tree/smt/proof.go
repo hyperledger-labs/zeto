@@ -103,10 +103,13 @@ func (p *proof) ToCircomVerifierProof(k, v *big.Int, rootKey core.NodeRef, level
 	cp.Siblings = p.AllSiblings()
 	if p.existingNode != nil {
 		cp.OldKey = p.existingNode.Index()
-		cp.OldValue = p.existingNode.Index()
+		cp.OldValue = p.existingNode.Value()
+		if cp.OldValue == nil {
+			cp.OldValue = p.existingNode.Index().BigInt()
+		}
 	} else {
 		cp.OldKey = node.ZERO_INDEX
-		cp.OldValue = node.ZERO_INDEX
+		cp.OldValue = big.NewInt(0)
 	}
 	var err error
 	cp.Key, err = node.NewNodeIndexFromBigInt(k)

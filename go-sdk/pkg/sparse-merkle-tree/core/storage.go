@@ -79,6 +79,7 @@ type SMTNode struct {
 	RefKey     string `gorm:"primaryKey;size:64"`
 	Type       byte
 	Index      *string `gorm:"size:64"` // only leaf nodes have an index
+	Value      *string `gorm:"size:64"` // only leaf nodes have a value
 	LeftChild  *string `gorm:"size:64"` // only branch nodes have children
 	RightChild *string `gorm:"size:64"`
 }

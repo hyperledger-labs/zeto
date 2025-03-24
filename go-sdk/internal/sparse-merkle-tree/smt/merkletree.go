@@ -164,11 +164,14 @@ func (mt *sparseMerkleTree) generateProof(key *big.Int, rootKey core.NodeRef) (c
 			return p, big.NewInt(0), nil
 		case core.NodeTypeLeaf:
 			idx := n.Index()
-			value := n.Index()
+			value := n.Value()
+			if value == nil {
+				value = idx.BigInt()
+			}
 			if kHash.Equal(idx) {
 				p.existence = true
 				// in our nodes, the value is the same as the index
-				return p, value.BigInt(), nil
+				return p, value, nil
 			}
 			// We found a leaf whose entry didn't match the node index
 			p.existingNode, err = node.NewLeafNode(utils.NewIndexOnly(idx))
@@ -176,7 +179,7 @@ func (mt *sparseMerkleTree) generateProof(key *big.Int, rootKey core.NodeRef) (c
 				return nil, nil, err
 			}
 			// returning a non-inclusion proof
-			return p, value.BigInt(), nil
+			return p, value, nil
 		case core.NodeTypeBranch:
 			if path[p.depth] { // go right
 				nextKey = n.RightChild()

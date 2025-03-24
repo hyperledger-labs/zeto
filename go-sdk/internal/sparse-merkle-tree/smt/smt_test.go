@@ -27,6 +27,7 @@ import (
 	"github.com/hyperledger-labs/zeto/go-sdk/internal/crypto"
 	"github.com/hyperledger-labs/zeto/go-sdk/internal/sparse-merkle-tree/node"
 	"github.com/hyperledger-labs/zeto/go-sdk/internal/sparse-merkle-tree/storage"
+	"github.com/hyperledger-labs/zeto/go-sdk/internal/sparse-merkle-tree/utils"
 	"github.com/hyperledger-labs/zeto/go-sdk/internal/testutils"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
@@ -163,6 +164,31 @@ func (s *MerkleTreeTestSuite) TestAddNode() {
 	mt2, err := NewMerkleTree(s.db, 10)
 	assert.NoError(s.T(), err)
 	assert.Equal(s.T(), "abacf46f5217552ee28fe50b8fd7ca6aa46daeb9acf9f60928654c3b1a472f23", mt2.Root().Hex())
+}
+
+func (s *MerkleTreeTestSuite) TestAddNodeWithValue() {
+	mt, err := NewMerkleTree(s.db, 64)
+	assert.NoError(s.T(), err)
+
+	num1, _ := new(big.Int).SetString("2096622280825605732680813932752245818650977932351778776082900098091126550803", 10)
+	idx1, _ := node.NewNodeIndexFromBigInt(num1)
+	i1 := utils.NewIndexOnly(idx1)
+	value, _ := new(big.Int).SetString("103929005307130220006098923584552504982110632080", 10)
+	node1, _ := node.NewLeafNode(i1, value)
+
+	err = mt.AddLeaf(node1)
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), "30217116944257091399475853416903058458458941628960743326838300308858186421", mt.Root().BigInt().Text(10))
+
+	num2, _ := new(big.Int).SetString("15090204826491664659381707037550246536226753383907517787209741376692915222845", 10)
+	idx2, _ := node.NewNodeIndexFromBigInt(num2)
+	i2 := utils.NewIndexOnly(idx2)
+	value2, _ := new(big.Int).SetString("103929005307130220006098923584552504982110632080", 10)
+	node2, _ := node.NewLeafNode(i2, value2)
+
+	err = mt.AddLeaf(node2)
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), "13510168183919975355906555974433619775354581939566212907435695290053458902080", mt.Root().BigInt().Text(10))
 }
 
 func (s *MerkleTreeTestSuite) TestAddNodeFailExistingKey() {
