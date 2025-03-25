@@ -29,8 +29,12 @@ func NewEmptyNode() core.Node {
 	return node.NewEmptyNode()
 }
 
-func NewLeafNode(i core.Indexable, v *big.Int) (core.Node, error) {
-	return node.NewLeafNode(i, v)
+// the Indexable object captures the private state data of the node,
+// which is used to calculate the hash of the node index.
+// the value parameter is optional. if "nil", the index hash is used in the
+// place of the value when calculating the node reference hash (aka "node key").
+func NewLeafNode(i core.Indexable, v ...*big.Int) (core.Node, error) {
+	return node.NewLeafNode(i, v...)
 }
 
 func NewBranchNode(leftChild, rightChild core.NodeRef) (core.Node, error) {

@@ -62,7 +62,7 @@ func TestNewEmptyNode(t *testing.T) {
 func TestNewLeafNode(t *testing.T) {
 	idx, _ := NewNodeIndexFromBigInt(big.NewInt(10))
 	i := utils.NewIndexOnly(idx)
-	node, err := NewLeafNode(i, nil)
+	node, err := NewLeafNode(i)
 	assert.NoError(t, err)
 	assert.Equal(t, node.Type(), core.NodeTypeLeaf)
 	assert.Equal(t, node.Index(), idx)
@@ -111,6 +111,6 @@ func (f *badIndex) CalculateIndex() (core.NodeIndex, error) {
 }
 
 func TestNewLeafNodeFail(t *testing.T) {
-	_, err := NewLeafNode(&badIndex{}, nil)
+	_, err := NewLeafNode(&badIndex{})
 	assert.EqualError(t, err, "Bang!")
 }

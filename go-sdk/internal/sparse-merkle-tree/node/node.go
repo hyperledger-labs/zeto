@@ -54,7 +54,7 @@ func NewEmptyNode() core.Node {
 
 // the value parameter is optional. if "nil", the index hash is used in the
 // place of the value when calculating the node reference hash (aka "node key").
-func NewLeafNode(s core.Indexable, v *big.Int) (core.Node, error) {
+func NewLeafNode(s core.Indexable, v ...*big.Int) (core.Node, error) {
 	n := &node{nodeType: core.NodeTypeLeaf, state: s}
 	idx, err := n.state.CalculateIndex()
 	if err != nil {
@@ -62,7 +62,9 @@ func NewLeafNode(s core.Indexable, v *big.Int) (core.Node, error) {
 	}
 	n.i = idx
 
-	n.v = v
+	if len(v) > 0 {
+		n.v = v[0]
+	}
 
 	// the leaf node's reference is calculated as follows:
 	// 1. get the node's index, call it hKey
