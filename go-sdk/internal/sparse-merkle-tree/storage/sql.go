@@ -143,7 +143,7 @@ func getNode(batchOrDb *gorm.DB, nodesTableName string, ref core.NodeRef) (core.
 			}
 			newNode, err = node.NewLeafNode(index, value)
 		} else {
-			newNode, err = node.NewLeafNode(index)
+			newNode, err = node.NewLeafNode(index, nil)
 		}
 	case core.NodeTypeBranch:
 		leftChild, err1 := node.NewNodeIndexFromHex(*n.LeftChild)

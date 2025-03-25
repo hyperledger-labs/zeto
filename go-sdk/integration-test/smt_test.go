@@ -79,7 +79,7 @@ func testConcurrentInsertion(t *testing.T, alice *babyjub.PublicKey, values []in
 		go func(i, v int) {
 			salt, _ := new(big.Int).SetString(salts[i], 16)
 			utxo := node.NewFungible(big.NewInt(int64(v)), alice, salt)
-			n, err := node.NewLeafNode(utxo)
+			n, err := node.NewLeafNode(utxo, nil)
 			assert.NoError(t, err)
 			err = mt.AddLeaf(n)
 			assert.NoError(t, err)

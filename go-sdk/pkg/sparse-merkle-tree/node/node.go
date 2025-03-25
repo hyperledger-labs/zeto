@@ -29,8 +29,8 @@ func NewEmptyNode() core.Node {
 	return node.NewEmptyNode()
 }
 
-func NewLeafNode(v core.Indexable) (core.Node, error) {
-	return node.NewLeafNode(v)
+func NewLeafNode(i core.Indexable, v *big.Int) (core.Node, error) {
+	return node.NewLeafNode(i, v)
 }
 
 func NewBranchNode(leftChild, rightChild core.NodeRef) (core.Node, error) {

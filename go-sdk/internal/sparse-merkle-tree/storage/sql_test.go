@@ -64,7 +64,7 @@ func TestSqliteStorage(t *testing.T) {
 	salt1 := crypto.NewSalt()
 
 	utxo1 := node.NewNonFungible(tokenId, uriString, sender.PublicKey, salt1)
-	n1, err := node.NewLeafNode(utxo1)
+	n1, err := node.NewLeafNode(utxo1, nil)
 	assert.NoError(t, err)
 
 	idx, _ := utxo1.CalculateIndex()
@@ -170,7 +170,7 @@ func TestSqliteStorageFail_BadNodeIndex(t *testing.T) {
 	salt1 := crypto.NewSalt()
 
 	utxo1 := node.NewFungible(big.NewInt(100), sender.PublicKey, salt1)
-	n1, err := node.NewLeafNode(utxo1)
+	n1, err := node.NewLeafNode(utxo1, nil)
 	assert.NoError(t, err)
 	err = s.InsertNode(n1)
 	assert.NoError(t, err)
