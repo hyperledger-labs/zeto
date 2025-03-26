@@ -74,6 +74,21 @@ func TestNewLeafNode(t *testing.T) {
 	assert.Nil(t, node.RightChild())
 }
 
+func TestNewLeafNodeWithValue(t *testing.T) {
+	idx, _ := NewNodeIndexFromBigInt(big.NewInt(10))
+	i := utils.NewIndexOnly(idx)
+	node, err := NewLeafNode(i, big.NewInt(12345))
+	assert.NoError(t, err)
+	assert.Equal(t, node.Type(), core.NodeTypeLeaf)
+	assert.Equal(t, node.Index(), idx)
+	elements := []*big.Int{idx.BigInt(), big.NewInt(12345), big.NewInt(1)}
+	hash, err := poseidon.Hash(elements)
+	assert.NoError(t, err)
+	assert.Equal(t, node.Ref().BigInt(), hash)
+	assert.Nil(t, node.LeftChild())
+	assert.Nil(t, node.RightChild())
+}
+
 func TestNewBranchNode(t *testing.T) {
 	idx0, _ := NewNodeIndexFromBigInt(big.NewInt(0))
 	idx1, _ := NewNodeIndexFromBigInt(big.NewInt(1))

@@ -43,7 +43,7 @@ type CircomVerifierProof struct {
 	Root     NodeRef   `json:"root"`
 	Siblings []NodeRef `json:"siblings"`
 	OldKey   NodeIndex `json:"oldKey"`
-	OldValue NodeIndex `json:"oldValue"`
+	OldValue *big.Int  `json:"oldValue"`
 	IsOld0   bool      `json:"isOld0"`
 	Key      NodeIndex `json:"key"`
 	Value    NodeIndex `json:"value"`
