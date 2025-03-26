@@ -36,9 +36,11 @@ template CheckUTXOsOwner(nInputs) {
   var ownerPubKeyAx, ownerPubKeyAy;
   (ownerPubKeyAx, ownerPubKeyAy) = BabyPbk()(in <== ownerPrivateKey);
 
-  var ownerPublicKeys[nInputs][2];
+  CommitmentInputs() auxInputs[nInputs];
   for (var i = 0; i < nInputs; i++) {
-    ownerPublicKeys[i]= [ownerPubKeyAx, ownerPubKeyAy];
+    auxInputs[i].value <== inputValues[i];
+    auxInputs[i].salt <== inputSalts[i];
+    auxInputs[i].ownerPublicKey <== [ownerPubKeyAx, ownerPubKeyAy];
   }
-  CheckHashes(nInputs)(commitments <== commitments, values <== values, salts <== salts, ownerPublicKeys <== ownerPublicKeys);
+  CheckHashes(nInputs)(commitmentHashes <== commitments, commitmentInputs <== auxInputs);
 }

@@ -105,7 +105,7 @@ const log = (circuit, message) => {
 };
 
 // main circuit process logic
-const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
+const processCircuit = async (circuit, ptau, skipSolidityGeneration) => {
   const circomInput = path.join("./", `${circuit}.circom`);
   const ptauFile = path.join(ptauDownload, `${ptau}.ptau`);
   const zkeyOutput = path.join(provingKeysRoot, `${circuit}.zkey`);
@@ -197,7 +197,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
       log(circuit, "verification key export error:\n" + vkErr);
     }
   }
-  if (skipSolidityGenaration) {
+  if (skipSolidityGeneration) {
     log(circuit, `Skipping solidity verifier generation`);
     return;
   }
@@ -256,7 +256,7 @@ const run = async () => {
   const activePromises = new Set();
 
   let snarkjsVersion;
-  // first check cirom version and snarkjs version matches the one in the package.json
+  // first check circom version and snarkjs version matches the one in the package.json
   try {
     const { stdout: circomVersion } = await execAsync("circom --version");
     // Trigger error to get snarkjs version
@@ -308,13 +308,13 @@ const run = async () => {
 
   for (const [
     circuit,
-    { ptau, skipSolidityGenaration, batchPtau },
+    { ptau, skipSolidityGeneration: skipSolidityGeneration, batchPtau },
   ] of circuitsArray) {
     if (onlyCircuits && !onlyCircuits.includes(circuit)) {
       continue;
     }
 
-    const pcPromise = processCircuit(circuit, ptau, skipSolidityGenaration);
+    const pcPromise = processCircuit(circuit, ptau, skipSolidityGeneration);
     activePromises.add(pcPromise);
 
     if (activePromises.size >= parallelLimit) {
@@ -325,7 +325,7 @@ const run = async () => {
       const pcBatchPromise = processCircuit(
         circuit + "_batch",
         batchPtau,
-        skipSolidityGenaration,
+        skipSolidityGeneration,
       );
       activePromises.add(pcBatchPromise);
 

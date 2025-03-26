@@ -25,11 +25,11 @@ include "./node_modules/circomlib/circuits/babyjub.circom";
 // commitment = hash(value, salt, ownerPublicKey1, ownerPublicKey2)
 // nullifier = hash(value, salt, ownerPrivatekey)
 //
-template Zeto(numInputs) {
-  signal input nullifiers[numInputs];
-  signal input inputCommitments[numInputs];
-  signal input inputValues[numInputs];
-  signal input inputSalts[numInputs];
+template Zeto(nInputs) {
+  signal input nullifiers[nInputs];
+  signal input inputCommitments[nInputs];
+  signal input inputValues[nInputs];
+  signal input inputSalts[nInputs];
   // must be properly hashed and trimmed to be compatible with the BabyJub curve.
   // Reference: https://github.com/iden3/circomlib/blob/master/test/babyjub.js#L103
   signal input inputOwnerPrivateKey;
@@ -41,14 +41,16 @@ template Zeto(numInputs) {
   var inputOwnerPubKeyAx, inputOwnerPubKeyAy;
   (inputOwnerPubKeyAx, inputOwnerPubKeyAy) = BabyPbk()(in <== inputOwnerPrivateKey);
 
-  var inputOwnerPublicKeys[numInputs][2];
-  for (var i = 0; i < numInputs; i++) {
-    inputOwnerPublicKeys[i] = [inputOwnerPubKeyAx, inputOwnerPubKeyAy];
+  CommitmentInputs() auxInputs[nInputs];
+  for (var i = 0; i < nInputs; i++) {
+    auxInputs[i].value <== inputValues[i];
+    auxInputs[i].salt <== inputSalts[i];
+    auxInputs[i].ownerPublicKey <== [inputOwnerPubKeyAx, inputOwnerPubKeyAy];
   }
 
-  CheckHashes(numInputs)(commitments <== inputCommitments, values <== inputValues, salts <== inputSalts, ownerPublicKeys <== inputOwnerPublicKeys);
+  CheckHashes(nInputs)(commitmentHashes <== inputCommitments, commitmentInputs <== auxInputs);
 
-  CheckNullifiers(numInputs)(nullifiers <== nullifiers, values <== inputValues, salts <== inputSalts, ownerPrivateKey <== inputOwnerPrivateKey);
+  CheckNullifiers(nInputs)(nullifiers <== nullifiers, values <== inputValues, salts <== inputSalts, ownerPrivateKey <== inputOwnerPrivateKey);
 }
 
 component main { public [ nullifiers, inputCommitments ] } = Zeto(2);

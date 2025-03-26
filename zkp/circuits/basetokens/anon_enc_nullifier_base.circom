@@ -62,16 +62,24 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   var inputOwnerPubKeyAx, inputOwnerPubKeyAy;
   (inputOwnerPubKeyAx, inputOwnerPubKeyAy) = BabyPbk()(in <== inputOwnerPrivateKey);
 
-  var inputOwnerPublicKeys[nInputs][2];
+  CheckPositive(nOutputs)(outputValues <== outputValues);
+
+  CommitmentInputs() inAuxInputs[nInputs];
   for (var i = 0; i < nInputs; i++) {
-    inputOwnerPublicKeys[i]= [inputOwnerPubKeyAx, inputOwnerPubKeyAy];
+    inAuxInputs[i].value <== inputValues[i];
+    inAuxInputs[i].salt <== inputSalts[i];
+    inAuxInputs[i].ownerPublicKey <== [inputOwnerPubKeyAx, inputOwnerPubKeyAy];
   }
 
-  CheckPositive(nOutputs)(outputValues <== outputValues);
-  
-  CheckHashes(nInputs)(commitments <== inputCommitments, values <== inputValues, salts <== inputSalts, ownerPublicKeys <== inputOwnerPublicKeys);
+  CommitmentInputs() outAuxInputs[nOutputs];
+  for (var i = 0; i < nOutputs; i++) {
+    outAuxInputs[i].value <== outputValues[i];
+    outAuxInputs[i].salt <== outputSalts[i];
+    outAuxInputs[i].ownerPublicKey <== outputOwnerPublicKeys[i];
+  }
 
-  CheckHashes(nOutputs)(commitments <== outputCommitments, values <== outputValues, salts <== outputSalts, ownerPublicKeys <== outputOwnerPublicKeys);
+  CheckHashes(nInputs)(commitmentHashes <== inputCommitments, commitmentInputs <== inAuxInputs);
+  CheckHashes(nOutputs)(commitmentHashes <== outputCommitments, commitmentInputs <== outAuxInputs);
 
   CheckNullifiers(nInputs)(nullifiers <== nullifiers, values <== inputValues, salts <== inputSalts, ownerPrivateKey <== inputOwnerPrivateKey);
 
@@ -84,5 +92,5 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   // Merkle Tree with the root `root`.
   CheckSMTProof(nInputs, nSMTLevels)(root <== root, merkleProof <== merkleProof, enabled <== enabled, leafNodeIndexes <== inputCommitments, leafNodeValues <== inputCommitments);
 
-  (ecdhPublicKey, cipherTexts) <== EncryptOutputs(nOutputs)(ecdhPrivateKey <== ecdhPrivateKey, outputValues <== outputValues, outputSalts <== outputSalts, outputOwnerPublicKeys <== outputOwnerPublicKeys, encryptionNonce <== encryptionNonce);
+  (ecdhPublicKey, cipherTexts) <== EncryptOutputs(nOutputs)(ecdhPrivateKey <== ecdhPrivateKey, encryptionNonce <== encryptionNonce, commitmentInputs <== outAuxInputs);
 }
