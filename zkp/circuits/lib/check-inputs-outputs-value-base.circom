@@ -30,17 +30,17 @@ include "../node_modules/circomlib/circuits/comparators.circom";
 //
 // commitment = hash(value, salt, owner public key)
 //
-template CheckInputsOutputsValue(numInputs, numOutputs) {
-  signal input inputCommitments[numInputs];
-  signal input inputValues[numInputs];
-  signal input inputSalts[numInputs];
+template CheckInputsOutputsValue(nInputs, nOutputs) {
+  signal input inputCommitments[nInputs];
+  signal input inputValues[nInputs];
+  signal input inputSalts[nInputs];
   // must be properly hashed and trimmed to be compatible with the BabyJub curve.
   // Reference: https://github.com/iden3/circomlib/blob/master/test/babyjub.js#L103
   signal input inputOwnerPrivateKey;
-  signal input outputCommitments[numOutputs];
-  signal input outputValues[numOutputs];
-  signal input outputSalts[numOutputs];
-  signal input outputOwnerPublicKeys[numOutputs][2];
+  signal input outputCommitments[nOutputs];
+  signal input outputValues[nOutputs];
+  signal input outputSalts[nOutputs];
+  signal input outputOwnerPublicKeys[nOutputs][2];
   signal output out;
 
   // derive the sender's public key from the secret input
@@ -50,24 +50,32 @@ template CheckInputsOutputsValue(numInputs, numOutputs) {
   var inputOwnerPubKeyAx, inputOwnerPubKeyAy;
   (inputOwnerPubKeyAx, inputOwnerPubKeyAy) = BabyPbk()(in <== inputOwnerPrivateKey);
 
-  var inputOwnerPublicKeys[numInputs][2];
-  for (var i = 0; i < numInputs; i++) {
-    inputOwnerPublicKeys[i] = [inputOwnerPubKeyAx, inputOwnerPubKeyAy];
+  CheckPositive(nOutputs)(outputValues <== outputValues);
+
+  CommitmentInputs() inAuxInputs[nInputs];
+  for (var i = 0; i < nInputs; i++) {
+    inAuxInputs[i].value <== inputValues[i];
+    inAuxInputs[i].salt <== inputSalts[i];
+    inAuxInputs[i].ownerPublicKey <== [inputOwnerPubKeyAx, inputOwnerPubKeyAy];
   }
 
-  CheckPositive(numOutputs)(outputValues <== outputValues);
+  CommitmentInputs() outAuxInputs[nOutputs];
+  for (var i = 0; i < nOutputs; i++) {
+    outAuxInputs[i].value <== outputValues[i];
+    outAuxInputs[i].salt <== outputSalts[i];
+    outAuxInputs[i].ownerPublicKey <== outputOwnerPublicKeys[i];
+  }
 
-  CheckHashes(numInputs)(commitments <== inputCommitments, values <== inputValues, salts <== inputSalts, ownerPublicKeys <== inputOwnerPublicKeys);
-
-  CheckHashes(numOutputs)(commitments <== outputCommitments, values <== outputValues, salts <== outputSalts, ownerPublicKeys <== outputOwnerPublicKeys);
+  CheckHashes(nInputs)(commitmentHashes <== inputCommitments, commitmentInputs <== inAuxInputs);
+  CheckHashes(nOutputs)(commitmentHashes <== outputCommitments, commitmentInputs <== outAuxInputs);
 
   // check that the sum of input values is greater than or equal to the sum of output values
   var sumInputs = 0;
-  for (var i = 0; i < numInputs; i++) {
+  for (var i = 0; i < nInputs; i++) {
     sumInputs = sumInputs + inputValues[i];
   }
   var sumOutputs = 0;
-  for (var i = 0; i < numOutputs; i++) {
+  for (var i = 0; i < nOutputs; i++) {
     sumOutputs = sumOutputs + outputValues[i];
   }
 

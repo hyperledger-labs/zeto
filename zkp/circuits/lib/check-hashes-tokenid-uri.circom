@@ -26,15 +26,15 @@ include "../node_modules/circomlib/circuits/comparators.circom";
 // tokenIds: array of token ids, as preimages for the input hashes and output hashes
 // tokenUris: array of token uris, as preimages for the input hashes and output hashes
 //
-template CheckHashesForTokenIdAndUri(numInputs) {
-  signal input tokenIds[numInputs];
-  signal input tokenUris[numInputs];
-  signal input commitments[numInputs];
-  signal input salts[numInputs];
-  signal input ownerPublicKeys[numInputs][2];
+template CheckHashesForTokenIdAndUri(nInputs) {
+  signal input tokenIds[nInputs];
+  signal input tokenUris[nInputs];
+  signal input commitments[nInputs];
+  signal input salts[nInputs];
+  signal input ownerPublicKeys[nInputs][2];
 
   // hash the input values
-  for (var i = 0; i < numInputs; i++) {
+  for (var i = 0; i < nInputs; i++) {
     // perform the hash calculation even though they are not needed when the input 
     // commitment at the current index is 0; this is because in zkp circuits we
     // must always perform the same computation (have the the same constraints)

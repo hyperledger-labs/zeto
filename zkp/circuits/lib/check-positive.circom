@@ -25,11 +25,11 @@ include "../node_modules/circomlib/circuits/smt/smtverifier.circom";
 //
 // outputValues: array of values, as preimages for the output hashes, for the output utxos
 //
-template CheckPositive(numOutputs) {
-  signal input outputValues[numOutputs];
+template CheckPositive(nOutputs) {
+  signal input outputValues[nOutputs];
 
   // check that the output values are within the expected range. we don't allow negative values
-  for (var i = 0; i < numOutputs; i++) {
+  for (var i = 0; i < nOutputs; i++) {
     var greaterEqThanZero;
     greaterEqThanZero = GreaterEqThan(100)(in <== [outputValues[i], 0]);
 
