@@ -17,6 +17,8 @@
 package storage
 
 import (
+	"math/big"
+
 	"github.com/hyperledger-labs/zeto/go-sdk/internal/sparse-merkle-tree/node"
 	"github.com/hyperledger-labs/zeto/go-sdk/internal/sparse-merkle-tree/utils"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/core"
@@ -133,8 +135,16 @@ func getNode(batchOrDb *gorm.DB, nodesTableName string, ref core.NodeRef) (core.
 		if err1 != nil {
 			return nil, err1
 		}
-		v := utils.NewIndexOnly(idx)
-		newNode, err = node.NewLeafNode(v)
+		index := utils.NewIndexOnly(idx)
+		if n.Value != nil && *n.Value != "" {
+			value, ok := new(big.Int).SetString(*n.Value, 16)
+			if !ok {
+				return nil, core.ErrInvalidValue
+			}
+			newNode, err = node.NewLeafNode(index, value)
+		} else {
+			newNode, err = node.NewLeafNode(index)
+		}
 	case core.NodeTypeBranch:
 		leftChild, err1 := node.NewNodeIndexFromHex(*n.LeftChild)
 		if err1 != nil {
@@ -163,6 +173,10 @@ func insertNode(batchOrDb *gorm.DB, nodesTableName string, n core.Node) error {
 	} else if n.Type() == core.NodeTypeLeaf {
 		idx := n.Index().Hex()
 		dbNode.Index = &idx
+		if n.Value() != nil {
+			value := n.Value().Text(16)
+			dbNode.Value = &value
+		}
 	}
 
 	// the merkle tree nodes, whether leaf nodes or branch nodes, are constructed

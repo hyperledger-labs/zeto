@@ -19,5 +19,6 @@ package core
 import "errors"
 
 var (
-	ErrNotFound = errors.New("key not found")
+	ErrNotFound     = errors.New("key not found")
+	ErrInvalidValue = errors.New("invalid big int value")
 )
