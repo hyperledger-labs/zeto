@@ -123,6 +123,7 @@ abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
             }
         }
 
+        // check the outputs are all new - looking in the locked and unlocked UTXOs
         for (uint256 i = 0; i < outputs.length; ++i) {
             if (
                 _utxos[outputs[i]] == UTXOStatus.SPENT ||
@@ -137,6 +138,7 @@ abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
             }
         }
 
+        // check the locked outputs are all new - looking in the locked and unlocked UTXOs
         for (uint256 i = 0; i < lockedOutputs.length; ++i) {
             if (
                 _lockedUtxos[lockedOutputs[i]] == UTXOStatus.SPENT ||

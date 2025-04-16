@@ -82,11 +82,13 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
             if (i > 0 && sortedOutputs[i] == sortedOutputs[i - 1]) {
                 revert UTXODuplicate(sortedOutputs[i]);
             }
-            bool existsInTree;
-            if (isLocked) {
-                (existsInTree, ) = existsAsLocked(sortedOutputs[i], msg.sender);
-            } else {
-                existsInTree = exists(sortedOutputs[i]);
+            // check the unlocked commitments tree
+            bool existsInTree = exists(sortedOutputs[i]);
+            if (!existsInTree) {
+                // check the locked commitments tree
+                // we need to check the node by its merkle proof, which is built from the current tree
+                // and disregards the orphaned nodes after updates.
+                existsInTree = everExistedAsLocked(sortedOutputs[i]);
             }
 
             if (existsInTree) {
@@ -151,7 +153,7 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
             if (exists(utxo)) {
                 revert UTXOAlreadyOwned(utxo);
             }
-            if (everExistedAsLocked(utxo, msg.sender)) {
+            if (everExistedAsLocked(utxo)) {
                 revert UTXOAlreadyOwned(utxo);
             }
 
@@ -278,15 +280,11 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
     }
 
     // check if an UTXO has ever existed in the locked commitments tree. Because
-    // this tree allows updates to an existing leaf node, we check the node list
-    // which includes the orphaned nodes after updates.
-    function everExistedAsLocked(
-        uint256 utxo,
-        address delegate
-    ) public view returns (bool) {
-        uint256 nodeHash = getLeafNodeHash(utxo, uint256(uint160(delegate)));
-        SmtLib.Node memory node = _lockedCommitmentsTree.getNode(nodeHash);
-        return node.nodeType != SmtLib.NodeType.EMPTY;
+    // this tree allows updates to an existing leaf node, we check the node by its
+    // merkle proof
+    function everExistedAsLocked(uint256 utxo) public view returns (bool) {
+        SmtLib.Proof memory proof = _lockedCommitmentsTree.getProof(utxo);
+        return proof.existence;
     }
 
     // check the existence of a locked UTXO in the locked commitments tree. Because
