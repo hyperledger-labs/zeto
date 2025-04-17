@@ -213,7 +213,7 @@ abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
         uint256[] memory lockedOutputs,
         address delegate,
         bytes calldata data
-    ) public {
+    ) internal {
         for (uint256 i = 0; i < lockedOutputs.length; ++i) {
             if (lockedOutputs[i] == 0) {
                 continue;
