@@ -84,13 +84,6 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
             }
             // check the unlocked commitments tree
             bool existsInTree = exists(sortedOutputs[i]);
-            if (!existsInTree) {
-                // check the locked commitments tree
-                // we need to check the node by its merkle proof, which is built from the current tree
-                // and disregards the orphaned nodes after updates.
-                existsInTree = everExistedAsLocked(sortedOutputs[i]);
-            }
-
             if (existsInTree) {
                 revert UTXOAlreadyOwned(sortedOutputs[i]);
             }
@@ -153,9 +146,6 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
             if (exists(utxo)) {
                 revert UTXOAlreadyOwned(utxo);
             }
-            if (everExistedAsLocked(utxo)) {
-                revert UTXOAlreadyOwned(utxo);
-            }
 
             _commitmentsTree.addLeaf(utxo, utxo);
         }
@@ -176,6 +166,7 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
     // should be called by escrow contracts that will use uploaded proofs
     // to execute transactions, in order to prevent the proof from being used
     // by parties other than the escrow contract.
+    // Assumes that the outputs and locked outputs are already validated to be new UTXOs.
     function _lock(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
@@ -183,14 +174,10 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
         address delegate,
         bytes calldata data
     ) internal {
-        // Check the outputs are all new UTXOs
         for (uint256 i = 0; i < outputs.length; ++i) {
             if (outputs[i] == 0) {
                 // skip the zero outputs
                 continue;
-            }
-            if (exists(outputs[i])) {
-                revert UTXOAlreadyOwned(outputs[i]);
             }
             _commitmentsTree.addLeaf(outputs[i], outputs[i]);
         }
@@ -200,11 +187,6 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
             if (lockedOutputs[i] == 0) {
                 // skip the zero outputs
                 continue;
-            }
-            bool existsInTree;
-            (existsInTree, ) = existsAsLocked(lockedOutputs[i], delegate);
-            if (existsInTree) {
-                revert UTXOAlreadyLocked(lockedOutputs[i]);
             }
             _lockedCommitmentsTree.addLeaf(
                 lockedOutputs[i],
@@ -269,11 +251,20 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
         return PoseidonUnit3L.poseidon(params);
     }
 
+    // check the existence of a UTXO in either the unlocked or locked commitments tree
+    function exists(uint256 utxo) internal view returns (bool) {
+        bool existsInTree = everExistedAsUnlocked(utxo);
+        if (!existsInTree) {
+            return everExistedAsLocked(utxo);
+        }
+        return existsInTree;
+    }
+
     // check the existence of a UTXO in the commitments tree. we take a shortcut
     // by checking the list of nodes by their node hash, because the commitments
     // tree is append-only, no updates or deletions are allowed. As a result, all
     // nodes in the list are valid leaf nodes, aka there are no orphaned nodes.
-    function exists(uint256 utxo) internal view returns (bool) {
+    function everExistedAsUnlocked(uint256 utxo) internal view returns (bool) {
         uint256 nodeHash = getLeafNodeHash(utxo, utxo);
         SmtLib.Node memory node = _commitmentsTree.getNode(nodeHash);
         return node.nodeType != SmtLib.NodeType.EMPTY;
