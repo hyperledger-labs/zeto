@@ -86,6 +86,7 @@ contract Zeto_AnonNullifierQurrency is
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
     function constructPublicInputs(
+        uint[2] memory computed_hashes,
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         uint256 root,
@@ -93,7 +94,10 @@ contract Zeto_AnonNullifierQurrency is
         bool locked
     ) internal view returns (uint256[] memory publicInputs) {
         publicInputs = new uint256[](size);
-        uint256 piIndex = 0;
+        // copy computed hashes
+        publicInputs[0] = computed_hashes[0];
+        publicInputs[1] = computed_hashes[1];
+        uint256 piIndex = 2;
         // copy input commitments
         for (uint256 i = 0; i < nullifiers.length; i++) {
             publicInputs[piIndex++] = nullifiers[i];
@@ -134,13 +138,15 @@ contract Zeto_AnonNullifierQurrency is
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         uint256 root,
+        bytes memory ciphertext,
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public returns (bool) {
         nullifiers = checkAndPadCommitments(nullifiers);
         outputs = checkAndPadCommitments(outputs);
         validateTransactionProposal(nullifiers, outputs, root, false);
-        verifyProof(nullifiers, outputs, root, proof);
+        uint[2] memory computed_pubSignals = calculateHash(ciphertext);
+        verifyProof(computed_pubSignals, nullifiers, outputs, root, proof);
         uint256[] memory empty;
         processInputsAndOutputs(nullifiers, outputs, empty, address(0));
 
@@ -256,6 +262,7 @@ contract Zeto_AnonNullifierQurrency is
     // }
 
     function verifyProof(
+        uint[2] memory computed_hashes,
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         uint256 root,
@@ -263,6 +270,7 @@ contract Zeto_AnonNullifierQurrency is
     ) public view returns (bool) {
         if (nullifiers.length > 2 || outputs.length > 2) {
             uint256[] memory publicInputs = constructPublicInputs(
+                computed_hashes,
                 nullifiers,
                 outputs,
                 root,
@@ -287,6 +295,7 @@ contract Zeto_AnonNullifierQurrency is
             // );
         } else {
             uint256[] memory publicInputs = constructPublicInputs(
+                computed_hashes,
                 nullifiers,
                 outputs,
                 root,
@@ -368,4 +377,44 @@ contract Zeto_AnonNullifierQurrency is
     //     }
     //     return true;
     // }
+
+    function calculateHash(
+        bytes memory ciphertext
+    ) internal view returns (uint[2] memory) {
+        bytes memory ret = new bytes(32); // return is a simple 0 or 1
+        bool ok;
+        uint256 result;
+        bytes memory ct = new bytes(768);
+        for (uint i = 0; i < ct.length; i++) {
+            ct[i] = ciphertext[i];
+        }
+        assembly {
+            ok := staticcall(
+                gas(),
+                0x02,
+                add(ct, 0x20),
+                768,
+                add(ret, 0x20),
+                0x20
+            )
+            result := mload(add(ret, 0x20))
+        }
+        require(ok, "hash failed");
+        console.log("calculateHash()");
+        console.logBytes32(bytes32(result));
+        bytes32 hash = bytes32(result);
+
+        uint[2] memory computed_pubSignals;
+        // Calculate h0: sum of the first 16 bytes
+        for (uint i = 0; i < 16; i++) {
+            computed_pubSignals[0] += uint256(uint8(hash[i])) * (1 << (8 * i));
+        }
+        // Calculate h1: sum of the next 16 bytes
+        for (uint i = 16; i < 32; i++) {
+            computed_pubSignals[1] +=
+                uint256(uint8(hash[i])) *
+                (1 << (8 * (i - 16)));
+        }
+        return computed_pubSignals;
+    }
 }
