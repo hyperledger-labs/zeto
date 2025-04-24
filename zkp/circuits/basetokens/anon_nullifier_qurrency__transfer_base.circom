@@ -46,11 +46,6 @@ template transfer(nInputs, nOutputs, nSMTLevels) {
   signal input m[256];
   signal input randomness[256];
 
-  signal output ct_h0;
-  signal output ct_h1;
-
-  (ct_h0, ct_h1) <== kyber_enc(m, randomness);
-
   Zeto(nInputs, nOutputs, nSMTLevels)(
     nullifiers <== nullifiers,
     inputCommitments <== inputCommitments,
@@ -68,4 +63,9 @@ template transfer(nInputs, nOutputs, nSMTLevels) {
   );
   // additional constraints for the cipher texts
   // TODO: kyber encryption constraints
+
+  signal output ct_h0;
+  signal output ct_h1;
+
+  (ct_h0, ct_h1) <== kyber_enc(m, randomness);
 }
