@@ -234,7 +234,7 @@ contract Zeto_AnonNullifier is
         }
         nullifiers = checkAndPadCommitments(nullifiers);
         allOutputs = checkAndPadCommitments(allOutputs);
-        validateTransactionProposal(nullifiers, outputs, root, false);
+        validateTransactionProposal(nullifiers, allOutputs, root, false);
         verifyProof(nullifiers, allOutputs, root, proof);
 
         spendNullifiers(nullifiers);
