@@ -31,9 +31,9 @@ import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {console} from "hardhat/console.sol";
 
-uint256 constant INPUT_SIZE = 7;
-uint256 constant INPUT_SIZE_LOCKED = 8;
-// uint256 constant BATCH_INPUT_SIZE = 31;
+uint256 constant INPUT_SIZE = 9;
+// uint256 constant INPUT_SIZE_LOCKED = 8;
+uint256 constant BATCH_INPUT_SIZE = 31;
 // uint256 constant BATCH_INPUT_SIZE_LOCKED = 32;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and history masking
@@ -52,7 +52,7 @@ contract Zeto_AnonNullifierQurrency is
     UUPSUpgradeable
 {
     Groth16Verifier_AnonNullifierQurrencyTransfer internal _verifier;
-    // Groth16Verifier_AnonNullifierTransferBatch internal _batchVerifier;
+    // Groth16Verifier_AnonNullifierQurrencyTransferBatch internal _batchVerifier;
     // Groth16Verifier_AnonNullifierTransferLocked internal _lockVerifier;
     // Groth16Verifier_AnonNullifierTransferLockedBatch
     //     internal _batchLockVerifier;
@@ -69,7 +69,9 @@ contract Zeto_AnonNullifierQurrency is
                 verifiers.batchWithdrawVerifier
             )
         );
-        _verifier = (Groth16Verifier_AnonNullifierTransfer)(verifiers.verifier);
+        _verifier = (Groth16Verifier_AnonNullifierQurrencyTransfer)(
+            verifiers.verifier
+        );
         // _lockVerifier = (Groth16Verifier_AnonNullifierTransferLocked)(
         //     verifiers.lockVerifier
         // );
@@ -274,15 +276,15 @@ contract Zeto_AnonNullifierQurrency is
             }
 
             // Check the proof using batchVerifier
-            require(
-                _batchVerifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof"
-            );
+            // require(
+            //     _batchVerifier.verifyProof(
+            //         proof.pA,
+            //         proof.pB,
+            //         proof.pC,
+            //         fixedSizeInputs
+            //     ),
+            //     "Invalid proof"
+            // );
         } else {
             uint256[] memory publicInputs = constructPublicInputs(
                 nullifiers,
