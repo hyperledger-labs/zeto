@@ -77,9 +77,9 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
     const storage2 = new InMemoryDB(str2Bytes(""));
     smtBob = new Merkletree(storage2, true, 64);
 
-    circuit = await loadCircuit("anon_nullifier_transfer_qurrency");
+    circuit = await loadCircuit("anon_nullifier_qurrency_transfer");
     ({ provingKeyFile: provingKey } = loadProvingKeys(
-      "anon_nullifier_transfer_qurrency",
+      "anon_nullifier_qurrency_transfer",
     ));
   });
 
