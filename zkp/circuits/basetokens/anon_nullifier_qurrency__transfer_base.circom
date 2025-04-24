@@ -16,7 +16,7 @@
 pragma circom 2.2.2;
 
 include "./anon_nullifier_base.circom";
-include "../../lib/kyber.circom";
+include "../lib/kyber/kyber.circom";
 
 // This version of the circuit performs the following operations:
 // - derive the sender's public key from the sender's private key
@@ -67,5 +67,5 @@ template transfer(nInputs, nOutputs, nSMTLevels) {
   signal output ct_h0;
   signal output ct_h1;
 
-  (ct_h0, ct_h1) <== kyber_enc(m, randomness);
+  (ct_h0, ct_h1) <== kyber_enc()(m, randomness);
 }
