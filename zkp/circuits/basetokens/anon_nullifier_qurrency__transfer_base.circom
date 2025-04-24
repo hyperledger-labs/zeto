@@ -67,5 +67,5 @@ template transfer(nInputs, nOutputs, nSMTLevels) {
   signal output ct_h0;
   signal output ct_h1;
 
-  (ct_h0, ct_h1) <== kyber_enc()(m, randomness);
+  (ct_h0, ct_h1) <== kyber_enc()(randomness, m);
 }
