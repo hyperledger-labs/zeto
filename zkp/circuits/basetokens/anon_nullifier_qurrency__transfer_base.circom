@@ -16,6 +16,7 @@
 pragma circom 2.2.2;
 
 include "./anon_nullifier_base.circom";
+include "../lib/kyber/kyber.circom";
 
 // This version of the circuit performs the following operations:
 // - derive the sender's public key from the sender's private key
@@ -42,6 +43,8 @@ template transfer(nInputs, nOutputs, nSMTLevels) {
   signal input outputSalts[nOutputs];
   // additional input signals for the cipher texts
   // TODO: add the cipher text inputs
+  signal input m[256];
+  signal input randomness[256];
 
   Zeto(nInputs, nOutputs, nSMTLevels)(
     nullifiers <== nullifiers,
@@ -60,4 +63,9 @@ template transfer(nInputs, nOutputs, nSMTLevels) {
   );
   // additional constraints for the cipher texts
   // TODO: kyber encryption constraints
+
+  signal output ct_h0;
+  signal output ct_h1;
+
+  (ct_h0, ct_h1) <== kyber_enc()(randomness, m);
 }
