@@ -30,6 +30,8 @@ export async function deployDependencies() {
     batchWithdrawVerifier,
     smtLib,
     poseidon3,
+    poseidon5,
+    poseidon6,
   } = await ignition.deploy(zetoModule);
   return {
     deployer,
@@ -48,6 +50,8 @@ export async function deployDependencies() {
     libraries: {
       SmtLib: smtLib.target,
       PoseidonUnit3L: poseidon3.target,
+      PoseidonUnit5L: poseidon5.target,
+      PoseidonUnit6L: poseidon6.target,
     },
   };
 }

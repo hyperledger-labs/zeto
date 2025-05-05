@@ -21,7 +21,7 @@
       "batchPtau": "powersOfTau28_hez_final_19",
       "skipSolidityGenaration": false
     },
-    "anon_nullifier_currency_transfer": {
+    "anon_nullifier_qurrency_transfer": {
       "ptau": "powersOfTau28_hez_final_22",
       "batchPtau": "powersOfTau28_hez_final_22",
       "skipSolidityGenaration": false

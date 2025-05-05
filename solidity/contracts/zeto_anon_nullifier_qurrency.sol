@@ -15,6 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
+import {PoseidonUnit5L} from "@iden3/contracts/lib/Poseidon.sol";
 import {IZeto} from "./lib/interfaces/izeto.sol";
 import {MAX_BATCH} from "./lib/interfaces/izeto.sol";
 import {Groth16Verifier_Deposit} from "./verifiers/verifier_deposit.sol";
@@ -90,37 +91,61 @@ contract Zeto_AnonNullifierQurrency is
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         uint256 root,
-        uint256 size,
         bool locked
-    ) internal view returns (uint256[] memory publicInputs) {
-        publicInputs = new uint256[](size);
-        // copy computed hashes
-        publicInputs[0] = computed_hashes[0];
-        publicInputs[1] = computed_hashes[1];
-        uint256 piIndex = 2;
+    ) internal view returns (uint256[1] memory publicInputs) {
+        uint256 size = nullifiers.length +
+            1 +
+            nullifiers.length +
+            outputs.length +
+            2;
+        if (locked) {
+            size += 1;
+        }
+        uint256[] memory signals = new uint256[](size);
+        uint256 piIndex = 0;
         // copy input commitments
         for (uint256 i = 0; i < nullifiers.length; i++) {
-            publicInputs[piIndex++] = nullifiers[i];
+            signals[piIndex++] = nullifiers[i];
         }
         // when verifying locked transfers, additional public input
         // for the lock delegate
         if (locked) {
-            publicInputs[piIndex++] = uint256(uint160(msg.sender));
+            signals[piIndex++] = uint256(uint160(msg.sender));
         }
         // copy root
-        publicInputs[piIndex++] = root;
+        signals[piIndex++] = root;
 
         // populate enables
         for (uint256 i = 0; i < nullifiers.length; i++) {
-            publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
+            signals[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
         }
 
         // copy output commitments
         for (uint256 i = 0; i < outputs.length; i++) {
-            publicInputs[piIndex++] = outputs[i];
+            signals[piIndex++] = outputs[i];
         }
+        // copy computed hashes
+        signals[piIndex++] = computed_hashes[0];
+        signals[piIndex] = computed_hashes[1];
 
-        return publicInputs;
+        if (size == 9) {
+            uint256[5] memory s1 = [
+                signals[0],
+                signals[1],
+                signals[2],
+                signals[3],
+                signals[4]
+            ];
+            uint256 p1 = PoseidonUnit5L.poseidon(s1);
+            uint256[5] memory s2 = [
+                p1,
+                signals[5],
+                signals[6],
+                signals[7],
+                signals[8]
+            ];
+            publicInputs[0] = PoseidonUnit5L.poseidon(s2);
+        }
     }
 
     /**
@@ -139,16 +164,17 @@ contract Zeto_AnonNullifierQurrency is
         uint256[] memory outputs,
         uint256 root,
         bytes memory ciphertext,
+        // uint256 pHash,
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public returns (bool) {
-        nullifiers = checkAndPadCommitments(nullifiers);
-        outputs = checkAndPadCommitments(outputs);
-        validateTransactionProposal(nullifiers, outputs, root, false);
-        uint[2] memory computed_pubSignals = calculateHash(ciphertext);
-        verifyProof(computed_pubSignals, nullifiers, outputs, root, proof);
-        uint256[] memory empty;
-        processInputsAndOutputs(nullifiers, outputs, empty, address(0));
+        // nullifiers = checkAndPadCommitments(nullifiers);
+        // outputs = checkAndPadCommitments(outputs);
+        // validateTransactionProposal(nullifiers, outputs, root, false);
+        // uint[2] memory computed_pubSignals = calculateHash(ciphertext);
+        // verifyProof(computed_pubSignals, nullifiers, outputs, root, proof);
+        // uint256[] memory empty;
+        // processInputsAndOutputs(nullifiers, outputs, empty, address(0));
 
         uint256[] memory nullifierArray = new uint256[](nullifiers.length);
         uint256[] memory outputArray = new uint256[](outputs.length);
@@ -269,19 +295,13 @@ contract Zeto_AnonNullifierQurrency is
         Commonlib.Proof calldata proof
     ) public view returns (bool) {
         if (nullifiers.length > 2 || outputs.length > 2) {
-            uint256[] memory publicInputs = constructPublicInputs(
+            uint256[1] memory publicInputs = constructPublicInputs(
                 computed_hashes,
                 nullifiers,
                 outputs,
                 root,
-                BATCH_INPUT_SIZE,
                 false
             );
-            // construct the public inputs for batchVerifier
-            uint256[BATCH_INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
 
             // Check the proof using batchVerifier
             // require(
@@ -289,31 +309,25 @@ contract Zeto_AnonNullifierQurrency is
             //         proof.pA,
             //         proof.pB,
             //         proof.pC,
-            //         fixedSizeInputs
+            //         publicInputs
             //     ),
             //     "Invalid proof"
             // );
         } else {
-            uint256[] memory publicInputs = constructPublicInputs(
+            uint256[1] memory publicInputs = constructPublicInputs(
                 computed_hashes,
                 nullifiers,
                 outputs,
                 root,
-                INPUT_SIZE,
                 false
             );
-            // construct the public inputs for verifier
-            uint256[INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
             // Check the proof
             require(
                 _verifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,
-                    fixedSizeInputs
+                    publicInputs
                 ),
                 "Invalid proof"
             );
@@ -415,6 +429,8 @@ contract Zeto_AnonNullifierQurrency is
                 uint256(uint8(hash[i])) *
                 (1 << (8 * (i - 16)));
         }
+        console.log("computed_pubSignals[0]: ", computed_pubSignals[0]);
+        console.log("computed_pubSignals[1]: ", computed_pubSignals[1]);
         return computed_pubSignals;
     }
 }
