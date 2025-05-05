@@ -58,7 +58,7 @@ const VerifierModule = buildModule(
 // );
 
 export default buildModule("Zeto_AnonNullifierQurrency", (m) => {
-  const { smtLib, poseidon3 } = m.useModule(SmtLibModule);
+  const { smtLib, poseidon3, poseidon5, poseidon6 } = m.useModule(SmtLibModule);
   const { verifier } = m.useModule(VerifierModule);
   // const { verifier: lockVerifier } = m.useModule(LockVerifierModule);
   // const { verifier: batchVerifier } = m.useModule(BatchVerifierModule);
@@ -81,5 +81,7 @@ export default buildModule("Zeto_AnonNullifierQurrency", (m) => {
     batchWithdrawVerifier,
     smtLib,
     poseidon3,
+    poseidon5,
+    poseidon6,
   };
 });
