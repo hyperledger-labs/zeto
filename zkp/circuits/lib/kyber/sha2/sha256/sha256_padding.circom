@@ -1,5 +1,7 @@
 pragma circom 2.0.0;
 
+include "../../util.circom";
+
 //------------------------------------------------------------------------------
 // compute the number of chunks
 

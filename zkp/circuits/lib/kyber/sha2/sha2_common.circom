@@ -47,23 +47,6 @@ template XOR3_v2() {
 }
 
 //------------------------------------------------------------------------------
-// decompose an n-bit number into bits
-
-// template ToBits(n) {
-//   signal input  inp;
-//   signal output out[n];
-
-//   var sum = 0;
-//   for(var i=0; i<n; i++) {
-//     out[i] <-- (inp >> i) & 1;
-//     out[i] * (1-out[i]) === 0;
-//     sum += (1<<i) * out[i];
-//   }
-
-//   inp === sum;
-// }
-
-//------------------------------------------------------------------------------
 // decompose a 33-bit number into the low 32 bits and the remaining 1 bit
 
 template Bits33() {
