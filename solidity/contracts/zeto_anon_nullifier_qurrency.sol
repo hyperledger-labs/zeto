@@ -91,61 +91,37 @@ contract Zeto_AnonNullifierQurrency is
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         uint256 root,
+        uint256 size,
         bool locked
-    ) internal view returns (uint256[1] memory publicInputs) {
-        uint256 size = nullifiers.length +
-            1 +
-            nullifiers.length +
-            outputs.length +
-            2;
-        if (locked) {
-            size += 1;
-        }
-        uint256[] memory signals = new uint256[](size);
-        uint256 piIndex = 0;
+    ) internal view returns (uint256[] memory publicInputs) {
+        publicInputs = new uint256[](size);
+        // copy computed hashes
+        publicInputs[0] = computed_hashes[0];
+        publicInputs[1] = computed_hashes[1];
+        uint256 piIndex = 2;
         // copy input commitments
         for (uint256 i = 0; i < nullifiers.length; i++) {
-            signals[piIndex++] = nullifiers[i];
+            publicInputs[piIndex++] = nullifiers[i];
         }
         // when verifying locked transfers, additional public input
         // for the lock delegate
         if (locked) {
-            signals[piIndex++] = uint256(uint160(msg.sender));
+            publicInputs[piIndex++] = uint256(uint160(msg.sender));
         }
         // copy root
-        signals[piIndex++] = root;
+        publicInputs[piIndex++] = root;
 
         // populate enables
         for (uint256 i = 0; i < nullifiers.length; i++) {
-            signals[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
+            publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
         }
 
         // copy output commitments
         for (uint256 i = 0; i < outputs.length; i++) {
-            signals[piIndex++] = outputs[i];
+            publicInputs[piIndex++] = outputs[i];
         }
-        // copy computed hashes
-        signals[piIndex++] = computed_hashes[0];
-        signals[piIndex] = computed_hashes[1];
 
-        if (size == 9) {
-            uint256[5] memory s1 = [
-                signals[0],
-                signals[1],
-                signals[2],
-                signals[3],
-                signals[4]
-            ];
-            uint256 p1 = PoseidonUnit5L.poseidon(s1);
-            uint256[5] memory s2 = [
-                p1,
-                signals[5],
-                signals[6],
-                signals[7],
-                signals[8]
-            ];
-            publicInputs[0] = PoseidonUnit5L.poseidon(s2);
-        }
+        return publicInputs;
     }
 
     /**
@@ -295,11 +271,12 @@ contract Zeto_AnonNullifierQurrency is
         Commonlib.Proof calldata proof
     ) public view returns (bool) {
         if (nullifiers.length > 2 || outputs.length > 2) {
-            uint256[1] memory publicInputs = constructPublicInputs(
+            uint256[] memory publicInputs = constructPublicInputs(
                 computed_hashes,
                 nullifiers,
                 outputs,
                 root,
+                BATCH_INPUT_SIZE,
                 false
             );
 
@@ -314,20 +291,26 @@ contract Zeto_AnonNullifierQurrency is
             //     "Invalid proof"
             // );
         } else {
-            uint256[1] memory publicInputs = constructPublicInputs(
+            uint256[] memory publicInputs = constructPublicInputs(
                 computed_hashes,
                 nullifiers,
                 outputs,
                 root,
+                INPUT_SIZE,
                 false
             );
+            // construct the public inputs for verifier
+            uint256[INPUT_SIZE] memory fixedSizeInputs;
+            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
+                fixedSizeInputs[i] = publicInputs[i];
+            }
             // Check the proof
             require(
                 _verifier.verifyProof(
                     proof.pA,
                     proof.pB,
                     proof.pC,
-                    publicInputs
+                    fixedSizeInputs
                 ),
                 "Invalid proof"
             );

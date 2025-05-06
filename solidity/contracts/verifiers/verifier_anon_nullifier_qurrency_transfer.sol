@@ -43,11 +43,35 @@ contract Groth16Verifier_AnonNullifierQurrencyTransfer {
     uint256 constant deltay2 = 8495653923123431417604973247489272438418190587263600148770280649306958101930;
 
     
-    uint256 constant IC0x = 4350575359374144561328308567159335869930774179249024260865778720572005795419;
-    uint256 constant IC0y = 20846772535832227306046851463846901255995462185448510679079739147353976455355;
+    uint256 constant IC0x = 5903941879013718988081172462893635473765585811323635470514735721095700963702;
+    uint256 constant IC0y = 21080368968148086049976470300075598267152959623874995939107123143909817947630;
     
-    uint256 constant IC1x = 6714592059269305626424307485824320856802341573312146776193940786388060740219;
-    uint256 constant IC1y = 13151094190453700585749092068802821515724147707855264812239435719903953419740;
+    uint256 constant IC1x = 277297534438112389180931574864286821885419665717177767601706304294709064040;
+    uint256 constant IC1y = 11466710444362729136960387929371222359273358701587036714483949566745055621830;
+    
+    uint256 constant IC2x = 5619666232197961834865995108107159282382923386466834757057363204096037651764;
+    uint256 constant IC2y = 15973294500823479376020315199547194992254305102551062619795669271634881254131;
+    
+    uint256 constant IC3x = 16994365193196666529444222678662986964837189489839761617081637536084667700567;
+    uint256 constant IC3y = 19320170842519457147495348046335776444028148306160216329435959930056589238336;
+    
+    uint256 constant IC4x = 8498610473957547996900321269894382432325081969475947517083968711252676854434;
+    uint256 constant IC4y = 12728107717434555757183263731054279132059277069143869361510124517810824142633;
+    
+    uint256 constant IC5x = 18511559663930149009135574067307212897873211022818368060918697035060259565029;
+    uint256 constant IC5y = 20804557254714858706397640997162389384167991925053762942540110532256230134678;
+    
+    uint256 constant IC6x = 9373814069952600731332993487809060613417950312335152043923307393139824873734;
+    uint256 constant IC6y = 16865467207038098604194455172286157376570508997936659278795086623618594346915;
+    
+    uint256 constant IC7x = 12145839442248256913972414977521448580312614560974030542947427181163264459741;
+    uint256 constant IC7y = 18090427452121523061184380667980763703935420996985767299962855565988460373436;
+    
+    uint256 constant IC8x = 10474776404215989914860932066594458738983457343662916641445752614561642689469;
+    uint256 constant IC8y = 3378834796931378107199253750169106725596319638791117099719497080177733386540;
+    
+    uint256 constant IC9x = 1887249157430528165374401635262372006182704854335611145585690423537839735888;
+    uint256 constant IC9y = 7080674530581255597858145142316212286106173969722576181725459826182095923364;
     
  
     // Memory data
@@ -56,7 +80,7 @@ contract Groth16Verifier_AnonNullifierQurrencyTransfer {
 
     uint16 constant pLastMem = 896;
 
-    function verifyProof(uint[2] calldata _pA, uint[2][2] calldata _pB, uint[2] calldata _pC, uint[1] calldata _pubSignals) public view returns (bool) {
+    function verifyProof(uint[2] calldata _pA, uint[2][2] calldata _pB, uint[2] calldata _pC, uint[9] calldata _pubSignals) public view returns (bool) {
         assembly {
             function checkField(v) {
                 if iszero(lt(v, r)) {
@@ -101,6 +125,22 @@ contract Groth16Verifier_AnonNullifierQurrencyTransfer {
                 // Compute the linear combination vk_x
                 
                 g1_mulAccC(_pVk, IC1x, IC1y, calldataload(add(pubSignals, 0)))
+                
+                g1_mulAccC(_pVk, IC2x, IC2y, calldataload(add(pubSignals, 32)))
+                
+                g1_mulAccC(_pVk, IC3x, IC3y, calldataload(add(pubSignals, 64)))
+                
+                g1_mulAccC(_pVk, IC4x, IC4y, calldataload(add(pubSignals, 96)))
+                
+                g1_mulAccC(_pVk, IC5x, IC5y, calldataload(add(pubSignals, 128)))
+                
+                g1_mulAccC(_pVk, IC6x, IC6y, calldataload(add(pubSignals, 160)))
+                
+                g1_mulAccC(_pVk, IC7x, IC7y, calldataload(add(pubSignals, 192)))
+                
+                g1_mulAccC(_pVk, IC8x, IC8y, calldataload(add(pubSignals, 224)))
+                
+                g1_mulAccC(_pVk, IC9x, IC9y, calldataload(add(pubSignals, 256)))
                 
 
                 // -A
@@ -156,6 +196,22 @@ contract Groth16Verifier_AnonNullifierQurrencyTransfer {
             // Validate that all evaluations ∈ F
             
             checkField(calldataload(add(_pubSignals, 0)))
+            
+            checkField(calldataload(add(_pubSignals, 32)))
+            
+            checkField(calldataload(add(_pubSignals, 64)))
+            
+            checkField(calldataload(add(_pubSignals, 96)))
+            
+            checkField(calldataload(add(_pubSignals, 128)))
+            
+            checkField(calldataload(add(_pubSignals, 160)))
+            
+            checkField(calldataload(add(_pubSignals, 192)))
+            
+            checkField(calldataload(add(_pubSignals, 224)))
+            
+            checkField(calldataload(add(_pubSignals, 256)))
             
 
             // Validate all evaluations
