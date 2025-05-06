@@ -17,4 +17,4 @@ pragma circom 2.2.2;
 
 include "./basetokens/anon_nullifier_qurrency__transfer_base.circom";
 
-component main = transfer(2, 2, 64);
+component main { public [ nullifiers, outputCommitments, root, enabled ] } = transfer(2, 2, 64);
