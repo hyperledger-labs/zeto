@@ -36,8 +36,8 @@ template sha256Signals(n) {
     var idx = 0;
     // for each of the signals, we need to reverse the bits
     // because the Num2Bits circuit outputs them in reverse order
-    for (var j = 255; j >= 0; j--) {
-      bits[offset + idx] = num2Bits[i].out[j];
+    for (var j = 0; j < 256; j++) {
+      bits[offset + idx] = num2Bits[i].out[255 - j];
       idx++;
     }
     offset += 256;
@@ -47,6 +47,9 @@ template sha256Signals(n) {
   component sha256 = Sha256(bitSize);
   sha256.in <== bits;
 
+  // because the output signal, being a field element, is only 254 bits,
+  // we disgard the last 2 bits of the hash output. This needs to be
+  // taken into account when buildng the hash for verification
   component bits2num = Bits2Num(254);
   for (var i = 0; i < 254; i++) {
     bits2num.in[i] <== sha256.out[255 - i];

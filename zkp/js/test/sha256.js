@@ -35,10 +35,15 @@ describe('sha256_signals circuit tests', () => {
     const b = Buffer.concat([n1, n2, n3]);
 
     const hash = crypto.createHash('sha256').update(b).digest('hex');
+    const buff = Buffer.from(hash, 'hex');
+    // disgard the first 2 bits and replace them with 0, because the circuit
+    // output is a 254 bit field element by replacing the first 2 bits with 0
+    buff[0] = Buffer.from(parseInt('00' + buff[0].toString(2).padStart(8, '0').slice(2), 2).toString(16), 'hex')[0];
+    const hash1 = buff.toString('hex');
 
     const witness = await circuit.calculateWitness({ signals: [4660, 4661, 4662] }, true);
     const hash2 = witness[1].toString(16);
 
-    expect(hash2).to.equal(hash);
+    expect(hash2).to.equal(hash1);
   });
 });
