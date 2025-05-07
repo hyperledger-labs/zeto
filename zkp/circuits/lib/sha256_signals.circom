@@ -16,10 +16,14 @@
 pragma circom 2.2.2;
 
 include "./kyber/sha2/sha256/sha256_hash_bits.circom";
+include "./kyber/util.circom";
 include "../node_modules/circomlib/circuits/bitify.circom";
 
 template sha256Signals(n) {
+  var CT_BYTES_LEN = 768;
+
   signal input signals[n];
+  signal input ciphertext_bytes[CT_BYTES_LEN];
   signal output h0;
   signal output h1;
 
@@ -30,7 +34,7 @@ template sha256Signals(n) {
     num2Bits[i].in <== signals[i];
   }
   // concatenate the bits
-  var bitSize = n*256;
+  var bitSize = n*256 + CT_BYTES_LEN*8;
   var bits[bitSize];
   var offset = 0;
   for (var i = 0; i < n; i++) {
@@ -43,10 +47,18 @@ template sha256Signals(n) {
     }
     offset += 256;
   }
+  component tobits[CT_BYTES_LEN];
+  for (var i = 0; i < CT_BYTES_LEN; i++) {
+    tobits[i] = ToBits(8);
+    tobits[i].inp <== ciphertext_bytes[i];
+    for(var j=0; j<8; j++) {
+      bits[ offset + i*8 + j ] = tobits[i].out[7-j];
+    }
+  }
 
   // use this safe sha256 implementation that produces
   // the output as 32 signals each for 8 bits
-  signal h[32] <== Sha256_hash_bits_digest(n*256)(bits);
+  signal h[32] <== Sha256_hash_bits_digest(bitSize)(bits);
 
   // consolidate the output into two signals representing
   // the lower and higher 16 bytes of the hash. This is necessary

@@ -165,51 +165,33 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
     // }
     ////// end of logic to locate ciphertext witness index
 
-    const CT_INDEX = 250507;
+    const CT_INDEX = 82031;
     const cipherTexts = witness.slice(CT_INDEX, CT_INDEX + 768);
     const buff = Buffer.alloc(cipherTexts.length);
     for (let i = 0; i < cipherTexts.length; i++) {
       buff.writeUInt8(parseInt(cipherTexts[i].toString()), i);
     }
-    const hash = crypto.createHash('sha256').update(buff).digest('hex');
-    // compare this with the console.log printout in Solidity
-    console.log('ciphertext hash', hash);
 
-    const hashBuffer = Buffer.from(hash, 'hex');
+    // calculate the expected hash for verification
+    const elements = [...nullifiers, proof1.root.bigInt(), ...enabled, ...outputCommitments].map((n) => n.toString(16).padStart(64, '0'));
+    const hexes = Buffer.concat([...elements.map((e) => Buffer.from(e, 'hex')), buff]);
+    const expectedHash = crypto.createHash('sha256').update(hexes).digest('hex');
+    const hashBuffer1 = Buffer.from(expectedHash, 'hex');
     const computed_pubSignals = [BigInt(0), BigInt(0)];
     // Calculate h0: sum of the first 16 bytes
     for (let i = 0; i < 16; i++) {
-      computed_pubSignals[0] += BigInt(hashBuffer[i] * 2 ** (8 * i));
+      computed_pubSignals[0] += BigInt(hashBuffer1[i] * 2 ** (8 * i));
     }
     // Calculate h1: sum of the next 16 bytes
     for (let i = 16; i < 32; i++) {
-      computed_pubSignals[1] += BigInt(hashBuffer[i] * 2 ** (8 * (i - 16)));
+      computed_pubSignals[1] += BigInt(hashBuffer1[i] * 2 ** (8 * (i - 16)));
     }
     // compare these with the console.log printout in Solidity
-    console.log('computed_pubSignals for ciphertext[0]: ', computed_pubSignals[0]);
-    console.log('computed_pubSignals for ciphertext[1]: ', computed_pubSignals[1]);
+    console.log('computed_pubSignals for final hash[0]: ', computed_pubSignals[0]);
+    console.log('computed_pubSignals for final hash[1]: ', computed_pubSignals[1]);
 
-    // calculate the expected hash for verification
-    const elements = [...nullifiers, proof1.root.bigInt(), ...enabled, ...outputCommitments, ...computed_pubSignals].map((n) => n.toString(16).padStart(64, '0'));
-    expect(elements.length).to.equal(9);
-    const hexes = Buffer.concat(elements.map((e) => Buffer.from(e, 'hex')));
-    const expectedHash = crypto.createHash('sha256').update(hexes).digest('hex');
-    const hashBuffer1 = Buffer.from(expectedHash, 'hex');
-    const computed_pubSignals1 = [BigInt(0), BigInt(0)];
-    // Calculate h0: sum of the first 16 bytes
-    for (let i = 0; i < 16; i++) {
-      computed_pubSignals1[0] += BigInt(hashBuffer1[i] * 2 ** (8 * i));
-    }
-    // Calculate h1: sum of the next 16 bytes
-    for (let i = 16; i < 32; i++) {
-      computed_pubSignals1[1] += BigInt(hashBuffer1[i] * 2 ** (8 * (i - 16)));
-    }
-    // compare these with the console.log printout in Solidity
-    console.log('computed_pubSignals for final hash[0]: ', computed_pubSignals1[0]);
-    console.log('computed_pubSignals for final hash[1]: ', computed_pubSignals1[1]);
-
-    expect(witness[1].toString(16)).to.equal(computed_pubSignals1[0].toString(16));
-    expect(witness[2].toString(16)).to.equal(computed_pubSignals1[1].toString(16));
+    expect(witness[1].toString(16)).to.equal(computed_pubSignals[0].toString(16));
+    expect(witness[2].toString(16)).to.equal(computed_pubSignals[1].toString(16));
     expect(witness[3]).to.equal(BigInt(nullifiers[0]));
     expect(witness[4]).to.equal(BigInt(nullifiers[1]));
   });
@@ -318,8 +300,10 @@ describe('batch circuit tests for Zeto fungible tokens with anonymity using null
       true
     );
 
-    // find the cipher texts. run this once whenever the circuit changes
-    // TODO: calculate the ciphertexts with Kyber
+    //////
+    // the pre-defined ciphertext is used to find the intermediate witness signals
+    // for the cipher texts. run the following once whenever the circuit changes
+    //////
     // const bits = [153n, 180n, 68n];
     // for (let i = 0; i < witness.length; i++) {
     //   if (witness[i] === bits[0] && witness[i + 1] === bits[1] && witness[i + 2] === bits[2]) {
@@ -327,51 +311,34 @@ describe('batch circuit tests for Zeto fungible tokens with anonymity using null
     //     break;
     //   }
     // }
-    const CT_INDEX = 919323;
+    ////// end of logic to locate ciphertext witness index
+
+    const CT_INDEX = 391591;
     const cipherTexts = witness.slice(CT_INDEX, CT_INDEX + 768);
     const buff = Buffer.alloc(cipherTexts.length);
     for (let i = 0; i < cipherTexts.length; i++) {
       buff.writeUInt8(parseInt(cipherTexts[i].toString()), i);
     }
-    const hash = crypto.createHash('sha256').update(buff).digest('hex');
-    // compare this with the console.log printout in Solidity
-    console.log('ciphertext hash', hash);
-
-    const hashBuffer = Buffer.from(hash, 'hex');
+    // calculate the expected hash for verification
+    const elements = [...nullifiers, proof1.root.bigInt(), ...enabled, ...outputCommitments].map((n) => n.toString(16).padStart(64, '0'));
+    const hexes = Buffer.concat([...elements.map((e) => Buffer.from(e, 'hex')), buff]);
+    const expectedHash = crypto.createHash('sha256').update(hexes).digest('hex');
+    const hashBuffer1 = Buffer.from(expectedHash, 'hex');
     const computed_pubSignals = [BigInt(0), BigInt(0)];
     // Calculate h0: sum of the first 16 bytes
     for (let i = 0; i < 16; i++) {
-      computed_pubSignals[0] += BigInt(hashBuffer[i] * 2 ** (8 * i));
+      computed_pubSignals[0] += BigInt(hashBuffer1[i] * 2 ** (8 * i));
     }
     // Calculate h1: sum of the next 16 bytes
     for (let i = 16; i < 32; i++) {
-      computed_pubSignals[1] += BigInt(hashBuffer[i] * 2 ** (8 * (i - 16)));
+      computed_pubSignals[1] += BigInt(hashBuffer1[i] * 2 ** (8 * (i - 16)));
     }
     // compare these with the console.log printout in Solidity
-    console.log('computed_pubSignals for ciphertext[0]: ', computed_pubSignals[0]);
-    console.log('computed_pubSignals for ciphertext[1]: ', computed_pubSignals[1]);
+    console.log('computed_pubSignals for final hash[0]: ', computed_pubSignals[0]);
+    console.log('computed_pubSignals for final hash[1]: ', computed_pubSignals[1]);
 
-    // calculate the expected hash for verification
-    const elements = [...nullifiers, proof1.root.bigInt(), ...enabled, ...outputCommitments, ...computed_pubSignals].map((n) => n.toString(16).padStart(64, '0'));
-    expect(elements.length).to.equal(33);
-    const hexes = Buffer.concat(elements.map((e) => Buffer.from(e, 'hex')));
-    const expectedHash = crypto.createHash('sha256').update(hexes).digest('hex');
-    const hashBuffer1 = Buffer.from(expectedHash, 'hex');
-    const computed_pubSignals1 = [BigInt(0), BigInt(0)];
-    // Calculate h0: sum of the first 16 bytes
-    for (let i = 0; i < 16; i++) {
-      computed_pubSignals1[0] += BigInt(hashBuffer1[i] * 2 ** (8 * i));
-    }
-    // Calculate h1: sum of the next 16 bytes
-    for (let i = 16; i < 32; i++) {
-      computed_pubSignals1[1] += BigInt(hashBuffer1[i] * 2 ** (8 * (i - 16)));
-    }
-    // compare these with the console.log printout in Solidity
-    console.log('computed_pubSignals for final hash[0]: ', computed_pubSignals1[0]);
-    console.log('computed_pubSignals for final hash[1]: ', computed_pubSignals1[1]);
-
-    expect(witness[1].toString(16)).to.equal(computed_pubSignals1[0].toString(16));
-    expect(witness[2].toString(16)).to.equal(computed_pubSignals1[1].toString(16));
+    expect(witness[1].toString(16)).to.equal(computed_pubSignals[0].toString(16));
+    expect(witness[2].toString(16)).to.equal(computed_pubSignals[1].toString(16));
     expect(witness[3]).to.equal(BigInt(nullifiers[0]));
     expect(witness[4]).to.equal(BigInt(nullifiers[1]));
   });

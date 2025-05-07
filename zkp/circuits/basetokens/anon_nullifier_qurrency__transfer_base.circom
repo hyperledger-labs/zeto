@@ -77,19 +77,16 @@ template transfer(nInputs, nOutputs, nSMTLevels) {
   // additional constraints for the cipher texts
   // TODO: kyber encryption constraints
 
-  var ct_h0;
-  var ct_h1;
-  (ct_h0, ct_h1) = kyber_enc()(randomness, m);
+  var ciphertext_bytes[768] = kyber_enc()(randomness, m);
 
   // calculate the output hash for the signals and their lengths:
   // - nInputs:  nullifiers,
   // - 1:        root,
   // - nInputs:  enabled,
   // - nOutputs: outputCommitments,
-  // - 2:        ct_h0, ct_h1
 
   // consolidate to a single array of signals
-  var numElements = nInputs + 1 + nInputs + nOutputs + 2;
+  var numElements = nInputs + 1 + nInputs + nOutputs;
   var signals[numElements];
   for (var i = 0; i < nInputs; i++) {
     signals[i] = nullifiers[i];
@@ -101,20 +98,38 @@ template transfer(nInputs, nOutputs, nSMTLevels) {
   for (var i = 0; i < nOutputs; i++) {
     signals[nInputs + 1 + nInputs + i] = outputCommitments[i];
   }
-  signals[nInputs + 1 + nInputs + nOutputs] = ct_h0;
-  signals[nInputs + 1 + nInputs + nOutputs + 1] = ct_h1;
 
-  component hash9;
-  component hash33;
+  component hash7;
+  component hash31;
   if (nInputs == 2 && nOutputs == 2) {
-    hash9 = sha256Signals(9);
-    hash9.signals <== signals;
-    hash_h0 <== hash9.h0;
-    hash_h1 <== hash9.h1;
+    hash7 = sha256Signals(7);
+    hash7.signals <== signals;
+    hash7.ciphertext_bytes <== ciphertext_bytes;
+    hash_h0 <== hash7.h0;
+    hash_h1 <== hash7.h1;
   } else if (nInputs == 10 && nOutputs == 10) {
-    hash33 = sha256Signals(33);
-    hash33.signals <== signals;
-    hash_h0 <== hash33.h0;
-    hash_h1 <== hash33.h1;
+    hash31 = sha256Signals(31);
+    hash31.signals <== signals;
+    hash31.ciphertext_bytes <== ciphertext_bytes;
+    hash_h0 <== hash31.h0;
+    hash_h1 <== hash31.h1;
   }
+
+    //   signal h[32] <== Sha256_hash_bytes_digest((2*n*10 + n*4)/8)(sha256_input_bytes);
+
+    // signal output h0;
+    // signal output h1;
+
+    // var sum = 0;
+    // for (var i = 0; i < 16; i++) {
+    //     sum += h[i]*(1<<(8*i));
+    // }
+    // h0 <== sum;
+
+    // sum = 0;
+    // for (var i = 16; i < 32; i++) {
+    //     sum += h[i]*(1<<(8*(i-16)));
+    // }
+    // h1 <== sum;
+
 }

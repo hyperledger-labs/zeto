@@ -212,9 +212,9 @@ template kyber_enc() {
     }
 
     // convert to bytes
-    signal sha256_input_bytes[(2*n*10 + n*4)/8];
+    signal output ciphertext_bytes[(2*n*10 + n*4)/8];
     for (var i = 0; i < (2*n*10 + n*4)/8; i++) {
-        sha256_input_bytes[i] <== Bits2Num(8)(
+        ciphertext_bytes[i] <== Bits2Num(8)(
             [sha256_input[8*i], 
             sha256_input[8*i+1], 
             sha256_input[8*i+2], 
@@ -225,21 +225,4 @@ template kyber_enc() {
             sha256_input[8*i+7]]
         );
     }
-
-    signal h[32] <== Sha256_hash_bytes_digest((2*n*10 + n*4)/8)(sha256_input_bytes);
-
-    signal output h0;
-    signal output h1;
-
-    var sum = 0;
-    for (var i = 0; i < 16; i++) {
-        sum += h[i]*(1<<(8*i));
-    }
-    h0 <== sum;
-
-    sum = 0;
-    for (var i = 16; i < 32; i++) {
-        sum += h[i]*(1<<(8*(i-16)));
-    }
-    h1 <== sum;
 }
