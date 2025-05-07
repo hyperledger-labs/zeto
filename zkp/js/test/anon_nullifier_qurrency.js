@@ -21,10 +21,22 @@ const { wasm: wasm_tester } = require('circom_tester');
 const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
 const { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } = require('@iden3/js-merkletree');
 const { Poseidon, newSalt } = require('../index.js');
+const { convert256To254 } = require('../lib/util.js');
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
 const poseidonHash3 = Poseidon.poseidon3;
+
+function bitArray2buffer(a) {
+  const len = Math.floor((a.length - 1) / 8) + 1;
+  const b = new Buffer.alloc(len);
+
+  for (let i = 0; i < a.length; i++) {
+    const p = Math.floor(i / 8);
+    b[p] = b[p] | (Number(a[i]) << (7 - (i % 8)));
+  }
+  return b;
+}
 
 describe('main circuit tests for Zeto fungible tokens with anonymity using nullifiers and Kyber encryption for auditability', () => {
   let circuit, smtAlice, smtBob;
@@ -90,7 +102,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
     const output2 = poseidonHash([BigInt(outputValues[1]), salt4, ...Alice.pubKey]);
     const outputCommitments = [output1, output2];
     const outputSalts = [salt3, salt4];
-    const enabled = [1, 1];
+    const enabled = [1n, 1n];
 
     const m = [
       1665, 1665, 0, 1665, 0, 1665, 1665, 0, 1665, 0, 0, 1665, 1665, 1665, 1665, 0, 0, 1665, 0, 0, 0, 1665, 1665, 0, 1665, 0, 1665, 0, 0, 1665, 1665, 0, 0, 1665, 0, 0, 1665, 1665, 1665, 0, 0, 0, 0, 0,
@@ -127,10 +139,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
       true
     );
 
-    // console.log('witness[1-11]', witness.slice(1, 12));
-    // console.log('witness[12-75]', witness.slice(12, 76));
-    // console.log('witness[76-139]', witness.slice(76, 140));
-    // console.log('witness[140-200]', witness.slice(140, 201));
+    // console.log('witness[1-30]', witness.slice(1, 30));
     // console.log('nullifiers', nullifiers);
     // console.log('inputCommitments', inputCommitments);
     // console.log('inputValues', inputValues);
@@ -143,8 +152,10 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
     // console.log('outputSalts', [salt3, salt4]);
     // console.log('outputOwnerPublicKeys', [Bob.pubKey, Alice.pubKey]);
 
-    // find the cipher texts. run this once whenever the circuit changes
-    // TODO: calculate the ciphertexts with Kyber
+    //////
+    // the pre-defined ciphertext is used to find the intermediate witness signals
+    // for the cipher texts. run the following once whenever the circuit changes
+    //////
     // const bits = [153n, 180n, 68n];
     // for (let i = 0; i < witness.length; i++) {
     //   if (witness[i] === bits[0] && witness[i + 1] === bits[1] && witness[i + 2] === bits[2]) {
@@ -152,7 +163,9 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
     //     break;
     //   }
     // }
-    const CT_INDEX = 102645;
+    ////// end of logic to locate ciphertext witness index
+
+    const CT_INDEX = 250507;
     const cipherTexts = witness.slice(CT_INDEX, CT_INDEX + 768);
     const buff = Buffer.alloc(cipherTexts.length);
     for (let i = 0; i < cipherTexts.length; i++) {
@@ -173,19 +186,32 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
       computed_pubSignals[1] += BigInt(hashBuffer[i] * 2 ** (8 * (i - 16)));
     }
     // compare these with the console.log printout in Solidity
-    console.log('computed_pubSignals[0]: ', computed_pubSignals[0]);
-    console.log('computed_pubSignals[1]: ', computed_pubSignals[1]);
+    console.log('computed_pubSignals for ciphertext[0]: ', computed_pubSignals[0]);
+    console.log('computed_pubSignals for ciphertext[1]: ', computed_pubSignals[1]);
 
     // calculate the expected hash for verification
-    const hash1 = Poseidon.poseidon5([...nullifiers, proof1.root.bigInt(), ...enabled]);
-    const expectedHash = Poseidon.poseidon5([hash1, ...outputCommitments, ...computed_pubSignals]);
-    expect(witness[1]).to.equal(expectedHash);
-    expect(witness[2]).to.equal(BigInt(nullifiers[0]));
-    expect(witness[3]).to.equal(BigInt(nullifiers[1]));
-    expect(witness[4]).to.equal(BigInt(inputCommitments[0]));
-    expect(witness[5]).to.equal(BigInt(inputCommitments[1]));
-    expect(witness[6]).to.equal(BigInt(inputValues[0]));
-    expect(witness[7]).to.equal(BigInt(inputValues[1]));
+    const elements = [...nullifiers, proof1.root.bigInt(), ...enabled, ...outputCommitments, ...computed_pubSignals].map((n) => n.toString(16).padStart(64, '0'));
+    expect(elements.length).to.equal(9);
+    const hexes = Buffer.concat(elements.map((e) => Buffer.from(e, 'hex')));
+    const expectedHash = crypto.createHash('sha256').update(hexes).digest('hex');
+    const hashBuffer1 = Buffer.from(expectedHash, 'hex');
+    const computed_pubSignals1 = [BigInt(0), BigInt(0)];
+    // Calculate h0: sum of the first 16 bytes
+    for (let i = 0; i < 16; i++) {
+      computed_pubSignals1[0] += BigInt(hashBuffer1[i] * 2 ** (8 * i));
+    }
+    // Calculate h1: sum of the next 16 bytes
+    for (let i = 16; i < 32; i++) {
+      computed_pubSignals1[1] += BigInt(hashBuffer1[i] * 2 ** (8 * (i - 16)));
+    }
+    // compare these with the console.log printout in Solidity
+    console.log('computed_pubSignals for final hash[0]: ', computed_pubSignals1[0]);
+    console.log('computed_pubSignals for final hash[1]: ', computed_pubSignals1[1]);
+
+    expect(witness[1].toString(16)).to.equal(computed_pubSignals1[0].toString(16));
+    expect(witness[2].toString(16)).to.equal(computed_pubSignals1[1].toString(16));
+    expect(witness[3]).to.equal(BigInt(nullifiers[0]));
+    expect(witness[4]).to.equal(BigInt(nullifiers[1]));
   });
 });
 
@@ -301,7 +327,7 @@ describe('batch circuit tests for Zeto fungible tokens with anonymity using null
     //     break;
     //   }
     // }
-    const CT_INDEX = 416942;
+    const CT_INDEX = 919323;
     const cipherTexts = witness.slice(CT_INDEX, CT_INDEX + 768);
     const buff = Buffer.alloc(cipherTexts.length);
     for (let i = 0; i < cipherTexts.length; i++) {
@@ -322,18 +348,31 @@ describe('batch circuit tests for Zeto fungible tokens with anonymity using null
       computed_pubSignals[1] += BigInt(hashBuffer[i] * 2 ** (8 * (i - 16)));
     }
     // compare these with the console.log printout in Solidity
-    console.log('computed_pubSignals[0]: ', computed_pubSignals[0]);
-    console.log('computed_pubSignals[1]: ', computed_pubSignals[1]);
+    console.log('computed_pubSignals for ciphertext[0]: ', computed_pubSignals[0]);
+    console.log('computed_pubSignals for ciphertext[1]: ', computed_pubSignals[1]);
 
     // calculate the expected hash for verification
-    const signals = [...nullifiers, proof1.root.bigInt(), ...enabled, ...outputCommitments, ...computed_pubSignals];
-    let hash1 = Poseidon.poseidon3(signals.slice(0, 3));
-    for (let i = 0; i < 6; i++) {
-      hash1 = Poseidon.poseidon6([hash1, ...signals.slice(3 + i * 5, 8 + i * 5)]);
+    const elements = [...nullifiers, proof1.root.bigInt(), ...enabled, ...outputCommitments, ...computed_pubSignals].map((n) => n.toString(16).padStart(64, '0'));
+    expect(elements.length).to.equal(33);
+    const hexes = Buffer.concat(elements.map((e) => Buffer.from(e, 'hex')));
+    const expectedHash = crypto.createHash('sha256').update(hexes).digest('hex');
+    const hashBuffer1 = Buffer.from(expectedHash, 'hex');
+    const computed_pubSignals1 = [BigInt(0), BigInt(0)];
+    // Calculate h0: sum of the first 16 bytes
+    for (let i = 0; i < 16; i++) {
+      computed_pubSignals1[0] += BigInt(hashBuffer1[i] * 2 ** (8 * i));
     }
-    const expectedHash = hash1;
-    expect(witness[1]).to.equal(expectedHash);
-    expect(witness[2]).to.equal(BigInt(nullifiers[0]));
-    expect(witness[3]).to.equal(BigInt(nullifiers[1]));
+    // Calculate h1: sum of the next 16 bytes
+    for (let i = 16; i < 32; i++) {
+      computed_pubSignals1[1] += BigInt(hashBuffer1[i] * 2 ** (8 * (i - 16)));
+    }
+    // compare these with the console.log printout in Solidity
+    console.log('computed_pubSignals for final hash[0]: ', computed_pubSignals1[0]);
+    console.log('computed_pubSignals for final hash[1]: ', computed_pubSignals1[1]);
+
+    expect(witness[1].toString(16)).to.equal(computed_pubSignals1[0].toString(16));
+    expect(witness[2].toString(16)).to.equal(computed_pubSignals1[1].toString(16));
+    expect(witness[3]).to.equal(BigInt(nullifiers[0]));
+    expect(witness[4]).to.equal(BigInt(nullifiers[1]));
   });
 });

@@ -17,7 +17,7 @@ pragma circom 2.2.2;
 
 include "./anon_nullifier_base.circom";
 include "../lib/kyber/kyber.circom";
-include "../lib/hash_signals.circom";
+include "../lib/sha256_signals.circom";
 // include "../lib/sha256_signals.circom";
 
 // This version of the circuit performs the following operations:
@@ -54,7 +54,10 @@ template transfer(nInputs, nOutputs, nSMTLevels) {
   // - outputCommitments (from inputs)
   // - ct_h0 (from output of kyber_enc)
   // - ct_h1 (from output of kyber_enc)
-  signal output hashOfPublicSignals;
+  // IMPORTANT: special handling of the hash output,
+  // see the comment in the sha256Signals template
+  signal output hash_h0;
+  signal output hash_h1;
 
   Zeto(nInputs, nOutputs, nSMTLevels)(
     nullifiers <== nullifiers,
@@ -104,12 +107,14 @@ template transfer(nInputs, nOutputs, nSMTLevels) {
   component hash9;
   component hash33;
   if (nInputs == 2 && nOutputs == 2) {
-    hash9 = hash9Signals();
+    hash9 = sha256Signals(9);
     hash9.signals <== signals;
-    hashOfPublicSignals <== hash9.out;
+    hash_h0 <== hash9.h0;
+    hash_h1 <== hash9.h1;
   } else if (nInputs == 10 && nOutputs == 10) {
-    hash33 = hash33Signals();
+    hash33 = sha256Signals(33);
     hash33.signals <== signals;
-    hashOfPublicSignals <== hash33.out;
+    hash_h0 <== hash33.h0;
+    hash_h1 <== hash33.h1;
   }
 }

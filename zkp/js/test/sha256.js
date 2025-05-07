@@ -18,6 +18,7 @@ const { expect } = require('chai');
 const { join } = require('path');
 const crypto = require('crypto');
 const { wasm: wasm_tester } = require('circom_tester');
+const { convert256To254 } = require('../lib/util');
 
 describe('sha256_signals circuit tests', () => {
   let circuit;
@@ -28,22 +29,62 @@ describe('sha256_signals circuit tests', () => {
     circuit = await wasm_tester(join(__dirname, './circuits/sha256_signals.circom'));
   });
 
-  it('should return an array of 256 numbers each for a bit in the hash', async () => {
-    const n1 = Buffer.from('0000000000000000000000000000000000000000000000000000000000001234', 'hex');
-    const n2 = Buffer.from('0000000000000000000000000000000000000000000000000000000000001235', 'hex');
-    const n3 = Buffer.from('0000000000000000000000000000000000000000000000000000000000001236', 'hex');
+  it('should return an array of 256 numbers each for a bit in the hash', async function () {
+    // make sure the inputs are in the field range and 256 bits long
+    const n1 = Buffer.concat([Buffer.from('00', 'hex'), crypto.randomBytes(31)]);
+    const n2 = Buffer.concat([Buffer.from('00', 'hex'), crypto.randomBytes(31)]);
+    const n3 = Buffer.concat([Buffer.from('00', 'hex'), crypto.randomBytes(31)]);
     const b = Buffer.concat([n1, n2, n3]);
+    expect(b.length).to.equal(96);
 
     const hash = crypto.createHash('sha256').update(b).digest('hex');
-    const buff = Buffer.from(hash, 'hex');
-    // disgard the first 2 bits and replace them with 0, because the circuit
-    // output is a 254 bit field element by replacing the first 2 bits with 0
-    buff[0] = Buffer.from(parseInt('00' + buff[0].toString(2).padStart(8, '0').slice(2), 2).toString(16), 'hex')[0];
-    const hash1 = buff.toString('hex');
+    const hashBuffer = Buffer.from(hash, 'hex');
+    const computed_pubSignals = [BigInt(0), BigInt(0)];
+    // Calculate h0: sum of the first 16 bytes
+    for (let i = 0; i < 16; i++) {
+      computed_pubSignals[0] += BigInt(hashBuffer[i] * 2 ** (8 * i));
+    }
+    // Calculate h1: sum of the next 16 bytes
+    for (let i = 16; i < 32; i++) {
+      computed_pubSignals[1] += BigInt(hashBuffer[i] * 2 ** (8 * (i - 16)));
+    }
+    // compare these with the console.log printout in Solidity
+    console.log('computed_pubSignals[0]: ', computed_pubSignals[0]);
+    console.log('computed_pubSignals[1]: ', computed_pubSignals[1]);
 
-    const witness = await circuit.calculateWitness({ signals: [4660, 4661, 4662] }, true);
-    const hash2 = witness[1].toString(16);
+    const witness = await circuit.calculateWitness({ signals: [BigInt('0x' + n1.toString('hex')), BigInt('0x' + n2.toString('hex')), BigInt('0x' + n3.toString('hex'))] }, true);
+    const hash_h0 = witness[1].toString(16);
+    const hash_h1 = witness[2].toString(16);
 
-    expect(hash2).to.equal(hash1);
+    expect(hash_h0).to.equal(computed_pubSignals[0].toString(16));
+    expect(hash_h1).to.equal(computed_pubSignals[1].toString(16));
   });
 });
+
+// describe('sha256_2 circuit tests', () => {
+//   let circuit;
+
+//   before(async function () {
+//     this.timeout(60000);
+
+//     circuit = await wasm_tester(join(__dirname, './circuits/sha256_2.circom'));
+//   });
+
+//   it('should return an array of 256 numbers each for a bit in the hash', async function () {
+//     // make sure the inputs are in the field range and 256 bits long
+//     const n1 = Buffer.concat([Buffer.from('0000000000', 'hex'), crypto.randomBytes(27)]);
+//     const n2 = Buffer.concat([Buffer.from('0000000000', 'hex'), crypto.randomBytes(27)]);
+//     const b = Buffer.concat([n1, n2]);
+
+//     const hash = crypto.createHash('sha256').update(b).digest('hex');
+//     console.log('hash', hash);
+//     // disgard the first 2 bits and replace them with 0, because the circuit
+//     // output is a 254 bit field element by replacing the first 2 bits with 0
+//     const hash1 = convert256To254(hash);
+
+//     const witness = await circuit.calculateWitness({ a: BigInt('0x' + n1.toString('hex')), b: BigInt('0x' + n2.toString('hex')) }, true);
+//     const hash2 = witness[1].toString(16);
+
+//     expect(hash2).to.equal(hash1);
+//   });
+// });

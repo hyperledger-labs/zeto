@@ -15,12 +15,13 @@
 // limitations under the License.
 pragma circom 2.2.2;
 
-include "../node_modules/circomlib/circuits/sha256/sha256.circom";
+include "./kyber/sha2/sha256/sha256_hash_bits.circom";
 include "../node_modules/circomlib/circuits/bitify.circom";
 
 template sha256Signals(n) {
   signal input signals[n];
-  signal output out;
+  signal output h0;
+  signal output h1;
 
   // convert to bits
   component num2Bits[n];
@@ -43,16 +44,23 @@ template sha256Signals(n) {
     offset += 256;
   }
 
-  // hash the bits
-  component sha256 = Sha256(bitSize);
-  sha256.in <== bits;
+  // use this safe sha256 implementation that produces
+  // the output as 32 signals each for 8 bits
+  signal h[32] <== Sha256_hash_bits_digest(n*256)(bits);
 
-  // because the output signal, being a field element, is only 254 bits,
-  // we disgard the last 2 bits of the hash output. This needs to be
-  // taken into account when buildng the hash for verification
-  component bits2num = Bits2Num(254);
-  for (var i = 0; i < 254; i++) {
-    bits2num.in[i] <== sha256.out[255 - i];
+  // consolidate the output into two signals representing
+  // the lower and higher 16 bytes of the hash. This is necessary
+  // because the signals are field elements of 254 bits, so
+  // may not fit some sha256 outputs.
+  var sum = 0;
+  for (var i = 0; i < 16; i++) {
+      sum += h[i]*(1<<(8*i));
   }
-  bits2num.out ==> out;
+  h0 <== sum;
+
+  sum = 0;
+  for (var i = 16; i < 32; i++) {
+      sum += h[i]*(1<<(8*(i-16)));
+  }
+  h1 <== sum;
 }
