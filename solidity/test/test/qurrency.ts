@@ -17,32 +17,23 @@
 import { ethers, ignition, network } from "hardhat";
 import { Signer, BigNumberish, ContractTransactionReceipt } from "ethers";
 import { groth16 } from "snarkjs";
-import { expect } from "chai";
 import { Merkletree, InMemoryDB, str2Bytes } from "@iden3/js-merkletree";
-import { loadCircuit, Poseidon, encodeProof } from "zeto-js";
+import { loadCircuit, encodeProof } from "zeto-js";
 import qurrencyModule from "../../ignition/modules/test/qurrency";
 import {
-  UTXO,
   User,
   newUser,
   newUTXO,
   newNullifier,
-  doMint,
-  ZERO_UTXO,
-  parseUTXOEvents,
 } from "../lib/utils";
 import {
   loadProvingKeys,
-  prepareDepositProof,
-  prepareNullifierWithdrawProof,
 } from "../utils";
-import { deployZeto } from "../lib/deploy";
 
 describe("Test Qurrency verifier", function () {
   let qurrency: any;
   let smtAlice: Merkletree;
 
-  let deployer: Signer;
   let Alice: User;
   let Bob: User;
   let circuit: any, provingKey: any;
@@ -52,8 +43,7 @@ describe("Test Qurrency verifier", function () {
       // accommodate for longer block times on public networks
       this.timeout(120000);
     }
-    let [d, a, b, c] = await ethers.getSigners();
-    deployer = d;
+    let [_, a, b] = await ethers.getSigners();
     ({ qurrency } = await ignition.deploy(qurrencyModule));
     console.log(`Qurrency test contract deployed at ${qurrency.target}`);
 
@@ -117,7 +107,6 @@ describe("Test Qurrency verifier", function () {
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     ];
 
-    const startWitnessCalculation = Date.now();
     const inputObj: any = {
       nullifiers,
       inputCommitments,
