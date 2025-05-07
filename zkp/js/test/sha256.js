@@ -60,31 +60,3 @@ describe('sha256_signals circuit tests', () => {
     expect(hash_h1).to.equal(computed_pubSignals[1].toString(16));
   });
 });
-
-// describe('sha256_2 circuit tests', () => {
-//   let circuit;
-
-//   before(async function () {
-//     this.timeout(60000);
-
-//     circuit = await wasm_tester(join(__dirname, './circuits/sha256_2.circom'));
-//   });
-
-//   it('should return an array of 256 numbers each for a bit in the hash', async function () {
-//     // make sure the inputs are in the field range and 256 bits long
-//     const n1 = Buffer.concat([Buffer.from('0000000000', 'hex'), crypto.randomBytes(27)]);
-//     const n2 = Buffer.concat([Buffer.from('0000000000', 'hex'), crypto.randomBytes(27)]);
-//     const b = Buffer.concat([n1, n2]);
-
-//     const hash = crypto.createHash('sha256').update(b).digest('hex');
-//     console.log('hash', hash);
-//     // disgard the first 2 bits and replace them with 0, because the circuit
-//     // output is a 254 bit field element by replacing the first 2 bits with 0
-//     const hash1 = convert256To254(hash);
-
-//     const witness = await circuit.calculateWitness({ a: BigInt('0x' + n1.toString('hex')), b: BigInt('0x' + n2.toString('hex')) }, true);
-//     const hash2 = witness[1].toString(16);
-
-//     expect(hash2).to.equal(hash1);
-//   });
-// });
