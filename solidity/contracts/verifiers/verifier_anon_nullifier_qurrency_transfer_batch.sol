@@ -43,11 +43,14 @@ contract Groth16Verifier_AnonNullifierQurrencyTransferBatch {
     uint256 constant deltay2 = 8495653923123431417604973247489272438418190587263600148770280649306958101930;
 
     
-    uint256 constant IC0x = 12415864724100383749797028885652364021048746902678669621344058028810195296260;
-    uint256 constant IC0y = 11607312124045301008653900283056657651454310568262388680064408515279015239135;
+    uint256 constant IC0x = 9390439870683721848335974117417569887766092636601754131344186967528452331767;
+    uint256 constant IC0y = 8404889616365620910640380436070456023940903193582447042942606742260686089297;
     
-    uint256 constant IC1x = 6219253487148568951364761947841570630768927337090292284005517220118162697715;
-    uint256 constant IC1y = 16287356780174300561464357251770353895979660376879946404119989008812361265535;
+    uint256 constant IC1x = 17891608003609943152410354398304683949097791057629863591199304272547659010150;
+    uint256 constant IC1y = 6957023145557695483699234277655490141765439752261953682608436037668428385140;
+    
+    uint256 constant IC2x = 11018292865116316752286719768877756043467776576165576668679704973536056123378;
+    uint256 constant IC2y = 2730480560613355436890154320565546472551017284879014714576300234691907715528;
     
  
     // Memory data
@@ -56,7 +59,7 @@ contract Groth16Verifier_AnonNullifierQurrencyTransferBatch {
 
     uint16 constant pLastMem = 896;
 
-    function verifyProof(uint[2] calldata _pA, uint[2][2] calldata _pB, uint[2] calldata _pC, uint[1] calldata _pubSignals) public view returns (bool) {
+    function verifyProof(uint[2] calldata _pA, uint[2][2] calldata _pB, uint[2] calldata _pC, uint[2] calldata _pubSignals) public view returns (bool) {
         assembly {
             function checkField(v) {
                 if iszero(lt(v, r)) {
@@ -101,6 +104,8 @@ contract Groth16Verifier_AnonNullifierQurrencyTransferBatch {
                 // Compute the linear combination vk_x
                 
                 g1_mulAccC(_pVk, IC1x, IC1y, calldataload(add(pubSignals, 0)))
+                
+                g1_mulAccC(_pVk, IC2x, IC2y, calldataload(add(pubSignals, 32)))
                 
 
                 // -A
@@ -156,6 +161,8 @@ contract Groth16Verifier_AnonNullifierQurrencyTransferBatch {
             // Validate that all evaluations ∈ F
             
             checkField(calldataload(add(_pubSignals, 0)))
+            
+            checkField(calldataload(add(_pubSignals, 32)))
             
 
             // Validate all evaluations

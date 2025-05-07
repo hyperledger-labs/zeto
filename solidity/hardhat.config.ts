@@ -33,7 +33,7 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 1000,
+        runs: 100,
       },
     },
   },
@@ -41,6 +41,9 @@ const config: HardhatUserConfig = {
     sources: "contracts"
   },
   networks: {
+    hardhat: {
+      allowUnlimitedContractSize: true,
+    },
     besu: {
       url: "http://localhost:8545",
       accounts: keys,
