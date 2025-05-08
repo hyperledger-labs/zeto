@@ -17,7 +17,7 @@
 import { ethers, network } from "hardhat";
 import { ContractTransactionReceipt, Signer, BigNumberish, lock } from "ethers";
 import { expect } from "chai";
-import { loadCircuit, Poseidon, encodeProof } from "zeto-js";
+import { loadCircuit, Poseidon, encodeProof, getKyberCipherText } from "zeto-js";
 import { groth16 } from "snarkjs";
 import { Merkletree, InMemoryDB, str2Bytes } from "@iden3/js-merkletree";
 import {
@@ -81,6 +81,10 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
     ({ provingKeyFile: provingKey } = loadProvingKeys(
       "anon_nullifier_qurrency_transfer",
     ));
+    batchCircuit = await loadCircuit("anon_nullifier_qurrency_transfer_batch");
+    ({ provingKeyFile: batchProvingKey } = loadProvingKeys(
+      "anon_nullifier_qurrency_transfer_batch",
+    ));
   });
 
   it("onchain SMT root should be equal to the offchain SMT root", async function () {
@@ -89,6 +93,156 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
     expect(onchainRoot).to.equal(0n);
     expect(root.string()).to.equal(onchainRoot.toString());
   });
+
+  it("(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob & Charlie then withdraw should succeed", async function () {
+    this.timeout(600000);
+
+    // first mint the tokens for batch testing
+    const inputUtxos = [];
+    const nullifiers = [];
+    for (let i = 0; i < 10; i++) {
+      // mint 10 utxos
+      const _utxo = newUTXO(1, Alice);
+      nullifiers.push(newNullifier(_utxo, Alice));
+      inputUtxos.push(_utxo);
+    }
+    const mintResult = await doMint(zeto, deployer, inputUtxos);
+
+    const mintEvents = parseUTXOEvents(zeto, mintResult);
+    const mintedHashes = mintEvents[0].outputs;
+    for (let i = 0; i < mintedHashes.length; i++) {
+      if (mintedHashes[i] !== 0) {
+        await smtAlice.add(mintedHashes[i], mintedHashes[i]);
+        await smtBob.add(mintedHashes[i], mintedHashes[i]);
+      }
+    }
+    // Alice generates inclusion proofs for the UTXOs to be spent
+    let root = await smtAlice.root();
+    const mtps = [];
+    for (let i = 0; i < inputUtxos.length; i++) {
+      const p = await smtAlice.generateCircomVerifierProof(
+        inputUtxos[i].hash,
+        root,
+      );
+      mtps.push(p.siblings.map((s) => s.bigInt()));
+    }
+    const aliceUTXOsToBeWithdrawn = [
+      newUTXO(1, Alice),
+      newUTXO(1, Alice),
+      newUTXO(1, Alice),
+    ];
+    // Alice proposes the output UTXOs, 1 utxo to bob, 1 utxo to charlie and 3 utxos to alice
+    const _bOut1 = newUTXO(6, Bob);
+    const _bOut2 = newUTXO(1, Charlie);
+
+    const outputUtxos = [_bOut1, _bOut2, ...aliceUTXOsToBeWithdrawn];
+    const outputOwners = [Bob, Charlie, Alice, Alice, Alice];
+    const inflatedOutputUtxos = [...outputUtxos];
+    const inflatedOutputOwners = [...outputOwners];
+    for (let i = 0; i < 10 - outputUtxos.length; i++) {
+      inflatedOutputUtxos.push(ZERO_UTXO);
+      inflatedOutputOwners.push(Bob);
+    }
+    // Alice transfers her UTXOs to Bob
+    const result = await doTransfer(
+      Alice,
+      inputUtxos,
+      nullifiers,
+      inflatedOutputUtxos,
+      root.bigInt(),
+      mtps,
+      inflatedOutputOwners,
+    );
+
+    const signerAddress = await Alice.signer.getAddress();
+    const events = parseUTXOEvents(zeto, result.txResult!);
+    expect(events[0].submitter).to.equal(signerAddress);
+    expect(events[0].inputs).to.deep.equal(nullifiers.map((n) => n.hash));
+
+    const incomingUTXOs: any = events[0].outputs;
+    // check the non-empty output hashes are correct
+    for (let i = 0; i < outputUtxos.length; i++) {
+      // Bob uses the information received from Alice to reconstruct the UTXO sent to him
+      const receivedValue = outputUtxos[i].value;
+      const receivedSalt = outputUtxos[i].salt;
+      const hash = Poseidon.poseidon4([
+        BigInt(receivedValue),
+        receivedSalt,
+        outputOwners[i].babyJubPublicKey[0],
+        outputOwners[i].babyJubPublicKey[1],
+      ]);
+      expect(incomingUTXOs[i]).to.equal(hash);
+      await smtAlice.add(incomingUTXOs[i], incomingUTXOs[i]);
+      await smtBob.add(incomingUTXOs[i], incomingUTXOs[i]);
+    }
+
+    // check empty hashes are empty
+    for (let i = outputUtxos.length; i < 10; i++) {
+      expect(incomingUTXOs[i]).to.equal(0);
+    }
+
+    // mint sufficient balance in Zeto contract address for Alice to withdraw
+    const mintTx = await erc20.connect(deployer).mint(zeto, 3);
+    await mintTx.wait();
+    const startingBalance = await erc20.balanceOf(Alice.ethAddress);
+
+    // Alice generates the nullifiers for the UTXOs to be spent
+    root = await smtAlice.root();
+    const inflatedWithdrawNullifiers = [];
+    const inflatedWithdrawInputs = [];
+    const inflatedWithdrawMTPs = [];
+    for (let i = 0; i < aliceUTXOsToBeWithdrawn.length; i++) {
+      inflatedWithdrawInputs.push(aliceUTXOsToBeWithdrawn[i]);
+      inflatedWithdrawNullifiers.push(
+        newNullifier(aliceUTXOsToBeWithdrawn[i], Alice),
+      );
+      const _withdrawUTXOProof = await smtAlice.generateCircomVerifierProof(
+        aliceUTXOsToBeWithdrawn[i].hash,
+        root,
+      );
+      inflatedWithdrawMTPs.push(
+        _withdrawUTXOProof.siblings.map((s) => s.bigInt()),
+      );
+    }
+    // Alice generates inclusion proofs for the UTXOs to be spent
+
+    for (let i = aliceUTXOsToBeWithdrawn.length; i < 10; i++) {
+      inflatedWithdrawInputs.push(ZERO_UTXO);
+      inflatedWithdrawNullifiers.push(ZERO_UTXO);
+      const _zeroProof = await smtAlice.generateCircomVerifierProof(0n, root);
+      inflatedWithdrawMTPs.push(_zeroProof.siblings.map((s) => s.bigInt()));
+    }
+
+    const {
+      nullifiers: _withdrawNullifiers,
+      outputCommitments: withdrawCommitments,
+      encodedProof: withdrawEncodedProof,
+    } = await prepareNullifierWithdrawProof(
+      Alice,
+      inflatedWithdrawInputs,
+      inflatedWithdrawNullifiers,
+      ZERO_UTXO,
+      root.bigInt(),
+      inflatedWithdrawMTPs,
+    );
+
+    // Alice withdraws her UTXOs to ERC20 tokens
+    const tx = await zeto
+      .connect(Alice.signer)
+      .withdraw(
+        3,
+        _withdrawNullifiers,
+        withdrawCommitments[0],
+        root.bigInt(),
+        withdrawEncodedProof,
+        "0x",
+      );
+    await tx.wait();
+
+    // Alice checks her ERC20 balance
+    const endingBalance = await erc20.balanceOf(Alice.ethAddress);
+    expect(endingBalance - startingBalance).to.be.equal(3);
+  }).timeout(60000);
 
   it("mint ERC20 tokens to Alice to deposit to Zeto should succeed", async function () {
     const startingBalance = await erc20.balanceOf(Alice.ethAddress);
@@ -377,6 +531,7 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
   ) {
     let nullifiers: BigNumberish[];
     let outputCommitments: BigNumberish[];
+    let ciphertext: BigNumberish[];
     let encodedProof: any;
     const circuitToUse = lockDelegate
       ? circuitForLocked
@@ -405,12 +560,14 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
     ) as BigNumberish[];
     outputCommitments = result.outputCommitments;
     encodedProof = result.encodedProof;
+    ciphertext = result.ciphertext;
 
     const txResult = await sendTx(
       signer,
       nullifiers,
       outputCommitments,
       root,
+      ciphertext,
       encodedProof,
       lockDelegate !== undefined,
     );
@@ -430,16 +587,15 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
     nullifiers: BigNumberish[],
     outputCommitments: BigNumberish[],
     root: BigNumberish,
+    ciphertext: BigNumberish[],
     encodedProof: any,
     isLocked: boolean = false,
   ) {
-    // TODO: get the ciphertext from the witness object
-    const hack = [153, 180, 68, 235, 189, 233, 191, 4, 236, 89, 22, 35, 178, 239, 102, 163, 71, 123, 55, 19, 165, 82, 197, 168, 222, 159, 54, 198, 122, 202, 46, 61, 71, 249, 202, 155, 165, 186, 117, 41, 235, 141, 35, 149, 53, 129, 42, 95, 212, 128, 192, 80, 112, 120, 127, 192, 205, 189, 251, 33, 173, 173, 209, 111, 0, 208, 195, 74, 118, 98, 48, 178, 40, 203, 127, 185, 133, 93, 106, 112, 154, 50, 56, 184, 51, 20, 48, 2, 153, 106, 230, 56, 31, 252, 43, 23, 133, 140, 101, 183, 92, 250, 234, 28, 192, 208, 54, 250, 254, 120, 214, 74, 140, 53, 236, 105, 36, 182, 61, 100, 161, 226, 69, 83, 148, 134, 252, 102, 226, 97, 203, 135, 10, 211, 251, 52, 154, 236, 218, 31, 236, 237, 252, 36, 25, 28, 150, 249, 52, 121, 152, 78, 9, 180, 23, 211, 126, 133, 153, 69, 197, 208, 190, 241, 118, 207, 183, 27, 127, 51, 78, 77, 203, 153, 57, 21, 165, 163, 218, 41, 72, 219, 42, 130, 246, 112, 178, 196, 125, 46, 249, 103, 12, 28, 209, 111, 134, 22, 178, 180, 248, 88, 239, 238, 183, 191, 191, 235, 219, 239, 102, 91, 90, 37, 218, 170, 234, 76, 91, 208, 38, 23, 74, 215, 14, 49, 149, 60, 145, 150, 3, 11, 251, 182, 73, 231, 14, 95, 217, 195, 182, 171, 2, 171, 19, 234, 75, 157, 205, 141, 181, 171, 227, 213, 212, 44, 159, 98, 183, 226, 99, 144, 219, 130, 92, 110, 65, 184, 4, 2, 228, 3, 159, 193, 180, 197, 79, 248, 55, 139, 73, 238, 189, 48, 102, 251, 155, 199, 19, 14, 205, 136, 186, 253, 214, 230, 253, 171, 217, 157, 23, 191, 73, 242, 132, 144, 134, 38, 255, 202, 79, 191, 124, 17, 103, 7, 55, 166, 5, 16, 82, 103, 169, 250, 141, 231, 235, 218, 185, 26, 125, 37, 95, 68, 72, 248, 78, 214, 49, 88, 204, 17, 106, 221, 149, 143, 225, 254, 230, 120, 5, 166, 34, 200, 9, 60, 204, 9, 72, 205, 85, 231, 104, 186, 17, 172, 183, 67, 222, 23, 184, 112, 235, 253, 54, 150, 70, 42, 73, 68, 233, 174, 108, 200, 42, 240, 108, 88, 54, 31, 217, 176, 29, 139, 231, 201, 132, 118, 104, 205, 47, 226, 184, 119, 199, 152, 49, 164, 123, 255, 16, 176, 83, 10, 140, 215, 228, 222, 202, 64, 88, 213, 123, 106, 246, 53, 208, 42, 2, 43, 80, 203, 8, 155, 12, 216, 15, 221, 82, 20, 137, 22, 99, 66, 254, 146, 238, 82, 139, 25, 202, 33, 89, 156, 30, 48, 226, 103, 130, 148, 197, 126, 23, 131, 211, 75, 155, 62, 231, 73, 32, 151, 196, 231, 226, 0, 249, 180, 140, 111, 18, 4, 60, 240, 76, 199, 81, 248, 84, 10, 117, 15, 191, 189, 209, 163, 146, 37, 185, 128, 54, 214, 175, 96, 215, 150, 138, 140, 228, 102, 60, 133, 11, 185, 130, 110, 160, 121, 197, 129, 57, 150, 43, 222, 191, 64, 80, 107, 122, 33, 132, 67, 85, 141, 97, 124, 82, 173, 216, 224, 102, 220, 210, 24, 51, 192, 167, 135, 19, 212, 218, 170, 74, 105, 104, 58, 237, 203, 181, 197, 77, 23, 92, 210, 143, 195, 129, 37, 205, 61, 98, 61, 112, 36, 245, 192, 225, 83, 81, 159, 134, 235, 86, 221, 172, 191, 213, 5, 131, 183, 118, 196, 78, 206, 255, 9, 32, 58, 10, 189, 63, 95, 45, 85, 106, 74, 115, 51, 112, 123, 59, 45, 148, 13, 237, 84, 223, 249, 210, 176, 16, 228, 207, 248, 180, 91, 210, 71, 150, 167, 205, 123, 140, 39, 66, 3, 110, 249, 38, 86, 41, 181, 163, 96, 211, 181, 98, 58, 133, 136, 250, 23, 117, 4, 207, 219, 168, 118, 85, 200, 123, 30, 143, 56, 117, 197, 242, 205, 130, 45, 200, 77, 51, 56, 31, 41, 151, 118, 118, 162, 204, 65, 112, 243, 109, 142, 224, 81, 250, 103, 25, 91, 9, 189, 105, 23, 75, 95, 167, 149, 49, 103, 76, 105, 74, 67, 75, 3, 43, 103, 30, 157, 71, 34, 103, 136, 198, 229, 206, 182, 11, 255, 246, 247, 16, 221, 142, 40, 137, 89, 63, 23, 151, 111, 31, 74, 70, 38, 210, 240, 18, 209, 62, 111, 84, 203, 151, 195, 212, 18, 203, 83, 2, 98, 120, 73, 251, 3, 220, 241, 162, 8, 76, 55, 163, 201, 118, 42];
-    const buff = Buffer.alloc(hack.length);
-    for (let i = 0; i < hack.length; i++) {
-      buff.writeUInt8(hack[i], i);
+    const buff = Buffer.alloc(ciphertext.length);
+    for (let i = 0; i < ciphertext.length; i++) {
+      buff.writeUInt8(Number(ciphertext[i]), i);
     }
-    const ciphertext = '0x' + buff.toString("hex");
+    const ciphertextHex = '0x' + buff.toString("hex");
 
     const startTx = Date.now();
     let tx: any;
@@ -448,7 +604,7 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
         nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
         outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
         root,
-        ciphertext,
+        ciphertextHex,
         encodedProof,
         "0x",
       );
@@ -498,7 +654,8 @@ async function prepareProof(
     (owner) => owner.babyJubPublicKey,
   ) as BigNumberish[][];
 
-  // TODO: construct the message from the output UTXO secrets
+  // TODO: construct the message by generating an AES-256 key (the encryption key is the message)
+  // as part of the KEM protocol. Replace 1 with 1665.
   const m = [
     1665, 1665, 0, 1665, 0, 1665, 1665, 0, 1665, 0, 0, 1665, 1665, 1665, 1665, 0, 0, 1665, 0, 0, 0, 1665, 1665, 0, 1665, 0, 1665, 0, 0, 1665, 1665, 0, 0, 1665, 0, 0, 1665, 1665, 1665, 0, 0, 0, 0, 0,
     0, 1665, 0, 0, 1665, 0, 0, 1665, 0, 1665, 1665, 0, 1665, 1665, 0, 0, 1665, 1665, 1665, 0, 0, 0, 0, 0, 0, 1665, 0, 0, 1665, 1665, 0, 0, 0, 1665, 1665, 0, 1665, 1665, 1665, 1665, 0, 1665, 1665, 0,
@@ -507,11 +664,12 @@ async function prepareProof(
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   ];
 
+  // TODO: replace with a proper random number
   const randomness = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1665, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1665, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1665, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1665, 0, 0, 0, 1665, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1665, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   ];
 
   const startWitnessCalculation = Date.now();
@@ -535,6 +693,12 @@ async function prepareProof(
     inputObj["lockDelegate"] = ethers.toBigInt(lockDelegate);
   }
 
+  // first call the calculateWitness function which returns
+  // the witness as an object, in order to get the ciphertext
+  const witnessObj = await circuit.calculateWitness(inputObj, true);
+  const circuitName = inputs.length > 2 ? "anon_nullifier_qurrency_batch" : "anon_nullifier_qurrency";
+  const ciphertext = getKyberCipherText(witnessObj, circuitName);
+
   const witness = await circuit.calculateWTNSBin(inputObj, true);
   const timeWithnessCalculation = Date.now() - startWitnessCalculation;
 
@@ -554,6 +718,7 @@ async function prepareProof(
     inputCommitments,
     outputCommitments,
     encodedProof,
+    ciphertext,
   };
 }
 

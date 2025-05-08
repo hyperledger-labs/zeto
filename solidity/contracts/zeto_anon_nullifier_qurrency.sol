@@ -23,7 +23,7 @@ import {Groth16Verifier_WithdrawNullifier} from "./verifiers/verifier_withdraw_n
 import {Groth16Verifier_WithdrawNullifierBatch} from "./verifiers/verifier_withdraw_nullifier_batch.sol";
 import {Groth16Verifier_AnonNullifierQurrencyTransfer} from "./verifiers/verifier_anon_nullifier_qurrency_transfer.sol";
 // import {Groth16Verifier_AnonNullifierTransferLocked} from "./verifiers/verifier_anon_nullifier_transferLocked.sol";
-// import {Groth16Verifier_AnonNullifierTransferBatch} from "./verifiers/verifier_anon_nullifier_transfer_batch.sol";
+import {Groth16Verifier_AnonNullifierQurrencyTransferBatch} from "./verifiers/verifier_anon_nullifier_qurrency_transfer_batch.sol";
 // import {Groth16Verifier_AnonNullifierTransferLockedBatch} from "./verifiers/verifier_anon_nullifier_transferLocked_batch.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
@@ -34,7 +34,7 @@ import {console} from "hardhat/console.sol";
 
 uint256 constant INPUT_SIZE = 9;
 // uint256 constant INPUT_SIZE_LOCKED = 8;
-uint256 constant BATCH_INPUT_SIZE = 31;
+uint256 constant BATCH_INPUT_SIZE = 33;
 // uint256 constant BATCH_INPUT_SIZE_LOCKED = 32;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and history masking
@@ -53,7 +53,7 @@ contract Zeto_AnonNullifierQurrency is
     UUPSUpgradeable
 {
     Groth16Verifier_AnonNullifierQurrencyTransfer internal _verifier;
-    // Groth16Verifier_AnonNullifierQurrencyTransferBatch internal _batchVerifier;
+    Groth16Verifier_AnonNullifierQurrencyTransferBatch internal _batchVerifier;
     // Groth16Verifier_AnonNullifierTransferLocked internal _lockVerifier;
     // Groth16Verifier_AnonNullifierTransferLockedBatch
     //     internal _batchLockVerifier;
@@ -76,9 +76,9 @@ contract Zeto_AnonNullifierQurrency is
         // _lockVerifier = (Groth16Verifier_AnonNullifierTransferLocked)(
         //     verifiers.lockVerifier
         // );
-        // _batchVerifier = (Groth16Verifier_AnonNullifierTransferBatch)(
-        //     verifiers.batchVerifier
-        // );
+        _batchVerifier = (Groth16Verifier_AnonNullifierQurrencyTransferBatch)(
+            verifiers.batchVerifier
+        );
         // _batchLockVerifier = (Groth16Verifier_AnonNullifierTransferLockedBatch)(
         //     verifiers.batchLockVerifier
         // );
@@ -140,17 +140,16 @@ contract Zeto_AnonNullifierQurrency is
         uint256[] memory outputs,
         uint256 root,
         bytes memory ciphertext,
-        // uint256 pHash,
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public returns (bool) {
-        // nullifiers = checkAndPadCommitments(nullifiers);
-        // outputs = checkAndPadCommitments(outputs);
-        // validateTransactionProposal(nullifiers, outputs, root, false);
-        // uint[2] memory computed_pubSignals = calculateHash(ciphertext);
-        // verifyProof(computed_pubSignals, nullifiers, outputs, root, proof);
-        // uint256[] memory empty;
-        // processInputsAndOutputs(nullifiers, outputs, empty, address(0));
+        nullifiers = checkAndPadCommitments(nullifiers);
+        outputs = checkAndPadCommitments(outputs);
+        validateTransactionProposal(nullifiers, outputs, root, false);
+        uint[2] memory computed_pubSignals = calculateHash(ciphertext);
+        verifyProof(computed_pubSignals, nullifiers, outputs, root, proof);
+        uint256[] memory empty;
+        processInputsAndOutputs(nullifiers, outputs, empty, address(0));
 
         uint256[] memory nullifierArray = new uint256[](nullifiers.length);
         uint256[] memory outputArray = new uint256[](outputs.length);
@@ -279,17 +278,21 @@ contract Zeto_AnonNullifierQurrency is
                 BATCH_INPUT_SIZE,
                 false
             );
-
+            // construct the public inputs for verifier
+            uint256[BATCH_INPUT_SIZE] memory fixedSizeInputs;
+            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
+                fixedSizeInputs[i] = publicInputs[i];
+            }
             // Check the proof using batchVerifier
-            // require(
-            //     _batchVerifier.verifyProof(
-            //         proof.pA,
-            //         proof.pB,
-            //         proof.pC,
-            //         publicInputs
-            //     ),
-            //     "Invalid proof"
-            // );
+            require(
+                _batchVerifier.verifyProof(
+                    proof.pA,
+                    proof.pB,
+                    proof.pC,
+                    fixedSizeInputs
+                ),
+                "Invalid proof"
+            );
         } else {
             uint256[] memory publicInputs = constructPublicInputs(
                 computed_hashes,
@@ -397,10 +400,8 @@ contract Zeto_AnonNullifierQurrency is
             result := mload(add(ret, 0x20))
         }
         require(ok, "hash failed");
-        console.log("calculateHash()");
-        console.logBytes32(bytes32(result));
-        bytes32 hash = bytes32(result);
 
+        bytes32 hash = bytes32(result);
         uint[2] memory computed_pubSignals;
         // Calculate h0: sum of the first 16 bytes
         for (uint i = 0; i < 16; i++) {
@@ -412,8 +413,6 @@ contract Zeto_AnonNullifierQurrency is
                 uint256(uint8(hash[i])) *
                 (1 << (8 * (i - 16)));
         }
-        console.log("computed_pubSignals[0]: ", computed_pubSignals[0]);
-        console.log("computed_pubSignals[1]: ", computed_pubSignals[1]);
         return computed_pubSignals;
     }
 }

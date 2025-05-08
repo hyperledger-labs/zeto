@@ -41,13 +41,13 @@ const VerifierModule = buildModule(
 //   },
 // );
 
-// const BatchVerifierModule = buildModule(
-//   "Groth16Verifier_AnonNullifierTransferBatch",
-//   (m) => {
-//     const verifier = m.contract("Groth16Verifier_AnonNullifierTransferBatch", []);
-//     return { verifier };
-//   },
-// );
+const BatchVerifierModule = buildModule(
+  "Groth16Verifier_AnonNullifierQurrencyTransferBatch",
+  (m) => {
+    const verifier = m.contract("Groth16Verifier_AnonNullifierQurrencyTransferBatch", []);
+    return { verifier };
+  },
+);
 
 // const BatchLockVerifierModule = buildModule(
 //   "Groth16Verifier_AnonNullifierTransferLockedBatch",
@@ -61,7 +61,7 @@ export default buildModule("Zeto_AnonNullifierQurrency", (m) => {
   const { smtLib, poseidon3, poseidon5, poseidon6 } = m.useModule(SmtLibModule);
   const { verifier } = m.useModule(VerifierModule);
   // const { verifier: lockVerifier } = m.useModule(LockVerifierModule);
-  // const { verifier: batchVerifier } = m.useModule(BatchVerifierModule);
+  const { verifier: batchVerifier } = m.useModule(BatchVerifierModule);
   // const { verifier: batchLockVerifier } = m.useModule(BatchLockVerifierModule);
   const { verifier: depositVerifier } = m.useModule(DepositVerifierModule);
   const { verifier: withdrawVerifier } = m.useModule(
@@ -76,7 +76,7 @@ export default buildModule("Zeto_AnonNullifierQurrency", (m) => {
     withdrawVerifier,
     verifier,
     // lockVerifier,
-    // batchVerifier,
+    batchVerifier,
     // batchLockVerifier,
     batchWithdrawVerifier,
     smtLib,
