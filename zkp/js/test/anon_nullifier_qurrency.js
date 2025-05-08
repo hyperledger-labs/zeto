@@ -182,6 +182,9 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
     // }
     ////// end of logic to locate ciphertext witness index
 
+    // the index of the ciphertext in the witness array is dependent on the circuit.
+    // every time the circuit changes, this index must be re-discovered using the code
+    // snippet above.
     const CT_INDEX = 100975;
     const cipherTexts = witness.slice(CT_INDEX, CT_INDEX + 768);
     const computed_pubSignals = hashCiphertext(cipherTexts);
