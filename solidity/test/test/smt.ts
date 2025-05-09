@@ -13,7 +13,7 @@ describe("smt tests", function () {
     const {
       testSmt,
     } = await ignition.deploy(smtModule);
-    console.log(`TEstSmt contract deployed at ${testSmt.target}`);
+    console.log(`TestSmt contract deployed at ${testSmt.target}`);
     smt = testSmt as Contract;
   });
 
