@@ -1,14 +1,26 @@
-# Zeto - UTXO based privacy-preserving token toolkit using Zero Knowledge Proofs
+# Zeto - UTXO based privacy-preserving token toolkit using Zero-Knowledge Proofs
 
-This project hosts the multiple patterns to implement privacy preserving tokens on EVM.
+Zeto implements several practical smart contracts on EVM for privacy-preserving fungible and non-fungible tokens that achieve the following security properties, enforced with zero-knowledge proofs:
 
-Refer to the [Zeto documentation](https://hyperledger-labs.github.io/zeto/head) for details.
+- **Anonymity** of sender and receiver
+- **Encrypted secrets** stored within transactions
+- **History masking**
+- **KYC** (know your customer)
+- **Non-repudiation** with respect to a trusted auditing authority, specified at contract-creation time
+
+We provide a variety of token implementations that achieve targeted subsets of these properties. Each token is provided in two variants: one which accepts 2 input UTXOs and 2 output UTXOs per transaction, and a corresponding `_batch` version accepting 10 inputs and outputs per transaction, albeit with higher ZKP overhead.
+
+Refer to the [Zeto website](https://hyperledger-labs.github.io/zeto/latest/) for more information.
+
+## How to use
+
+If the provided token implementations satisfy your requirements, they can be deployed as-is. They can also be modified and used as templates for implementations which achieve different combinations of security goals.
 
 # Sub-projects
 
-There are 4 sub-projects. Navigate to each sub-project to run the tests and learn how to use each library:
+There are 4 subprojects. Navigate to each subproject to run the tests and learn how to use each library:
 
-- [Solidity samples of Zeto token implementations](./solidity/): Sample Solidity contracts for all the ZKP based Zeto privacy patterns
-- [ZKP circuits](./zkp/circuits/): ZKP circuits written in circom to support the Zeto privacy patterns
-- [golang sdk](./go-sdk/): the ability to interact with Zeto tokens in golang, including a Sparse Merkle Tree implementation, Babyjubjub key manipulations, and proof generations using the WASM modules compiled from circom circuits
-- [javascript library for proof generation](./zkp/js/): unit test cases written in javascript
+- [Javascript library for proof generation](./zkp/js/): For getting started, **build this first.** This library pre-compiles all included circuits, and initializes ZK proof secrets *for testing purposes only.*
+- [ZKP circuits](./zkp/circuits/): Core zero-knowledge proofs for enforcing the required security goals.
+- [Samples of Zeto token implementations in Solidity](./solidity/): Sample Solidity contracts for all ZKP-based Zeto privacy patterns
+- [Golang SDK](./go-sdk/): An interface to interact with Zeto tokens in golang. This includes a Sparse Merkle Tree implementation, Babyjubjub key manipulations, and proof generation via compiled circom circuits in WASM format
