@@ -1,6 +1,6 @@
 # Zeto toolkit javascript library
 
-The main purpose of the javascript project is testing the circom based ZKP circuits. The test cases demonstrate the expected behaviors of the circuits, which can be used as the reference to build a client implementation for the Zeto toolkit.
+The main purpose of the javascript project is initializing the testing environment for the circom-based ZKP circuits. The included test cases demonstrate expected behaviors of the provided circuits, which can be used as a reference to build client implementations for the Zeto toolkit.
 
 # Build
 

@@ -61,9 +61,11 @@ npm i
 npm run gen
 ```
 
-**run `npm run gen -- -c $circuit` to generate artifacts for a single circuit**
-**run `npm run gen -- -v` to show verbose outputs**
-**use `GEN_CONCURRENCY` to control how many circuits to be processed in parallel, default to 10**
+**Run `npm run gen -- -c $circuit` to generate artifacts for a single circuit**
+
+**Run `npm run gen -- -v` to show verbose outputs**
+
+**Set the environment variable `GEN_CONCURRENCY` to control how many circuits to be processed in parallel within the `gen` script (defaults to 10)**
 
 > Refer to [generation script explanation](#generation-script-explanation) for what the script does
 
