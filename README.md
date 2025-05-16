@@ -16,11 +16,13 @@ Refer to the [Zeto website](https://hyperledger-labs.github.io/zeto/latest/) for
 
 If the provided token implementations satisfy your requirements, they can be deployed as-is. They can also be modified and used as templates for implementations which achieve different combinations of security goals.
 
+**Warning:** We provide a testing framework for Zeto tokens, which initializes the zero-knowledge proof infrastructure locally. This is not sufficient to establish trust in the generated proofs! For deployment, the proving keys **must** be generated either in a well-documented, decentralized ceremony, or by one trusted, central party. Refer to the [snarkjs documentation](https://github.com/iden3/snarkjs) for details on how to conduct this ceremony.
+
 # Sub-projects
 
 There are 4 subprojects. Navigate to each subproject to run the tests and learn how to use each library:
 
 - [Javascript library for proof generation](./zkp/js/): For getting started, **build this first.** This library pre-compiles all included circuits, and initializes ZK proof secrets *for testing purposes only.*
 - [ZKP circuits](./zkp/circuits/): Core zero-knowledge proofs for enforcing the required security goals.
-- [Samples of Zeto token implementations in Solidity](./solidity/): Sample Solidity contracts for all ZKP-based Zeto privacy patterns
+- [Samples of Zeto token implementations in Solidity](./solidity/): Sample Solidity contracts for all ZKP-based Zeto privacy patterns, including examples of deployment in a test environment.
 - [Golang SDK](./go-sdk/): An interface to interact with Zeto tokens in golang. This includes a Sparse Merkle Tree implementation, Babyjubjub key manipulations, and proof generation via compiled circom circuits in WASM format

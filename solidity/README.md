@@ -17,19 +17,25 @@ The hardhat test cases make use of the `zeto-js` library, which must be built fi
 
 Zeto token contracts can be deployed to your hardhat test environment as either upgradeable contracts or cloneable contracts with one of the two hardhat scripts:
 
-- [`deploy_upgradeable`](/solidity/scripts/deploy_upgradeable.ts): Deploys the target contract, designated by the `ZETO_NAME` environment variable, as a [UUPSUpgradeable contract](https://docs.openzeppelin.com/contracts/4.x/api/proxy#transparent-vs-uups).
+## `deploy_upgradeable`
+
+Deploys the target contract, designated by the `ZETO_NAME` environment variable, as a [UUPSUpgradeable contract](https://docs.openzeppelin.com/contracts/4.x/api/proxy#transparent-vs-uups). This allows contracts to receive software updates after their initial deployment. For more information about this design pattern, refer to the [OpenZeppelin documentation](https://docs.openzeppelin.com/upgrades-plugins/proxies).
 
 ```console
 export ZETO_NAME=Zeto_AnonEncNullifier
 npx hardhat run scripts/deploy_upgradeable.ts
 ```
 
-- [`deploy_cloneable`](/solidity/scripts/deploy_cloneable.ts): Deploys the target contract, designated by the `ZETO_NAME` environment variable, as a [cloneable contract](https://blog.openzeppelin.com/workshop-recap-cheap-contract-deployment-through-clones).
+## `deploy_cloneable`
+
+Deploys the target contract, designated by the `ZETO_NAME` environment variable, as a [cloneable contract](https://blog.openzeppelin.com/workshop-recap-cheap-contract-deployment-through-clones).
 
 ```console
 export ZETO_NAME=Zeto_AnonEncNullifier
 npx hardhat run scripts/deploy_cloneable.ts
 ```
+
+A cloneable contract can cheaply be cloned into separate instances after deployment. Non-cloneable contracts require re-initializing and copying all contract state, which can result in high gas fees. For more information, refer to the [OpenZeppelin documentation](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Clones).
 
 # Run The Hardhat Tests
 
