@@ -49,7 +49,7 @@ To use the circuits in a ZKP application, 3 types of artifacts are needed:
 - Proving keys: a SNARK proof generator uses the witnesses and the proving keys to construct a SNARK proof. Depending on the specific proving system used by the ZKP application, a trusted setup may or may not be needed for each circuit, before the proving keys for the circuit can be generated. The default proving system used by Zeto is groth16, for its fast proof generation speed and compact SNARK proof size, which does require a per-circuit trusted setup.
 - Solidity verifiers: for the SNARK proof to be verified by a smart contract, verification keys derived from the providing key are needed, along with verification logic specific to the proving system used.
 
-Zeto provides an artifact generation program, `gen.js`, that can generate the above artifacts. Note that it does NOT perform a trusted setup, this step should be conducted as a coordinated ceremony by the deployer of the ZKP application if groth16 is used. It generates proving keys for **TESTING PURPOSE ONLY**.
+Zeto provides an artifact generation program, `gen.js`, that can generate the above artifacts. Note that it does NOT perform a trusted setup, this step should be conducted as a coordinated ceremony by the deployer of the ZKP application if groth16 is used. It generates proving keys for **TESTING PURPOSES ONLY**.
 
 ```console
 export CIRCUITS_ROOT="$HOME/circuits"
@@ -61,9 +61,11 @@ npm i
 npm run gen
 ```
 
-**run `npm run gen -- -c $circuit` to generate artifacts for a single circuit**
-**run `npm run gen -- -v` to show verbose outputs**
-**use `GEN_CONCURRENCY` to control how many circuits to be processed in parallel, default to 10**
+**Run `npm run gen -- -c $circuit` to generate artifacts for a single circuit**
+
+**Run `npm run gen -- -v` to show verbose outputs**
+
+**Set the environment variable `GEN_CONCURRENCY` to control how many circuits to be processed in parallel within the `gen` script (defaults to 10)**
 
 > Refer to [generation script explanation](#generation-script-explanation) for what the script does
 

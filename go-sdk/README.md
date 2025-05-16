@@ -2,6 +2,10 @@
 
 Golang implementation of Sparse Merkle Tree that is optimized for managing an append-only tree, and is able to generate proofs to be used as private inputs to a circom-based proof generator. The project also includes an end-to-end integration test that demonstrates how to use the go-rapidsnark library to generate zkSNARK proofs with WASM based circuit runtimes.
 
+## Prerequisites
+
+This library requires Go version **1.23**.
+
 ## Running the unit tests for the Spark Merkle Tree implementation
 
 ```console
@@ -12,7 +16,7 @@ $ make
 
 The project does NOT contain some of the cryptographic materials to perform proof generations and verifications, such as the proving keys and the verification keys. You must run the [build steps](/zkp/js/README.md#build) before you can run the tests.
 
-> You do NOT need to re-compile the circuits. Start with the step to [Generate the proving key](/zkp/js/README.md#generate-the-proving-key).
+> You do NOT need to re-compile the circuits. Start with the step to [Generate the proving key](/zkp/js/README.md#compile-the-circuits-and-generate-verification-keys-and-solidity-libraries).
 
 Once the proving keys and verification keys are generated, set the following environment variables
 
