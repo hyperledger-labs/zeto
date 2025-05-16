@@ -1,4 +1,4 @@
-// Copyright © 2024 Kaleido, Inc.
+// Copyright © 2025 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -15,7 +15,6 @@
 // limitations under the License.
 
 const { expect } = require("chai");
-const { readFileSync } = require("fs");
 const { join } = require("path");
 const { wasm: wasm_tester } = require("circom_tester");
 const { genKeypair } = require("maci-crypto");
@@ -52,25 +51,36 @@ describe("check-hashes circuit tests", () => {
     const input1 = poseidonHash([BigInt(values[0]), salt1, ...sender.pubKey]);
     const salt2 = newSalt();
     const input2 = poseidonHash([BigInt(values[1]), salt2, ...sender.pubKey]);
-    const commitments = [input1, input2];
+    const commitmentHashes = [input1, input2];
 
     const witness = await circuit.calculateWitness(
       {
-        commitments,
-        values,
-        salts: [salt1, salt2],
-        ownerPublicKeys: [sender.pubKey, sender.pubKey],
+        commitmentHashes,
+        commitmentInputs: [
+          BigInt(values[0]),
+          salt1,
+          ...sender.pubKey,
+          BigInt(values[1]),
+          salt2,
+          ...sender.pubKey,
+        ],
       },
       true,
     );
 
     // console.log(witness.slice(0, 10));
-    // console.log('commitments', commitments);
+    // console.log('commitmentHashes', commitmentHashes);
     // console.log('sender public key', sender.pubKey);
-    expect(witness[1]).to.equal(BigInt(commitments[0]));
-    expect(witness[2]).to.equal(BigInt(commitments[1]));
-    expect(witness[3]).to.equal(BigInt(sender.pubKey[0]));
-    expect(witness[4]).to.equal(BigInt(sender.pubKey[1]));
+    expect(witness[1]).to.equal(BigInt(commitmentHashes[0]));
+    expect(witness[2]).to.equal(BigInt(commitmentHashes[1]));
+    expect(witness[3]).to.equal(BigInt(values[0]));
+    expect(witness[4]).to.equal(salt1);
+    expect(witness[5]).to.equal(BigInt(sender.pubKey[0]));
+    expect(witness[6]).to.equal(BigInt(sender.pubKey[1]));
+    expect(witness[7]).to.equal(BigInt(values[1]));
+    expect(witness[8]).to.equal(salt2);
+    expect(witness[9]).to.equal(BigInt(sender.pubKey[0]));
+    expect(witness[10]).to.equal(BigInt(sender.pubKey[1]));
   });
 
   it("should return true for valid witness using a single input value", async () => {
@@ -79,22 +89,28 @@ describe("check-hashes circuit tests", () => {
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
     const input1 = poseidonHash([BigInt(values[0]), salt1, ...sender.pubKey]);
-    const commitments = [input1, 0];
+    const commitmentHashes = [input1, 0];
 
     const witness = await circuit.calculateWitness(
       {
-        commitments,
-        values,
-        salts: [salt1, 0],
-        ownerPublicKeys: [sender.pubKey, [0n, 0n]],
+        commitmentHashes,
+        commitmentInputs: [
+          BigInt(values[0]),
+          salt1,
+          ...sender.pubKey,
+          BigInt(values[1]),
+          0,
+          0n,
+          0n,
+        ],
       },
       true,
     );
 
-    expect(witness[1]).to.equal(BigInt(commitments[0]));
-    expect(witness[2]).to.equal(BigInt(commitments[1]));
-    expect(witness[3]).to.equal(BigInt(sender.pubKey[0]));
-    expect(witness[4]).to.equal(BigInt(sender.pubKey[1]));
+    expect(witness[1]).to.equal(BigInt(commitmentHashes[0]));
+    expect(witness[2]).to.equal(BigInt(commitmentHashes[1]));
+    expect(witness[5]).to.equal(BigInt(sender.pubKey[0]));
+    expect(witness[6]).to.equal(BigInt(sender.pubKey[1]));
   });
 
   it("should return true for valid witness using a single input value", async () => {
@@ -103,27 +119,35 @@ describe("check-hashes circuit tests", () => {
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
     const input1 = poseidonHash([BigInt(values[1]), salt1, ...sender.pubKey]);
-    const commitments = [0n, input1];
+    const commitmentHashes = [0n, input1];
 
     const witness = await circuit.calculateWitness(
       {
-        commitments,
-        values,
-        salts: [0, salt1],
-        ownerPublicKeys: [[0n, 0n], sender.pubKey],
+        commitmentHashes,
+        commitmentInputs: [
+          BigInt(values[0]),
+          0,
+          0n,
+          0n,
+          BigInt(values[1]),
+          salt1,
+          ...sender.pubKey,
+        ],
       },
       true,
     );
 
-    expect(witness[1]).to.equal(BigInt(commitments[0]));
-    expect(witness[2]).to.equal(BigInt(commitments[1]));
+    expect(witness[1]).to.equal(BigInt(commitmentHashes[0]));
+    expect(witness[2]).to.equal(BigInt(commitmentHashes[1]));
     expect(witness[3]).to.equal(0n);
     expect(witness[4]).to.equal(0n);
-    expect(witness[5]).to.equal(BigInt(sender.pubKey[0]));
-    expect(witness[6]).to.equal(BigInt(sender.pubKey[1]));
+    expect(witness[5]).to.equal(0n);
+    expect(witness[6]).to.equal(0n);
+    expect(witness[9]).to.equal(BigInt(sender.pubKey[0]));
+    expect(witness[10]).to.equal(BigInt(sender.pubKey[1]));
   });
 
-  it("should fail to generate a witness because of invalid input commitments", async () => {
+  it("should fail to generate a witness because of invalid input commitmentHashes", async () => {
     const inputValues = [25, 100];
 
     // create two input UTXOs, each has their own salt, but same owner
@@ -139,16 +163,21 @@ describe("check-hashes circuit tests", () => {
       salt2,
       ...sender.pubKey,
     ]);
-    const inputCommitments = [input1 + BigInt(1), input2];
+    const commitmentHashes = [input1 + BigInt(1), input2];
 
     let error;
     try {
       await circuit.calculateWitness(
         {
-          commitments: inputCommitments,
-          values: inputValues,
-          salts: [salt1, salt2],
-          ownerPublicKeys: [sender.pubKey, sender.pubKey],
+          commitmentHashes,
+          commitmentInputs: [
+            BigInt(inputValues[0]),
+            salt1,
+            ...sender.pubKey,
+            BigInt(inputValues[1]),
+            salt2,
+            ...sender.pubKey,
+          ],
         },
         true,
       );
@@ -156,6 +185,6 @@ describe("check-hashes circuit tests", () => {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckHashes_76 line: 47/); // hash check failed
+    expect(error).to.match(/Error in template CheckHashes_76 line: 45/); // hash check failed
   });
 });

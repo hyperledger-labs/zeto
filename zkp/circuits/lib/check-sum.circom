@@ -20,17 +20,17 @@ include "../node_modules/circomlib/circuits/comparators.circom";
 
 // CheckSum is a circuit that checks that the sum of input values equals the sum of output values
 //
-template CheckSum(numInputs, numOutputs) {
-  signal input inputValues[numInputs];
-  signal input outputValues[numOutputs];
+template CheckSum(nInputs, nOutputs) {
+  signal input inputValues[nInputs];
+  signal input outputValues[nOutputs];
 
   // check that the sum of input values equals the sum of output values
   var sumInputs = 0;
-  for (var i = 0; i < numInputs; i++) {
+  for (var i = 0; i < nInputs; i++) {
     sumInputs = sumInputs + inputValues[i];
   }
   var sumOutputs = 0;
-  for (var i = 0; i < numOutputs; i++) {
+  for (var i = 0; i < nOutputs; i++) {
     sumOutputs = sumOutputs + outputValues[i];
   }
 
