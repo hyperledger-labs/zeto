@@ -16,6 +16,7 @@
 
 import { readFileSync } from "fs";
 import * as path from "path";
+import crypto from "crypto";
 import { BigNumberish } from "ethers";
 import { groth16 } from "snarkjs";
 import { loadCircuit, encodeProof, tokenUriHash } from "zeto-js";
@@ -213,4 +214,13 @@ export async function prepareWithdrawProof(
     outputCommitments,
     encodedProof,
   };
+}
+
+export function randomBytesAsDigitArray(length: number) {
+  const bytes = crypto.randomBytes(length);
+  let s = "";
+  for (let i = 0; i < bytes.length; i++) {
+    s += bytes[i].toString(2).padStart(8, "0");
+  }
+  return s.split('').map(b => parseInt(b));
 }
