@@ -4,6 +4,7 @@ const { exec } = require("child_process");
 const { promisify } = require("util");
 const axios = require("axios");
 const yargs = require("yargs/yargs");
+const blake = require('blakejs');
 const { hideBin } = require("yargs/helpers");
 const argv = yargs(hideBin(process.argv))
   .option("c", {
@@ -136,11 +137,9 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
 
     // Compute blake2b hash and compare to expected value
     try {
-      const { stdout: hOut, stderr: hErr } = await execAsync(
-        `b2sum ${ptauFile}`);
-      const computedHash = hOut.split(" ")[0];
-      const ptauHashes = require("./ptau_valid_hashes.json");
+      const computedHash = blake.blake2bHex(fs.readFileSync(ptauFile));
 
+      const ptauHashes = require("./ptau_valid_hashes.json");
       const expectedHash = ptauHashes[`${ptau}`];
 
       if (expectedHash != computedHash) {

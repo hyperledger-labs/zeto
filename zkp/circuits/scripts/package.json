@@ -11,6 +11,7 @@
   },
   "devDependencies": {
     "axios": "^1.7.3",
+    "blakejs": "^1.2.1",
     "p-limit": "^6.1.0",
     "snarkjs": "0.7.5",
     "yargs": "^17.7.2"
