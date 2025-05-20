@@ -106,7 +106,7 @@ const log = (circuit, message) => {
 
 // main circuit process logic
 const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
-  const circomInput = path.join("./", `${circuit}.circom`);
+  const circomInput = path.join("../", `${circuit}.circom`);
   const ptauFile = path.join(ptauDownload, `${ptau}.ptau`);
   const zkeyOutput = path.join(provingKeysRoot, `${circuit}.zkey`);
 
@@ -230,6 +230,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
 
   log(circuit, `Generating solidity verifier`);
   const solidityFile = path.join(
+    "..",
     "..",
     "..",
     "solidity",
