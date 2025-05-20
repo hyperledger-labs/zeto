@@ -56,7 +56,7 @@ jobs:
           CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts
           PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
           PTAU_DOWNLOAD_PATH: ${{ runner.temp }}/zeto-artifacts
-        working-directory: zeto/zkp/circuits
+        working-directory: zeto/zkp/circuits/scripts
         run: |
           npm install
           npm run gen
