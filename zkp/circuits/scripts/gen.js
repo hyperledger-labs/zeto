@@ -105,6 +105,58 @@ const log = (circuit, message) => {
   console.log(logPrefix(circuit) + " " + message);
 };
 
+const downloadAndVerifyPtau = async (ptau) => {
+
+  const ptauFile = path.join(ptauDownload, `${ptau}.ptau`);
+  if (!compileOnly && !fs.existsSync(ptauFile)) {
+    log(ptau, `PTAU file does not exist, downloading and verifying`);
+    try {
+      const response = await axios.get(
+        `https://storage.googleapis.com/zkevm/ptau/${ptau}.ptau`,
+        {
+          responseType: "stream",
+        },
+      );
+
+      const writer = fs.createWriteStream(ptauFile);
+      response.data.pipe(writer);
+      await new Promise((resolve, reject) => {
+        writer.on("finish", resolve);
+        writer.on("error", reject);
+      });
+
+    } catch (error) {
+      log(ptau, `Failed to download PTAU file: ${error}`);
+      process.exit(1);
+    }
+
+    // Compute blake2b hash and compare to expected value
+    try {
+      const computedHash = blake.blake2bHex(fs.readFileSync(ptauFile));
+
+      const ptauHashes = require("./ptau_valid_hashes.json");
+      const expectedHash = ptauHashes[`${ptau}`];
+
+      if (expectedHash != computedHash) {
+        throw new Error(`${ptau} Expected PTAU hash ${expectedHash}, got ${computedHash}`);
+      } else {
+        log(ptau, "Verification successful");
+      }
+      if (verbose) {
+        if (hOut) {
+          log(ptau, "PTAU computed hash:\n" + hOut);
+        }
+        if (hErr) {
+          log(ptau, "PTAU hash generation error:\n" + hErr);
+        }
+      }
+    } catch (error) {
+      log(ptau, `Failed to validate PTAU file: ${error}`);
+      process.exit(1);
+    }
+  }
+}
+
 // main circuit process logic
 const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
   const circomInput = path.join("../", `${circuit}.circom`);
@@ -143,7 +195,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
       const expectedHash = ptauHashes[`${ptau}`];
 
       if (expectedHash != computedHash) {
-        throw new Error(`${circuit} Expected PTAU hash ${expectedHash}, got ${computedHash}`);
+        throw new Error(`${circuit} Expected PTAU hash ${expectedHash}, got ${computedHash} for ${ptauFile}`);
       }
 
       if (verbose) {
@@ -331,6 +383,39 @@ const run = async () => {
     console.error(`An error occurred: ${error.message}`);
     process.exit(1);
   }
+
+  // Download all PTAU files that we need
+  var allPtaus = new Set();
+  for (const [
+    circuit,
+    { ptau, skipSolidityGenaration, batchPtau },
+  ] of circuitsArray) {
+    if (onlyCircuits && !onlyCircuits.includes(circuit)) {
+      continue;
+    }
+
+    allPtaus.add(ptau);
+    if (batchPtau) {
+      allPtaus.add(batchPtau);
+    }
+  }
+
+  // Note that we are only checking whether we need to download a given PTAU file once.
+  for (p of allPtaus) {
+    await downloadAndVerifyPtau(p);
+  }
+  // for (p of allPtaus) {
+  //   ptauPromise = downloadAndVerifyPtau(p);
+  //   ptauPromise.finally(() => allPtauPromises.delete(ptauPromise));
+  //   allPtauPromises.add(ptauPromise);
+
+  //   if (allPtauPromises.size >= 2) {
+  //     await Promise.race(allPtauPromises);
+  //   }
+  // }
+  // while (allPtauPromises.size > 0) {
+  //   await Promise.race(allPtauPromises);
+  // }
 
   for (const [
     circuit,
