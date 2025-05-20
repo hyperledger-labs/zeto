@@ -17,8 +17,8 @@ pragma circom 2.2.2;
 
 include "./check-positive.circom";
 include "./check-hashes.circom";
-include "../node_modules/circomlib/circuits/babyjub.circom";
-include "../node_modules/circomlib/circuits/comparators.circom";
+include "../scripts/node_modules/circomlib/circuits/babyjub.circom";
+include "../scripts/node_modules/circomlib/circuits/comparators.circom";
 
 // CheckInputsOutputsValue is a circuit that checks the sum of the input values
 // is greater than or equal to the sum of the output values:

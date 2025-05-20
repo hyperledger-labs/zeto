@@ -2,7 +2,7 @@ pragma circom 2.2.2;
 
 include "./ecdh.circom";
 include "./encrypt.circom";
-include "../node_modules/circomlib/circuits/babyjub.circom";
+include "../scripts/node_modules/circomlib/circuits/babyjub.circom";
 
 // encrypts a list of output UTXO values & salts
 // with the corresponding shared ECDH keys for their

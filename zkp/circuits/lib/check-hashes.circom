@@ -15,8 +15,8 @@
 // limitations under the License.
 pragma circom 2.2.2;
 
-include "../node_modules/circomlib/circuits/poseidon.circom";
-include "../node_modules/circomlib/circuits/comparators.circom";
+include "../scripts/node_modules/circomlib/circuits/poseidon.circom";
+include "../scripts/node_modules/circomlib/circuits/comparators.circom";
 
 // CheckHashes is a circuit that checks the integrity of transactions of Fungible Tokens
 //   - check that the commitments are the hash of the values, salts and owner public keys

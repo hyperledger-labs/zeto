@@ -15,8 +15,8 @@
 // limitations under the License.
 pragma circom 2.2.2;
 
-include "../node_modules/circomlib/circuits/poseidon.circom";
-include "../node_modules/circomlib/circuits/comparators.circom";
+include "../scripts/node_modules/circomlib/circuits/poseidon.circom";
+include "../scripts/node_modules/circomlib/circuits/comparators.circom";
 
 // CheckSum is a circuit that checks that the sum of input values equals the sum of output values
 //

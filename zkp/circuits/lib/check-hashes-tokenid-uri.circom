@@ -15,8 +15,8 @@
 // limitations under the License.
 pragma circom 2.2.2;
 
-include "../node_modules/circomlib/circuits/poseidon.circom";
-include "../node_modules/circomlib/circuits/comparators.circom";
+include "../scripts/node_modules/circomlib/circuits/poseidon.circom";
+include "../scripts/node_modules/circomlib/circuits/comparators.circom";
 
 // CheckHashesForTokenIdAndUri is a circuit that checks the integrity of transactions of Non-Fungible Tokens (NFTs)
 //   - check that the commitments match the calculated hashes

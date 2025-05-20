@@ -16,7 +16,7 @@
 pragma circom 2.2.2;
 
 include "./check-hashes-tokenid-uri.circom";
-include "../node_modules/circomlib/circuits/babyjub.circom";
+include "../scripts/node_modules/circomlib/circuits/babyjub.circom";
 
 // This version of the circuit performs the following operations:
 // - derive the sender's public key from the sender's private key

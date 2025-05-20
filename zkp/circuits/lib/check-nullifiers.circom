@@ -15,10 +15,10 @@
 // limitations under the License.
 pragma circom 2.2.2;
 
-include "../node_modules/circomlib/circuits/poseidon.circom";
-include "../node_modules/circomlib/circuits/comparators.circom";
-include "../node_modules/circomlib/circuits/babyjub.circom";
-include "../node_modules/circomlib/circuits/smt/smtverifier.circom";
+include "../scripts/node_modules/circomlib/circuits/poseidon.circom";
+include "../scripts/node_modules/circomlib/circuits/comparators.circom";
+include "../scripts/node_modules/circomlib/circuits/babyjub.circom";
+include "../scripts/node_modules/circomlib/circuits/smt/smtverifier.circom";
 
 // CheckNullifiers is a circuit that checks the nullifiers are correctly computed
 // from the input values, salts and the owner private key.

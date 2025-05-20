@@ -15,8 +15,8 @@
 // limitations under the License.
 pragma circom 2.2.2;
 
-include "../node_modules/circomlib/circuits/comparators.circom";
-include "../node_modules/circomlib/circuits/poseidon.circom";
+include "../scripts/node_modules/circomlib/circuits/comparators.circom";
+include "../scripts/node_modules/circomlib/circuits/poseidon.circom";
 
 // encrypts a message by appending it to Poseidon hashes 
 // that are seeded with the encryption key and nonce
