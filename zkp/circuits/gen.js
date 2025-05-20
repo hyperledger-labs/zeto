@@ -116,7 +116,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
   }
 
   if (!compileOnly && !fs.existsSync(ptauFile)) {
-    log(circuit, `PTAU file does not exist, downloading: ${ptauFile}`);
+    log(circuit, `PTAU file does not exist, downloading and verifying: ${ptauFile}`);
     try {
       const response = await axios.get(
         `https://storage.googleapis.com/zkevm/ptau/${ptau}.ptau`,
@@ -131,6 +131,32 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
       });
     } catch (error) {
       log(circuit, `Failed to download PTAU file: ${error}`);
+      process.exit(1);
+    }
+
+    // Compute blake2b hash and compare to expected value
+    try {
+      const { stdout: hOut, stderr: hErr } = await execAsync(
+        `b2sum ${ptauFile}`);
+      const computedHash = hOut.split(" ")[0];
+      const ptauHashes = require("./ptau_valid_hashes.json");
+
+      const expectedHash = ptauHashes[`${ptau}`];
+
+      if (expectedHash != computedHash) {
+        throw new Error(`${circuit} Expected PTAU hash ${expectedHash}, got ${computedHash}`);
+      }
+
+      if (verbose) {
+        if (hOut) {
+          log(circuit, "PTAU computed hash:\n" + hOut);
+        }
+        if (hErr) {
+          log(circuit, "PTAU hash generation error:\n" + hErr);
+        }
+      }
+    } catch (error) {
+      log(circuit, `Failed to validate PTAU file: ${error}`);
       process.exit(1);
     }
   }

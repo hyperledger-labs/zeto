@@ -16,6 +16,8 @@ Follow the instructions here to install `circom`, the circuit compiler, and `sna
 
 [https://docs.circom.io/getting-started/installation/](https://docs.circom.io/getting-started/installation/)
 
+The `snarkjs` project publishes BLAKE2b hashes of the necessary `.ptau` files for initialization of proof secrets, which we use to validate these files locally. The CLI `b2sum` should be pre-installed in most Linux distributions. If not, you can install with `sudo apt-get install coreutils` (Debian) or `brew install b2sum` (Mac).
+
 ## Compile the circuits and generate verification keys and solidity libraries
 
 1. Install the dependencies of the circuits, by going to the `/zkp/circuits` folder:
@@ -38,8 +40,11 @@ npm i
   ```console
   npm run gen
   ```
+
   **run `npm run gen -- -c $circuit` for developing a single circuit**
+
   **run `npm run gen -- -v` to show details outputs of each command**
+
   **use `GEN_CONCURRENCY` to control how many circuits to be processed in parallel, default to 10**
 
 # Run
