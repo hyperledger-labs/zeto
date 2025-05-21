@@ -1,6 +1,6 @@
 pragma circom 2.2.2;
 
-include "../scripts/node_modules/circomlib/circuits/poseidon.circom";
+include "../node_modules/circomlib/circuits/poseidon.circom";
 
 template TestPoseidonEx() {
   signal input inputs[4];

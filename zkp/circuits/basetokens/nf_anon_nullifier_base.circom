@@ -18,7 +18,7 @@ pragma circom 2.2.2;
 include "../lib/check-nullifiers-tokenid-uri.circom";
 include "../lib/check-hashes-tokenid-uri.circom";
 include "../lib/check-smt-proof.circom";
-include "../scripts/node_modules/circomlib/circuits/babyjub.circom";
+include "../node_modules/circomlib/circuits/babyjub.circom";
 
 // This version of the circuit performs the following operations:
 // - derive the sender's public key from the sender's private key

@@ -17,7 +17,7 @@ pragma circom 2.2.2;
 
 include "./lib/check-hashes.circom";
 include "./lib/check-nullifiers.circom";
-include "./scripts/node_modules/circomlib/circuits/babyjub.circom";
+include "./node_modules/circomlib/circuits/babyjub.circom";
 
 //
 // Verifies that the nullifiers are correctly bound to the input commitments

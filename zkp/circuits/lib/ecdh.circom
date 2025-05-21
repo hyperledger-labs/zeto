@@ -15,8 +15,8 @@ pragma circom 2.2.2;
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-include "../scripts/node_modules/circomlib/circuits/bitify.circom";
-include "../scripts/node_modules/circomlib/circuits/escalarmulany.circom";
+include "../node_modules/circomlib/circuits/bitify.circom";
+include "../node_modules/circomlib/circuits/escalarmulany.circom";
 
 // Use the EC Diffie-Hellman protocol to generate a shared secret using
 // the receiver's public key and the sender's private key.

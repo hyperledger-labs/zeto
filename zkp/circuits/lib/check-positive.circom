@@ -15,10 +15,10 @@
 // limitations under the License.
 pragma circom 2.2.2;
 
-include "../scripts/node_modules/circomlib/circuits/poseidon.circom";
-include "../scripts/node_modules/circomlib/circuits/comparators.circom";
-include "../scripts/node_modules/circomlib/circuits/babyjub.circom";
-include "../scripts/node_modules/circomlib/circuits/smt/smtverifier.circom";
+include "../node_modules/circomlib/circuits/poseidon.circom";
+include "../node_modules/circomlib/circuits/comparators.circom";
+include "../node_modules/circomlib/circuits/babyjub.circom";
+include "../node_modules/circomlib/circuits/smt/smtverifier.circom";
 
 // CheckPositive is a circuit that checks the integrity of transactions of Fungible Tokens
 //   - check that all output values are positive numbers, within the range of [0, 2^100)

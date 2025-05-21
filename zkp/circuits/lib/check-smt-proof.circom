@@ -15,7 +15,7 @@
 // limitations under the License.
 pragma circom 2.2.2;
 
-include "../scripts/node_modules/circomlib/circuits/smt/smtverifier.circom";
+include "../node_modules/circomlib/circuits/smt/smtverifier.circom";
 
 // CheckSMTProof is a general purpose circuit that checks the membership
 // inclusion proof of a set of hashes in a Sparse Merkle Tree
