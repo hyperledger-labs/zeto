@@ -43,7 +43,7 @@ npm i
 
   **run `npm run gen -- -v` to show details outputs of each command**
 
-  **use `GEN_CONCURRENCY` to control how many circuits to be processed in parallel, default to 10**
+  **use `GEN_CONCURRENCY` to control how many circuits to be processed in parallel, default to 4**
 
 # Run
 
