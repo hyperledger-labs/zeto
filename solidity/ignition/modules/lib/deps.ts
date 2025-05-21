@@ -21,13 +21,15 @@ import { Artifact } from "hardhat/types";
 export const SmtLibModule = buildModule("SmtLib", (m) => {
   const poseidon2 = m.library("Poseidon2", PoseidonArtifact(2));
   const poseidon3 = m.library("Poseidon3", PoseidonArtifact(3));
+  const poseidon5 = m.library("Poseidon5", PoseidonArtifact(5));
+  const poseidon6 = m.library("Poseidon6", PoseidonArtifact(6));
   const smtLib = m.contract("SmtLib", [], {
     libraries: {
       PoseidonUnit2L: poseidon2,
       PoseidonUnit3L: poseidon3,
     },
   });
-  return { smtLib, poseidon2, poseidon3 };
+  return { smtLib, poseidon2, poseidon3, poseidon5, poseidon6 };
 });
 
 export const DepositVerifierModule = buildModule(
