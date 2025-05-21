@@ -105,6 +105,27 @@ const log = (circuit, message) => {
   console.log(logPrefix(circuit) + " " + message);
 };
 
+const calculateHash = async (ptauFile) => {
+  return new Promise ((resolve, reject) => {
+    const context = blake.blake2bInit(64, null);
+    const ptauStream = fs.createReadStream(ptauFile);
+
+    ptauStream.on('data', chunk => {
+      blake.blake2bUpdate(context, chunk);
+    });
+
+    ptauStream.on('end', () => {
+      const computedHashBytes = blake.blake2bFinal(context);
+      const computedHash = Buffer.from(computedHashBytes).toString("hex");
+      resolve(computedHash);
+    });
+
+    ptauStream.on('error', err => {
+      reject(err);
+    });
+  });
+};
+
 const downloadAndVerifyPtau = async (ptau) => {
 
   const ptauFile = path.join(ptauDownload, `${ptau}.ptau`);
@@ -132,7 +153,8 @@ const downloadAndVerifyPtau = async (ptau) => {
 
     // Compute blake2b hash and compare to expected value
     try {
-      const computedHash = blake.blake2bHex(fs.readFileSync(ptauFile));
+
+      const computedHash = await calculateHash(ptauFile);
 
       const ptauHashes = require("./ptau_valid_hashes.json");
       const expectedHash = ptauHashes[`${ptau}`];
@@ -152,7 +174,7 @@ const downloadAndVerifyPtau = async (ptau) => {
       process.exit(1);
     }
   }
-}
+};
 
 // main circuit process logic
 const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
