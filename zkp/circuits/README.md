@@ -7,6 +7,7 @@ The following circuits are included:
 - `anon.circom`, `anon_batch.circom`: fungible tokens with anonymity, no encrypted secrets, no history masking
 - `anon_enc.circom`, `anon_enc_batch.circom`: fungible tokens with anonymity and encrypted secrets, no history masking
 - `anon_nullifier.circom`, `anon_nullifier_batch.circom`: fungible tokens with anonymity, no encrypted secrets, with history masking using nullifiers
+- `anon_nullifier_qurrency.circom`, `anon_nullifier_qurrency_batch.circom`: fungible tokens with anonymity, history masking using nullifiers, and post-quantum encryption using ML-KEM (Module-Lattice-Based Key-Encapsulation Mechanism) derived from the CRYSTALS-KYBER algorithm.
 - `anon_enc_nullifier.circom`, `anon_enc_nullifier_batch.circom`: fungible tokens with anonymity and encrypted secrets, with history masking using nullifiers
 - `anon_enc_nullifier_kyc.circom`, `anon_enc_nullifier_kyc_batch.circom`: fungible tokens with anonymity and encrypted secrets, with history masking using nullifiers, and KYC with privacy
 - `anon_enc_nullifier_non_repudiation.circom`, `anon_enc_nullifier_non_repudiation_batch.circom`: fungible tokens with anonymity and encrypted secrets, with history masking using nullifiers, and encrypted secrets for an authority for non-repudiation
