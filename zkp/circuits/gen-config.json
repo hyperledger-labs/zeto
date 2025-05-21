@@ -75,6 +75,11 @@
     "check_nullifiers": {
       "ptau": "powersOfTau28_hez_final_13",
       "skipSolidityGenaration": true
+    },
+    "burn": {
+      "ptau": "powersOfTau28_hez_final_13",
+      "batchPtau": "powersOfTau28_hez_final_14",
+      "skipSolidityGenaration": false
     }
   }
 }
