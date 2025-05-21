@@ -6,7 +6,7 @@ The main purpose of the javascript project is initializing the testing environme
 
 The circuits have already been compiled to WASM based runtime libraries. All the materials are available in order to generate the witness.
 
-On the other hand, proving keys set up have not been performed. You must follow the steps below to generate the proving key, and then export the verification key.
+On the other hand, proving keys setup has not been performed. You must follow the steps below to generate the proving key, and then export the verification key.
 
 If modifying the circuits, you must go through the full flow of circuit compilation and proving key generation, as well as exporting the verification key and Solidity verifier library.
 
@@ -18,10 +18,10 @@ Follow the instructions here to install `circom`, the circuit compiler, and `sna
 
 ## Compile the circuits and generate verification keys and solidity libraries
 
-1. Install the dependencies of the circuits, by going to the `/zkp/circuits` folder:
+1. Install the dependencies of the circuits, by going to the `/zkp/circuits/scripts` folder:
 
 ```console
-cd zkp/circuits
+cd zkp/circuits/scripts
 npm i
 ```
 
