@@ -168,50 +168,6 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
     return;
   }
 
-  if (!compileOnly && !fs.existsSync(ptauFile)) {
-    log(circuit, `PTAU file does not exist, downloading and verifying: ${ptauFile}`);
-    try {
-      const response = await axios.get(
-        `https://storage.googleapis.com/zkevm/ptau/${ptau}.ptau`,
-        {
-          responseType: "stream",
-        },
-      );
-      response.data.pipe(fs.createWriteStream(ptauFile));
-      await new Promise((resolve, reject) => {
-        response.data.on("end", resolve);
-        response.data.on("error", reject);
-      });
-    } catch (error) {
-      log(circuit, `Failed to download PTAU file: ${error}`);
-      process.exit(1);
-    }
-
-    // Compute blake2b hash and compare to expected value
-    try {
-      const computedHash = blake.blake2bHex(fs.readFileSync(ptauFile));
-
-      const ptauHashes = require("./ptau_valid_hashes.json");
-      const expectedHash = ptauHashes[`${ptau}`];
-
-      if (expectedHash != computedHash) {
-        throw new Error(`${circuit} Expected PTAU hash ${expectedHash}, got ${computedHash} for ${ptauFile}`);
-      }
-
-      if (verbose) {
-        if (hOut) {
-          log(circuit, "PTAU computed hash:\n" + hOut);
-        }
-        if (hErr) {
-          log(circuit, "PTAU hash generation error:\n" + hErr);
-        }
-      }
-    } catch (error) {
-      log(circuit, `Failed to validate PTAU file: ${error}`);
-      process.exit(1);
-    }
-  }
-
   log(circuit, `Compiling circuit`);
   const { stdout: cmOut, stderr: cmErr } = await execAsync(
     `circom ${circomInput} --output ${circuitsRoot} --sym --wasm`,
