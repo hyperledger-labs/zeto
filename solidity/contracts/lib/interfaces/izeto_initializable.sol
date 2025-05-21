@@ -20,10 +20,12 @@ interface IZetoInitializable {
         address verifier;
         address depositVerifier;
         address withdrawVerifier;
+        address lockVerifier;
+        address burnVerifier;
         address batchVerifier;
         address batchWithdrawVerifier;
-        address lockVerifier;
         address batchLockVerifier;
+        address batchBurnVerifier;
     }
 
     function initialize(

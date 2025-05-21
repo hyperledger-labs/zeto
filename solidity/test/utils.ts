@@ -216,6 +216,52 @@ export async function prepareWithdrawProof(
   };
 }
 
+export async function prepareBurnProof(
+  signer: User,
+  inputs: UTXO[]
+) {
+  const commitments: BigNumberish[] = inputs.map(
+    (input) => input.hash,
+  ) as BigNumberish[];
+  const values = inputs.map((input) => BigInt(input.value || 0n));
+  const salts = inputs.map((input) => input.salt || 0n);
+
+  const inputObj = {
+    commitments,
+    values,
+    salts,
+    ownerPrivateKey: signer.formattedPrivateKey,
+  };
+
+  let circuit = await loadCircuit("burn");
+  let { provingKeyFile } = loadProvingKeys("burn");
+  if (commitments.length > 2) {
+    circuit = await loadCircuit("burn_batch");
+    ({ provingKeyFile } = loadProvingKeys("burn_batch"));
+  }
+
+  const startWitnessCalculation = Date.now();
+  const witness = await circuit.calculateWTNSBin(inputObj, true);
+  const timeWithnessCalculation = Date.now() - startWitnessCalculation;
+
+  const startProofGeneration = Date.now();
+  const { proof, publicSignals } = (await groth16.prove(
+    provingKeyFile,
+    witness,
+  )) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
+  const timeProofGeneration = Date.now() - startProofGeneration;
+
+  console.log(
+    `Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`,
+  );
+
+  const encodedProof = encodeProof(proof);
+  return {
+    commitments,
+    encodedProof,
+  };
+}
+
 export function randomBytesAsDigitArray(length: number) {
   const bytes = crypto.randomBytes(length);
   let s = "";
