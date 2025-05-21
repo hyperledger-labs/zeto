@@ -51,6 +51,13 @@ contract Zeto_Anon is
         address initialOwner,
         VerifiersInfo calldata verifiers
     ) public initializer {
+        __ZetoAnon_init(initialOwner, verifiers);
+    }
+
+    function __ZetoAnon_init(
+        address initialOwner,
+        VerifiersInfo calldata verifiers
+    ) internal onlyInitializing {
         __ZetoBase_init(initialOwner);
         __ZetoFungibleWithdraw_init(
             (Groth16Verifier_Deposit)(verifiers.depositVerifier),
