@@ -137,18 +137,15 @@ const downloadAndVerifyPtau = async (ptau) => {
       const ptauHashes = require("./ptau_valid_hashes.json");
       const expectedHash = ptauHashes[`${ptau}`];
 
+      if (verbose) {
+        log(ptau, `Expected hash: ${expectedHash}`);
+        log(ptau, `Computed hash: ${computedHash}`);
+      }
+
       if (expectedHash != computedHash) {
         throw new Error(`${ptau} Expected PTAU hash ${expectedHash}, got ${computedHash}`);
       } else {
         log(ptau, "Verification successful");
-      }
-      if (verbose) {
-        if (hOut) {
-          log(ptau, "PTAU computed hash:\n" + hOut);
-        }
-        if (hErr) {
-          log(ptau, "PTAU hash generation error:\n" + hErr);
-        }
       }
     } catch (error) {
       log(ptau, `Failed to validate PTAU file: ${error}`);
