@@ -55,9 +55,19 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
         uint256 root,
         bool isLocked
     ) internal view returns (bool) {
-        // sort the inputs and outputs to detect duplicates
+        validateNullifiers(nullifiers, isLocked);
+        validateOutputs(outputs, isLocked);
+        validateRoot(root, isLocked);
+
+        return true;
+    }
+
+    function validateNullifiers(
+        uint256[] memory nullifiers,
+        bool isLocked
+    ) internal view returns (bool) {
+        // sort the nullifiers to detect duplicates
         uint256[] memory sortedInputs = sortCommitments(nullifiers);
-        uint256[] memory sortedOutputs = sortCommitments(outputs);
 
         // Check the inputs are all unspent
         for (uint256 i = 0; i < sortedInputs.length; ++i) {
@@ -72,6 +82,14 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
                 revert UTXOAlreadySpent(sortedInputs[i]);
             }
         }
+    }
+
+    function validateOutputs(
+        uint256[] memory outputs,
+        bool isLocked
+    ) internal view returns (bool) {
+        // sort the outputs to detect duplicates
+        uint256[] memory sortedOutputs = sortCommitments(outputs);
 
         // Check the outputs are all new UTXOs
         for (uint256 i = 0; i < sortedOutputs.length; ++i) {
@@ -88,7 +106,12 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
                 revert UTXOAlreadyOwned(sortedOutputs[i]);
             }
         }
+    }
 
+    function validateRoot(
+        uint256 root,
+        bool isLocked
+    ) internal view returns (bool) {
         // Check if the root has existed before. It does not need to be the latest root.
         // Our SMT is append-only, so if the root has existed before, and the merklet proof
         // is valid, then the leaves still exist in the tree.
@@ -151,6 +174,18 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
         }
 
         emit UTXOMint(utxos, msg.sender, data);
+    }
+
+    // This function is used to burn the owner's UTXOs
+    function _burn(
+        uint256[] memory nullifiers,
+        uint256 root,
+        bytes calldata data
+    ) internal virtual {
+        validateNullifiers(nullifiers, false);
+        validateRoot(root, false);
+
+        emit UTXOBurn(nullifiers, msg.sender, data);
     }
 
     function getRoot() public view returns (uint256) {

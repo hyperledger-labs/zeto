@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import { ethers, ignition } from "hardhat";
-import zetoModule from "../../ignition/modules/zeto_anon_nullifier";
+import zetoModule from "../../ignition/modules/zeto_anon_nullifier_burnable";
 
 export async function deployDependencies() {
   const [deployer] = await ethers.getSigners();
@@ -28,6 +28,8 @@ export async function deployDependencies() {
     batchVerifier,
     batchLockVerifier,
     batchWithdrawVerifier,
+    burnVerifier,
+    batchBurnVerifier,
     smtLib,
     poseidon3,
   } = await ignition.deploy(zetoModule);
@@ -43,8 +45,8 @@ export async function deployDependencies() {
         batchWithdrawVerifier: batchWithdrawVerifier.target,
         lockVerifier: lockVerifier.target,
         batchLockVerifier: batchLockVerifier.target,
-        burnVerifier: "0x0000000000000000000000000000000000000000",
-        batchBurnVerifier: "0x0000000000000000000000000000000000000000",
+        burnVerifier: burnVerifier.target,
+        batchBurnVerifier: batchBurnVerifier.target,
       }
     ],
     libraries: {
