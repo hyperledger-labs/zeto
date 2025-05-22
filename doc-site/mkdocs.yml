@@ -101,6 +101,7 @@ nav:
       - Fungible:
           - Zeto_Anon: implementations/anon.md
           - Zeto_AnonNullifier: implementations/anon_nullifier.md
+          - Zeto_AnonNullifierQurrency: implementations/anon_nullifier_qurrency.md
           - Zeto_AnonEnc: implementations/anon_enc.md
           - Zeto_AnonNullifierKyc: implementations/anon_nullifier_kyc.md
           - Zeto_AnonEncNullifier: implementations/anon_enc_nullifier.md

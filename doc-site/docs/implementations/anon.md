@@ -14,3 +14,5 @@ The statements in the proof include:
 - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
 
 There is no history masking, meaning the associations between the consumed input UTXOs and the output UTXOs are in the clear.
+
+![wiring_anon](../images/circuit_wiring_anon.jpg)
