@@ -46,7 +46,7 @@ const ptauDownload = process.env.PTAU_DOWNLOAD_PATH || argv.ptauDownloadPath;
 const specificCircuits = argv.c;
 const verbose = argv.v;
 const compileOnly = argv.compileOnly;
-const parallelLimit = parseInt(process.env.GEN_CONCURRENCY, 10) || 2; // Default to compile 2 circuits in parallel
+const parallelLimit = parseInt(process.env.GEN_CONCURRENCY, 10) || 4; // Default to compile 4 circuits in parallel
 
 // check env vars
 if (!circuitsRoot) {
@@ -419,6 +419,8 @@ const run = async () => {
       if (activePromises.size >= parallelLimit) {
         await Promise.race(activePromises);
       }
+
+      pcBatchPromise.finally(() => activePromises.delete(pcBatchPromise));
     }
 
     pcPromise.finally(() => activePromises.delete(pcPromise));
