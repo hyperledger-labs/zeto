@@ -54,16 +54,24 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   var inputOwnerPubKeyAx, inputOwnerPubKeyAy;
   (inputOwnerPubKeyAx, inputOwnerPubKeyAy) = BabyPbk()(in <== inputOwnerPrivateKey);
 
-  var inputOwnerPublicKeys[nInputs][2];
-  for (var i = 0; i < nInputs; i++) {
-    inputOwnerPublicKeys[i] = [inputOwnerPubKeyAx, inputOwnerPubKeyAy];
-  }
-
   CheckPositive(nOutputs)(outputValues <== outputValues);
 
-  CheckHashes(nInputs)(commitments <== inputCommitments, values <== inputValues, salts <== inputSalts, ownerPublicKeys <== inputOwnerPublicKeys);
+  CommitmentInputs() inAuxInputs[nInputs];
+  for (var i = 0; i < nInputs; i++) {
+    inAuxInputs[i].value <== inputValues[i];
+    inAuxInputs[i].salt <== inputSalts[i];
+    inAuxInputs[i].ownerPublicKey <== [inputOwnerPubKeyAx, inputOwnerPubKeyAy];
+  }
 
-  CheckHashes(nOutputs)(commitments <== outputCommitments, values <== outputValues, salts <== outputSalts, ownerPublicKeys <== outputOwnerPublicKeys);
+  CommitmentInputs() outAuxInputs[nOutputs];
+  for (var i = 0; i < nOutputs; i++) {
+    outAuxInputs[i].value <== outputValues[i];
+    outAuxInputs[i].salt <== outputSalts[i];
+    outAuxInputs[i].ownerPublicKey <== outputOwnerPublicKeys[i];
+  }
+
+  CheckHashes(nInputs)(commitmentHashes <== inputCommitments, commitmentInputs <== inAuxInputs);
+  CheckHashes(nOutputs)(commitmentHashes <== outputCommitments, commitmentInputs <== outAuxInputs);
 
   CheckNullifiers(nInputs)(nullifiers <== nullifiers, values <== inputValues, salts <== inputSalts, ownerPrivateKey <== inputOwnerPrivateKey);
 
