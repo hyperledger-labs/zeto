@@ -2,7 +2,7 @@
 
 | Anonymity          | History Masking    | Encryption         | KYC | Non-repudiation | Gas Cost (estimate) |
 | ------------------ | ------------------ | ------------------ | --- | --------------- | ------------------- |
-| :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | -   | -               | 2,005,587           |
+| :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | -   | -               | 2,066,430           |
 
 ![pqc](../images/pqc-dark.png)
 
