@@ -4,6 +4,7 @@ const { exec } = require("child_process");
 const { promisify } = require("util");
 const axios = require("axios");
 const yargs = require("yargs/yargs");
+const blake = require('blakejs');
 const { hideBin } = require("yargs/helpers");
 const argv = yargs(hideBin(process.argv))
   .option("c", {
@@ -45,7 +46,7 @@ const ptauDownload = process.env.PTAU_DOWNLOAD_PATH || argv.ptauDownloadPath;
 const specificCircuits = argv.c;
 const verbose = argv.v;
 const compileOnly = argv.compileOnly;
-const parallelLimit = parseInt(process.env.GEN_CONCURRENCY, 10) || 4; // Default to compile 4 circuits in parallel
+const parallelLimit = parseInt(process.env.GEN_CONCURRENCY, 10) || 8; // Default to compile 8 circuits in parallel
 
 // check env vars
 if (!circuitsRoot) {
@@ -104,19 +105,32 @@ const log = (circuit, message) => {
   console.log(logPrefix(circuit) + " " + message);
 };
 
-// main circuit process logic
-const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
-  const circomInput = path.join("./", `${circuit}.circom`);
+const calculateHash = async (ptauFile) => {
+  return new Promise ((resolve, reject) => {
+    const context = blake.blake2bInit(64, null);
+    const ptauStream = fs.createReadStream(ptauFile);
+
+    ptauStream.on('data', chunk => {
+      blake.blake2bUpdate(context, chunk);
+    });
+
+    ptauStream.on('end', () => {
+      const computedHashBytes = blake.blake2bFinal(context);
+      const computedHash = Buffer.from(computedHashBytes).toString("hex");
+      resolve(computedHash);
+    });
+
+    ptauStream.on('error', err => {
+      reject(err);
+    });
+  });
+};
+
+const downloadAndVerifyPtau = async (ptau) => {
+
   const ptauFile = path.join(ptauDownload, `${ptau}.ptau`);
-  const zkeyOutput = path.join(provingKeysRoot, `${circuit}.zkey`);
-
-  if (!fs.existsSync(circomInput)) {
-    log(circuit, `Error: Input file does not exist: ${circomInput}`);
-    return;
-  }
-
   if (!compileOnly && !fs.existsSync(ptauFile)) {
-    log(circuit, `PTAU file does not exist, downloading: ${ptauFile}`);
+    log(ptau, `PTAU file does not exist, downloading and verifying`);
     try {
       const response = await axios.get(
         `https://storage.googleapis.com/zkevm/ptau/${ptau}.ptau`,
@@ -124,15 +138,53 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
           responseType: "stream",
         },
       );
-      response.data.pipe(fs.createWriteStream(ptauFile));
+
+      const writer = fs.createWriteStream(ptauFile);
+      response.data.pipe(writer);
       await new Promise((resolve, reject) => {
-        response.data.on("end", resolve);
-        response.data.on("error", reject);
+        writer.on("finish", resolve);
+        writer.on("error", reject);
       });
+
     } catch (error) {
-      log(circuit, `Failed to download PTAU file: ${error}`);
+      log(ptau, `Failed to download PTAU file: ${error}`);
       process.exit(1);
     }
+
+    // Compute blake2b hash and compare to expected value
+    try {
+
+      const computedHash = await calculateHash(ptauFile);
+
+      const ptauHashes = require("./ptau_valid_hashes.json");
+      const expectedHash = ptauHashes[`${ptau}`];
+
+      if (verbose) {
+        log(ptau, `Expected hash: ${expectedHash}`);
+        log(ptau, `Computed hash: ${computedHash}`);
+      }
+
+      if (expectedHash != computedHash) {
+        throw new Error(`${ptau} Expected PTAU hash ${expectedHash}, got ${computedHash}`);
+      } else {
+        log(ptau, "Verification successful");
+      }
+    } catch (error) {
+      log(ptau, `Failed to validate PTAU file: ${error}`);
+      process.exit(1);
+    }
+  }
+};
+
+// main circuit process logic
+const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
+  const circomInput = path.join(__dirname, "../", `${circuit}.circom`);
+  const ptauFile = path.join(ptauDownload, `${ptau}.ptau`);
+  const zkeyOutput = path.join(provingKeysRoot, `${circuit}.zkey`);
+
+  if (!fs.existsSync(circomInput)) {
+    log(circuit, `Error: Input file does not exist: ${circomInput}`);
+    return;
   }
 
   log(circuit, `Compiling circuit`);
@@ -204,6 +256,8 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
 
   log(circuit, `Generating solidity verifier`);
   const solidityFile = path.join(
+    __dirname,
+    "..",
     "..",
     "..",
     "solidity",
@@ -306,6 +360,31 @@ const run = async () => {
     process.exit(1);
   }
 
+  // Download all PTAU files that we need
+  var allPtaus = new Set();
+  for (const [
+    circuit,
+    { ptau, skipSolidityGenaration, batchPtau },
+  ] of circuitsArray) {
+    if (onlyCircuits && !onlyCircuits.includes(circuit)) {
+      continue;
+    }
+
+    allPtaus.add(ptau);
+    if (batchPtau) {
+      allPtaus.add(batchPtau);
+    }
+  }
+
+  // Download and verify all missing PTAU files
+  var allPtauPromises = new Set();
+  for (p of allPtaus) {
+    ptauPromise = downloadAndVerifyPtau(p);
+    ptauPromise.finally(() => allPtauPromises.delete(ptauPromise));
+    allPtauPromises.add(ptauPromise);
+  }
+  await Promise.all(allPtauPromises);
+
   for (const [
     circuit,
     { ptau, skipSolidityGenaration, batchPtau },
@@ -332,6 +411,8 @@ const run = async () => {
       if (activePromises.size >= parallelLimit) {
         await Promise.race(activePromises);
       }
+
+      pcBatchPromise.finally(() => activePromises.delete(pcBatchPromise));
     }
 
     pcPromise.finally(() => activePromises.delete(pcPromise));
