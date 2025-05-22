@@ -80,6 +80,11 @@
       "ptau": "powersOfTau28_hez_final_13",
       "batchPtau": "powersOfTau28_hez_final_14",
       "skipSolidityGenaration": false
+    },
+    "burn_nullifier": {
+      "ptau": "powersOfTau28_hez_final_17",
+      "batchPtau": "powersOfTau28_hez_final_19",
+      "skipSolidityGenaration": false
     }
   }
 }
