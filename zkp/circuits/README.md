@@ -65,7 +65,7 @@ npm run gen
 
 **Run `npm run gen -- -v` to show verbose outputs**
 
-**Set the environment variable `GEN_CONCURRENCY` to control how many circuits to be processed in parallel within the `gen` script (defaults to 4)**
+**Set the environment variable `GEN_CONCURRENCY` to control how many circuits to be processed in parallel within the `gen` script (defaults to 8)**
 
 > Refer to [generation script explanation](#generation-script-explanation) for what the script does
 

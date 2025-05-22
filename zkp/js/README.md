@@ -18,7 +18,7 @@ Follow the instructions here to install `circom`, the circuit compiler, and `sna
 
 ## Compile the circuits and generate verification keys and solidity libraries
 
-1. Install the dependencies of the circuits, by going to the `/zkp/circuits/scripts` folder:
+1. Install the dependencies of the circuits, by going to the `/zkp/circuits` folder:
 
 ```console
 cd zkp/circuits/scripts
@@ -43,7 +43,7 @@ npm i
 
   **run `npm run gen -- -v` to show details outputs of each command**
 
-  **use `GEN_CONCURRENCY` to control how many circuits to be processed in parallel, default to 4**
+  **use `GEN_CONCURRENCY` to control how many circuits to be processed in parallel, default to 8**
 
 # Run
 

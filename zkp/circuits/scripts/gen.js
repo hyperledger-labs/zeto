@@ -46,7 +46,7 @@ const ptauDownload = process.env.PTAU_DOWNLOAD_PATH || argv.ptauDownloadPath;
 const specificCircuits = argv.c;
 const verbose = argv.v;
 const compileOnly = argv.compileOnly;
-const parallelLimit = parseInt(process.env.GEN_CONCURRENCY, 10) || 4; // Default to compile 4 circuits in parallel
+const parallelLimit = parseInt(process.env.GEN_CONCURRENCY, 10) || 8; // Default to compile 8 circuits in parallel
 
 // check env vars
 if (!circuitsRoot) {
@@ -376,22 +376,14 @@ const run = async () => {
     }
   }
 
-  // Note that we are only checking whether we need to download a given PTAU file once.
+  // Download and verify all missing PTAU files
+  var allPtauPromises = new Set();
   for (p of allPtaus) {
-    await downloadAndVerifyPtau(p);
+    ptauPromise = downloadAndVerifyPtau(p);
+    ptauPromise.finally(() => allPtauPromises.delete(ptauPromise));
+    allPtauPromises.add(ptauPromise);
   }
-  // for (p of allPtaus) {
-  //   ptauPromise = downloadAndVerifyPtau(p);
-  //   ptauPromise.finally(() => allPtauPromises.delete(ptauPromise));
-  //   allPtauPromises.add(ptauPromise);
-
-  //   if (allPtauPromises.size >= 2) {
-  //     await Promise.race(allPtauPromises);
-  //   }
-  // }
-  // while (allPtauPromises.size > 0) {
-  //   await Promise.race(allPtauPromises);
-  // }
+  await Promise.all(allPtauPromises);
 
   for (const [
     circuit,
