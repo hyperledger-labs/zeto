@@ -15,21 +15,10 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {IZeto} from "./lib/interfaces/izeto.sol";
-import {Groth16Verifier_Deposit} from "./verifiers/verifier_deposit.sol";
-import {Groth16Verifier_Withdraw} from "./verifiers/verifier_withdraw.sol";
-import {Groth16Verifier_WithdrawBatch} from "./verifiers/verifier_withdraw_batch.sol";
-import {Groth16Verifier_Anon} from "./verifiers/verifier_anon.sol";
-import {Groth16Verifier_AnonBatch} from "./verifiers/verifier_anon_batch.sol";
 import {Groth16Verifier_Burn} from "./verifiers/verifier_burn.sol";
 import {Groth16Verifier_BurnBatch} from "./verifiers/verifier_burn_batch.sol";
 import {Zeto_Anon} from "./zeto_anon.sol";
-import {Commonlib} from "./lib/common.sol";
-import {ZetoBase} from "./lib/zeto_base.sol";
-import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
-import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
 import {ZetoFungibleBurnable} from "./lib/zeto_fungible_burn.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 uint256 constant INPUT_SIZE = 4;
 uint256 constant BATCH_INPUT_SIZE = 20;
