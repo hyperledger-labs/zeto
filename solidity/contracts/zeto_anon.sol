@@ -50,7 +50,7 @@ contract Zeto_Anon is
     function initialize(
         address initialOwner,
         VerifiersInfo calldata verifiers
-    ) public initializer {
+    ) public virtual initializer {
         __ZetoAnon_init(initialOwner, verifiers);
     }
 
