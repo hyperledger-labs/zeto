@@ -4,7 +4,7 @@
 | ------------------ | ------------------ | ------------------ | --- | --------------- | ------------------- |
 | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | -   | -               | 2,066,430           |
 
-![pqc](../images/pqc-dark.png)
+![pqc](../images/pqc-dark-100px.png)
 
 This implementation builds on top of the `anon_nullifiers` to add post-quantum cryptography inside the circuit to encrypt sensitive information for a designated authority, such as a regulator, for auditing purposes.
 
