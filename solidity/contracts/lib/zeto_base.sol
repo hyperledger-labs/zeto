@@ -221,8 +221,7 @@ abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
         emit UTXOMint(utxos, msg.sender, data);
     }
 
-    // This function is used to burn UTXOs, as an example implementation,
-    // which is only callable by the owner.
+    // This function is used to burn UTXOs
     function _burn(
         uint256[] memory utxos,
         bytes calldata data
