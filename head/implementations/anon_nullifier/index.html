@@ -12,7 +12,7 @@
         <link rel="prev" href="../anon/">
       
       
-        <link rel="next" href="../anon_enc/">
+        <link rel="next" href="../anon_nullifier_qurrency/">
       
       
       <link rel="icon" href="../../assets/paladin-icon-light.png">
@@ -681,6 +681,8 @@
       
         
       
+        
+      
     
     
       
@@ -759,6 +761,27 @@
 
       </a>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../anon_nullifier_qurrency/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Zeto_AnonNullifierQurrency
+  </span>
+  
+
+      </a>
     </li>
   
 
@@ -1340,6 +1363,7 @@
 </table>
 <p>To mask the association between the consumed UTXOs and the output UTXOs, we hide which UTXOs are being consumed by each transaction.</p>
 <p>To achieve this, we employ the usage of nullifiers. It's a unique hash derived from the unique commitment it consumes. For a UTXO commitment hash(value, salt, owner public key), the nullifier is calculated as hash(value, salt, owner private key). Only the owner of the commitment can generate the nullifier hash. Each transaction will record the nullifiers in the smart contract, to ensure that they don't get re-used (double spending).</p>
+<p><img alt="nullifiers" src="../../images/nullifiers.jpg" /></p>
 <p>In order to prove that the UTXOs to be spent actually exist, we use a merkle tree proof inside the zero knowledge proof circuit. The merkle proof is validated against a merkle tree root that is maintained by the smart contract. The smart contract keeps track of all the new UTXOs in each transaction's output commitments array, and uses a merkle tree to calculate the root hash. Then the ZKP circuit can use a root hash as public input, to prove that the input commitments (UTXOs to be spent), which are private inputs to the circuit, are included in the merkle tree represented by the root.</p>
 <p>The end result is that, from the onchain data, no one can figure out which UTXOs have been spent, while double spending is prevented.</p>
 <p>The statements in the proof include:</p>
@@ -1350,7 +1374,7 @@
 <li>the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers</li>
 <li>the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash</li>
 </ul>
-<p><img alt="nullifiers" src="../../images/nullifiers.jpg" /></p>
+<p><img alt="wiring_anon_nullifier" src="../../images/circuit_wiring_anon_nullifier.jpg" /></p>
 
 
 
@@ -1399,13 +1423,13 @@
         
         
           
-          <a href="../anon_enc/" class="md-footer__link md-footer__link--next" aria-label="Next: Zeto_AnonEnc">
+          <a href="../anon_nullifier_qurrency/" class="md-footer__link md-footer__link--next" aria-label="Next: Zeto_AnonNullifierQurrency">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Zeto_AnonEnc
+                Zeto_AnonNullifierQurrency
               </div>
             </div>
             <div class="md-footer__button md-icon">
