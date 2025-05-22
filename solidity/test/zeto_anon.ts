@@ -313,19 +313,27 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
   it("(burnable) mint to Alice and transfer honestly to Bob then burn should succeed", async function () {
     // first mint the tokens for testing
     const inputUtxos = [];
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 3; i++) {
       inputUtxos.push(newUTXO(10, Alice));
     }
     await doMint(zetoBurnable, deployer, inputUtxos);
 
     // Alice can burn the UTXOs she owns
     const { commitments, encodedProof } =
-      await prepareBurnProof(Alice, inputUtxos);
+      await prepareBurnProof(Alice, inputUtxos.slice(0, 2));
     const tx = await zetoBurnable
       .connect(Alice.signer)
       .burn(commitments, encodedProof, "0x");
     await tx.wait();
 
+    // check that the burned UTXOs are spent
+    let spent = await zetoBurnable.spent(commitments[0]);
+    expect(spent).to.be.true;
+    spent = await zetoBurnable.spent(commitments[1]);
+    expect(spent).to.be.true;
+    // check that the remaining UTXO is not spent
+    spent = await zetoBurnable.spent(inputUtxos[2].hash as BigNumberish);
+    expect(spent).to.be.false;
   });
 
   describe("failure cases", function () {
