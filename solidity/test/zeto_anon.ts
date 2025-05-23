@@ -33,8 +33,9 @@ import {
   loadProvingKeys,
   prepareDepositProof,
   prepareWithdrawProof,
+  prepareBurnProof,
 } from "./utils";
-import { Zeto_Anon } from "../typechain-types";
+import { Zeto_Anon, Zeto_AnonBurnable } from "../typechain-types";
 import { deployZeto } from "./lib/deploy";
 
 const ZERO_PUBKEY = [0n, 0n];
@@ -47,6 +48,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
   let Charlie: User;
   let erc20: any;
   let zeto: Zeto_Anon;
+  let zetoBurnable: Zeto_AnonBurnable;
   let utxo100: UTXO;
   let utxo1: UTXO;
   let utxo2: UTXO;
@@ -68,6 +70,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     Charlie = await newUser(c);
 
     ({ deployer, zeto, erc20 } = await deployZeto("Zeto_Anon"));
+    ({ zeto: zetoBurnable } = await deployZeto("Zeto_AnonBurnable"));
 
     circuit = await loadCircuit("anon");
     ({ provingKeyFile: provingKey } = loadProvingKeys("anon"));
@@ -305,6 +308,34 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
       Bob.babyJubPublicKey[1],
     ]);
     expect(incomingUTXOs[0]).to.equal(hash);
+  });
+
+  it("(burnable) mint to Alice and transfer honestly to Bob then burn should succeed", async function () {
+    // first mint the tokens for testing
+    const inputUtxos = [];
+    for (let i = 0; i < 3; i++) {
+      inputUtxos.push(newUTXO(10, Alice));
+    }
+    await doMint(zetoBurnable, deployer, inputUtxos);
+
+    const remainder = newUTXO(5, Alice);
+
+    // Alice can burn the UTXOs she owns
+    const { inputCommitments, outputCommitment, encodedProof } =
+      await prepareBurnProof(Alice, inputUtxos.slice(0, 2), remainder);
+    const tx = await zetoBurnable
+      .connect(Alice.signer)
+      .burn(inputCommitments, outputCommitment, encodedProof, "0x");
+    await tx.wait();
+
+    // check that the burned UTXOs are spent
+    let spent = await zetoBurnable.spent(inputCommitments[0]);
+    expect(spent).to.be.true;
+    spent = await zetoBurnable.spent(inputCommitments[1]);
+    expect(spent).to.be.true;
+    // check that the remaining UTXO is not spent
+    spent = await zetoBurnable.spent(inputUtxos[2].hash as BigNumberish);
+    expect(spent).to.be.false;
   });
 
   describe("failure cases", function () {

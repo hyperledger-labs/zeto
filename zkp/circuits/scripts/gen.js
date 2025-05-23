@@ -377,13 +377,12 @@ const run = async () => {
   }
 
   // Download and verify all missing PTAU files
-  var allPtauPromises = new Set();
   for (p of allPtaus) {
-    ptauPromise = downloadAndVerifyPtau(p);
-    ptauPromise.finally(() => allPtauPromises.delete(ptauPromise));
-    allPtauPromises.add(ptauPromise);
+    // download the PTAU files serially to avoid
+    // overwhelming the build server. plus doing
+    // these in parallel doesn't really help
+    await downloadAndVerifyPtau(p);
   }
-  await Promise.all(allPtauPromises);
 
   for (const [
     circuit,

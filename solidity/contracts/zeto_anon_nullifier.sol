@@ -60,7 +60,14 @@ contract Zeto_AnonNullifier is
     function initialize(
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
-    ) public initializer {
+    ) public virtual initializer {
+        __ZetoAnonNullifier_init(initialOwner, verifiers);
+    }
+
+    function __ZetoAnonNullifier_init(
+        address initialOwner,
+        IZetoInitializable.VerifiersInfo calldata verifiers
+    ) internal onlyInitializing {
         __ZetoNullifier_init(initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(
             (Groth16Verifier_Deposit)(verifiers.depositVerifier),

@@ -45,6 +45,8 @@ export async function deployDependencies() {
         batchWithdrawVerifier: batchWithdrawVerifier.target,
         lockVerifier: "0x0000000000000000000000000000000000000000", //lockVerifier.target,
         batchLockVerifier: "0x0000000000000000000000000000000000000000", //batchLockVerifier.target,
+        burnVerifier: "0x0000000000000000000000000000000000000000",
+        batchBurnVerifier: "0x0000000000000000000000000000000000000000",
       }
     ],
     libraries: {

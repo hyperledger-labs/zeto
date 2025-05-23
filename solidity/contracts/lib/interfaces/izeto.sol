@@ -25,6 +25,7 @@ interface IZeto {
     error UTXOAlreadySpent(uint256 utxo);
 
     event UTXOMint(uint256[] outputs, address indexed submitter, bytes data);
+    event UTXOBurn(uint256[] inputs, address indexed submitter, bytes data);
     event UTXOTransfer(
         uint256[] inputs,
         uint256[] outputs,

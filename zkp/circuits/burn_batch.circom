@@ -1,4 +1,4 @@
-// Copyright © 2024 Kaleido, Inc.
+// Copyright © 2025 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -13,23 +13,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pragma solidity ^0.8.27;
+pragma circom 2.2.2;
 
-interface IZetoInitializable {
-    struct VerifiersInfo {
-        address verifier;
-        address depositVerifier;
-        address withdrawVerifier;
-        address lockVerifier;
-        address burnVerifier;
-        address batchVerifier;
-        address batchWithdrawVerifier;
-        address batchLockVerifier;
-        address batchBurnVerifier;
-    }
+include "./lib/burn.circom";
 
-    function initialize(
-        address initialOwner,
-        VerifiersInfo memory verifiersInfo
-    ) external;
-}
+component main {public [ inputCommitments, outputCommitment ]} = Burn(10);
