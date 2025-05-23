@@ -47,14 +47,20 @@ describe('burn circuit tests', () => {
     const input1 = poseidonHash([BigInt(values[0]), salt1, ...Alice.pubKey]);
     const salt2 = newSalt();
     const input2 = poseidonHash([BigInt(values[1]), salt2, ...Alice.pubKey]);
-    const commitments = [input1, input2];
+    const inputCommitments = [input1, input2];
+
+    const salt3 = newSalt();
+    const outputCommitment = poseidonHash([BigInt(70), salt3, ...Alice.pubKey]);
 
     const witness = await circuit.calculateWitness(
       {
-        commitments,
-        values,
-        salts: [salt1, salt2],
+        inputCommitments,
+        inputValues: values,
+        inputSalts: [salt1, salt2],
         ownerPrivateKey: senderPrivateKey,
+        outputCommitment,
+        outputValue: 70,
+        outputSalt: salt3,
       },
       true
     );
@@ -64,8 +70,8 @@ describe('burn circuit tests', () => {
     // console.log('inputValues', values);
     // console.log('inputSalts', [salt1, salt2]);
 
-    expect(witness[1]).to.equal(BigInt(commitments[0]));
-    expect(witness[2]).to.equal(BigInt(commitments[1]));
+    expect(witness[1]).to.equal(BigInt(inputCommitments[0]));
+    expect(witness[2]).to.equal(BigInt(inputCommitments[1]));
   });
 
   it('should succeed for valid witness - single input', async () => {
@@ -74,18 +80,59 @@ describe('burn circuit tests', () => {
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
     const input1 = poseidonHash([BigInt(values[0]), salt1, ...Alice.pubKey]);
-    const commitments = [input1, 0];
+    const inputCommitments = [input1, 0];
+
+    const salt3 = newSalt();
+    const outputCommitment = poseidonHash([BigInt(70), salt3, ...Alice.pubKey]);
 
     const witness = await circuit.calculateWitness(
       {
-        commitments,
-        values,
-        salts: [salt1, 0],
+        inputCommitments,
+        inputValues: values,
+        inputSalts: [salt1, 0],
         ownerPrivateKey: senderPrivateKey,
+        outputCommitment,
+        outputValue: 70,
+        outputSalt: salt3,
       },
       true
     );
 
-    expect(witness[1]).to.equal(BigInt(commitments[0]));
+    expect(witness[1]).to.equal(BigInt(inputCommitments[0]));
+    expect(witness[2]).to.equal(BigInt(inputCommitments[1]));
+  });
+
+  it('should fail if output is greater than sum of the inputs', async () => {
+    const values = [32, 40];
+
+    // create two input UTXOs, each has their own salt, but same owner
+    const salt1 = newSalt();
+    const input1 = poseidonHash([BigInt(values[0]), salt1, ...Alice.pubKey]);
+    const salt2 = newSalt();
+    const input2 = poseidonHash([BigInt(values[1]), salt2, ...Alice.pubKey]);
+    const inputCommitments = [input1, input2];
+
+    const salt3 = newSalt();
+    const outputCommitment = poseidonHash([BigInt(80), salt3, ...Alice.pubKey]);
+
+    let error;
+    try {
+      await circuit.calculateWitness(
+        {
+          inputCommitments,
+          inputValues: values,
+          inputSalts: [salt1, salt2],
+          ownerPrivateKey: senderPrivateKey,
+          outputCommitment,
+          outputValue: 80,
+          outputSalt: salt3,
+        },
+        true
+      );
+    } catch (e) {
+      // console.log(e);
+      error = e;
+    }
+    expect(error).to.match(/Error in template Burn_94 line: 69/);
   });
 });

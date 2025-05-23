@@ -43,14 +43,17 @@ contract Groth16Verifier_Burn {
     uint256 constant deltay2 = 8495653923123431417604973247489272438418190587263600148770280649306958101930;
 
     
-    uint256 constant IC0x = 5961892133655469174588966950916576296738755992343172721356529017335297389409;
-    uint256 constant IC0y = 14333163046797333444798765436665643398629491431485287677360671189173098157441;
+    uint256 constant IC0x = 14207649465847074459006551899801105360344045193984915354386078270967717414662;
+    uint256 constant IC0y = 14203847703207394749659860962890233765723282136337244239517265306071139670341;
     
-    uint256 constant IC1x = 17214718495523785535701657719670011964855503384278062826642155179345426580098;
-    uint256 constant IC1y = 12678898308813596443127633044318475259792489274472242452023364053911511648639;
+    uint256 constant IC1x = 20991582431635387746090800929038448868620958869834707086238456083408640908280;
+    uint256 constant IC1y = 10783061735315001386299657272927752303784112081871401453945754602227431478666;
     
-    uint256 constant IC2x = 4382937387936351427147757775456574969020583627402302746338787268231726676873;
-    uint256 constant IC2y = 4583555676960040664251711232618687088763042218077749116431082796685416720755;
+    uint256 constant IC2x = 14006692811194189103148787387025604948395366969003356155170114368180461113393;
+    uint256 constant IC2y = 5673528144716202191549186015609073881678333688057753432182528489420085303744;
+    
+    uint256 constant IC3x = 6162733910454695011371515613073936194378338628226525781838980758673160026926;
+    uint256 constant IC3y = 9898958851889443370118359024776281414454075518118600633160570171981761207967;
     
  
     // Memory data
@@ -59,7 +62,7 @@ contract Groth16Verifier_Burn {
 
     uint16 constant pLastMem = 896;
 
-    function verifyProof(uint[2] calldata _pA, uint[2][2] calldata _pB, uint[2] calldata _pC, uint[2] calldata _pubSignals) public view returns (bool) {
+    function verifyProof(uint[2] calldata _pA, uint[2][2] calldata _pB, uint[2] calldata _pC, uint[3] calldata _pubSignals) public view returns (bool) {
         assembly {
             function checkField(v) {
                 if iszero(lt(v, r)) {
@@ -106,6 +109,8 @@ contract Groth16Verifier_Burn {
                 g1_mulAccC(_pVk, IC1x, IC1y, calldataload(add(pubSignals, 0)))
                 
                 g1_mulAccC(_pVk, IC2x, IC2y, calldataload(add(pubSignals, 32)))
+                
+                g1_mulAccC(_pVk, IC3x, IC3y, calldataload(add(pubSignals, 64)))
                 
 
                 // -A
@@ -163,6 +168,8 @@ contract Groth16Verifier_Burn {
             checkField(calldataload(add(_pubSignals, 0)))
             
             checkField(calldataload(add(_pubSignals, 32)))
+            
+            checkField(calldataload(add(_pubSignals, 64)))
             
 
             // Validate all evaluations

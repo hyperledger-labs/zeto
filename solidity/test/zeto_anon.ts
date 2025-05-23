@@ -318,18 +318,20 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     }
     await doMint(zetoBurnable, deployer, inputUtxos);
 
+    const remainder = newUTXO(5, Alice);
+
     // Alice can burn the UTXOs she owns
-    const { commitments, encodedProof } =
-      await prepareBurnProof(Alice, inputUtxos.slice(0, 2));
+    const { inputCommitments, outputCommitment, encodedProof } =
+      await prepareBurnProof(Alice, inputUtxos.slice(0, 2), remainder);
     const tx = await zetoBurnable
       .connect(Alice.signer)
-      .burn(commitments, encodedProof, "0x");
+      .burn(inputCommitments, outputCommitment, encodedProof, "0x");
     await tx.wait();
 
     // check that the burned UTXOs are spent
-    let spent = await zetoBurnable.spent(commitments[0]);
+    let spent = await zetoBurnable.spent(inputCommitments[0]);
     expect(spent).to.be.true;
-    spent = await zetoBurnable.spent(commitments[1]);
+    spent = await zetoBurnable.spent(inputCommitments[1]);
     expect(spent).to.be.true;
     // check that the remaining UTXO is not spent
     spent = await zetoBurnable.spent(inputUtxos[2].hash as BigNumberish);

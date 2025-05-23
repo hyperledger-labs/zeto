@@ -218,24 +218,28 @@ export async function prepareNullifierWithdrawProof(
 
 export async function prepareBurnProof(
   signer: User,
-  inputs: UTXO[]
+  inputs: UTXO[],
+  output: UTXO,
 ) {
-  const commitments: BigNumberish[] = inputs.map(
+  const inputCommitments: BigNumberish[] = inputs.map(
     (input) => input.hash,
   ) as BigNumberish[];
-  const values = inputs.map((input) => BigInt(input.value || 0n));
-  const salts = inputs.map((input) => input.salt || 0n);
+  const inputValues = inputs.map((input) => BigInt(input.value || 0n));
+  const inputSalts = inputs.map((input) => input.salt || 0n);
 
   const inputObj = {
-    commitments,
-    values,
-    salts,
+    inputCommitments,
+    inputValues,
+    inputSalts,
     ownerPrivateKey: signer.formattedPrivateKey,
+    outputCommitment: [output.hash],
+    outputValue: [BigInt(output.value || 0n)],
+    outputSalt: [output.salt || 0n],
   };
 
   let circuit = await loadCircuit("burn");
   let { provingKeyFile } = loadProvingKeys("burn");
-  if (commitments.length > 2) {
+  if (inputCommitments.length > 2) {
     circuit = await loadCircuit("burn_batch");
     ({ provingKeyFile } = loadProvingKeys("burn_batch"));
   }
@@ -257,7 +261,8 @@ export async function prepareBurnProof(
 
   const encodedProof = encodeProof(proof);
   return {
-    commitments,
+    inputCommitments,
+    outputCommitment: output.hash,
     encodedProof,
   };
 }

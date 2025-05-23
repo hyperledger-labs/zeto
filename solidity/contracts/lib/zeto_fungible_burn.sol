@@ -20,8 +20,8 @@ import {Groth16Verifier_BurnBatch} from "../verifiers/verifier_burn_batch.sol";
 import {ZetoBase} from "./zeto_base.sol";
 import {Commonlib} from "./common.sol";
 
-uint256 constant BURN_INPUT_SIZE = 2;
-uint256 constant BATCH_BURN_INPUT_SIZE = 10;
+uint256 constant BURN_INPUT_SIZE = 3;
+uint256 constant BATCH_BURN_INPUT_SIZE = 11;
 
 /// @title A feature implementation of a Zeto fungible token burn contract
 /// @author Kaleido, Inc.
@@ -40,6 +40,7 @@ abstract contract ZetoFungibleBurnable is ZetoBase {
 
     function burn(
         uint256[] memory inputs,
+        uint256 output,
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public virtual {
@@ -47,9 +48,10 @@ abstract contract ZetoFungibleBurnable is ZetoBase {
         if (inputs.length > 2) {
             // construct the public inputs for verifier
             uint256[BATCH_BURN_INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
+            for (uint256 i = 0; i < inputs.length; i++) {
                 fixedSizeInputs[i] = inputs[i];
             }
+            fixedSizeInputs[BATCH_BURN_INPUT_SIZE - 1] = output;
             // Check the proof
             require(
                 _batchBurnVerifier.verifyProof(
@@ -63,9 +65,10 @@ abstract contract ZetoFungibleBurnable is ZetoBase {
         } else {
             // construct the public inputs for verifier
             uint256[BURN_INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
+            for (uint256 i = 0; i < inputs.length; i++) {
                 fixedSizeInputs[i] = inputs[i];
             }
+            fixedSizeInputs[BURN_INPUT_SIZE - 1] = output;
             // Check the proof
             require(
                 _burnVerifier.verifyProof(

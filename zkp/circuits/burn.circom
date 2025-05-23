@@ -15,6 +15,6 @@
 // limitations under the License.
 pragma circom 2.2.2;
 
-include "./lib/check-utxos-owner.circom";
+include "./lib/burn.circom";
 
-component main {public [ commitments ]} = CheckUTXOsOwner(2);
+component main {public [ inputCommitments, outputCommitment ]} = Burn(2);
