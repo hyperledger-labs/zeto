@@ -42,7 +42,7 @@ In order to initialize a zero-knowledge proof circuit corresponding to a particu
 
 ## Background
 
-[ML-KEM](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.203.pdf) is a key-encapsulation mechanism, which internally initializes and uses a public key encryption scheme. The Qurrency protocol uses this internal PKE scheme to provide post-quantum secure public key encryption.
+[ML-KEM](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.203.pdf) is a key-encapsulation mechanism, which internally initializes and uses a public key encryption scheme referred to as K-PKE. The Qurrency protocol uses this internal PKE scheme to provide post-quantum secure public key encryption. K-PKE was chosen because to date it is the only post-quantum secure PKE scheme to appear in a NIST standardization. It has been selected for standardization as a standalone post-quantum secure PKE scheme, and the standardization process is expected to complete by 2027.
 
 For any implementation, calling $\mathsf{ML\mathrm{-}KEM}.\mathsf{KeyGen}()$ will return an encapsulation key `ek` and a decapsulation key `dk`. Since `ek` is identical to the public key of the internal PKE scheme, we can directly use `ek` to build the ZK circuit. `ek` is an array of 800 bytes, of the following form:
 
@@ -66,6 +66,6 @@ Securely store `dk` to use in audits. (In particular, auditing requires the firs
 2. For each 384-byte half `ti` of `t`, compute `polyFromBytes(ti)`. This is the `mlkem` implementation of $\mathsf{ByteDecode}_{12}$ from the ML-KEM specification. It decodes the two halves of `t` back into arrays of integers. These two arrays can be inserted as `t[0]` and `t[1]` inside the `kyber_enc` circuit.
 3. Compute the matrix `a` as `_sampleMatrix(rho, false)`. In the ML-KEM specification, each entry `a[i,j]` of `a` is computed as $\mathsf{SampleNTT}(\rho \mathbin\Vert j \mathbin\Vert i)$. In `mlkem`, this function computes all four entries of `a` at once. These can then be inserted into the corresponding `a[0][0]`, `a[0][1]`, `a[1][0]`, and `a[1][1]` inside the `kyber_enc` circuit.
 
-After this, circuit generation is complete, and setup can continue as normal.
+After this, circuit generation is complete, and setup can continue the same as all other Zeto tokens.
 
 **Note**: The `_sampleMatrix` function is not exposed by the `mlkem` library for external use, so for circuit initialization, you may have to either re-implement this functionality, or temporarily modify the library to expose this.
