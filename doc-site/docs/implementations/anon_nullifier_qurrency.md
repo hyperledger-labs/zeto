@@ -8,12 +8,12 @@
 
 This implementation builds on top of the `anon_nullifiers` to add post-quantum cryptography inside the circuit to encrypt sensitive information for a designated authority, such as a regulator, for auditing purposes.
 
-The encryption scheme is based on the ML-KEM (Module-Lattice-Based Key-Encapsulation Mechanism) derived from the CRYSTALS-KYBER algorithm. This is a NIST approved algorithm for post-quantum secure encryption, meaning even the quatum computers can not break the encryption.
+To implement post-quantum secure encryption, these circuits use K-PKE, the public key encryption scheme internal to ML-KEM (Module-Lattice-Based Key-Encapsulation Mechanism), which is derived from the CRYSTALS-KYBER algorithm. This algorithm has been selected by NIST for standardization of post-quantum secure encryption, meaning even quantum computers cannot break the cryptosystem.
 
 The encryption is performed in the follow step, according to the ML-KEM scheme:
 
 - An AES-256 encryption key is generated for the transaction. This key is used only for this transaction
-  - AES encryption is quantum secure
+  - AES-256 is a quantum-secure block cipher.
 - The secrets meant for the auditing authority are encrypted with this key, and sent as part of the transaction payload
 - The key is passed into the circuit as a private input and encrypted inside the circuit under the ML-KEM scheme, using the auditing authority's public key
   - The public key is statically programmed into the circuit. This is to avoid making it a signal which would be very inefficient due to the large size of the public key (1184 bytes)
