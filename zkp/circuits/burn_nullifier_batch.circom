@@ -15,6 +15,6 @@
 // limitations under the License.
 pragma circom 2.2.2;
 
-include "./lib/check-nullifiers-owner.circom";
+include "./lib/burn-nullifiers.circom";
 
-component main {public [ nullifiers, root, enabled ]} = CheckNullifiersOwner(10, 64);
+component main {public [ nullifiers, outputCommitment, root, enabled ]} = BurnNullifiers(10, 64);

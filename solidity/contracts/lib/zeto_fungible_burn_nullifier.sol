@@ -20,8 +20,8 @@ import {Groth16Verifier_BurnNullifierBatch} from "../verifiers/verifier_burn_nul
 import {ZetoNullifier} from "./zeto_nullifier.sol";
 import {Commonlib} from "./common.sol";
 
-uint256 constant BURN_INPUT_SIZE = 5;
-uint256 constant BATCH_BURN_INPUT_SIZE = 21;
+uint256 constant BURN_INPUT_SIZE = 6;
+uint256 constant BATCH_BURN_INPUT_SIZE = 22;
 
 /// @title A feature implementation of a Zeto fungible token burn contract
 /// @author Kaleido, Inc.
@@ -40,10 +40,10 @@ abstract contract ZetoFungibleBurnableWithNullifiers is ZetoNullifier {
 
     function constructPublicInputs(
         uint256[] memory nullifiers,
-        uint256 root,
-        uint256 size
+        uint256 output,
+        uint256 root
     ) internal pure returns (uint256[] memory publicInputs) {
-        publicInputs = new uint256[](size);
+        publicInputs = new uint256[](nullifiers.length * 2 + 2);
         uint256 piIndex = 0;
 
         // copy input commitments
@@ -59,11 +59,14 @@ abstract contract ZetoFungibleBurnableWithNullifiers is ZetoNullifier {
             publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
         }
 
+        publicInputs[piIndex] = output;
+
         return publicInputs;
     }
 
     function burn(
         uint256[] memory nullifiers,
+        uint256 output,
         uint256 root,
         Commonlib.Proof calldata proof,
         bytes calldata data
@@ -73,8 +76,8 @@ abstract contract ZetoFungibleBurnableWithNullifiers is ZetoNullifier {
             // construct the public inputs for verifier
             uint256[] memory publicInputs = constructPublicInputs(
                 nullifiers,
-                root,
-                BATCH_BURN_INPUT_SIZE
+                output,
+                root
             );
             // construct the public inputs for verifier
             uint256[BATCH_BURN_INPUT_SIZE] memory fixedSizeInputs;
@@ -95,8 +98,8 @@ abstract contract ZetoFungibleBurnableWithNullifiers is ZetoNullifier {
             // construct the public inputs for verifier
             uint256[] memory publicInputs = constructPublicInputs(
                 nullifiers,
-                root,
-                BURN_INPUT_SIZE
+                output,
+                root
             );
             // construct the public inputs for verifier
             uint256[BURN_INPUT_SIZE] memory fixedSizeInputs;

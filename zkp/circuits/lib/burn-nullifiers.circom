@@ -20,46 +20,68 @@ include "./check-hashes.circom";
 include "./check-nullifiers.circom";
 include "./check-smt-proof.circom";
 
-// CheckNullifiersOwner is a circuit that checks the ownership of the input UTXOs and nullifiers membership inclusion
+// BurnNullifiers is a circuit that checks the sum of the input values
+// is greater than or equal to the sum of the output values:
 //   - check that the private key is the owner of the input UTXOs
 //   - check that the input commitments are the hash of the input values, salts and sender public keys
-//   - check that the input commitments are included in the Sparse Merkle Tree with the root `root`
 //   - check that the nullifiers are securely bound to the input commitments
+//   - check that the output commitments are the hash of the output values, salts and the same sender public keys
+//   - check that the output values are all positive, assuming the values are in the range [0, 2^100)
+//   - check that the sum of input values is greater than or equal to the sum of output values
 //
 // commitment = hash(value, salt, owner public key)
 // nullifier = hash(value, salt, ownerPrivatekey)
 //
-template CheckNullifiersOwner(numInputs, nSMTLevels) {
+template BurnNullifiers(numInputs, nSMTLevels) {
   signal input nullifiers[numInputs];
-  signal input commitments[numInputs];
-  signal input values[numInputs];
-  signal input salts[numInputs];
+  signal input inputCommitments[numInputs];
+  signal input inputValues[numInputs];
+  signal input inputSalts[numInputs];
   // must be properly hashed and trimmed to be compatible with the BabyJub curve.
   // Reference: https://github.com/iden3/circomlib/blob/master/test/babyjub.js#L103
   signal input ownerPrivateKey;
   signal input root;
   signal input merkleProof[numInputs][nSMTLevels];
   signal input enabled[numInputs];
+  signal input outputCommitment;
+  signal input outputValue;
+  signal input outputSalt;
 
   // derive the sender's public key from the secret input
   // for the sender's private key. This step demonstrates
   // the sender really owns the private key for the input
   // UTXOs
-  var inputOwnerPubKeyAx, inputOwnerPubKeyAy;
-  (inputOwnerPubKeyAx, inputOwnerPubKeyAy) = BabyPbk()(in <== ownerPrivateKey);
+  var ownerPubKeyAx, ownerPubKeyAy;
+  (ownerPubKeyAx, ownerPubKeyAy) = BabyPbk()(in <== ownerPrivateKey);
 
-  var inputOwnerPublicKeys[numInputs][2];
+  var ownerPublicKeys[numInputs][2];
   for (var i = 0; i < numInputs; i++) {
-    inputOwnerPublicKeys[i] = [inputOwnerPubKeyAx, inputOwnerPubKeyAy];
+    ownerPublicKeys[i] = [ownerPubKeyAx, ownerPubKeyAy];
   }
 
-  CheckHashes(numInputs)(commitments <== commitments, values <== values, salts <== salts, ownerPublicKeys <== inputOwnerPublicKeys);
+  CheckPositive(1)(outputValues <== [outputValue]);
 
-  CheckNullifiers(numInputs)(nullifiers <== nullifiers, values <== values, salts <== salts, ownerPrivateKey <== ownerPrivateKey);
+  CheckHashes(numInputs)(commitments <== inputCommitments, values <== inputValues, salts <== inputSalts, ownerPublicKeys <== ownerPublicKeys);
+
+  CheckNullifiers(numInputs)(nullifiers <== nullifiers, values <== inputValues, salts <== inputSalts, ownerPrivateKey <== ownerPrivateKey);
+
+  CheckHashes(1)(commitments <== [outputCommitment], values <== [outputValue], salts <== [outputSalt], ownerPublicKeys <== [[ownerPubKeyAx, ownerPubKeyAy]]);
 
   // With the above steps, we demonstrated that the nullifiers
   // are securely bound to the input commitments. Now we need to
   // demonstrate that the input commitments belong to the Sparse
   // Merkle Tree with the root `root`.
-  CheckSMTProof(numInputs, nSMTLevels)(root <== root, merkleProof <== merkleProof, enabled <== enabled, leafNodeIndexes <== commitments, leafNodeValues <== commitments);
+  CheckSMTProof(numInputs, nSMTLevels)(root <== root, merkleProof <== merkleProof, enabled <== enabled, leafNodeIndexes <== inputCommitments, leafNodeValues <== inputCommitments);
+
+  // check that the sum of input values equals the sum of output values
+  var sumInputs = 0;
+  for (var i = 0; i < numInputs; i++) {
+    sumInputs = sumInputs + inputValues[i];
+  }
+
+  // check that the sum of input values is greater than the sum of output values
+  var greaterEqThan;
+  greaterEqThan = GreaterEqThan(100)(in <== [sumInputs, outputValue]);
+
+  greaterEqThan === 1;
 }

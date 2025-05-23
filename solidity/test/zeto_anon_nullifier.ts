@@ -457,7 +457,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
     expect(endingBalance - startingBalance).to.be.equal(80);
   });
 
-  it.only("(burnable) mint to Alice and burn should succeed", async function () {
+  it("(burnable) mint to Alice and burn should succeed", async function () {
     // first mint the tokens
     const inputUtxos = [];
     const nullifiers = [];
@@ -467,21 +467,24 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
       inputUtxos.push(_utxo);
     }
     const mintResult = await doMint(zetoBurnable, deployer, inputUtxos);
+    const outputUtxo = newUTXO(0, Alice);
+
+    const storage1 = new InMemoryDB(str2Bytes(""));
+    const smtAliceBurnable = new Merkletree(storage1, true, 64);
 
     const mintEvents = parseUTXOEvents(zetoBurnable, mintResult);
     const mintedHashes = mintEvents[0].outputs;
     for (let i = 0; i < mintedHashes.length; i++) {
       if (mintedHashes[i] !== 0) {
-        await smtAlice.add(mintedHashes[i], mintedHashes[i]);
-        await smtBob.add(mintedHashes[i], mintedHashes[i]);
+        await smtAliceBurnable.add(mintedHashes[i], mintedHashes[i]);
       }
     }
 
     // Alice generates inclusion proofs for the UTXOs to be spent
-    let root = await smtAlice.root();
+    let root = await smtAliceBurnable.root();
     const mtps = [];
     for (let i = 0; i < inputUtxos.length; i++) {
-      const p = await smtAlice.generateCircomVerifierProof(
+      const p = await smtAliceBurnable.generateCircomVerifierProof(
         inputUtxos[i].hash,
         root,
       );
@@ -491,10 +494,12 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
     // Alice generates the nullifiers for the UTXOs to be burnt
     const {
       nullifiers: _burnNullifiers,
+      outputCommitment,
       encodedProof,
     } = await prepareNullifierBurnProof(
       Alice,
       inputUtxos,
+      outputUtxo,
       nullifiers,
       root.bigInt(),
       mtps,
@@ -505,6 +510,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
       .connect(Alice.signer)
       .burn(
         _burnNullifiers,
+        outputCommitment,
         root.bigInt(),
         encodedProof,
         "0x",

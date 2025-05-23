@@ -270,6 +270,7 @@ export async function prepareBurnProof(
 export async function prepareNullifierBurnProof(
   signer: User,
   inputs: UTXO[],
+  output: UTXO,
   _nullifiers: UTXO[],
   root: BigInt,
   merkleProof: BigInt[][],
@@ -277,26 +278,29 @@ export async function prepareNullifierBurnProof(
   const nullifiers = _nullifiers.map(
     (nullifier) => nullifier.hash,
   ) as BigNumberish[];
-  const commitments: BigNumberish[] = inputs.map(
+  const inputCommitments: BigNumberish[] = inputs.map(
     (input) => input.hash,
   ) as BigNumberish[];
-  const values = inputs.map((input) => BigInt(input.value || 0n));
-  const salts = inputs.map((input) => input.salt || 0n);
+  const inputValues = inputs.map((input) => BigInt(input.value || 0n));
+  const inputSalts = inputs.map((input) => input.salt || 0n);
 
   const inputObj = {
     nullifiers,
-    commitments,
-    values,
-    salts,
+    inputCommitments,
+    inputValues,
+    inputSalts,
     ownerPrivateKey: signer.formattedPrivateKey,
     root,
     enabled: nullifiers.map((n) => (n !== 0n ? 1 : 0)),
     merkleProof,
+    outputCommitment: output.hash,
+    outputValue: BigInt(output.value || 0n),
+    outputSalt: output.salt || 0n,
   };
 
   let circuit = await loadCircuit("burn_nullifier");
   let { provingKeyFile } = loadProvingKeys("burn_nullifier");
-  if (commitments.length > 2) {
+  if (inputCommitments.length > 2) {
     circuit = await loadCircuit("burn_nullifier_batch");
     ({ provingKeyFile } = loadProvingKeys("burn_nullifier_batch"));
   }
@@ -319,7 +323,8 @@ export async function prepareNullifierBurnProof(
   const encodedProof = encodeProof(proof);
   return {
     nullifiers,
-    commitments,
+    inputCommitments,
+    outputCommitment: output.hash,
     encodedProof,
   };
 }
