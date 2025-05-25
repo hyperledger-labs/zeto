@@ -1363,11 +1363,11 @@
 </table>
 <p><img alt="pqc" src="../../images/pqc-dark.png" /></p>
 <p>This implementation builds on top of the <code>anon_nullifiers</code> to add post-quantum cryptography inside the circuit to encrypt sensitive information for a designated authority, such as a regulator, for auditing purposes.</p>
-<p>The encryption scheme is based on the ML-KEM (Module-Lattice-Based Key-Encapsulation Mechanism) derived from the CRYSTALS-KYBER algorithm. This is a NIST approved algorithm for post-quantum secure encryption, meaning even the quatum computers can not break the encryption.</p>
+<p>To implement post-quantum secure encryption, these circuits use the public key encryption scheme internal to ML-KEM (Module-Lattice-Based Key-Encapsulation Mechanism), which is derived from the CRYSTALS-KYBER algorithm. This algorithm has been selected by NIST for standardization of post-quantum secure encryption, meaning even quantum computers cannot break the cryptosystem.</p>
 <p>The encryption is performed in the follow step, according to the ML-KEM scheme:</p>
 <ul>
 <li>An AES-256 encryption key is generated for the transaction. This key is used only for this transaction</li>
-<li>AES encryption is quantum secure</li>
+<li>AES-256 is a quantum-secure block cipher.</li>
 <li>The secrets meant for the auditing authority are encrypted with this key, and sent as part of the transaction payload</li>
 <li>The key is passed into the circuit as a private input and encrypted inside the circuit under the ML-KEM scheme, using the auditing authority's public key</li>
 <li>The public key is statically programmed into the circuit. This is to avoid making it a signal which would be very inefficient due to the large size of the public key (1184 bytes)</li>
@@ -1389,6 +1389,29 @@
 <li>the public signals representing the SHA256 hash of the ciphertext is correctly calculated</li>
 </ul>
 <p><img alt="wiring_anon_nullifier_qurrency" src="../../images/circuit_wiring_anon_nullifier_qurrency.jpg" /></p>
+<h1 id="zero-knowledge-circuit-setup">Zero-Knowledge Circuit Setup<a class="headerlink" href="#zero-knowledge-circuit-setup" title="Permanent link">&para;</a></h1>
+<p>In order to initialize a zero-knowledge proof circuit corresponding to a particular auditor, we require information about the auditor's ML-KEM public key to be encoded into the circuit.</p>
+<h2 id="background">Background<a class="headerlink" href="#background" title="Permanent link">&para;</a></h2>
+<p><a href="https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.203.pdf">ML-KEM</a> is a key-encapsulation mechanism, which internally initializes and uses a public key encryption scheme referred to as K-PKE. The Qurrency protocol uses this internal PKE scheme to provide post-quantum secure public key encryption. K-PKE was chosen because to date it is the only post-quantum secure PKE scheme to appear in a NIST standardization. It has been selected for standardization as a standalone post-quantum secure PKE scheme, and the standardization process is expected to complete by 2027.</p>
+<p>For any implementation, calling <span class="arithmatex">\(\mathsf{ML\mathrm{-}KEM}.\mathsf{KeyGen}()\)</span> will return an encapsulation key <code>ek</code> and a decapsulation key <code>dk</code>. Since <code>ek</code> is identical to the public key of the internal PKE scheme, we can directly use <code>ek</code> to build the ZK circuit. <code>ek</code> is an array of 800 bytes, of the following form:</p>
+<ul>
+<li>The first 768 bytes encode an array <code>t</code> of 512 integers modulo a prime <span class="arithmatex">\(q\)</span>, where <span class="arithmatex">\(q = 3329\)</span>. Each integer is encoded in 12 bits.</li>
+<li>The remaining 32 bytes is used as a random seed <code>rho</code>, which generates a matrix <code>a</code>. This is a 2x2 matrix, where each element is an array of 256 integers mod <span class="arithmatex">\(q\)</span>.</li>
+</ul>
+<p>Our circuits are designed for ML-KEM-512 in particular, so all parameters are chosen relative to this scheme.</p>
+<h2 id="circuit-generation">Circuit generation<a class="headerlink" href="#circuit-generation" title="Permanent link">&para;</a></h2>
+<p>For this example, we'll demonstrate the circuit generation process using the <code>mlkem</code> <a href="https://www.npmjs.com/package/mlkem">npm module</a>, although any secure ML-KEM implementation will suffice. After generating your keys:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">mlkem</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">MlKem512</span><span class="p">();</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kd">const</span><span class="w"> </span><span class="p">[</span><span class="nx">ek</span><span class="p">,</span><span class="w"> </span><span class="nx">dk</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">mlkem</span><span class="p">.</span><span class="nx">generateKeyPair</span><span class="p">();</span>
+</code></pre></div>
+<p>Securely store <code>dk</code> to use in audits. (In particular, auditing requires the first 768 bytes of <code>dk</code>, which corresponds to the private key of the PKE scheme.) Then setup the <code>kyber.circom</code> circuit inside <code>zkp/circuits/lib/kyber</code> with the following steps.</p>
+<ol>
+<li>Separate <code>ek</code> into <code>t</code> (the first 768 bytes) and <code>rho</code> (the remaining 32 bytes).</li>
+<li>For each 384-byte half <code>ti</code> of <code>t</code>, compute <code>polyFromBytes(ti)</code>. This is the <code>mlkem</code> implementation of <span class="arithmatex">\(\mathsf{ByteDecode}_{12}\)</span> from the ML-KEM specification. It decodes the two halves of <code>t</code> back into arrays of integers. These two arrays can be inserted as <code>t[0]</code> and <code>t[1]</code> inside the <code>kyber_enc</code> circuit.</li>
+<li>Compute the matrix <code>a</code> as <code>_sampleMatrix(rho, false)</code>. In the ML-KEM specification, each entry <code>a[i,j]</code> of <code>a</code> is computed as <span class="arithmatex">\(\mathsf{SampleNTT}(\rho \mathbin\Vert j \mathbin\Vert i)\)</span>. In <code>mlkem</code>, this function computes all four entries of <code>a</code> at once. These can then be inserted into the corresponding <code>a[0][0]</code>, <code>a[0][1]</code>, <code>a[1][0]</code>, and <code>a[1][1]</code> inside the <code>kyber_enc</code> circuit.</li>
+</ol>
+<p>After this, circuit generation is complete, and setup can continue the same as all other Zeto tokens.</p>
+<p><strong>Note</strong>: The <code>_sampleMatrix</code> function is not exposed by the <code>mlkem</code> library for external use, so for circuit initialization, you may have to either re-implement this functionality, or temporarily modify the library to expose this.</p>
 
 
 
