@@ -7,7 +7,6 @@ sed -i '' 's/private _sampleMatrix[(]/public _sampleMatrix(/g' src/mlKemBase.ts
 sed -i '' 's/function polyFromBytes[(]a: Uint8Array[)]: Array<number> [{]/export function polyFromBytes(a: Uint8Array): Array<number> {/g' src/mlKemBase.ts
 
 cp ../generateQurrencyKey.ts ./generateQurrencyKey.ts
-
 deno run generateQurrencyKey.ts
 
 cd ..

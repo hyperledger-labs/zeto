@@ -13,7 +13,6 @@ let t1_out = polyFromBytes(t1);
 
 let a = m._sampleMatrix(rho, false);
 
-console.log(`ek: [${ek}] ${ek.length}\n`);
 console.log(`t[0]: [${t0_out.slice(0,256)}]\n`);
 console.log(`t[1]: [${t1_out.slice(0,256)}]\n`);
 console.log(`a[0][0]: [${a[0][0].slice(0,256)}]\n`);
