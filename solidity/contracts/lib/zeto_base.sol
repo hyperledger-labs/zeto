@@ -158,27 +158,39 @@ abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
         uint256[] memory lockedOutputs,
         bool inputsLocked
     ) internal {
+        processInputs(inputs, inputsLocked);
+        processOutputs(outputs);
+        processLockedOutputs(lockedOutputs);
+    }
+
+    function processInputs(
+        uint256[] memory inputs,
+        bool inputsLocked
+    ) internal {
         mapping(uint256 => UTXOStatus) storage utxos = inputsLocked
             ? _lockedUtxos
             : _utxos;
-        // accept the transaction to consume the input UTXOs and produce new UTXOs
+        // consume the input UTXOs
         for (uint256 i = 0; i < inputs.length; ++i) {
-            if (inputs[i] == 0) {
-                continue;
+            if (inputs[i] != 0) {
+                utxos[inputs[i]] = UTXOStatus.SPENT;
             }
-            utxos[inputs[i]] = UTXOStatus.SPENT;
         }
+    }
+
+    function processOutputs(uint256[] memory outputs) internal {
         for (uint256 i = 0; i < outputs.length; ++i) {
-            if (outputs[i] == 0) {
-                continue;
+            if (outputs[i] != 0) {
+                _utxos[outputs[i]] = UTXOStatus.UNSPENT;
             }
-            _utxos[outputs[i]] = UTXOStatus.UNSPENT;
         }
+    }
+
+    function processLockedOutputs(uint256[] memory lockedOutputs) internal {
         for (uint256 i = 0; i < lockedOutputs.length; ++i) {
-            if (lockedOutputs[i] == 0) {
-                continue;
+            if (lockedOutputs[i] != 0) {
+                _lockedUtxos[lockedOutputs[i]] = UTXOStatus.UNSPENT;
             }
-            _lockedUtxos[lockedOutputs[i]] = UTXOStatus.UNSPENT;
         }
     }
 
@@ -188,32 +200,24 @@ abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
         uint256[] memory utxos,
         bytes calldata data
     ) internal virtual {
-        for (uint256 i = 0; i < utxos.length; ++i) {
-            uint256 utxo = utxos[i];
-            if (_utxos[utxo] == UTXOStatus.UNSPENT) {
-                revert UTXOAlreadyOwned(utxo);
-            } else if (_utxos[utxo] == UTXOStatus.SPENT) {
-                revert UTXOAlreadySpent(utxo);
-            }
-
-            _utxos[utxo] = UTXOStatus.UNSPENT;
-        }
+        validateOutputs(utxos);
+        processOutputs(utxos);
         emit UTXOMint(utxos, msg.sender, data);
     }
 
-    // This function is used to burn UTXOs
+    // The caller function must perform the proof verification
     function _burn(
-        uint256[] memory utxos,
+        uint256[] memory inputs,
+        uint256 output,
         bytes calldata data
     ) internal virtual {
-        validateInputs(utxos, false);
-        for (uint256 i = 0; i < utxos.length; ++i) {
-            if (utxos[i] == 0) {
-                continue;
-            }
-            _utxos[utxos[i]] = UTXOStatus.SPENT;
-        }
-        emit UTXOBurn(utxos, msg.sender, data);
+        validateInputs(inputs, false);
+        uint256[] memory outputStates = new uint256[](1);
+        outputStates[0] = output;
+        validateOutputs(outputStates);
+        processInputs(inputs, false);
+        processOutputs(outputStates);
+        emit UTXOBurn(inputs, output, msg.sender, data);
     }
 
     // Locks the UTXOs so that they can only be spent by submitting the appropriate

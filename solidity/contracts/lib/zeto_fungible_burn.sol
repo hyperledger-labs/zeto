@@ -81,6 +81,6 @@ abstract contract ZetoFungibleBurnable is ZetoBase {
             );
         }
 
-        _burn(inputs, data);
+        _burn(inputs, output, data);
     }
 }

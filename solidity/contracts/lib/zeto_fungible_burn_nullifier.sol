@@ -118,6 +118,6 @@ abstract contract ZetoFungibleBurnableWithNullifiers is ZetoNullifier {
             );
         }
 
-        _burn(nullifiers, root, data);
+        _burn(nullifiers, output, root, data);
     }
 }

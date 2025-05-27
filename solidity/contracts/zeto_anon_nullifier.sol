@@ -244,7 +244,7 @@ contract Zeto_AnonNullifier is
         validateTransactionProposal(nullifiers, allOutputs, root, false);
         verifyProof(nullifiers, allOutputs, root, proof);
 
-        spendNullifiers(nullifiers);
+        processNullifiers(nullifiers);
 
         // lock the intended outputs
         _lock(nullifiers, outputs, lockedOutputs, delegate, data);

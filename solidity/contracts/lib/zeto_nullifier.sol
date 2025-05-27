@@ -128,12 +128,31 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
         uint256[] memory lockedOutputs,
         address delegate
     ) internal {
-        spendNullifiers(nullifiers);
+        processNullifiers(nullifiers);
+        processOutputs(outputs);
+        processLockedOutputs(lockedOutputs, delegate);
+    }
+
+    function processNullifiers(uint256[] memory nullifiers) internal {
+        for (uint256 i = 0; i < nullifiers.length; ++i) {
+            if (nullifiers[i] != 0) {
+                _nullifiers[nullifiers[i]] = true;
+            }
+        }
+    }
+
+    function processOutputs(uint256[] memory outputs) internal {
         for (uint256 i = 0; i < outputs.length; ++i) {
             if (outputs[i] != 0) {
                 _commitmentsTree.addLeaf(outputs[i], outputs[i]);
             }
         }
+    }
+
+    function processLockedOutputs(
+        uint256[] memory lockedOutputs,
+        address delegate
+    ) internal {
         for (uint256 i = 0; i < lockedOutputs.length; ++i) {
             if (lockedOutputs[i] != 0) {
                 _lockedCommitmentsTree.addLeaf(
@@ -144,46 +163,31 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
         }
     }
 
-    function spendNullifiers(uint256[] memory nullifiers) internal {
-        for (uint256 i = 0; i < nullifiers.length; ++i) {
-            if (nullifiers[i] != 0) {
-                _nullifiers[nullifiers[i]] = true;
-            }
-        }
-    }
-
     // This function is used to mint new UTXOs, as an example implementation,
     // which is only callable by the owner.
     function _mint(
         uint256[] memory utxos,
         bytes calldata data
     ) internal virtual {
-        for (uint256 i = 0; i < utxos.length; ++i) {
-            uint256 utxo = utxos[i];
-            if (utxo == 0) {
-                continue;
-            }
-
-            if (exists(utxo)) {
-                revert UTXOAlreadyOwned(utxo);
-            }
-
-            _commitmentsTree.addLeaf(utxo, utxo);
-        }
-
+        validateOutputs(utxos);
+        processOutputs(utxos);
         emit UTXOMint(utxos, msg.sender, data);
     }
 
     // This function is used to burn the owner's UTXOs
     function _burn(
         uint256[] memory nullifiers,
+        uint256 output,
         uint256 root,
         bytes calldata data
     ) internal virtual {
         validateNullifiers(nullifiers);
+        uint256[] memory outputStates = new uint256[](1);
+        outputStates[0] = output;
+        validateOutputs(outputStates);
         validateRoot(root, false);
 
-        emit UTXOBurn(nullifiers, msg.sender, data);
+        emit UTXOBurn(nullifiers, output, msg.sender, data);
     }
 
     function getRoot() public view returns (uint256) {
