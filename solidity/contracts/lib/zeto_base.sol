@@ -70,7 +70,6 @@ abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
         }
         validateInputs(inputs, inputsLocked);
         validateOutputs(allOutputs);
-        validateLockedOutputs(lockedOutputs);
 
         return true;
     }
@@ -149,25 +148,6 @@ abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
                 _lockedUtxos[outputs[i]] == UTXOStatus.UNSPENT
             ) {
                 revert UTXOAlreadyOwned(outputs[i]);
-            }
-        }
-    }
-
-    function validateLockedOutputs(
-        uint256[] memory lockedOutputs
-    ) internal view {
-        // check the locked outputs are all new - looking in the locked and unlocked UTXOs
-        for (uint256 i = 0; i < lockedOutputs.length; ++i) {
-            if (
-                _lockedUtxos[lockedOutputs[i]] == UTXOStatus.SPENT ||
-                _utxos[lockedOutputs[i]] == UTXOStatus.SPENT
-            ) {
-                revert UTXOAlreadySpent(lockedOutputs[i]);
-            } else if (
-                _lockedUtxos[lockedOutputs[i]] == UTXOStatus.UNSPENT ||
-                _utxos[lockedOutputs[i]] == UTXOStatus.UNSPENT
-            ) {
-                revert UTXOAlreadyOwned(lockedOutputs[i]);
             }
         }
     }

@@ -55,16 +55,15 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
         uint256 root,
         bool isLocked
     ) internal view returns (bool) {
-        validateNullifiers(nullifiers, isLocked);
-        validateOutputs(outputs, isLocked);
+        validateNullifiers(nullifiers);
+        validateOutputs(outputs);
         validateRoot(root, isLocked);
 
         return true;
     }
 
     function validateNullifiers(
-        uint256[] memory nullifiers,
-        bool isLocked
+        uint256[] memory nullifiers
     ) internal view returns (bool) {
         // sort the nullifiers to detect duplicates
         uint256[] memory sortedInputs = sortCommitments(nullifiers);
@@ -85,8 +84,7 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
     }
 
     function validateOutputs(
-        uint256[] memory outputs,
-        bool isLocked
+        uint256[] memory outputs
     ) internal view returns (bool) {
         // sort the outputs to detect duplicates
         uint256[] memory sortedOutputs = sortCommitments(outputs);
@@ -182,7 +180,7 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
         uint256 root,
         bytes calldata data
     ) internal virtual {
-        validateNullifiers(nullifiers, false);
+        validateNullifiers(nullifiers);
         validateRoot(root, false);
 
         emit UTXOBurn(nullifiers, msg.sender, data);
