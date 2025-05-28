@@ -61,10 +61,7 @@ template Burn(numInputs) {
   for (var i = 0; i < numInputs; i++) {
     sumInputs = sumInputs + inputValues[i];
   }
-
-  // check that the sum of input values is greater than the sum of output values
   var greaterEqThan;
   greaterEqThan = GreaterEqThan(100)(in <== [sumInputs, outputValue]);
-
   greaterEqThan === 1;
 }
