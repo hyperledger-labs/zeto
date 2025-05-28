@@ -1,4 +1,4 @@
-// Copyright © 2024 Kaleido, Inc.
+// Copyright © 2025 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import { ethers, ignition } from "hardhat";
-import zetoModule from "../../ignition/modules/zeto_anon_enc";
+import zetoModule from "../../ignition/modules/zeto_anon_burnable";
 
 export async function deployDependencies() {
   const [deployer] = await ethers.getSigners();
@@ -23,9 +23,11 @@ export async function deployDependencies() {
   const {
     depositVerifier,
     withdrawVerifier,
+    burnVerifier,
     verifier,
     batchVerifier,
     batchWithdrawVerifier,
+    batchBurnVerifier,
   } = await ignition.deploy(zetoModule);
   return {
     deployer,
@@ -35,12 +37,12 @@ export async function deployDependencies() {
         verifier: verifier.target,
         depositVerifier: depositVerifier.target,
         withdrawVerifier: withdrawVerifier.target,
+        burnVerifier: burnVerifier.target,
         batchVerifier: batchVerifier.target,
         batchWithdrawVerifier: batchWithdrawVerifier.target,
+        batchBurnVerifier: batchBurnVerifier.target,
         lockVerifier: "0x0000000000000000000000000000000000000000",
         batchLockVerifier: "0x0000000000000000000000000000000000000000",
-        burnVerifier: "0x0000000000000000000000000000000000000000",
-        batchBurnVerifier: "0x0000000000000000000000000000000000000000",
       }
     ],
   };

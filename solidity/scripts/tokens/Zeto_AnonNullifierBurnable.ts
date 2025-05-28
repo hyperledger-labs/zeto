@@ -1,4 +1,4 @@
-// Copyright © 2024 Kaleido, Inc.
+// Copyright © 2025 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import { ethers, ignition } from "hardhat";
-import zetoModule from "../../ignition/modules/zeto_anon_enc";
+import zetoModule from "../../ignition/modules/zeto_anon_nullifier_burnable";
 
 export async function deployDependencies() {
   const [deployer] = await ethers.getSigners();
@@ -24,8 +24,14 @@ export async function deployDependencies() {
     depositVerifier,
     withdrawVerifier,
     verifier,
+    lockVerifier,
     batchVerifier,
+    batchLockVerifier,
     batchWithdrawVerifier,
+    burnVerifier,
+    batchBurnVerifier,
+    smtLib,
+    poseidon3,
   } = await ignition.deploy(zetoModule);
   return {
     deployer,
@@ -37,11 +43,15 @@ export async function deployDependencies() {
         withdrawVerifier: withdrawVerifier.target,
         batchVerifier: batchVerifier.target,
         batchWithdrawVerifier: batchWithdrawVerifier.target,
-        lockVerifier: "0x0000000000000000000000000000000000000000",
-        batchLockVerifier: "0x0000000000000000000000000000000000000000",
-        burnVerifier: "0x0000000000000000000000000000000000000000",
-        batchBurnVerifier: "0x0000000000000000000000000000000000000000",
+        lockVerifier: lockVerifier.target,
+        batchLockVerifier: batchLockVerifier.target,
+        burnVerifier: burnVerifier.target,
+        batchBurnVerifier: batchBurnVerifier.target,
       }
     ],
+    libraries: {
+      SmtLib: smtLib.target,
+      PoseidonUnit3L: poseidon3.target,
+    },
   };
 }
