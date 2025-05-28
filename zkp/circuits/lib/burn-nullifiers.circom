@@ -73,7 +73,6 @@ template BurnNullifiers(numInputs, nSMTLevels) {
   // Merkle Tree with the root `root`.
   CheckSMTProof(numInputs, nSMTLevels)(root <== root, merkleProof <== merkleProof, enabled <== enabled, leafNodeIndexes <== inputCommitments, leafNodeValues <== inputCommitments);
 
-  // check that the sum of input values equals the sum of output values
   var sumInputs = 0;
   for (var i = 0; i < numInputs; i++) {
     sumInputs = sumInputs + inputValues[i];
