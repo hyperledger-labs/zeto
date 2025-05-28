@@ -133,6 +133,6 @@ describe('burn circuit tests', () => {
       // console.log(e);
       error = e;
     }
-    expect(error).to.match(/Error in template Burn_94 line: 69/);
+    expect(error).to.match(/Error in template Burn_94 line: 66/);
   });
 });

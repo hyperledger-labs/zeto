@@ -190,6 +190,6 @@ describe('burn_nullifier circuit tests', () => {
       // console.log('error', e);
       error = e;
     }
-    expect(error).to.match(/Error in template BurnNullifiers_251 line: 86/);
+    expect(error).to.match(/Error in template BurnNullifiers_251 line: 83/);
   });
 });
