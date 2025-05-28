@@ -136,7 +136,7 @@ contract Zeto_NfAnonNullifier is
         validateTransactionProposal(nullifiers, lockedOutputs, root, false);
         checkProof(nullifiers, lockedOutputs, root, proof);
 
-        spendNullifiers(nullifiers);
+        processNullifiers(nullifiers);
 
         // lock the intended outputs
         uint256[] memory outputs;

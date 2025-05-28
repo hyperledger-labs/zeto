@@ -42,3 +42,5 @@
 [data-md-color-scheme="zeto-dark"] img[src$="#only-light"] {
     display: none;
 }
+
+img[alt=pqc] { width: 75px; border-radius: 15px; }

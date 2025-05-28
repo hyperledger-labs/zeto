@@ -68,10 +68,18 @@ abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
         for (uint256 i = 0; i < lockedOutputs.length; i++) {
             allOutputs[outputs.length + i] = lockedOutputs[i];
         }
-        // sort the inputs and outputs to detect duplicates
-        uint256[] memory sortedInputs = sortCommitments(inputs);
-        uint256[] memory sortedOutputs = sortCommitments(allOutputs);
+        validateInputs(inputs, inputsLocked);
+        validateOutputs(allOutputs);
 
+        return true;
+    }
+
+    function validateInputs(
+        uint256[] memory inputs,
+        bool inputsLocked
+    ) internal view {
+        // sort the inputs to detect duplicates
+        uint256[] memory sortedInputs = sortCommitments(inputs);
         // Check the inputs are all unspent
         for (uint256 i = 0; i < sortedInputs.length; ++i) {
             if (sortedInputs[i] == 0) {
@@ -111,6 +119,11 @@ abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
                 );
             }
         }
+    }
+
+    function validateOutputs(uint256[] memory outputs) internal view {
+        // sort the outputs to detect duplicates
+        uint256[] memory sortedOutputs = sortCommitments(outputs);
 
         // Check for duplicate outputs
         for (uint256 i = 0; i < sortedOutputs.length; ++i) {
@@ -137,22 +150,6 @@ abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
                 revert UTXOAlreadyOwned(outputs[i]);
             }
         }
-
-        // check the locked outputs are all new - looking in the locked and unlocked UTXOs
-        for (uint256 i = 0; i < lockedOutputs.length; ++i) {
-            if (
-                _lockedUtxos[lockedOutputs[i]] == UTXOStatus.SPENT ||
-                _utxos[lockedOutputs[i]] == UTXOStatus.SPENT
-            ) {
-                revert UTXOAlreadySpent(lockedOutputs[i]);
-            } else if (
-                _lockedUtxos[lockedOutputs[i]] == UTXOStatus.UNSPENT ||
-                _utxos[lockedOutputs[i]] == UTXOStatus.UNSPENT
-            ) {
-                revert UTXOAlreadyOwned(lockedOutputs[i]);
-            }
-        }
-        return true;
     }
 
     function processInputsAndOutputs(
@@ -161,27 +158,39 @@ abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
         uint256[] memory lockedOutputs,
         bool inputsLocked
     ) internal {
+        processInputs(inputs, inputsLocked);
+        processOutputs(outputs);
+        processLockedOutputs(lockedOutputs);
+    }
+
+    function processInputs(
+        uint256[] memory inputs,
+        bool inputsLocked
+    ) internal {
         mapping(uint256 => UTXOStatus) storage utxos = inputsLocked
             ? _lockedUtxos
             : _utxos;
-        // accept the transaction to consume the input UTXOs and produce new UTXOs
+        // consume the input UTXOs
         for (uint256 i = 0; i < inputs.length; ++i) {
-            if (inputs[i] == 0) {
-                continue;
+            if (inputs[i] != 0) {
+                utxos[inputs[i]] = UTXOStatus.SPENT;
             }
-            utxos[inputs[i]] = UTXOStatus.SPENT;
         }
+    }
+
+    function processOutputs(uint256[] memory outputs) internal {
         for (uint256 i = 0; i < outputs.length; ++i) {
-            if (outputs[i] == 0) {
-                continue;
+            if (outputs[i] != 0) {
+                _utxos[outputs[i]] = UTXOStatus.UNSPENT;
             }
-            _utxos[outputs[i]] = UTXOStatus.UNSPENT;
         }
+    }
+
+    function processLockedOutputs(uint256[] memory lockedOutputs) internal {
         for (uint256 i = 0; i < lockedOutputs.length; ++i) {
-            if (lockedOutputs[i] == 0) {
-                continue;
+            if (lockedOutputs[i] != 0) {
+                _lockedUtxos[lockedOutputs[i]] = UTXOStatus.UNSPENT;
             }
-            _lockedUtxos[lockedOutputs[i]] = UTXOStatus.UNSPENT;
         }
     }
 
@@ -191,18 +200,26 @@ abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
         uint256[] memory utxos,
         bytes calldata data
     ) internal virtual {
-        for (uint256 i = 0; i < utxos.length; ++i) {
-            uint256 utxo = utxos[i];
-            if (_utxos[utxo] == UTXOStatus.UNSPENT) {
-                revert UTXOAlreadyOwned(utxo);
-            } else if (_utxos[utxo] == UTXOStatus.SPENT) {
-                revert UTXOAlreadySpent(utxo);
-            }
-
-            _utxos[utxo] = UTXOStatus.UNSPENT;
-        }
+        validateOutputs(utxos);
+        processOutputs(utxos);
         emit UTXOMint(utxos, msg.sender, data);
     }
+
+    // The caller function must perform the proof verification
+    function _burn(
+        uint256[] memory inputs,
+        uint256 output,
+        bytes calldata data
+    ) internal virtual {
+        validateInputs(inputs, false);
+        uint256[] memory outputStates = new uint256[](1);
+        outputStates[0] = output;
+        validateOutputs(outputStates);
+        processInputs(inputs, false);
+        processOutputs(outputStates);
+        emit UTXOBurn(inputs, output, msg.sender, data);
+    }
+
     // Locks the UTXOs so that they can only be spent by submitting the appropriate
     // proof from the Eth account designated as the "delegate". This function
     // should be called by a participant, to designate an escrow contract as the delegate,

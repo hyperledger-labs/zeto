@@ -10,13 +10,13 @@ Zeto implements several practical smart contracts on EVM for privacy-preserving 
 
 We provide a variety of token implementations that achieve targeted subsets of these properties. Each token is provided in two variants: one which accepts 2 input UTXOs and 2 output UTXOs per transaction, and a corresponding `_batch` version accepting 10 inputs and outputs per transaction, albeit with higher ZKP overhead.
 
-Refer to the [Zeto website](https://hyperledger-labs.github.io/zeto/latest/) for more information.
+Refer to the [Zeto website](https://hyperledger-labs.github.io/zeto/head/) for more information.
 
 # Subprojects
 
 There are 4 subprojects. Navigate to each subproject to run the tests and learn how to use each library:
 
-- [Javascript library for proof generation](./zkp/js/): For getting started, **build this first.** This library pre-compiles all included circuits, and initializes ZK proof secrets *for testing purposes only.*
+- [Javascript library for proof generation](./zkp/js/): For getting started, **build this first.** This library pre-compiles all included circuits, and initializes ZK proof secrets _for testing purposes only._
 - [ZKP circuits](./zkp/circuits/): Core zero-knowledge proofs for enforcing the required security goals.
 - [Samples of Zeto token implementations in Solidity](./solidity/): Sample Solidity contracts for all ZKP-based Zeto privacy patterns, including examples of deployment in a test environment.
 - [Golang SDK](./go-sdk/): An interface to interact with Zeto tokens in golang. This includes a Sparse Merkle Tree implementation, Babyjubjub key manipulations, and proof generation via compiled circom circuits in WASM format.
