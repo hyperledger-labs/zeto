@@ -61,11 +61,21 @@ template BurnNullifiers(numInputs, nSMTLevels) {
 
   CheckPositive(1)(outputValues <== [outputValue]);
 
-  CheckHashes(numInputs)(commitments <== inputCommitments, values <== inputValues, salts <== inputSalts, ownerPublicKeys <== ownerPublicKeys);
+  CommitmentInputs() inAuxInputs[numInputs];
+  for (var i = 0; i < numInputs; i++) {
+    inAuxInputs[i].value <== inputValues[i];
+    inAuxInputs[i].salt <== inputSalts[i];
+    inAuxInputs[i].ownerPublicKey <== [ownerPubKeyAx, ownerPubKeyAy];
+  }
+  CheckHashes(numInputs)(commitmentHashes <== inputCommitments, commitmentInputs <== inAuxInputs);
 
   CheckNullifiers(numInputs)(nullifiers <== nullifiers, values <== inputValues, salts <== inputSalts, ownerPrivateKey <== ownerPrivateKey);
 
-  CheckHashes(1)(commitments <== [outputCommitment], values <== [outputValue], salts <== [outputSalt], ownerPublicKeys <== [[ownerPubKeyAx, ownerPubKeyAy]]);
+  CommitmentInputs() outAuxInputs[1];
+  outAuxInputs[0].value <== outputValue;
+  outAuxInputs[0].salt <== outputSalt;
+  outAuxInputs[0].ownerPublicKey <== [ownerPubKeyAx, ownerPubKeyAy];
+  CheckHashes(1)(commitmentHashes <== [outputCommitment], commitmentInputs <== outAuxInputs);
 
   // With the above steps, we demonstrated that the nullifiers
   // are securely bound to the input commitments. Now we need to

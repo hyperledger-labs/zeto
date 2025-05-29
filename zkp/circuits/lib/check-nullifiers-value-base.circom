@@ -32,21 +32,21 @@ include "./check-smt-proof.circom";
 // commitment = hash(value, salt, owner public key)
 // nullifier = hash(value, salt, ownerPrivatekey)
 //
-template CheckNullifiersInputsOutputsValue(numInputs, numOutputs, nSMTLevels) {
-  signal input nullifiers[numInputs];
-  signal input inputCommitments[numInputs];
-  signal input inputValues[numInputs];
-  signal input inputSalts[numInputs];
+template CheckNullifiersInputsOutputsValue(nInputs, nOutputs, nSMTLevels) {
+  signal input nullifiers[nInputs];
+  signal input inputCommitments[nInputs];
+  signal input inputValues[nInputs];
+  signal input inputSalts[nInputs];
   // must be properly hashed and trimmed to be compatible with the BabyJub curve.
   // Reference: https://github.com/iden3/circomlib/blob/master/test/babyjub.js#L103
   signal input inputOwnerPrivateKey;
   signal input root;
-  signal input merkleProof[numInputs][nSMTLevels];
-  signal input enabled[numInputs];
-  signal input outputCommitments[numOutputs];
-  signal input outputValues[numOutputs];
-  signal input outputSalts[numOutputs];
-  signal input outputOwnerPublicKeys[numOutputs][2];
+  signal input merkleProof[nInputs][nSMTLevels];
+  signal input enabled[nInputs];
+  signal input outputCommitments[nOutputs];
+  signal input outputValues[nOutputs];
+  signal input outputSalts[nOutputs];
+  signal input outputOwnerPublicKeys[nOutputs][2];
   signal output out;
 
   // derive the sender's public key from the secret input
@@ -56,32 +56,40 @@ template CheckNullifiersInputsOutputsValue(numInputs, numOutputs, nSMTLevels) {
   var inputOwnerPubKeyAx, inputOwnerPubKeyAy;
   (inputOwnerPubKeyAx, inputOwnerPubKeyAy) = BabyPbk()(in <== inputOwnerPrivateKey);
 
-  var inputOwnerPublicKeys[numInputs][2];
-  for (var i = 0; i < numInputs; i++) {
-    inputOwnerPublicKeys[i] = [inputOwnerPubKeyAx, inputOwnerPubKeyAy];
+  CheckPositive(nOutputs)(outputValues <== outputValues);
+
+  CommitmentInputs() inAuxInputs[nInputs];
+  for (var i = 0; i < nInputs; i++) {
+    inAuxInputs[i].value <== inputValues[i];
+    inAuxInputs[i].salt <== inputSalts[i];
+    inAuxInputs[i].ownerPublicKey <== [inputOwnerPubKeyAx, inputOwnerPubKeyAy];
   }
 
-  CheckPositive(numOutputs)(outputValues <== outputValues);
+  CommitmentInputs() outAuxInputs[nOutputs];
+  for (var i = 0; i < nOutputs; i++) {
+    outAuxInputs[i].value <== outputValues[i];
+    outAuxInputs[i].salt <== outputSalts[i];
+    outAuxInputs[i].ownerPublicKey <== outputOwnerPublicKeys[i];
+  }
 
-  CheckHashes(numInputs)(commitments <== inputCommitments, values <== inputValues, salts <== inputSalts, ownerPublicKeys <== inputOwnerPublicKeys);
+  CheckHashes(nInputs)(commitmentHashes <== inputCommitments, commitmentInputs <== inAuxInputs);
 
-  CheckNullifiers(numInputs)(nullifiers <== nullifiers, values <== inputValues, salts <== inputSalts, ownerPrivateKey <== inputOwnerPrivateKey);
-
-  CheckHashes(numOutputs)(commitments <== outputCommitments, values <== outputValues, salts <== outputSalts, ownerPublicKeys <== outputOwnerPublicKeys);
+  CheckNullifiers(nInputs)(nullifiers <== nullifiers, values <== inputValues, salts <== inputSalts, ownerPrivateKey <== inputOwnerPrivateKey);
+  CheckHashes(nOutputs)(commitmentHashes <== outputCommitments, commitmentInputs <== outAuxInputs);
 
   // With the above steps, we demonstrated that the nullifiers
   // are securely bound to the input commitments. Now we need to
   // demonstrate that the input commitments belong to the Sparse
   // Merkle Tree with the root `root`.
-  CheckSMTProof(numInputs, nSMTLevels)(root <== root, merkleProof <== merkleProof, enabled <== enabled, leafNodeIndexes <== inputCommitments, leafNodeValues <== inputCommitments);
+  CheckSMTProof(nInputs, nSMTLevels)(root <== root, merkleProof <== merkleProof, enabled <== enabled, leafNodeIndexes <== inputCommitments, leafNodeValues <== inputCommitments);
 
   // check that the sum of input values equals the sum of output values
   var sumInputs = 0;
-  for (var i = 0; i < numInputs; i++) {
+  for (var i = 0; i < nInputs; i++) {
     sumInputs = sumInputs + inputValues[i];
   }
   var sumOutputs = 0;
-  for (var i = 0; i < numOutputs; i++) {
+  for (var i = 0; i < nOutputs; i++) {
     sumOutputs = sumOutputs + outputValues[i];
   }
 

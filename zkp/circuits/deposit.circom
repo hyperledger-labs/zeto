@@ -27,7 +27,14 @@ template Zeto(nOutputs) {
 
   CheckPositive(nOutputs)(outputValues <== outputValues);
 
-  CheckHashes(nOutputs)(commitments <== outputCommitments, values <== outputValues, salts <== outputSalts, ownerPublicKeys <== outputOwnerPublicKeys);
+  CommitmentInputs() auxInputs[nOutputs];
+  for (var i = 0; i < nOutputs; i++) {
+    auxInputs[i].value <== outputValues[i];
+    auxInputs[i].salt <== outputSalts[i];
+    auxInputs[i].ownerPublicKey <== outputOwnerPublicKeys[i];
+  }
+
+  CheckHashes(nOutputs)(commitmentHashes <== outputCommitments, commitmentInputs <== auxInputs);
 
   // calculate the sum of output values and set to the output
   var sumOutputs = 0;

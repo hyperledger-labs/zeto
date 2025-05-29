@@ -14,15 +14,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
-const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
-const { Poseidon, newSalt } = require('../index.js');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
+const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
+const { Poseidon, newSalt } = require("../index.js");
 
 const poseidonHash = Poseidon.poseidon4;
 
-describe('burn circuit tests', () => {
+describe("burn circuit tests", () => {
   let circuit;
 
   const Alice = {};
@@ -31,7 +31,7 @@ describe('burn circuit tests', () => {
   before(async function () {
     this.timeout(60000);
 
-    circuit = await wasm_tester(join(__dirname, '../../circuits/burn.circom'));
+    circuit = await wasm_tester(join(__dirname, "../../circuits/burn.circom"));
 
     let keypair = genKeypair();
     Alice.privKey = keypair.privKey;
@@ -39,7 +39,7 @@ describe('burn circuit tests', () => {
     senderPrivateKey = formatPrivKeyForBabyJub(Alice.privKey);
   });
 
-  it('should succeed for valid witness', async () => {
+  it("should succeed for valid witness", async () => {
     const values = [32, 40];
 
     // create two input UTXOs, each has their own salt, but same owner
@@ -62,7 +62,7 @@ describe('burn circuit tests', () => {
         outputValue: 70,
         outputSalt: salt3,
       },
-      true
+      true,
     );
 
     // console.log('witness', witness.slice(0, 10));
@@ -74,7 +74,7 @@ describe('burn circuit tests', () => {
     expect(witness[2]).to.equal(BigInt(inputCommitments[1]));
   });
 
-  it('should succeed for valid witness - single input', async () => {
+  it("should succeed for valid witness - single input", async () => {
     const values = [72, 0];
 
     // create two input UTXOs, each has their own salt, but same owner
@@ -95,14 +95,14 @@ describe('burn circuit tests', () => {
         outputValue: 70,
         outputSalt: salt3,
       },
-      true
+      true,
     );
 
     expect(witness[1]).to.equal(BigInt(inputCommitments[0]));
     expect(witness[2]).to.equal(BigInt(inputCommitments[1]));
   });
 
-  it('should fail if output is greater than sum of the inputs', async () => {
+  it("should fail if output is greater than sum of the inputs", async () => {
     const values = [32, 40];
 
     // create two input UTXOs, each has their own salt, but same owner
@@ -127,12 +127,12 @@ describe('burn circuit tests', () => {
           outputValue: 80,
           outputSalt: salt3,
         },
-        true
+        true,
       );
     } catch (e) {
       // console.log(e);
       error = e;
     }
-    expect(error).to.match(/Error in template Burn_94 line: 66/);
+    expect(error).to.match(/Error in template Burn_94 line: 76/);
   });
 });

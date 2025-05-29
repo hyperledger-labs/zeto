@@ -28,17 +28,17 @@ include "../node_modules/circomlib/circuits/smt/smtverifier.circom";
 // commitment = hash(tokenId, uri, salt, ownerPublicKey1, ownerPublicKey2)
 // nullifier = hash(tokenId, uri, salt, ownerPrivatekey)
 //
-template CheckNullifiersForTokenIdAndUri(numInputs) {
-  signal input tokenIds[numInputs];
-  signal input tokenUris[numInputs];
-  signal input nullifiers[numInputs];
-  signal input salts[numInputs];
+template CheckNullifiersForTokenIdAndUri(nInputs) {
+  signal input tokenIds[nInputs];
+  signal input tokenUris[nInputs];
+  signal input nullifiers[nInputs];
+  signal input salts[nInputs];
   // must be properly hashed and trimmed to be compatible with the BabyJub curve.
   // Reference: https://github.com/iden3/circomlib/blob/master/test/babyjub.js#L103
   signal input ownerPrivateKey;
 
   // calculate the nullifier values from the input values
-  for (var i = 0; i < numInputs; i++) {
+  for (var i = 0; i < nInputs; i++) {
     var calculatedHash;
     calculatedHash = Poseidon(4)([tokenIds[i], tokenUris[i], salts[i], ownerPrivateKey]);
 

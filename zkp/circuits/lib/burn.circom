@@ -52,9 +52,19 @@ template Burn(numInputs) {
 
   CheckPositive(1)(outputValues <== [outputValue]);
 
-  CheckHashes(numInputs)(commitments <== inputCommitments, values <== inputValues, salts <== inputSalts, ownerPublicKeys <== ownerPublicKeys);
+  CommitmentInputs() inAuxInputs[numInputs];
+  for (var i = 0; i < numInputs; i++) {
+    inAuxInputs[i].value <== inputValues[i];
+    inAuxInputs[i].salt <== inputSalts[i];
+    inAuxInputs[i].ownerPublicKey <== [ownerPubKeyAx, ownerPubKeyAy];
+  }
+  CheckHashes(numInputs)(commitmentHashes <== inputCommitments, commitmentInputs <== inAuxInputs);
 
-  CheckHashes(1)(commitments <== [outputCommitment], values <== [outputValue], salts <== [outputSalt], ownerPublicKeys <== [[ownerPubKeyAx, ownerPubKeyAy]]);
+  CommitmentInputs() outAuxInputs[1];
+  outAuxInputs[0].value <== outputValue;
+  outAuxInputs[0].salt <== outputSalt;
+  outAuxInputs[0].ownerPublicKey <== [ownerPubKeyAx, ownerPubKeyAy];
+  CheckHashes(1)(commitmentHashes <== [outputCommitment], commitmentInputs <== outAuxInputs);
 
   // check that the sum of input values is greater than or equal to the sum of output values
   var sumInputs = 0;

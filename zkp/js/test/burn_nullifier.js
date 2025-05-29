@@ -14,18 +14,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
-const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
-const { Poseidon, newSalt } = require('../index.js');
-const { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } = require('@iden3/js-merkletree');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
+const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
+const { Poseidon, newSalt } = require("../index.js");
+const {
+  Merkletree,
+  InMemoryDB,
+  str2Bytes,
+  ZERO_HASH,
+} = require("@iden3/js-merkletree");
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
 const poseidonHash3 = Poseidon.poseidon3;
 
-describe('burn_nullifier circuit tests', () => {
+describe("burn_nullifier circuit tests", () => {
   let circuit, smtAlice;
 
   const Alice = {};
@@ -34,7 +39,9 @@ describe('burn_nullifier circuit tests', () => {
   before(async function () {
     this.timeout(60000);
 
-    circuit = await wasm_tester(join(__dirname, '../../circuits/burn_nullifier.circom'));
+    circuit = await wasm_tester(
+      join(__dirname, "../../circuits/burn_nullifier.circom"),
+    );
 
     let keypair = genKeypair();
     Alice.privKey = keypair.privKey;
@@ -42,11 +49,11 @@ describe('burn_nullifier circuit tests', () => {
     senderPrivateKey = formatPrivKeyForBabyJub(Alice.privKey);
 
     // initialize the local storage for Alice to manage her UTXOs in the Spart Merkle Tree
-    const storage1 = new InMemoryDB(str2Bytes(''));
+    const storage1 = new InMemoryDB(str2Bytes(""));
     smtAlice = new Merkletree(storage1, true, SMT_HEIGHT);
   });
 
-  it('should succeed for valid witness', async () => {
+  it("should succeed for valid witness", async () => {
     const values = [32, 40];
 
     // create two input UTXOs, each has their own salt, but same owner
@@ -60,8 +67,16 @@ describe('burn_nullifier circuit tests', () => {
     const outputCommitment = poseidonHash([BigInt(70), salt3, ...Alice.pubKey]);
 
     // create the nullifiers for the inputs
-    const nullifier1 = poseidonHash3([BigInt(values[0]), salt1, senderPrivateKey]);
-    const nullifier2 = poseidonHash3([BigInt(values[1]), salt2, senderPrivateKey]);
+    const nullifier1 = poseidonHash3([
+      BigInt(values[0]),
+      salt1,
+      senderPrivateKey,
+    ]);
+    const nullifier2 = poseidonHash3([
+      BigInt(values[1]),
+      salt2,
+      senderPrivateKey,
+    ]);
     const nullifiers = [nullifier1, nullifier2];
 
     // calculate the root of the SMT
@@ -69,8 +84,14 @@ describe('burn_nullifier circuit tests', () => {
     await smtAlice.add(input2, input2);
 
     // generate the merkle proof for the inputs
-    const proof1 = await smtAlice.generateCircomVerifierProof(input1, ZERO_HASH);
-    const proof2 = await smtAlice.generateCircomVerifierProof(input2, ZERO_HASH);
+    const proof1 = await smtAlice.generateCircomVerifierProof(
+      input1,
+      ZERO_HASH,
+    );
+    const proof2 = await smtAlice.generateCircomVerifierProof(
+      input2,
+      ZERO_HASH,
+    );
 
     const witness = await circuit.calculateWitness(
       {
@@ -80,13 +101,16 @@ describe('burn_nullifier circuit tests', () => {
         inputSalts: [salt1, salt2],
         ownerPrivateKey: senderPrivateKey,
         root: proof1.root.bigInt(),
-        merkleProof: [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())],
+        merkleProof: [
+          proof1.siblings.map((s) => s.bigInt()),
+          proof2.siblings.map((s) => s.bigInt()),
+        ],
         enabled: [1, 1],
         outputCommitment,
         outputValue: 70,
         outputSalt: salt3,
       },
-      true
+      true,
     );
 
     // console.log('witness', witness.slice(0, 10));
@@ -99,7 +123,7 @@ describe('burn_nullifier circuit tests', () => {
     expect(witness[2]).to.equal(BigInt(nullifiers[1]));
   });
 
-  it('should succeed for valid witness - single input', async () => {
+  it("should succeed for valid witness - single input", async () => {
     const values = [72, 0];
 
     // create two input UTXOs, each has their own salt, but same owner
@@ -108,7 +132,11 @@ describe('burn_nullifier circuit tests', () => {
     const inputCommitments = [input1, 0];
 
     // create the nullifiers for the inputs
-    const nullifier1 = poseidonHash3([BigInt(values[0]), salt1, senderPrivateKey]);
+    const nullifier1 = poseidonHash3([
+      BigInt(values[0]),
+      salt1,
+      senderPrivateKey,
+    ]);
     const nullifiers = [nullifier1, 0];
 
     const salt3 = newSalt();
@@ -118,7 +146,10 @@ describe('burn_nullifier circuit tests', () => {
     await smtAlice.add(input1, input1);
 
     // generate the merkle proof for the inputs
-    const proof1 = await smtAlice.generateCircomVerifierProof(input1, ZERO_HASH);
+    const proof1 = await smtAlice.generateCircomVerifierProof(
+      input1,
+      ZERO_HASH,
+    );
     const proof2 = await smtAlice.generateCircomVerifierProof(0, ZERO_HASH);
 
     const witness = await circuit.calculateWitness(
@@ -129,20 +160,23 @@ describe('burn_nullifier circuit tests', () => {
         inputSalts: [salt1, 0],
         ownerPrivateKey: senderPrivateKey,
         root: proof1.root.bigInt(),
-        merkleProof: [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())],
+        merkleProof: [
+          proof1.siblings.map((s) => s.bigInt()),
+          proof2.siblings.map((s) => s.bigInt()),
+        ],
         enabled: [1, 0],
         outputCommitment,
         outputValue: 70,
         outputSalt: salt3,
       },
-      true
+      true,
     );
 
     expect(witness[1]).to.equal(BigInt(nullifiers[0]));
     expect(witness[2]).to.equal(BigInt(nullifiers[1]));
   });
 
-  it('should fail if the output UTXO has a bigger value', async () => {
+  it("should fail if the output UTXO has a bigger value", async () => {
     const values = [32, 40];
 
     // create two input UTXOs, each has their own salt, but same owner
@@ -156,8 +190,16 @@ describe('burn_nullifier circuit tests', () => {
     const outputCommitment = poseidonHash([BigInt(80), salt3, ...Alice.pubKey]);
 
     // create the nullifiers for the inputs
-    const nullifier1 = poseidonHash3([BigInt(values[0]), salt1, senderPrivateKey]);
-    const nullifier2 = poseidonHash3([BigInt(values[1]), salt2, senderPrivateKey]);
+    const nullifier1 = poseidonHash3([
+      BigInt(values[0]),
+      salt1,
+      senderPrivateKey,
+    ]);
+    const nullifier2 = poseidonHash3([
+      BigInt(values[1]),
+      salt2,
+      senderPrivateKey,
+    ]);
     const nullifiers = [nullifier1, nullifier2];
 
     // calculate the root of the SMT
@@ -165,8 +207,14 @@ describe('burn_nullifier circuit tests', () => {
     await smtAlice.add(input2, input2);
 
     // generate the merkle proof for the inputs
-    const proof1 = await smtAlice.generateCircomVerifierProof(input1, ZERO_HASH);
-    const proof2 = await smtAlice.generateCircomVerifierProof(input2, ZERO_HASH);
+    const proof1 = await smtAlice.generateCircomVerifierProof(
+      input1,
+      ZERO_HASH,
+    );
+    const proof2 = await smtAlice.generateCircomVerifierProof(
+      input2,
+      ZERO_HASH,
+    );
 
     let error;
     try {
@@ -178,18 +226,21 @@ describe('burn_nullifier circuit tests', () => {
           inputSalts: [salt1, salt2],
           ownerPrivateKey: senderPrivateKey,
           root: proof1.root.bigInt(),
-          merkleProof: [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())],
+          merkleProof: [
+            proof1.siblings.map((s) => s.bigInt()),
+            proof2.siblings.map((s) => s.bigInt()),
+          ],
           enabled: [1, 1],
           outputCommitment,
           outputValue: 80,
           outputSalt: salt3,
         },
-        true
+        true,
       );
     } catch (e) {
       // console.log('error', e);
       error = e;
     }
-    expect(error).to.match(/Error in template BurnNullifiers_251 line: 83/);
+    expect(error).to.match(/Error in template BurnNullifiers_251 line: 93/);
   });
 });

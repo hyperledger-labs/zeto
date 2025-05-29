@@ -1,4 +1,4 @@
-// Copyright © 2024 Kaleido, Inc.
+// Copyright © 2025 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -15,6 +15,19 @@
 // limitations under the License.
 pragma circom 2.2.2;
 
-include "../../../circuits/lib/check-hashes.circom";
+bus CommitmentInputs(){
+    signal value;
+    signal salt;
+    signal ownerPublicKey[2];
+}
 
-component main {public [ commitmentHashes ]} = CheckHashes(2);
+template CheckPositiveValues(nInputs) {
+  input CommitmentInputs() commitmentInputs[nInputs];
+
+  // check that the output values are within the expected range. we don't allow negative values
+  for (var i = 0; i < nInputs; i++) {
+    var greaterEqThanZero;
+    greaterEqThanZero = GreaterEqThan(100)(in <== [commitmentInputs[i].value, 0]);
+    greaterEqThanZero === 1;
+  }
+}
