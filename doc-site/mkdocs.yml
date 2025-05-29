@@ -4,9 +4,9 @@ repo_url: https://github.com/hyperledger-labs/zeto
 theme:
   name: material
   custom_dir: overrides
-  logo: assets/paladin-logo-light.svg
-  logo_dark: assets/paladin-logo-dark.svg
-  favicon: assets/paladin-icon-light.png
+  logo: assets/zeto-logo-light.jpg
+  logo_dark: assets/zeto-logo-dark.jpg
+  favicon: assets/zeto-icon.jpg
   icon:
     repo: fontawesome/brands/github
   palette:
