@@ -43,7 +43,7 @@ export async function deployDependencies() {
         batchWithdrawVerifier: batchWithdrawVerifier.target,
         lockVerifier: lockVerifier.target,
         batchLockVerifier: batchLockVerifier.target,
-      }
+      },
     ],
     libraries: {
       SmtLib: smtLib.target,

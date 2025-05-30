@@ -473,8 +473,14 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
       const _utxo1 = newUTXO(1, Bob);
       const nullifier1 = newNullifier(utxo12, Alice);
       let root = await smtAlice.root();
-      const proof1 = await smtAlice.generateCircomVerifierProof(utxo12.hash, root);
-      const proof2 = await smtAlice.generateCircomVerifierProof(utxo12.hash, root);
+      const proof1 = await smtAlice.generateCircomVerifierProof(
+        utxo12.hash,
+        root,
+      );
+      const proof2 = await smtAlice.generateCircomVerifierProof(
+        utxo12.hash,
+        root,
+      );
       const merkleProofs = [
         proof1.siblings.map((s) => s.bigInt()),
         proof2.siblings.map((s) => s.bigInt()),

@@ -241,6 +241,21 @@ function getKyberCipherText(witnessObj, circuitName) {
   return cipherTexts;
 }
 
+function bitsToBytes(bitArray) {
+    const bytes = [];
+    for (let i = 0; i < bitArray.length; i += 8) {
+        let byte = 0; 
+        for (let j = 0; j < 8 && (i + j) < bitArray.length; j++) {
+            if (bitArray[i + j] === 1) {
+                byte |= (1 << (7 - j));
+            }
+        }    
+        bytes.push(byte);
+    }
+    
+    return new Uint8Array(bytes);
+}
+
 module.exports = {
   newSalt,
   newEncryptionNonce,
@@ -251,5 +266,6 @@ module.exports = {
   tokenUriHash,
   kycHash,
   getKyberCipherText,
+  bitsToBytes,
   CT_INDEX,
 };

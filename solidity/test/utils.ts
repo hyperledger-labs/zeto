@@ -222,5 +222,5 @@ export function randomBytesAsDigitArray(length: number) {
   for (let i = 0; i < bytes.length; i++) {
     s += bytes[i].toString(2).padStart(8, "0");
   }
-  return s.split('').map(b => parseInt(b));
+  return s.split("").map((b) => parseInt(b));
 }

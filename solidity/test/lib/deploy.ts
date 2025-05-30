@@ -49,10 +49,7 @@ export async function deployZeto(tokenName: string) {
       : deployNonFungibleCloneable;
     const result = await deployFunc(tokenName);
     ({ deployer, zetoImpl, erc20, args } = result as any);
-    let [
-      deployerAddr,
-      verifiers,
-    ] = args;
+    let [deployerAddr, verifiers] = args;
 
     // we want to test the effectiveness of the factory contract
     // to create clones of the Zeto implementation contract

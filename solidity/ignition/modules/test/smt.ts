@@ -15,9 +15,7 @@
 // limitations under the License.
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import {
-  SmtLibModule,
-} from "../lib/deps";
+import { SmtLibModule } from "../lib/deps";
 
 export default buildModule("testSmt", (m) => {
   const { smtLib, poseidon3 } = m.useModule(SmtLibModule);

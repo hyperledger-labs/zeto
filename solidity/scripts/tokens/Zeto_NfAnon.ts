@@ -33,7 +33,7 @@ export async function deployDependencies() {
         batchWithdrawVerifier: "0x0000000000000000000000000000000000000000",
         lockVerifier: "0x0000000000000000000000000000000000000000",
         batchLockVerifier: "0x0000000000000000000000000000000000000000",
-      }
+      },
     ],
   };
 }

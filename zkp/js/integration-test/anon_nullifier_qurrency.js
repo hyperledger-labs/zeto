@@ -289,9 +289,9 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
       const computedCiphertext = witness.slice(anqIndex, anqIndex + 768);
 
       const kpke = new mlkem.MlKem512();
-      const excepectedCiphertext = kpke._encap(pk, aesKey, r);
+      const expectedCiphertext = kpke._encap(pk, aesKey, r);
 
-      expect(computedCiphertext === excepectedCiphertext).to.be.true;
+      expect(computedCiphertext === expectedCiphertext).to.be.true;
 
       // console.log('nullifiers', nullifiers);
       // console.log('inputCommitments', inputCommitments);
