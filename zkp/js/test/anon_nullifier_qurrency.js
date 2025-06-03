@@ -26,7 +26,7 @@ const {
   ZERO_HASH,
 } = require("@iden3/js-merkletree");
 const { Poseidon, newSalt } = require("../index.js");
-const { hashCiphertext } = require("../lib/util.js");
+const { hashCiphertextAsFieldSignals } = require("../lib/util.js");
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
@@ -375,7 +375,7 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
     // snippet above.
     const CT_INDEX = 100975;
     const cipherTexts = witness.slice(CT_INDEX, CT_INDEX + 768);
-    const computed_pubSignals = hashCiphertext(cipherTexts);
+    const computed_pubSignals = hashCiphertextAsFieldSignals(cipherTexts);
 
     expect(witness[1]).to.equal(computed_pubSignals[0]);
     expect(witness[2]).to.equal(computed_pubSignals[1]);
@@ -386,7 +386,7 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
     //   bitsToBytes(randomness),
     // );
     // console.log(expectedCiphertext);
-    // const expectedPubSignals = hashCiphertext(expectedCiphertext);
+    // const expectedPubSignals = hashCiphertextAsFieldSignals(expectedCiphertext);
     // console.log(expectedPubSignals);
 
     // expect(expectedPubSignals[0]).to.equal(computed_pubSignals[0]);
@@ -545,7 +545,7 @@ describe("batch circuit tests for Zeto fungible tokens with anonymity using null
 
     const CT_INDEX = 410535;
     const cipherTexts = witness.slice(CT_INDEX, CT_INDEX + 768);
-    const computed_pubSignals = hashCiphertext(cipherTexts);
+    const computed_pubSignals = hashCiphertextAsFieldSignals(cipherTexts);
 
     expect(witness[1]).to.equal(computed_pubSignals[0]);
     expect(witness[2]).to.equal(computed_pubSignals[1]);

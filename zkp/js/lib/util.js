@@ -256,7 +256,16 @@ function bitsToBytes(bitArray) {
   return new Uint8Array(bytes);
 }
 
-function hashCiphertext(ciphertext) {
+/**
+ * This function maps a ciphertext (represented as bytes) to a hash digest output by the kyber_enc circuit.
+ * The circuit outputs a SHA256 hash, which fits in 256 bits, but field elements in the circuit are only 254 bits
+ * large. Because of this, the circuit represents one SHA256 hash in the form of two field elements, and the
+ * specific conversion algorithm is implemented below.
+ * @method hashCiphertextAsFieldSignals
+ * @param {Uint8Array} ciphertext
+ * @returns {bigint[]}
+ */
+function hashCiphertextAsFieldSignals(ciphertext) {
   const buff = Buffer.alloc(ciphertext.length);
   for (let i = 0; i < ciphertext.length; i++) {
     buff.writeUInt8(parseInt(ciphertext[i].toString()), i);
@@ -282,7 +291,6 @@ function hashCiphertext(ciphertext) {
   return computed_pubSignals;
 }
 
-
 module.exports = {
   newSalt,
   newEncryptionNonce,
@@ -294,6 +302,6 @@ module.exports = {
   kycHash,
   getKyberCipherText,
   bitsToBytes,
-  hashCiphertext,
+  hashCiphertextAsFieldSignals,
   CT_INDEX,
 };

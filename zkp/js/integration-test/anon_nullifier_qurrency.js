@@ -323,22 +323,22 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
 
       // Generate ciphertext intended for the auditor
       const aesPlaintext = JSON.stringify([
-        inputCommitments.map(x => Number(x)),
+        inputCommitments.map((x) => Number(x)),
         inputValues,
-        [salt1, salt2].map(x => Number(x)),
+        [salt1, salt2].map((x) => Number(x)),
         Number(Alice.pubKey),
-        outputValues.map(x => Number(x)),
-        [salt3, salt3].map(x => Number(x)),
-        [Bob.pubKey, Alice.pubKey].map(x => Number(x)),
+        outputValues.map((x) => Number(x)),
+        [salt3, salt3].map((x) => Number(x)),
+        [Bob.pubKey, Alice.pubKey].map((x) => Number(x)),
       ]);
 
       // Encrypt data for the auditor
-      const aesAlg = 'aes-256-cbc';
+      const aesAlg = "aes-256-cbc";
       const aesIV = await randomFillSync(new Uint8Array(16));
       const aesKey = bitsToBytes(m);
       const aesCipher = createCipheriv(aesAlg, aesKey, aesIV);
-      let aesCiphertext = aesCipher.update(aesPlaintext, 'utf8', 'hex');
-      aesCiphertext += aesCipher.final('hex');
+      let aesCiphertext = aesCipher.update(aesPlaintext, "utf8", "hex");
+      aesCiphertext += aesCipher.final("hex");
 
       const startTime = Date.now();
 
@@ -409,17 +409,19 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
       // Check that the computed AES and K-PKE ciphertexts are computed correctly
       const anqIndex = CT_INDEX["anon_nullifier_qurrency"];
       const computedCiphertext = witness.slice(anqIndex, anqIndex + 768);
-      expect(computedCiphertext).to.deep.equal(Array.from(ct).map((x) => BigInt(x)));
+      expect(computedCiphertext).to.deep.equal(
+        Array.from(ct).map((x) => BigInt(x)),
+      );
 
       // Check that the computed circuit outputs are computed correctly
       const computed_pubSignals = [witness[1], witness[2]];
       const expected_pubSignals = hashCiphertext(ct);
-      expect(computed_pubSignals).to.deep.equal(expected_pubSignals);      
+      expect(computed_pubSignals).to.deep.equal(expected_pubSignals);
 
       // Check that the AES ciphertext for the auditor decrypts correctly
       const aesDecipher = createDecipheriv(aesAlg, aesKey, aesIV);
-      let aesDecrypted = aesDecipher.update(aesCiphertext, 'hex', 'utf8');
-      aesDecrypted += aesDecipher.final('utf8');
+      let aesDecrypted = aesDecipher.update(aesCiphertext, "hex", "utf8");
+      aesDecrypted += aesDecipher.final("utf8");
       expect(aesDecrypted).to.deep.equal(aesPlaintext);
 
       const tamperedOutputHash = poseidonHash([
