@@ -1,43 +1,43 @@
-const fs = require("fs");
-const path = require("path");
-const { exec } = require("child_process");
-const { promisify } = require("util");
-const axios = require("axios");
-const yargs = require("yargs/yargs");
+const fs = require('fs');
+const path = require('path');
+const { exec } = require('child_process');
+const { promisify } = require('util');
+const axios = require('axios');
+const yargs = require('yargs/yargs');
 const blake = require('blakejs');
-const { hideBin } = require("yargs/helpers");
+const { hideBin } = require('yargs/helpers');
 const argv = yargs(hideBin(process.argv))
-  .option("c", {
-    alias: "circuit",
-    describe: "Specify a single circuit to build",
-    type: "string",
+  .option('c', {
+    alias: 'circuit',
+    describe: 'Specify a single circuit to build',
+    type: 'string',
   })
-  .option("v", {
-    alias: "verbose",
-    describe: "Enable verbose mode",
-    type: "boolean",
+  .option('v', {
+    alias: 'verbose',
+    describe: 'Enable verbose mode',
+    type: 'boolean',
     default: false,
   })
-  .option("cp", {
-    alias: "compileOnly",
-    describe: "Compile only",
-    type: "boolean",
+  .option('cp', {
+    alias: 'compileOnly',
+    describe: 'Compile only',
+    type: 'boolean',
     default: false,
   })
-  .option("cr", {
-    alias: "circuitsRoot",
-    describe: "Specify the root folder for storing circuits compilation files",
-    type: "string",
+  .option('cr', {
+    alias: 'circuitsRoot',
+    describe: 'Specify the root folder for storing circuits compilation files',
+    type: 'string',
   })
-  .option("pk", {
-    alias: "provingKeysRoot",
-    describe: "Specify the root folder for storing generated proving keys",
-    type: "string",
+  .option('pk', {
+    alias: 'provingKeysRoot',
+    describe: 'Specify the root folder for storing generated proving keys',
+    type: 'string',
   })
-  .option("pt", {
-    alias: "ptauDownloadPath",
-    describe: "Specify the root folder for storing downloaded PTAU",
-    type: "string",
+  .option('pt', {
+    alias: 'ptauDownloadPath',
+    describe: 'Specify the root folder for storing downloaded PTAU',
+    type: 'string',
   }).argv;
 
 const circuitsRoot = process.env.CIRCUITS_ROOT || argv.circuitsRoot;
@@ -50,22 +50,22 @@ const parallelLimit = parseInt(process.env.GEN_CONCURRENCY, 10) || 8; // Default
 
 // check env vars
 if (!circuitsRoot) {
-  console.error("Error: CIRCUITS_ROOT is not set.");
+  console.error('Error: CIRCUITS_ROOT is not set.');
   process.exit(1);
 }
 
 if (!compileOnly && !provingKeysRoot) {
-  console.error("Error: PROVING_KEYS_ROOT is not set.");
+  console.error('Error: PROVING_KEYS_ROOT is not set.');
   process.exit(1);
 }
 
 if (!compileOnly && !ptauDownload) {
-  console.error("Error: PTAU_DOWNLOAD_PATH is not set.");
+  console.error('Error: PTAU_DOWNLOAD_PATH is not set.');
   process.exit(1);
 }
 
 console.log(
-  "Generating circuits with the following settings:\n" +
+  'Generating circuits with the following settings:\n' +
     JSON.stringify(
       {
         specificCircuits,
@@ -77,21 +77,21 @@ console.log(
         ptauDownload,
       },
       null,
-      2,
+      2
     ) +
-    "\n",
+    '\n'
 );
 
 // load configuration
 
-const genConfig = require("./gen-config.json");
+const genConfig = require('./gen-config.json');
 const circuits = genConfig.circuits;
 
 const toCamelCase = (str) => {
   return str
-    .split("_")
+    .split('_')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join("");
+    .join('');
 };
 
 // util functions
@@ -102,50 +102,45 @@ const timestamp = () => new Date().toISOString();
 const logPrefix = (circuit) => `[${timestamp()}] [${circuit}]`;
 
 const log = (circuit, message) => {
-  console.log(logPrefix(circuit) + " " + message);
+  console.log(logPrefix(circuit) + ' ' + message);
 };
 
 const calculateHash = async (ptauFile) => {
-  return new Promise ((resolve, reject) => {
+  return new Promise((resolve, reject) => {
     const context = blake.blake2bInit(64, null);
     const ptauStream = fs.createReadStream(ptauFile);
 
-    ptauStream.on('data', chunk => {
+    ptauStream.on('data', (chunk) => {
       blake.blake2bUpdate(context, chunk);
     });
 
     ptauStream.on('end', () => {
       const computedHashBytes = blake.blake2bFinal(context);
-      const computedHash = Buffer.from(computedHashBytes).toString("hex");
+      const computedHash = Buffer.from(computedHashBytes).toString('hex');
       resolve(computedHash);
     });
 
-    ptauStream.on('error', err => {
+    ptauStream.on('error', (err) => {
       reject(err);
     });
   });
 };
 
 const downloadAndVerifyPtau = async (ptau) => {
-
   const ptauFile = path.join(ptauDownload, `${ptau}.ptau`);
   if (!compileOnly && !fs.existsSync(ptauFile)) {
     log(ptau, `PTAU file does not exist, downloading and verifying`);
     try {
-      const response = await axios.get(
-        `https://storage.googleapis.com/zkevm/ptau/${ptau}.ptau`,
-        {
-          responseType: "stream",
-        },
-      );
+      const response = await axios.get(`https://storage.googleapis.com/zkevm/ptau/${ptau}.ptau`, {
+        responseType: 'stream',
+      });
 
       const writer = fs.createWriteStream(ptauFile);
       response.data.pipe(writer);
       await new Promise((resolve, reject) => {
-        writer.on("finish", resolve);
-        writer.on("error", reject);
+        writer.on('finish', resolve);
+        writer.on('error', reject);
       });
-
     } catch (error) {
       log(ptau, `Failed to download PTAU file: ${error}`);
       process.exit(1);
@@ -153,10 +148,9 @@ const downloadAndVerifyPtau = async (ptau) => {
 
     // Compute blake2b hash and compare to expected value
     try {
-
       const computedHash = await calculateHash(ptauFile);
 
-      const ptauHashes = require("./ptau_valid_hashes.json");
+      const ptauHashes = require('./ptau_valid_hashes.json');
       const expectedHash = ptauHashes[`${ptau}`];
 
       if (verbose) {
@@ -167,7 +161,7 @@ const downloadAndVerifyPtau = async (ptau) => {
       if (expectedHash != computedHash) {
         throw new Error(`${ptau} Expected PTAU hash ${expectedHash}, got ${computedHash}`);
       } else {
-        log(ptau, "Verification successful");
+        log(ptau, 'Verification successful');
       }
     } catch (error) {
       log(ptau, `Failed to validate PTAU file: ${error}`);
@@ -177,8 +171,8 @@ const downloadAndVerifyPtau = async (ptau) => {
 };
 
 // main circuit process logic
-const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
-  const circomInput = path.join(__dirname, "../", `${circuit}.circom`);
+const processCircuit = async (circuit, ptau, skipSolidityGeneration) => {
+  const circomInput = path.join(__dirname, '../', `${circuit}.circom`);
   const ptauFile = path.join(ptauDownload, `${ptau}.ptau`);
   const zkeyOutput = path.join(provingKeysRoot, `${circuit}.zkey`);
 
@@ -188,103 +182,73 @@ const processCircuit = async (circuit, ptau, skipSolidityGenaration) => {
   }
 
   log(circuit, `Compiling circuit`);
-  const { stdout: cmOut, stderr: cmErr } = await execAsync(
-    `circom ${circomInput} --output ${circuitsRoot} --sym --wasm`,
-  );
+  const { stdout: cmOut, stderr: cmErr } = await execAsync(`circom ${circomInput} --output ${circuitsRoot} --sym --wasm`);
   if (verbose) {
     if (cmOut) {
-      log(circuit, "compile output:\n" + cmOut);
+      log(circuit, 'compile output:\n' + cmOut);
     }
     if (cmErr) {
-      log(circuit, "compile error:\n" + cmErr);
+      log(circuit, 'compile error:\n' + cmErr);
     }
   }
   if (compileOnly) {
     return;
   }
 
-  const { stdout: ctOut, stderr: ctErr } = await execAsync(
-    `circom ${circomInput} --output ${provingKeysRoot} --r1cs`,
-  );
+  const { stdout: ctOut, stderr: ctErr } = await execAsync(`circom ${circomInput} --output ${provingKeysRoot} --r1cs`);
   if (verbose) {
     if (ctOut) {
-      log(circuit, "constraint generation output:\n" + ctOut);
-      const { stdout: csOut } = await execAsync(
-        `npx snarkjs r1cs print ${provingKeysRoot}/${circuit}.r1cs ${circuitsRoot}/${circuit}.sym `,
-      );
+      log(circuit, 'constraint generation output:\n' + ctOut);
+      const { stdout: csOut } = await execAsync(`npx snarkjs r1cs print ${provingKeysRoot}/${circuit}.r1cs ${circuitsRoot}/${circuit}.sym `);
       // log(circuit, "constraints:\n" + csOut);
     }
     if (ctErr) {
-      log(circuit, "constraint error:\n" + ctErr);
+      log(circuit, 'constraint error:\n' + ctErr);
     }
   }
 
   log(circuit, `Generating test proving key with ${ptau}`);
-  const { stdout: pkOut, stderr: pkErr } = await execAsync(
-    `npx snarkjs groth16 setup ${path.join(
-      provingKeysRoot,
-      `${circuit}.r1cs`,
-    )} ${ptauFile} ${zkeyOutput}`,
-  );
+  const { stdout: pkOut, stderr: pkErr } = await execAsync(`npx snarkjs groth16 setup ${path.join(provingKeysRoot, `${circuit}.r1cs`)} ${ptauFile} ${zkeyOutput}`);
   if (verbose) {
     if (pkOut) {
       // log(circuit, "test proving key generation output:\n" + pkOut);
     }
     if (pkErr) {
-      log(circuit, "test proving key generation error:\n" + pkErr);
+      log(circuit, 'test proving key generation error:\n' + pkErr);
     }
   }
   log(circuit, `Exporting verification key`);
-  const { stdout: vkOut, stderr: vkErr } = await execAsync(
-    `npx snarkjs zkey export verificationkey ${zkeyOutput} ${path.join(
-      provingKeysRoot,
-      `${circuit}-vkey.json`,
-    )}`,
-  );
+  const { stdout: vkOut, stderr: vkErr } = await execAsync(`npx snarkjs zkey export verificationkey ${zkeyOutput} ${path.join(provingKeysRoot, `${circuit}-vkey.json`)}`);
   if (verbose) {
     if (vkOut) {
       // log(circuit, "verification key export output:\n" + vkOut);
     }
     if (vkErr) {
-      log(circuit, "verification key export error:\n" + vkErr);
+      log(circuit, 'verification key export error:\n' + vkErr);
     }
   }
-  if (skipSolidityGenaration) {
+  if (skipSolidityGeneration) {
     log(circuit, `Skipping solidity verifier generation`);
     return;
   }
 
   log(circuit, `Generating solidity verifier`);
-  const solidityFile = path.join(
-    __dirname,
-    "..",
-    "..",
-    "..",
-    "solidity",
-    "contracts",
-    "verifiers",
-    `verifier_${circuit}.sol`,
-  );
-  const { stdout: svOut, stderr: svErr } = await execAsync(
-    `npx snarkjs zkey export solidityverifier ${zkeyOutput} ${solidityFile}`,
-  );
+  const solidityFile = path.join(__dirname, '..', '..', '..', 'solidity', 'contracts', 'verifiers', `verifier_${circuit}.sol`);
+  const { stdout: svOut, stderr: svErr } = await execAsync(`npx snarkjs zkey export solidityverifier ${zkeyOutput} ${solidityFile}`);
   if (verbose) {
     if (svOut) {
-      log(circuit, "solidity verifier export output:\n" + svOut);
+      log(circuit, 'solidity verifier export output:\n' + svOut);
     }
     if (svErr) {
-      log(circuit, "solidity verifier export error:\n" + svErr);
+      log(circuit, 'solidity verifier export error:\n' + svErr);
     }
   }
   log(circuit, `Modifying the contract name in the Solidity file`);
   const camelCaseCircuitName = toCamelCase(circuit);
   const solidityFileTmp = `${solidityFile}.tmp`;
 
-  const fileContent = fs.readFileSync(solidityFile, "utf8");
-  const updatedContent = fileContent.replace(
-    " Groth16Verifier ",
-    ` Groth16Verifier_${camelCaseCircuitName} `,
-  );
+  const fileContent = fs.readFileSync(solidityFile, 'utf8');
+  const updatedContent = fileContent.replace(' Groth16Verifier ', ` Groth16Verifier_${camelCaseCircuitName} `);
   fs.writeFileSync(solidityFileTmp, updatedContent);
   fs.renameSync(solidityFileTmp, solidityFile);
   log(circuit, `Circuit process complete`);
@@ -310,34 +274,32 @@ const run = async () => {
   const activePromises = new Set();
 
   let snarkjsVersion;
-  // first check cirom version and snarkjs version matches the one in the package.json
+  // first check circom version and snarkjs version matches the one in the package.json
   try {
-    const { stdout: circomVersion } = await execAsync("circom --version");
+    const { stdout: circomVersion } = await execAsync('circom --version');
     // Trigger error to get snarkjs version
     try {
-      await execAsync("npx snarkjs --version");
+      await execAsync('npx snarkjs --version');
     } catch (error) {
       // Extract snarkjs version from error message
       snarkjsVersion = error.stdout.match(/snarkjs@([\d.]+)/)?.[1];
       if (!snarkjsVersion) {
-        throw new Error("Failed to extract SnarkJS version from error output.");
+        throw new Error('Failed to extract SnarkJS version from error output.');
       }
     }
-    const { stdout: packageJson } = await execAsync("cat package.json");
+    const { stdout: packageJson } = await execAsync('cat package.json');
 
     const packageJsonObj = JSON.parse(packageJson);
     const expectedCircomVersion = genConfig.circomVersion;
 
     // Sanitize and extract version numbers
-    const circomVersionTrimmed = circomVersion
-      .trim()
-      .replace("circom compiler ", "");
+    const circomVersionTrimmed = circomVersion.trim().replace('circom compiler ', '');
     let hasMismatch = false;
     if (circomVersionTrimmed !== expectedCircomVersion) {
       console.error(
         `Error: circom version mismatch with the version in gen-config.json :\n` +
           `\tExpected circom: ${expectedCircomVersion}, got: ${circomVersionTrimmed}\n` +
-          `\tFollow https://docs.circom.io/getting-started/installation/ to update your circom\n`,
+          `\tFollow https://docs.circom.io/getting-started/installation/ to update your circom\n`
       );
       hasMismatch = true;
     }
@@ -346,7 +308,7 @@ const run = async () => {
       console.error(
         `Error: snarkjs version mismatch with package.json:\n` +
           `\tExpected snarkjs: ${packageJsonObj.devDependencies.snarkjs}, got: ${snarkjsVersion}\n` +
-          `\tUse npm to update your snarkjs node module\n`,
+          `\tUse npm to update your snarkjs node module\n`
       );
       hasMismatch = true;
     }
@@ -354,7 +316,7 @@ const run = async () => {
       process.exit(1);
     }
 
-    console.log("Version check passed.");
+    console.log('Version check passed.');
   } catch (error) {
     console.error(`An error occurred: ${error.message}`);
     process.exit(1);
@@ -362,10 +324,7 @@ const run = async () => {
 
   // Download all PTAU files that we need
   var allPtaus = new Set();
-  for (const [
-    circuit,
-    { ptau, skipSolidityGenaration, batchPtau },
-  ] of circuitsArray) {
+  for (const [circuit, { ptau, batchPtau }] of circuitsArray) {
     if (onlyCircuits && !onlyCircuits.includes(circuit)) {
       continue;
     }
@@ -377,23 +336,19 @@ const run = async () => {
   }
 
   // Download and verify all missing PTAU files
-  var allPtauPromises = new Set();
   for (p of allPtaus) {
-    ptauPromise = downloadAndVerifyPtau(p);
-    ptauPromise.finally(() => allPtauPromises.delete(ptauPromise));
-    allPtauPromises.add(ptauPromise);
+    // download the PTAU files serially to avoid
+    // overwhelming the build server. plus doing
+    // these in parallel doesn't really help
+    await downloadAndVerifyPtau(p);
   }
-  await Promise.all(allPtauPromises);
 
-  for (const [
-    circuit,
-    { ptau, skipSolidityGenaration, batchPtau },
-  ] of circuitsArray) {
+  for (const [circuit, { ptau, skipSolidityGeneration, batchPtau }] of circuitsArray) {
     if (onlyCircuits && !onlyCircuits.includes(circuit)) {
       continue;
     }
 
-    const pcPromise = processCircuit(circuit, ptau, skipSolidityGenaration);
+    const pcPromise = processCircuit(circuit, ptau, skipSolidityGeneration);
     activePromises.add(pcPromise);
 
     if (activePromises.size >= parallelLimit) {
@@ -401,11 +356,7 @@ const run = async () => {
     }
 
     if (batchPtau) {
-      const pcBatchPromise = processCircuit(
-        circuit + "_batch",
-        batchPtau,
-        skipSolidityGenaration,
-      );
+      const pcBatchPromise = processCircuit(circuit + '_batch', batchPtau, skipSolidityGeneration);
       activePromises.add(pcBatchPromise);
 
       if (activePromises.size >= parallelLimit) {

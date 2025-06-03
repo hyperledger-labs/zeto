@@ -133,7 +133,7 @@ describe("deposit circuit tests", () => {
       error = e;
     }
     // console.log(error);
-    expect(error).to.match(/Error in template CheckHashes_80 line: 47/); // hash check failed
+    expect(error).to.match(/Error in template CheckHashes_80 line: 45/); // hash check failed
   });
 
   it("should fail to generate a witness because of negative values in output commitments", async () => {

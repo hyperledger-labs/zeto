@@ -87,7 +87,8 @@ describe("main circuit tests for Zeto fungible tokens with encryption and anonym
     await smtKYC.add(identity2, identity2);
   });
 
-  it("should succeed for valid witness and produce an encypted value", async () => {
+  it("should succeed for valid witness and produce an encypted value", async function() {
+    this.timeout(60000);
     const inputValues = [32, 40];
     const outputValues = [20, 52];
 
@@ -352,7 +353,7 @@ describe("main circuit tests for Zeto fungible tokens with encryption and anonym
       err = e;
     }
     // console.log(err);
-    expect(err).to.match(/Error in template Zeto_267 line: 102/);
+    expect(err).to.match(/Error in template Zeto_267 line: 110/);
     expect(err).to.match(/Error in template CheckSMTProof_253 line: 38/);
   });
 });

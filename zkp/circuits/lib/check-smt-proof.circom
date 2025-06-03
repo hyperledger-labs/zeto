@@ -20,14 +20,14 @@ include "../node_modules/circomlib/circuits/smt/smtverifier.circom";
 // CheckSMTProof is a general purpose circuit that checks the membership
 // inclusion proof of a set of hashes in a Sparse Merkle Tree
 //
-template CheckSMTProof(numInputs, nSMTLevels) {
-  signal input leafNodeIndexes[numInputs];
-  signal input leafNodeValues[numInputs];
+template CheckSMTProof(nInputs, nSMTLevels) {
+  signal input leafNodeIndexes[nInputs];
+  signal input leafNodeValues[nInputs];
   signal input root;
-  signal input merkleProof[numInputs][nSMTLevels];
-  signal input enabled[numInputs];
+  signal input merkleProof[nInputs][nSMTLevels];
+  signal input enabled[nInputs];
 
-  for (var i = 0; i < numInputs; i++) {
+  for (var i = 0; i < nInputs; i++) {
     var siblings[nSMTLevels];
     for (var j = 0; j < nSMTLevels; j++) {
       siblings[j] = merkleProof[i][j];

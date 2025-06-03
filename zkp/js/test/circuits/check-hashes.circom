@@ -17,4 +17,4 @@ pragma circom 2.2.2;
 
 include "../../../circuits/lib/check-hashes.circom";
 
-component main {public [ commitments, ownerPublicKeys ]} = CheckHashes(2);
+component main {public [ commitmentHashes ]} = CheckHashes(2);

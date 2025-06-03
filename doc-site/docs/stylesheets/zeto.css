@@ -43,4 +43,5 @@
     display: none;
 }
 
+.md-header__button.md-logo img[alt=zeto] { height: 2rem; }
 img[alt=pqc] { width: 75px; border-radius: 15px; }

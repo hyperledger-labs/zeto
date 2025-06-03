@@ -3,78 +3,71 @@
   "circuits": {
     "anon": {
       "ptau": "powersOfTau28_hez_final_13",
-      "batchPtau": "powersOfTau28_hez_final_15",
-      "skipSolidityGenaration": false
+      "batchPtau": "powersOfTau28_hez_final_15"
     },
     "anon_enc": {
       "ptau": "powersOfTau28_hez_final_15",
-      "batchPtau": "powersOfTau28_hez_final_17",
-      "skipSolidityGenaration": false
+      "batchPtau": "powersOfTau28_hez_final_17"
     },
     "anon_nullifier_transfer": {
       "ptau": "powersOfTau28_hez_final_17",
-      "batchPtau": "powersOfTau28_hez_final_19",
-      "skipSolidityGenaration": false
+      "batchPtau": "powersOfTau28_hez_final_19"
     },
     "anon_nullifier_transferLocked": {
       "ptau": "powersOfTau28_hez_final_17",
-      "batchPtau": "powersOfTau28_hez_final_19",
-      "skipSolidityGenaration": false
+      "batchPtau": "powersOfTau28_hez_final_19"
     },
     "anon_nullifier_qurrency_transfer": {
       "ptau": "powersOfTau28_hez_final_22",
-      "batchPtau": "powersOfTau28_hez_final_22",
-      "skipSolidityGenaration": false
+      "batchPtau": "powersOfTau28_hez_final_22"
     },
     "anon_nullifier_kyc": {
       "ptau": "powersOfTau28_hez_final_17",
-      "batchPtau": "powersOfTau28_hez_final_19",
-      "skipSolidityGenaration": false
+      "batchPtau": "powersOfTau28_hez_final_19"
     },
     "anon_enc_nullifier_non_repudiation": {
       "ptau": "powersOfTau28_hez_final_17",
-      "batchPtau": "powersOfTau28_hez_final_19",
-      "skipSolidityGenaration": false
+      "batchPtau": "powersOfTau28_hez_final_19"
     },
     "anon_enc_nullifier": {
       "ptau": "powersOfTau28_hez_final_17",
-      "batchPtau": "powersOfTau28_hez_final_19",
-      "skipSolidityGenaration": false
+      "batchPtau": "powersOfTau28_hez_final_19"
     },
     "anon_enc_nullifier_kyc": {
       "ptau": "powersOfTau28_hez_final_17",
-      "batchPtau": "powersOfTau28_hez_final_20",
-      "skipSolidityGenaration": false
+      "batchPtau": "powersOfTau28_hez_final_20"
     },
     "nf_anon": {
-      "ptau": "powersOfTau28_hez_final_13",
-      "skipSolidityGenaration": false
+      "ptau": "powersOfTau28_hez_final_13"
     },
     "nf_anon_nullifier_transfer": {
-      "ptau": "powersOfTau28_hez_final_16",
-      "skipSolidityGenaration": false
+      "ptau": "powersOfTau28_hez_final_16"
     },
     "nf_anon_nullifier_transferLocked": {
-      "ptau": "powersOfTau28_hez_final_16",
-      "skipSolidityGenaration": false
+      "ptau": "powersOfTau28_hez_final_16"
     },
     "deposit": {
-      "ptau": "powersOfTau28_hez_final_11",
-      "skipSolidityGenaration": false
+      "ptau": "powersOfTau28_hez_final_11"
     },
     "withdraw": {
       "ptau": "powersOfTau28_hez_final_13",
-      "batchPtau": "powersOfTau28_hez_final_14",
-      "skipSolidityGenaration": false
+      "batchPtau": "powersOfTau28_hez_final_14"
     },
     "withdraw_nullifier": {
       "ptau": "powersOfTau28_hez_final_17",
-      "batchPtau": "powersOfTau28_hez_final_19",
-      "skipSolidityGenaration": false
+      "batchPtau": "powersOfTau28_hez_final_19"
     },
     "check_nullifiers": {
       "ptau": "powersOfTau28_hez_final_13",
-      "skipSolidityGenaration": true
+      "skipSolidityGeneration": true
+    },
+    "burn": {
+      "ptau": "powersOfTau28_hez_final_13",
+      "batchPtau": "powersOfTau28_hez_final_14"
+    },
+    "burn_nullifier": {
+      "ptau": "powersOfTau28_hez_final_17",
+      "batchPtau": "powersOfTau28_hez_final_19"
     }
   }
 }
