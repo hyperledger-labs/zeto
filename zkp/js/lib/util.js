@@ -263,7 +263,7 @@ function hashCiphertext(ciphertext) {
   }
   const hash = createHash("sha256").update(buff).digest("hex");
   // compare this with the console.log printout in Solidity
-  console.log("ciphertext hash", hash);
+  // console.log("ciphertext hash", hash);
 
   const hashBuffer = Buffer.from(hash, "hex");
   const computed_pubSignals = [BigInt(0), BigInt(0)];
@@ -276,8 +276,8 @@ function hashCiphertext(ciphertext) {
     computed_pubSignals[1] += BigInt(hashBuffer[i] * 2 ** (8 * (i - 16)));
   }
   // compare these with the console.log printout in Solidity
-  console.log("computed_pubSignals[0]: ", computed_pubSignals[0]);
-  console.log("computed_pubSignals[1]: ", computed_pubSignals[1]);
+  // console.log("computed_pubSignals[0]: ", computed_pubSignals[0]);
+  // console.log("computed_pubSignals[1]: ", computed_pubSignals[1]);
 
   return computed_pubSignals;
 }

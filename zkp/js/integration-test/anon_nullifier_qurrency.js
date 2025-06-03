@@ -26,7 +26,11 @@ const {
 const ethers = require("ethers");
 const { Poseidon, newSalt, loadCircuit } = require("../index.js");
 const { loadProvingKeys } = require("./utils.js");
-const { hashCiphertext, CT_INDEX } = require("../lib/util.js");
+const { bitsToBytes, hashCiphertext, CT_INDEX } = require("../lib/util.js");
+const { randomFill, createCipheriv, createDecipheriv } = require("crypto");
+
+const util = require("util");
+const randomFillSync = util.promisify(randomFill);
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
@@ -190,6 +194,7 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
     ];
 
     // Ciphertext: expected result of Enc(pk, m, r)
+    // This is used to validate the output of this test
     ct = new Uint8Array([
       232, 72, 215, 40, 200, 26, 124, 17, 161, 10, 29, 77, 34, 214, 29, 217, 72,
       9, 195, 124, 78, 84, 69, 31, 30, 233, 245, 64, 42, 172, 155, 57, 207, 44,
@@ -316,8 +321,28 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
       ]);
       const outputCommitments = [output1, output2];
 
+      // Generate ciphertext intended for the auditor
+      const aesPlaintext = JSON.stringify([
+        inputCommitments.map(x => Number(x)),
+        inputValues,
+        [salt1, salt2].map(x => Number(x)),
+        Number(senderPrivateKey),
+        Number(Alice.pubKey),
+        [proof1, proof2].map(x => Number(x)),
+        outputValues.map(x => Number(x)),
+        [salt3, salt3].map(x => Number(x)),
+        [Bob.pubKey, Alice.pubKey].map(x => Number(x)),
+      ]);
+
+      // Encrypt data for the auditor
+      const aesAlg = 'aes-256-cbc';
+      const aesIV = await randomFillSync(new Uint8Array(16));
+      const aesKey = bitsToBytes(m);
+      const aesCipher = createCipheriv(aesAlg, aesKey, aesIV);
+      let aesCiphertext = aesCipher.update(aesPlaintext, 'utf8', 'hex');
+      aesCiphertext += aesCipher.final('hex');
+
       const startTime = Date.now();
-      // TODO: write to file so we don't have to wait so long!
       const witnessBin = await circuit.calculateWTNSBin(
         {
           nullifiers,
@@ -391,6 +416,15 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
       const computed_pubSignals = [witness[1], witness[2]];
       const expected_pubSignals = hashCiphertext(ct);
       expect(computed_pubSignals).to.deep.equal(expected_pubSignals);
+
+      // Check that the AES key (encrypted with K-PKE) is decrypted correctly
+
+
+      // Check that the AES ciphertext for the auditor decrypts correctly
+      const aesDecipher = createDecipheriv(aesAlg, aesKey, aesIV);
+      let aesDecrypted = aesDecipher.update(aesCiphertext, 'hex', 'utf8');
+      aesDecrypted += aesDecipher.final('utf8');
+      expect(aesDecrypted).to.deep.equal(aesPlaintext);
 
       // console.log('nullifiers', nullifiers);
       // console.log('inputCommitments', inputCommitments);

@@ -326,7 +326,6 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
     // snippet above.
     const CT_INDEX = 100975;
     const cipherTexts = witness.slice(CT_INDEX, CT_INDEX + 768);
-    console.log(cipherTexts);
     const computed_pubSignals = hashCiphertext(cipherTexts);
 
     expect(witness[1]).to.equal(computed_pubSignals[0]);
