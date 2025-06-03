@@ -343,6 +343,8 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
       aesCiphertext += aesCipher.final('hex');
 
       const startTime = Date.now();
+
+      // Additionally compute the binary witness, so that we can compute and verify the associated proof
       const witnessBin = await circuit.calculateWTNSBin(
         {
           nullifiers,
@@ -407,7 +409,6 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
       expect(verifyResult).to.be.true;
 
       // Check that the computed AES and K-PKE ciphertexts are computed correctly
-      // TODO: add AES encryption
       const anqIndex = CT_INDEX["anon_nullifier_qurrency"];
       const computedCiphertext = witness.slice(anqIndex, anqIndex + 768);
       expect(computedCiphertext).to.deep.equal(Array.from(ct).map((x) => BigInt(x)));
@@ -415,10 +416,7 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
       // Check that the computed circuit outputs are computed correctly
       const computed_pubSignals = [witness[1], witness[2]];
       const expected_pubSignals = hashCiphertext(ct);
-      expect(computed_pubSignals).to.deep.equal(expected_pubSignals);
-
-      // Check that the AES key (encrypted with K-PKE) is decrypted correctly
-
+      expect(computed_pubSignals).to.deep.equal(expected_pubSignals);      
 
       // Check that the AES ciphertext for the auditor decrypts correctly
       const aesDecipher = createDecipheriv(aesAlg, aesKey, aesIV);
@@ -426,11 +424,6 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
       aesDecrypted += aesDecipher.final('utf8');
       expect(aesDecrypted).to.deep.equal(aesPlaintext);
 
-      // console.log('nullifiers', nullifiers);
-      // console.log('inputCommitments', inputCommitments);
-      // console.log('outputCommitments', outputCommitments);
-      // console.log('root', proof1.root.bigInt());
-      // console.log('public signals', publicSignals);
       const tamperedOutputHash = poseidonHash([
         BigInt(100),
         salt3,
@@ -441,7 +434,6 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
           ? tamperedOutputHash
           : ps,
       );
-      // console.log("tampered public signals", tamperedPublicSignals);
 
       verifyResult = await groth16.verify(
         verificationKey,
