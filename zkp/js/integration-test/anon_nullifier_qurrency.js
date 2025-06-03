@@ -25,18 +25,12 @@ const {
 } = require("@iden3/js-merkletree");
 const ethers = require("ethers");
 const { Poseidon, newSalt, loadCircuit } = require("../index.js");
-const { loadProvingKeys, bytesToBits } = require("./utils.js");
-const { promisify } = require("util");
-const { randomBytes } = require("node:crypto");
+const { loadProvingKeys } = require("./utils.js");
 const { CT_INDEX } = require("../lib/util.js");
-const mlkem = require("../lib/crystals-kyber-js/npm/crystals-kyber-js");
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
 const poseidonHash3 = Poseidon.poseidon3;
-
-// util function
-const randomBytesAsync = promisify(randomBytes);
 
 describe("main circuit tests for Zeto fungible tokens with anonymity using nullifiers with Kyber encryption", () => {
   let circuit, provingKeyFile, verificationKey, smtAlice, smtBob;
@@ -46,6 +40,9 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
   let senderPrivateKey;
   let sk;
   let pk;
+  let m;
+  let r;
+  let ct;
 
   before(async () => {
     let keypair = genKeypair();
@@ -161,6 +158,88 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
       210, 179, 88, 52, 175, 175, 14, 130, 188, 13, 211, 188, 1, 11, 86, 120,
       246, 134, 178, 183, 93, 119, 177, 191, 15,
     ]);
+
+    // Message: a key for an AES-256 based cipher
+    m = [
+      1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0,
+      1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0,
+      0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1,
+      1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0,
+      1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 1,
+      1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0,
+      1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 1,
+      0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1,
+      0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1,
+      0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1,
+      1, 0, 1, 0, 0, 1,
+    ];
+
+    // Randomness: a 256-bit nonce
+    r = [
+      0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1,
+      0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0,
+      1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0,
+      1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0,
+      0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1,
+      1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1,
+      1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0,
+      0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0,
+      0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0,
+      1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0,
+      1, 1, 1, 0, 1, 1,
+    ];
+
+    // Ciphertext: expected result of Enc(pk, m, r)
+    ct = new Uint8Array([
+      70, 89, 16, 100, 42, 70, 214, 197, 79, 159, 47, 70, 2, 222, 148, 153, 52,
+      13, 76, 230, 239, 186, 230, 182, 103, 165, 171, 167, 212, 16, 211, 69,
+      189, 14, 41, 44, 59, 40, 38, 48, 205, 208, 228, 97, 160, 129, 240, 0, 208,
+      210, 42, 142, 232, 148, 175, 133, 70, 60, 231, 103, 26, 52, 80, 74, 69,
+      14, 63, 191, 0, 217, 79, 181, 65, 172, 97, 57, 49, 207, 184, 141, 41, 148,
+      78, 191, 13, 198, 235, 2, 173, 236, 179, 167, 243, 114, 37, 204, 149, 76,
+      152, 141, 153, 218, 0, 192, 153, 69, 203, 245, 181, 18, 137, 147, 197,
+      158, 230, 212, 192, 74, 30, 198, 136, 156, 118, 25, 53, 233, 17, 60, 27,
+      186, 35, 206, 225, 59, 125, 23, 116, 57, 139, 10, 144, 0, 250, 137, 88,
+      156, 122, 93, 56, 39, 65, 108, 81, 116, 164, 44, 54, 37, 196, 65, 141, 78,
+      216, 41, 45, 181, 244, 41, 97, 201, 230, 96, 143, 132, 163, 137, 31, 227,
+      69, 87, 241, 5, 208, 29, 88, 110, 227, 179, 33, 31, 236, 253, 44, 12, 64,
+      199, 29, 36, 240, 47, 115, 251, 52, 181, 50, 110, 233, 24, 248, 190, 14,
+      121, 129, 166, 157, 149, 65, 55, 45, 77, 24, 188, 157, 223, 180, 148, 29,
+      27, 203, 158, 226, 101, 188, 228, 165, 255, 159, 151, 209, 5, 146, 193,
+      40, 189, 103, 18, 134, 216, 170, 23, 181, 179, 154, 142, 228, 58, 152, 70,
+      105, 41, 14, 8, 252, 32, 243, 166, 147, 101, 199, 98, 138, 211, 181, 117,
+      10, 253, 148, 124, 229, 59, 90, 200, 100, 186, 98, 176, 9, 42, 118, 23,
+      169, 2, 3, 77, 59, 119, 119, 41, 120, 88, 209, 54, 139, 254, 208, 159,
+      218, 109, 174, 60, 33, 49, 115, 202, 146, 8, 179, 85, 49, 114, 109, 104,
+      119, 28, 193, 129, 166, 102, 213, 167, 9, 46, 232, 17, 75, 58, 4, 198,
+      197, 113, 76, 0, 71, 252, 149, 201, 183, 85, 167, 196, 86, 162, 19, 87,
+      46, 183, 204, 211, 36, 136, 168, 121, 138, 169, 227, 87, 41, 70, 86, 31,
+      150, 116, 161, 167, 110, 167, 54, 11, 29, 127, 9, 40, 5, 34, 30, 24, 33,
+      122, 79, 49, 60, 222, 182, 20, 223, 141, 92, 6, 8, 177, 76, 47, 253, 28,
+      110, 27, 47, 125, 180, 118, 57, 138, 221, 104, 4, 87, 31, 149, 242, 87,
+      233, 185, 250, 48, 94, 171, 218, 245, 234, 64, 167, 93, 18, 140, 131, 157,
+      112, 36, 66, 12, 227, 174, 190, 162, 36, 50, 225, 34, 46, 162, 59, 97, 55,
+      236, 11, 112, 80, 152, 54, 67, 119, 206, 197, 170, 152, 88, 53, 38, 246,
+      126, 235, 105, 238, 186, 44, 127, 136, 254, 13, 137, 112, 17, 76, 203, 46,
+      139, 33, 224, 11, 131, 175, 236, 47, 140, 48, 177, 47, 230, 250, 186, 195,
+      34, 9, 225, 183, 6, 150, 176, 53, 231, 13, 72, 108, 68, 240, 176, 150, 99,
+      97, 63, 133, 57, 196, 165, 90, 57, 250, 255, 0, 93, 192, 126, 76, 209, 12,
+      124, 194, 242, 73, 195, 170, 15, 59, 237, 218, 236, 171, 226, 124, 158,
+      98, 227, 250, 76, 90, 179, 130, 74, 66, 232, 144, 213, 43, 221, 15, 119,
+      237, 150, 10, 122, 135, 90, 102, 75, 48, 240, 166, 63, 232, 51, 51, 119,
+      227, 47, 226, 133, 215, 20, 46, 129, 244, 9, 15, 178, 203, 102, 69, 224,
+      15, 44, 94, 22, 158, 165, 92, 170, 40, 33, 11, 102, 220, 159, 103, 166,
+      232, 41, 130, 156, 200, 55, 143, 171, 227, 77, 234, 191, 0, 132, 5, 177,
+      115, 130, 131, 80, 230, 145, 111, 110, 19, 79, 65, 113, 109, 170, 210,
+      225, 45, 123, 160, 226, 241, 135, 85, 25, 255, 221, 39, 206, 96, 173, 162,
+      191, 177, 100, 237, 230, 143, 135, 140, 84, 230, 140, 164, 129, 192, 145,
+      16, 155, 168, 168, 206, 84, 99, 89, 73, 178, 167, 65, 85, 111, 150, 138,
+      117, 243, 82, 83, 139, 85, 9, 226, 224, 93, 78, 217, 253, 62, 179, 74,
+      172, 179, 238, 119, 109, 4, 52, 76, 232, 250, 3, 81, 235, 180, 186, 98,
+      150, 151, 72, 37, 194, 187, 171, 122, 171, 166, 123, 71, 26, 113, 114,
+      237, 107, 194, 88, 207, 176, 216, 132, 17, 122, 45, 25, 199, 189, 179,
+      250, 21, 164, 66, 201, 217, 18, 215, 186, 125, 89, 220, 125, 34,
+    ]);
   });
 
   describe("transfer()", () => {
@@ -237,13 +316,6 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
       ]);
       const outputCommitments = [output1, output2];
 
-      // AES-256 key setup
-      let aesKey = await randomBytesAsync(32);
-      let aesKeyBits = bytesToBits(aesKey);
-      // const cipher = crypto.createCipheriv("aes-256-cbc", aesKey, null);
-      let r = await randomBytesAsync(32);
-      let rBits = bytesToBits(r);
-
       const startTime = Date.now();
       const witness = await circuit.calculateWTNSBin(
         {
@@ -264,8 +336,8 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
           outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
           // Extra inputs for K-PKE encryption.
           // Map "1" bits to "1665" as required by the kyber_enc circuit.
-          m: aesKeyBits.map((b) => 1665 * b),
-          randomness: rBits,
+          m: m.map((b) => 1665 * b),
+          randomness: r,
         },
         true,
       );
@@ -285,13 +357,23 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
 
       // Check that the computed AES and K-PKE ciphertexts are computed correctly
       const anqIndex = CT_INDEX["anon_nullifier_qurrency"];
-      // const anqbIndex = CT_INDEX["anon_nullifier_qurrency_batch"];
       const computedCiphertext = witness.slice(anqIndex, anqIndex + 768);
+      console.log(computedCiphertext);
+      console.log(Array.from(ct).map(x => BigInt(x)));
+      expect(computedCiphertext).to.equal(Array.from(ct).map((x) => BigInt(x)));
 
-      const kpke = new mlkem.MlKem512();
-      const expectedCiphertext = kpke._encap(pk, aesKey, r);
-
-      expect(computedCiphertext === expectedCiphertext).to.be.true;
+      // Check that the output of the circuit matches the expected values
+      const computed_pubSignals = hashCiphertext(computedCiphertext);
+      const expected_pubSignals = hashCiphertext(ct);
+      console.log(computed_pubSignals);
+      console.log(expected_pubSignals);
+      expect(computed_pubSignals).to.equal(expected_pubSignals);
+      
+      // Check that the witness holds the correct quantities
+      expect(witness[1]).to.equal(computed_pubSignals[0]);
+      expect(witness[2]).to.equal(computed_pubSignals[1]);
+      expect(witness[3]).to.equal(BigInt(nullifiers[0]));
+      expect(witness[4]).to.equal(BigInt(nullifiers[1]));
 
       // console.log('nullifiers', nullifiers);
       // console.log('inputCommitments', inputCommitments);

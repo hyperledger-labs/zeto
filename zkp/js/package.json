@@ -5,12 +5,11 @@
   "license": "Apache-2.0",
   "main": "index.js",
   "scripts": {
-    "build:vendor": "cd lib/crystals-kyber-js && deno run -A dnt.ts crystals-kyber-js",
     "prettier": "npx prettier integration-test lib test --check",
     "prettier:fix": "npm run prettier -- --write",
-    "pretest": "npm run build:vendor && npm run prettier:fix",
+    "pretest": "npm run prettier:fix",
     "test": "mocha --exit test/*.js test/lib/*.js",
-    "test:e2e": "npm run build:vendor && mocha --exit integration-test/*.js"
+    "test:e2e": "mocha --exit integration-test/*.js"
   },
   "dependencies": {
     "ethers": "^6.13.2",
@@ -22,7 +21,6 @@
     "chai": "^4.4.1",
     "circom_tester": "^0.0.20",
     "circomlibjs": "^0.1.7",
-    "mlkem": "^2.3.1",
     "mocha": "^10.2.0",
     "prettier": "^3.3.3",
     "snarkjs": "0.7.5",
