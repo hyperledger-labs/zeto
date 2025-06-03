@@ -16,7 +16,6 @@
 
 const { expect } = require("chai");
 const { join } = require("path");
-const crypto = require("crypto");
 const { wasm: wasm_tester } = require("circom_tester");
 const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
 const {
@@ -26,7 +25,7 @@ const {
   ZERO_HASH,
 } = require("@iden3/js-merkletree");
 const { Poseidon, newSalt } = require("../index.js");
-const { bitsToBytes } = require("../lib/util.js");
+const { hashCiphertext } = require("../lib/util.js");
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
@@ -158,7 +157,7 @@ const randomness = [
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -506,29 +505,3 @@ describe("batch circuit tests for Zeto fungible tokens with anonymity using null
     expect(witness[4]).to.equal(BigInt(nullifiers[1]));
   });
 });
-
-function hashCiphertext(ciphertext) {
-  const buff = Buffer.alloc(ciphertext.length);
-  for (let i = 0; i < ciphertext.length; i++) {
-    buff.writeUInt8(parseInt(ciphertext[i].toString()), i);
-  }
-  const hash = crypto.createHash("sha256").update(buff).digest("hex");
-  // compare this with the console.log printout in Solidity
-  console.log("ciphertext hash", hash);
-
-  const hashBuffer = Buffer.from(hash, "hex");
-  const computed_pubSignals = [BigInt(0), BigInt(0)];
-  // Calculate h0: sum of the first 16 bytes
-  for (let i = 0; i < 16; i++) {
-    computed_pubSignals[0] += BigInt(hashBuffer[i] * 2 ** (8 * i));
-  }
-  // Calculate h1: sum of the next 16 bytes
-  for (let i = 16; i < 32; i++) {
-    computed_pubSignals[1] += BigInt(hashBuffer[i] * 2 ** (8 * (i - 16)));
-  }
-  // compare these with the console.log printout in Solidity
-  console.log("computed_pubSignals[0]: ", computed_pubSignals[0]);
-  console.log("computed_pubSignals[1]: ", computed_pubSignals[1]);
-
-  return computed_pubSignals;
-}
