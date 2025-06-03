@@ -26,7 +26,7 @@ const {
 const ethers = require("ethers");
 const { Poseidon, newSalt, loadCircuit } = require("../index.js");
 const { loadProvingKeys } = require("./utils.js");
-const { bitsToBytes, hashCiphertext, CT_INDEX } = require("../lib/util.js");
+const { bitsToBytes, hashCiphertextAsFieldSignals, CT_INDEX } = require("../lib/util.js");
 const { randomFill, createCipheriv, createDecipheriv } = require("crypto");
 
 const util = require("util");
@@ -415,7 +415,7 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
 
       // Check that the computed circuit outputs are computed correctly
       const computed_pubSignals = [witness[1], witness[2]];
-      const expected_pubSignals = hashCiphertext(ct);
+      const expected_pubSignals = hashCiphertextAsFieldSignals(ct);
       expect(computed_pubSignals).to.deep.equal(expected_pubSignals);
 
       // Check that the AES ciphertext for the auditor decrypts correctly
