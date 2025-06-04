@@ -1,5 +1,4 @@
-import { polyFromBytes } from "./src/mlKemBase.ts";
-import { MlKem512 } from "./src/mlKem512.ts";
+import { polyFromBytes, MlKem512 } from "crystals-kyber-js";
 
 let m = new MlKem512();
 let [ek, dk] = await m.generateKeyPair();
@@ -11,7 +10,7 @@ let rho = ek.slice(768);
 let t0_out = polyFromBytes(t0);
 let t1_out = polyFromBytes(t1);
 
-let a = m._sampleMatrix(rho, false);
+let a = m.sampleMatrix(rho, false);
 
 console.log(`t[0]: [${t0_out.slice(0,256)}]\n`);
 console.log(`t[1]: [${t1_out.slice(0,256)}]\n`);
