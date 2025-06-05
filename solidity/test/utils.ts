@@ -50,8 +50,8 @@ export async function prepareDepositProof(signer: User, outputs: [UTXO, UTXO]) {
     outputs[1].hash,
   ] as [BigNumberish, BigNumberish];
   const outputValues = [
-    BigInt(outputs[0].value || 0n),
-    BigInt(outputs[1].value || 0n),
+    BigInt(outputs[0].value || 0),
+    BigInt(outputs[1].value || 0),
   ];
   const outputSalts = [
     BigInt(outputs[0].salt || 0n),
@@ -60,7 +60,7 @@ export async function prepareDepositProof(signer: User, outputs: [UTXO, UTXO]) {
   const outputOwnerPublicKeys: [
     [BigNumberish, BigNumberish],
     [BigNumberish, BigNumberish],
-  ] = [signer.babyJubPublicKey, outputs[1].value ? signer.babyJubPublicKey : [0n, 0n]] as [
+  ] = [signer.babyJubPublicKey, outputs[1].hash ? signer.babyJubPublicKey : [0n, 0n]] as [
     [BigNumberish, BigNumberish],
     [BigNumberish, BigNumberish],
   ];
