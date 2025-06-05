@@ -241,6 +241,56 @@ function getKyberCipherText(witnessObj, circuitName) {
   return cipherTexts;
 }
 
+function bitsToBytes(bitArray) {
+  const bytes = [];
+  for (let i = 0; i < bitArray.length; i += 8) {
+    let byte = 0;
+    for (let j = 0; j < 8 && i + j < bitArray.length; j++) {
+      if (bitArray[i + j] === 1) {
+        byte |= 1 << (7 - j);
+      }
+    }
+    bytes.push(byte);
+  }
+
+  return new Uint8Array(bytes);
+}
+
+/**
+ * This function maps a ciphertext (represented as bytes) to a hash digest output by the kyber_enc circuit.
+ * The circuit outputs a SHA256 hash, which fits in 256 bits, but field elements in the circuit are only 254 bits
+ * large. Because of this, the circuit represents one SHA256 hash in the form of two field elements, and the
+ * specific conversion algorithm is implemented below.
+ * @method hashCiphertextAsFieldSignals
+ * @param {Uint8Array} ciphertext
+ * @returns {bigint[]}
+ */
+function hashCiphertextAsFieldSignals(ciphertext) {
+  const buff = Buffer.alloc(ciphertext.length);
+  for (let i = 0; i < ciphertext.length; i++) {
+    buff.writeUInt8(parseInt(ciphertext[i].toString()), i);
+  }
+  const hash = createHash("sha256").update(buff).digest("hex");
+  // compare this with the console.log printout in Solidity
+  // console.log("ciphertext hash", hash);
+
+  const hashBuffer = Buffer.from(hash, "hex");
+  const computed_pubSignals = [BigInt(0), BigInt(0)];
+  // Calculate h0: sum of the first 16 bytes
+  for (let i = 0; i < 16; i++) {
+    computed_pubSignals[0] += BigInt(hashBuffer[i] * 2 ** (8 * i));
+  }
+  // Calculate h1: sum of the next 16 bytes
+  for (let i = 16; i < 32; i++) {
+    computed_pubSignals[1] += BigInt(hashBuffer[i] * 2 ** (8 * (i - 16)));
+  }
+  // compare these with the console.log printout in Solidity
+  // console.log("computed_pubSignals[0]: ", computed_pubSignals[0]);
+  // console.log("computed_pubSignals[1]: ", computed_pubSignals[1]);
+
+  return computed_pubSignals;
+}
+
 module.exports = {
   newSalt,
   newEncryptionNonce,
@@ -251,5 +301,7 @@ module.exports = {
   tokenUriHash,
   kycHash,
   getKyberCipherText,
+  bitsToBytes,
+  hashCiphertextAsFieldSignals,
   CT_INDEX,
 };

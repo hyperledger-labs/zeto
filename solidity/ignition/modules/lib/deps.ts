@@ -65,10 +65,7 @@ export const WithdrawVerifierModule = buildModule(
 export const BatchWithdrawVerifierModule = buildModule(
   "Groth16Verifier_WithdrawBatch",
   (m) => {
-    const verifier = m.contract(
-      "Groth16Verifier_WithdrawBatch",
-      [],
-    );
+    const verifier = m.contract("Groth16Verifier_WithdrawBatch", []);
     return { verifier };
   },
 );
