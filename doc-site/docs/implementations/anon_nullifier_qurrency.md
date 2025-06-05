@@ -13,15 +13,15 @@ To implement post-quantum secure encryption, these circuits use the public key e
 The encryption is performed in the follow step, according to the ML-KEM scheme:
 
 - An AES-256 encryption key is generated for the transaction. This key is used only for this transaction
-    - AES-256 is a quantum-secure block cipher.
+  - AES-256 is a quantum-secure block cipher.
 - The secrets meant for the auditing authority are encrypted with this key, and sent as part of the transaction payload
 - The key is passed into the circuit as a private input and encrypted inside the circuit under the ML-KEM scheme, using the auditing authority's public key
-    - The public key is statically programmed into the circuit. This is to avoid making it a signal which would be very inefficient due to the large size of the public key (1184 bytes)
-    - <span style="color:red">IMPORTANT:</span> This means for a real world deployment, the deployer MUST update the circuit with the auditing authority's public key and re-compile the circuit
+  - The public key is statically programmed into the circuit. This is to avoid making it a signal which would be very inefficient due to the large size of the public key (1184 bytes)
+  - <span style="color:red">IMPORTANT:</span> This means for a real world deployment, the deployer MUST update the circuit with the auditing authority's public key and re-compile the circuit
 - The ciphertext is extracted from the circuit's witness array and sent as a part of the transaction payload
 - The circuit also calculates the SHA256 hash of the ciphertext to use as a public input, instead of using the ciphertext itself as a public input
-    - This is an optimization step. The ciphertext is a large array of 768 numbers (of value 0 or 1), to represent the 768-bit ciphertext, which would make proof verification more expensive
-    - The SHA256 hashing algorithm is picked to make verification inside EVM more efficient, due to the native sha256 support via EVM precompiles.
+  - This is an optimization step. The ciphertext is a large array of 768 numbers (of value 0 or 1), to represent the 768-bit ciphertext, which would make proof verification more expensive
+  - The SHA256 hashing algorithm is picked to make verification inside EVM more efficient, due to the native sha256 support via EVM precompiles.
 - The authority can then use the private key to decrypt the ciphertext to recover the AES encryption key, then use the recovered key to decrypt the AES ciphertext to recover the secrets
 
 The statements in the proof include:
@@ -34,7 +34,7 @@ The statements in the proof include:
 - the AES encryption key is correctly encrypted using the auditing authority's public key, resulting in the ciphretext
 - the public signals representing the SHA256 hash of the ciphertext is correctly calculated
 
-![wiring_anon_nullifier_qurrency](../images/circuit_wiring_anon_nullifier_qurrency.jpg)
+[![wiring_anon_nullifier_qurrency](../images/circuit_wiring_anon_nullifier_qurrency.jpg)](../images/circuit_wiring_anon_nullifier_qurrency.jpg)
 
 # Zero-Knowledge Circuit Setup
 

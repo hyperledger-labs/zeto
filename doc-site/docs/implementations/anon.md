@@ -15,4 +15,4 @@ The statements in the proof include:
 
 There is no history masking, meaning the associations between the consumed input UTXOs and the output UTXOs are in the clear.
 
-![wiring_anon](../images/circuit_wiring_anon.jpg)
+[![wiring_anon](../images/circuit_wiring_anon.jpg)](../images/circuit_wiring_anon.jpg)

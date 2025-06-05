@@ -20,7 +20,7 @@ In the locking transaction above, a locked UTXO, \#3 was created. The owner is s
 
 The following diagram illustrates a typical flow to use the locking mechanism.
 
-![locking flow](../images/locking-flow.jpg)
+[![locking flow](../images/locking-flow.jpg)](../images/locking-flow.jpg)
 
 - Alice and Bob are in a bilateral trade where Alice sends Bob 100 Zeto tokens for payment, at the same time Bob sends Alice some asset tokens which are omitted from the diagram
 - In transaction 1, `Tx1`, Alice calls `lock()` to lock 100 into a new UTXO \#3, by spending two existing UTOXs \#1 and \#2. The transaction also creates \#4 for the remainder value, which is unlocked. This transaction designates the escrow contract as the spender for the locked UTXO \#3

@@ -1,6 +1,6 @@
 # Zeto as Cryptos Mixer
 
-![shielding and unshielding](../images/shield-unshield.jpg)
+[![shielding and unshielding](../images/shield-unshield.jpg)](../images/shield-unshield.jpg)
 
 As illustrated above, DeFi users can leverage the Zeto token contract as a privacy-preserving mixer by shielding (depositing) their cryptocurrency tokens into the Zeto contract in exchange for Zeto tokens of equivalent value. These Zeto tokens can later be unshielded (withdrawn) into cryptocurrency tokens using a different wallet. This process effectively allows a user to move funds from one wallet to another, without leaving a traceable link between the deposit and withdrawal.
 
