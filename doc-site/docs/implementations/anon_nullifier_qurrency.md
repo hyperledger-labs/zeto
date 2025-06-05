@@ -51,7 +51,7 @@ For any implementation, calling $\mathsf{ML\mathrm{-}KEM}.\mathsf{KeyGen}()$ wil
 
 Our circuits are designed for ML-KEM-512 in particular, so all parameters are chosen relative to this scheme.
 
-## Circuit generation
+## Circuit Preparation
 
 For this example, we'll demonstrate the circuit generation process using the `mlkem` [npm module](https://www.npmjs.com/package/mlkem), although any secure ML-KEM implementation will suffice. After generating your keys:
 
@@ -69,3 +69,22 @@ Securely store `dk` to use in audits. (In particular, auditing requires the firs
 After this, circuit generation is complete, and setup can continue the same as all other Zeto tokens.
 
 **Note**: The `_sampleMatrix` function is not exposed by the `mlkem` library for external use, so for circuit initialization, you may have to either re-implement this functionality, or temporarily modify the library to expose this.
+
+### Utility Script
+
+A utility script has been provided in the `zkp/circuits/scripts` folder, which can be launched with the following command:
+
+```console
+$ npm run qurrency-keygen
+```
+
+It prints out the following parts that are described above:
+
+- `t[0]`
+- `t[1]`
+- `a[0][0]`
+- `a[0][1]`
+- `a[1][0]`
+- `a[1][1]`
+- `PUBLIC KEY`: corresponding to the `ek` described above. This is not used directly because it's expanded format with `t` and `a` arrays will be added to the circuit directly to perform the encapsulation
+- `SECRET KEY`: corresponding to the `dk` described above. This should be used to decapsulate to recover the AES key from the cipher text.
