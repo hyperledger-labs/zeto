@@ -29,11 +29,11 @@ const keys = [
 
 // Add your Sepolia account private key to the configuration variables
 // Beware: NEVER put real Ether into testing accounts
-const SEPOLIA_PRIVATE_KEY_1 = vars.get("SEPOLIA_PRIVATE_KEY_1");
-const SEPOLIA_PRIVATE_KEY_2 = vars.get("SEPOLIA_PRIVATE_KEY_2");
+const SEPOLIA_PRIVATE_KEY_1 = process.env.SEPOLIA_PRIVATE_KEY_1 || crypto.randomBytes(32).toString("hex");
+const SEPOLIA_PRIVATE_KEY_2 = process.env.SEPOLIA_PRIVATE_KEY_2 || crypto.randomBytes(32).toString("hex");
 
 // set your Sepolia JSON RPC URL in the environment variable SEPOLIA_JSON_RPC_URL
-const SEPOLIA_JSON_RPC_URL = vars.get("SEPOLIA_JSON_RPC_URL");
+const SEPOLIA_JSON_RPC_URL = process.env.SEPOLIA_JSON_RPC_URL || "";
 
 const config: HardhatUserConfig = {
   solidity: {
