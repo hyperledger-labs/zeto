@@ -7,12 +7,13 @@ on:
     paths:
       - "doc-site/docs/**"
       - ".github/workflows/docs.yaml"
+  push:
+    tags:
+      - "v*.*.*"
   pull_request:
     paths:
       - "doc-site/docs/**"
       - ".github/workflows/docs.yaml"
-  release:
-    types: [released]
 jobs:
   build:
     runs-on: ubuntu-latest

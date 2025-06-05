@@ -53,10 +53,14 @@ export async function prepareDepositProof(signer: User, outputs: [UTXO, UTXO]) {
     BigInt(outputs[0].value || 0n),
     BigInt(outputs[1].value || 0n),
   ];
+  const outputSalts = [
+    BigInt(outputs[0].salt || 0n),
+    BigInt(outputs[1].salt || 0n),
+  ];
   const outputOwnerPublicKeys: [
     [BigNumberish, BigNumberish],
     [BigNumberish, BigNumberish],
-  ] = [signer.babyJubPublicKey, signer.babyJubPublicKey] as [
+  ] = [signer.babyJubPublicKey, outputs[1].value ? signer.babyJubPublicKey : [0n, 0n]] as [
     [BigNumberish, BigNumberish],
     [BigNumberish, BigNumberish],
   ];
@@ -64,7 +68,7 @@ export async function prepareDepositProof(signer: User, outputs: [UTXO, UTXO]) {
   const inputObj = {
     outputCommitments,
     outputValues,
-    outputSalts: [outputs[0].salt, outputs[1].salt],
+    outputSalts,
     outputOwnerPublicKeys,
   };
 
