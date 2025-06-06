@@ -4,6 +4,7 @@
   "description": "Circom library for ZK circuits for use with Zeto based privacy-preserving tokens",
   "license": "Apache-2.0",
   "dependencies": {
+    "@noble/hashes": "^1.8.0",
     "circomlib": "^2.0.5"
   },
   "scripts": {

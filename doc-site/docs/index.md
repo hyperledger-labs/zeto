@@ -2,7 +2,7 @@
 
 Zeto is a collection of privacy-preserving token implementations on EVM, using Zero Knowledge Proof to enforce a varieties of tokenonmic policies, suited for use in enterprise use cases such as CBDCs, tokenized deposits, security trading that meet regulatory requirements such as KYC.
 
-![Zeto overview](./images/zeto-arch.svg)
+[![Zeto overview](./images/zeto-arch.svg)](./images/zeto-arch.svg)
 
 Zeto tokens give enterprises control of sensitive information without compromising transparency or scalability.
 

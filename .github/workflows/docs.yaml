@@ -5,19 +5,19 @@ on:
     branches:
       - main
     paths:
-      - "doc-site/docs/**"
-      - ".github/workflows/docs.yaml"
+      - 'doc-site/docs/**'
+      - '.github/workflows/docs.yaml'
+    tags:
+      - 'v*.*.*'
   pull_request:
     paths:
-      - "doc-site/docs/**"
-      - ".github/workflows/docs.yaml"
-  release:
-    types: [released]
+      - 'doc-site/docs/**'
+      - '.github/workflows/docs.yaml'
 jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      LATEST_TAG: ""
+      LATEST_TAG: ''
     permissions:
       contents: write
     steps:

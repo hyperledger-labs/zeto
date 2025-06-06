@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { HardhatUserConfig } from "hardhat/config";
+import { HardhatUserConfig, vars } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@openzeppelin/hardhat-upgrades";
 import crypto from "crypto";
@@ -26,6 +26,14 @@ const keys = [
   crypto.randomBytes(32).toString("hex"),
   crypto.randomBytes(32).toString("hex"),
 ];
+
+// Add your Sepolia account private key to the configuration variables
+// Beware: NEVER put real Ether into testing accounts
+const SEPOLIA_PRIVATE_KEY_1 = process.env.SEPOLIA_PRIVATE_KEY_1 || crypto.randomBytes(32).toString("hex");
+const SEPOLIA_PRIVATE_KEY_2 = process.env.SEPOLIA_PRIVATE_KEY_2 || crypto.randomBytes(32).toString("hex");
+
+// set your Sepolia JSON RPC URL in the environment variable SEPOLIA_JSON_RPC_URL
+const SEPOLIA_JSON_RPC_URL = process.env.SEPOLIA_JSON_RPC_URL || "";
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -45,6 +53,10 @@ const config: HardhatUserConfig = {
       url: "http://localhost:8545",
       accounts: keys,
       gasPrice: 0,
+    },
+    sepolia: {
+      url: `${SEPOLIA_JSON_RPC_URL}`,
+      accounts: [SEPOLIA_PRIVATE_KEY_1, SEPOLIA_PRIVATE_KEY_2, ...keys],
     }
   }
 };
