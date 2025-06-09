@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../utxo-array-sizes/">
+        <link rel="prev" href="../erc20-tokens-integration/">
       
       
-        <link rel="next" href="../shield-unshield/">
+        <link rel="next" href="../locks/">
       
       
       <link rel="icon" href="../../assets/zeto-icon.jpg">
@@ -20,7 +20,7 @@
     
     
       
-        <title>ERC20 tokens integration - Zeto</title>
+        <title>Privacy in DeFi Activities - Zeto</title>
       
     
     
@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#erc20-tokens-integration" class="md-skip">
+        <a href="#zeto-as-cryptos-mixer" class="md-skip">
           Skip to content
         </a>
       
@@ -196,7 +196,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              ERC20 tokens integration
+              Privacy in DeFi Activities
             
           </span>
         </div>
@@ -1068,6 +1068,27 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../erc20-tokens-integration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ERC20 tokens integration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -1084,7 +1105,7 @@
           
   
   <span class="md-ellipsis">
-    ERC20 tokens integration
+    Privacy in DeFi Activities
   </span>
   
 
@@ -1095,7 +1116,7 @@
         
   
   <span class="md-ellipsis">
-    ERC20 tokens integration
+    Privacy in DeFi Activities
   </span>
   
 
@@ -1117,36 +1138,18 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#deposit" class="md-nav__link">
+  <a href="#sample-implementation" class="md-nav__link">
     <span class="md-ellipsis">
-      Deposit
+      Sample Implementation
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#withdraw" class="md-nav__link">
+  <a href="#regulatory-compliance" class="md-nav__link">
     <span class="md-ellipsis">
-      Withdraw
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#how-to-use-erc20-integration" class="md-nav__link">
-    <span class="md-ellipsis">
-      How to use ERC20 integration
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#depositwithdraw-vs-mint" class="md-nav__link">
-    <span class="md-ellipsis">
-      deposit/withdraw vs. mint
+      Regulatory Compliance
     </span>
   </a>
   
@@ -1156,27 +1159,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../shield-unshield/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Privacy in DeFi Activities
-  </span>
-  
-
-      </a>
     </li>
   
 
@@ -1418,36 +1400,18 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#deposit" class="md-nav__link">
+  <a href="#sample-implementation" class="md-nav__link">
     <span class="md-ellipsis">
-      Deposit
+      Sample Implementation
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#withdraw" class="md-nav__link">
+  <a href="#regulatory-compliance" class="md-nav__link">
     <span class="md-ellipsis">
-      Withdraw
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#how-to-use-erc20-integration" class="md-nav__link">
-    <span class="md-ellipsis">
-      How to use ERC20 integration
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#depositwithdraw-vs-mint" class="md-nav__link">
-    <span class="md-ellipsis">
-      deposit/withdraw vs. mint
+      Regulatory Compliance
     </span>
   </a>
   
@@ -1471,54 +1435,15 @@
   
 
 
-<h1 id="erc20-tokens-integration">ERC20 Tokens integration<a class="headerlink" href="#erc20-tokens-integration" title="Permanent link">&para;</a></h1>
-<p>All fungible Zeto implementations support integration with an ERC20 contract via <code>deposit</code> and <code>withdraw</code> functions.</p>
-<p><img alt="erc20 integration" src="../../images/erc20-deposit-withdraw.jpg" /></p>
-<h2 id="deposit">Deposit<a class="headerlink" href="#deposit" title="Permanent link">&para;</a></h2>
-<p>When depositing, users take their balances in ERC20 and exchanges for the same amount in Zeto tokens. The deposited amount will be transfered to the Zeto contract to own, until the time when a withdraw is called.</p>
-<p>The ZKP circuit for the deposit function contains the following statements:</p>
-<ul>
-<li>the commitments for the output UTXOs are based on positive numbers</li>
-<li>the commitments for the output UTXOs are well formed, obeying the <code>hash(value, owner public key, salt)</code> formula</li>
-<li>the sum of the output UTXO values are returned as the output signal, which can be compared with the <code>amount</code> value in the transaction call. aka <code>depositAmount == sum(outputs)</code></li>
-</ul>
-<p>One obvious observation with the deposit function is that it leaks the value of the output UTXO. For instance, consider the following transaction:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nx">deposit</span><span class="p">(</span><span class="nx">amount</span><span class="p">,</span><span class="w"> </span><span class="nx">outputUTXO</span><span class="p">,</span><span class="w"> </span><span class="nx">proof</span><span class="p">);</span>
-</code></pre></div>
-<p>The output UTXO's value will be equal to the <code>amount</code>. To mitigate this, the output is an array of UTXOs, of size <code>2</code>. This way the exact value of each of the UTXOs in the output is unknown except by the owner(s).</p>
-<h2 id="withdraw">Withdraw<a class="headerlink" href="#withdraw" title="Permanent link">&para;</a></h2>
-<p>When withdrawing, users spend their UTXOs in the Zeto contract and request for the corresponding amount to be transferred to their Ethereum account in the ERC20 contract.</p>
-<p>The ZKP circuit for the withdraw function contains the following statements:</p>
-<ul>
-<li>the commitments for the output UTXOs are based on positive numbers</li>
-<li>the commitments for the input and output UTXOs are well formed, obeying the <code>hash(value, owner public key, salt)</code> formula</li>
-<li>the sum of the input UTXO values is subtracted by the sum of the output UTXO values, with the result returned as the output signal, which can be compared with the <code>amount</code> value in the transaction call. aka <code>sum(inputs) == sum(outputs) + withdarwAmount</code></li>
-</ul>
-<h2 id="how-to-use-erc20-integration">How to use ERC20 integration<a class="headerlink" href="#how-to-use-erc20-integration" title="Permanent link">&para;</a></h2>
-<p>It's very easy to enable the ERC20 integration on any fungible Zeto implementation. Call <code>setERC20(erc20_contract_address)</code> to configure the ERC20 contract that the Zeto token should work with. That's it!</p>
-<h2 id="depositwithdraw-vs-mint">deposit/withdraw vs. mint<a class="headerlink" href="#depositwithdraw-vs-mint" title="Permanent link">&para;</a></h2>
-<p>A solution developer who considers using the ERC20 integration feature must take into account how this works alongside the <code>mint</code> function. While the <code>mint</code> function preserves the privacy of new token issuance inside the Zeto contract, it could lead to an insufficient balance in the ERC20 contract when the <code>withdraw</code> function is invoked.</p>
-<p>Consider the following sequence of events:</p>
-<ul>
-<li>The Zeto contract is deployed and configured to work with an ERC20 contract</li>
-<li>Alice deposits 100 from her ERC20 balance<blockquote>
-<p>Zeto contract's balance becomes 100</p>
-</blockquote>
-</li>
-<li>The regulator mints 50 to Alice</li>
-<li>Bob deposits 100 from his ERC20 balance<blockquote>
-<p>Zeto contract's balance becomes 200</p>
-</blockquote>
-</li>
-<li>Alice withdraws all her 150 Zeto tokens<blockquote>
-<p>Zeto contract's balance becomes 50</p>
-</blockquote>
-</li>
-<li>Bob attempts to withdraw 100<blockquote>
-<p>This will fail because the Zeto contract's balance is below the requested amount</p>
-</blockquote>
-</li>
-</ul>
+<h1 id="zeto-as-cryptos-mixer">Zeto as Cryptos Mixer<a class="headerlink" href="#zeto-as-cryptos-mixer" title="Permanent link">&para;</a></h1>
+<p><a href="../../images/shield-unshield.jpg"><img alt="shielding and unshielding" src="../../images/shield-unshield.jpg" /></a></p>
+<p>As illustrated above, DeFi users can leverage the Zeto token contract as a privacy-preserving mixer by shielding (depositing) their cryptocurrency tokens into the Zeto contract in exchange for Zeto tokens of equivalent value. These Zeto tokens can later be unshielded (withdrawn) into cryptocurrency tokens using a different wallet. This process effectively allows a user to move funds from one wallet to another, without leaving a traceable link between the deposit and withdrawal.</p>
+<p>This untraceability is achieved through the use of nullifiers during the withdrawal process, which obscure the specific Zeto tokens (UTXOs) being spent. Because external observers cannot correlate the nullifiers used in withdrawals with the tokens created during deposits, it becomes infeasible to link the cryptocurrency that entered the mixer with what comes out.</p>
+<p>This enables DeFi users to maintain strong privacy while engaging in DeFi activities.</p>
+<h2 id="sample-implementation">Sample Implementation<a class="headerlink" href="#sample-implementation" title="Permanent link">&para;</a></h2>
+<p>A sample implementation of the above flow is available in the integration test at <a href="https://github.com/hyperledger-labs/zeto/blob/main/solidity/test/usdc-shielding.ts">usdc-shielding.ts</a>.</p>
+<h2 id="regulatory-compliance">Regulatory Compliance<a class="headerlink" href="#regulatory-compliance" title="Permanent link">&para;</a></h2>
+<p>Regulatory compliance can be readily achieved by enforcing KYC at the Zeto token level, as demonstrated in the implementation <a href="../../implementations/anon_nullifier_kyc/">Zeto_AnonNullifierKyc</a>. Before depositing tokens into Zeto, a DeFi user must first complete KYC verification for their Zeto wallet. This ensures that all users utilizing the mixer functionality comply with regulatory requirements.</p>
 
 
 
@@ -1550,7 +1475,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../utxo-array-sizes/" class="md-footer__link md-footer__link--prev" aria-label="Previous: UTXO array sizes in ZKP circuits">
+          <a href="../erc20-tokens-integration/" class="md-footer__link md-footer__link--prev" aria-label="Previous: ERC20 tokens integration">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1560,20 +1485,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                UTXO array sizes in ZKP circuits
+                ERC20 tokens integration
               </div>
             </div>
           </a>
         
         
           
-          <a href="../shield-unshield/" class="md-footer__link md-footer__link--next" aria-label="Next: Privacy in DeFi Activities">
+          <a href="../locks/" class="md-footer__link md-footer__link--next" aria-label="Next: Locks for multi-step trade flows">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Privacy in DeFi Activities
+                Locks for multi-step trade flows
               </div>
             </div>
             <div class="md-footer__button md-icon">

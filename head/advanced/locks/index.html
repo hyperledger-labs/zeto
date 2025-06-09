@@ -9,7 +9,7 @@
       
       
       
-        <link rel="prev" href="../erc20-tokens-integration/">
+        <link rel="prev" href="../shield-unshield/">
       
       
         <link rel="next" href="../../faqs/">
@@ -1007,6 +1007,8 @@
       
         
       
+        
+      
     
     
       
@@ -1074,6 +1076,27 @@
   
   <span class="md-ellipsis">
     ERC20 tokens integration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../shield-unshield/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Privacy in DeFi Activities
   </span>
   
 
@@ -1405,16 +1428,16 @@
 <p>In the locking transaction above, a locked UTXO, #3 was created. The owner is still Alice, but the spender has been set to the address of an escrow contract. This means Alice as the owner can no longer spend UTXO #3, even though she can produce a valid spending proof. In order to spend a locked UTXO, a valid proof must be submitted by the designated spender.</p>
 <h2 id="lock-then-delegate">Lock, then delegate<a class="headerlink" href="#lock-then-delegate" title="Permanent link">&para;</a></h2>
 <p>The following diagram illustrates a typical flow to use the locking mechanism.</p>
-<p><img alt="locking flow" src="../../images/locking-flow.jpg" /></p>
+<p><a href="../../images/locking-flow.jpg"><img alt="locking flow" src="../../images/locking-flow.jpg" /></a></p>
 <ul>
 <li>Alice and Bob are in a bilateral trade where Alice sends Bob 100 Zeto tokens for payment, at the same time Bob sends Alice some asset tokens which are omitted from the diagram</li>
 <li>In transaction 1, <code>Tx1</code>, Alice calls <code>lock()</code> to lock 100 into a new UTXO #3, by spending two existing UTOXs #1 and #2. The transaction also creates #4 for the remainder value, which is unlocked. This transaction designates the escrow contract as the spender for the locked UTXO #3</li>
-<li>Alice then sends another transaction, <code>Tx2</code>, to call <code>prepareUnlock()</code> on the escrow contract and sends a valid proof to the contract. This proof can be used to spend the locked #3 UTXO and create #5, which will be owned by Bob<blockquote>
+<li>Alice then sends another transaction, <code>Tx2</code>, to call <code>approvePayment()</code> on the escrow contract and sends a valid proof to the contract. This proof can be used to spend the locked #3 UTXO and create #5, which will be owned by Bob<blockquote>
 <p>the contract will verify that the proof is valid for the intended UTXO spending</p>
 </blockquote>
 </li>
 <li>Alice and Bob continues with the trade using the escrow contract logic. The details of the remainder of the trade flow are omitted</li>
-<li>When the trade setup is complete, and ready to settle atomically, a party can call the escrow contract to carry out the execution phase. The escrow contract calls Zeto to <code>transfer()</code> the locked UTXO #3 and creates #5, as was originally intended in the trade setup phase</li>
+<li>When the trade setup is complete, and ready to settle atomically, a party can call the escrow contract to carry out the execution phase. The escrow contract calls Zeto to <code>transferLocked()</code> the locked UTXO #3 and creates #5, as was originally intended in the trade setup phase</li>
 </ul>
 
 
@@ -1447,7 +1470,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../erc20-tokens-integration/" class="md-footer__link md-footer__link--prev" aria-label="Previous: ERC20 tokens integration">
+          <a href="../shield-unshield/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Privacy in DeFi Activities">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1457,7 +1480,7 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                ERC20 tokens integration
+                Privacy in DeFi Activities
               </div>
             </div>
           </a>

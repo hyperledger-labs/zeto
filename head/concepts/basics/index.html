@@ -1099,6 +1099,8 @@
       
         
       
+        
+      
     
     
       
@@ -1165,6 +1167,27 @@
   
   <span class="md-ellipsis">
     ERC20 tokens integration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../advanced/shield-unshield/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Privacy in DeFi Activities
   </span>
   
 
@@ -1486,6 +1509,7 @@
 <li>The account model is very popular in the existing token standards such as ERC20/721/1155 etc. Each account is an entry in a map that the smart contract maintains, with the value being the account's state such as current balance, or list of assets. A transaction updates the states of one or more accounts.</li>
 <li>The UTXO model works very differently, by creating states that are independent to each other. Each UTXO state is in one of two modes: unspent or spent. A transaction consumes unspent states, at which point they become spent, and produces new (unspent) states. Each UTXO state specifies the spending rules that must be satisfied when a transaction attempts to spend it.</li>
 </ul>
+<p><img alt="utxo lifecycle" src="../../images/utxo-lifecycle.jpg" /></p>
 <h3 id="utxo-for-better-parallel-processing">UTXO for better parallel processing<a class="headerlink" href="#utxo-for-better-parallel-processing" title="Permanent link">&para;</a></h3>
 <p>The UTXO model is adopted for Zeto instead of the account model, for better support of parallel processing. Due to the necessity of maintaining private states offchain in order to achieve privacy, the client must continuously keep their private states in sync with the smart contract. Using an account model makes it more difficult to achieve this because incoming transfers from other parties would invalidate an account's state, making the account owner unable to spend from its account unless the private state has been sync'ed again. Solutions to this issue, often referred to as front-running, typically involve a spending window with a pending queue. One example of this is <a href="https://eprint.iacr.org/2019/191">Zether</a>, which describes an <code>epoch</code> construct with pending transaction queues to address the front-running problem. Using epochs results in limited parallel processing of transactions from the same spending account.</p>
 <p>With a UTXO model, on the other hand, since each state is independent of the others, spending multiple UTXOs at the same time, even if they call come from the same owner, can be easily achieved.</p>
