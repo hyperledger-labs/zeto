@@ -235,6 +235,12 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
       inflatedWithdrawMTPs,
     );
 
+    const tokenData = new ethers.AbiCoder().encode(["uint256"], [root.bigInt()]);
+    const data = new ethers.AbiCoder().encode(["bytes", "bytes"], [
+      "0x",
+      tokenData,
+    ]);
+
     // Alice withdraws her UTXOs to ERC20 tokens
     const tx = await zeto
       .connect(Alice.signer)
@@ -242,9 +248,8 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
         3,
         _withdrawNullifiers,
         withdrawCommitments[0],
-        root.bigInt(),
         withdrawEncodedProof,
-        "0x",
+        data,
       );
     await tx.wait();
 

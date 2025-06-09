@@ -203,10 +203,14 @@ contract Zeto_AnonNullifierQurrency is
         uint256 amount,
         uint256[] memory nullifiers,
         uint256 output,
-        uint256 root,
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public {
+        bytes memory clientData;
+        bytes memory tokenData;
+        (clientData, tokenData) = Commonlib.parseTransactionData(data);
+        uint256 root = abi.decode(tokenData, (uint256));
+
         uint256[] memory outputs = new uint256[](nullifiers.length);
         outputs[0] = output;
         // Check and pad inputs and outputs based on the max size
@@ -216,7 +220,7 @@ contract Zeto_AnonNullifierQurrency is
         _withdrawWithNullifiers(amount, nullifiers, output, root, proof);
         uint256[] memory empty;
         processInputsAndOutputs(nullifiers, outputs, empty, address(0));
-        emit UTXOWithdraw(amount, nullifiers, output, msg.sender, data);
+        emit UTXOWithdraw(amount, nullifiers, output, msg.sender, clientData);
     }
 
     function mint(
