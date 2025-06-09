@@ -21,16 +21,16 @@ include "sha3/sha3_bits.circom";
 include "kyber.circom";
 
 template mlkem_encaps() {
-    signal input ek[800];
     signal input m[256];
 
     signal output K[256]; // TODO: this is secret, use in poseidon encryption
-    signal output c[768];
-    (K, c) <== mlkem_encaps_internal()(ek, m);
+    signal output c_short[25];
+    component anon = mlkem_encaps_internal();
+    anon.m <== m;
+    c_short <== anon.c_short;
 }
 
 template mlkem_encaps_internal() {
-    signal input ek[800];
     signal input m[256];
 
     // This is a precomputed digest of the public key, SHA3-256(ek)
@@ -43,7 +43,7 @@ template mlkem_encaps_internal() {
         sha_512_input[256 + i] <== sha_256_digest[i];
     }
     
-    signal sha_512_digest[512] = SHA3_512(512)(sha_512_input);
+    signal sha_512_digest[512] <== SHA3_512(512)(sha_512_input);
 
     // K is the first half of the digest
     signal output K[256];
@@ -57,5 +57,18 @@ template mlkem_encaps_internal() {
         r[i] <== sha_512_digest[256 + i];
     }
 
-    signal output c[768] <== kpke_enc(m, r);
+    signal c[768*8] <== kpke_enc()(m, r);
+
+    // Split the ciphertext c into pieces of 254 bits, and fit each
+    // piece into a single group element
+    signal output c_short[25];
+
+    var sum;
+    for (var i = 0; i < 24; i++) {
+        sum = 0;
+        for (var j = 0; j < 254; j++) {
+            sum += c[j + i*254]*(1<<(8*(j - (i*254))));
+        }
+        c_short[i] <== sum;
+    }
 }

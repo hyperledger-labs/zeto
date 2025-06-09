@@ -88,9 +88,9 @@ template kpke_enc() {
         shake_input_bits[4][i+32*8] <== four[i];
     }
     
-    signal prf_r[2][l1]; 
-    prf_r[0] <== SHAKE256(33*8, l1)(shake_input_bits[0]);
-    prf_r[1] <== SHAKE256(33*8, l1)(shake_input_bits[1]);
+    signal prf_y[2][l1]; 
+    prf_y[0] <== SHAKE256(33*8, l1)(shake_input_bits[0]);
+    prf_y[1] <== SHAKE256(33*8, l1)(shake_input_bits[1]);
 
     signal prf_e1[2][l2];
     prf_e1[0] <== SHAKE256(33*8, l2)(shake_input_bits[2]);
@@ -199,72 +199,80 @@ template kpke_enc() {
     }
 
     // convert to bytes according to the spec to get c1 and c2
-    signal c1[n]; // 256*2 entries in 2^10 amounts to 640 bytes
-    signal c2[n]; // 256*1 entries in 2^4 amounts to 128 bytes
+    signal c1[k*n*du]; // 256*2 entries in 2^10 amounts to 640 bytes
+    signal c2[n*dv]; // 256*1 entries in 2^4 amounts to 128 bytes
 
     // convert compressed_u and compressed_v to bits using Num2Bits
-    signal compressed_u_bits[k*n*du];
-    signal compressed_v_bits[n*dv];
-
     for (var i = 0; i < n; i++) {
         var out[du] = Num2Bits(du)(compressed_u[0][i]);
         for (var j = 0; j < du; j++) {
-            compressed_u_bits[du*i + j] <== out[j];
+            c1[du*i + j] <== out[j];
         }
     }
 
     for (var i = 0; i < n; i++) {
         var out[du] = Num2Bits(du)(compressed_u[1][i]);
         for (var j = 0; j < du; j++) {
-            compressed_u_bits[du*n + du*i + j] <== out[j];
+            c1[du*n + du*i + j] <== out[j];
         }
     }
 
     for (var i = 0; i < n; i++) {
         var out[dv] = Num2Bits(dv)(compressed_v[i]);
         for (var j = 0; j < dv; j++) {
-            compressed_v_bits[dv*i + j] <== out[j];
+            c2[dv*i + j] <== out[j];
         }
     }
-    
-    // compute the SHA256 hash of the concatenation of c1 and c2
-    signal sha256_input[k*n*du + n*dv];
+
+    // output ciphertext
+    signal output c[n*(k*du + dv)];
     for (var i = 0; i < k*n*du; i++) {
-        sha256_input[i] <== compressed_u_bits[i];
+        c[i] <== c1[i];
     }
+    
     for (var i = 0; i < n*dv; i++) {
-        sha256_input[k*n*du + i] <== compressed_v_bits[i];
+        c[i + k*n*du] <== c2[i];
     }
 
-    // convert to bytes
-    signal sha256_input_bytes[(k*n*du + n*dv)/8];
-    for (var i = 0; i < (k*n*du + n*dv)/8; i++) {
-        sha256_input_bytes[i] <== Bits2Num(8)(
-            [sha256_input[8*i], 
-            sha256_input[8*i+1], 
-            sha256_input[8*i+2], 
-            sha256_input[8*i+3], 
-            sha256_input[8*i+4], 
-            sha256_input[8*i+5], 
-            sha256_input[8*i+6], 
-            sha256_input[8*i+7]]
-        );
-    }
+    
+    // // compute the SHA256 hash of the concatenation of c1 and c2
+    // signal sha256_input[k*n*du + n*dv];
+    // for (var i = 0; i < k*n*du; i++) {
+    //     sha256_input[i] <== compressed_u_bits[i];
+    // }
+    // for (var i = 0; i < n*dv; i++) {
+    //     sha256_input[k*n*du + i] <== compressed_v_bits[i];
+    // }
 
-    signal h[32] <== Sha256_hash_bytes_digest((k*n*du + n*dv)/8)(sha256_input_bytes);
+    // // convert to bytes
+    // signal sha256_input_bytes[(k*n*du + n*dv)/8];
+    // for (var i = 0; i < (k*n*du + n*dv)/8; i++) {
+    //     sha256_input_bytes[i] <== Bits2Num(8)(
+    //         [sha256_input[8*i], 
+    //         sha256_input[8*i+1], 
+    //         sha256_input[8*i+2], 
+    //         sha256_input[8*i+3], 
+    //         sha256_input[8*i+4], 
+    //         sha256_input[8*i+5], 
+    //         sha256_input[8*i+6], 
+    //         sha256_input[8*i+7]]
+    //     );
+    // }
 
-    signal output h0;
-    signal output h1;
+    // signal h[32] <== Sha256_hash_bytes_digest((k*n*du + n*dv)/8)(sha256_input_bytes);
 
-    var sum = 0;
-    for (var i = 0; i < 16; i++) {
-        sum += h[i]*(1<<(8*i));
-    }
-    h0 <== sum;
+    // signal output h0;
+    // signal output h1;
 
-    sum = 0;
-    for (var i = 16; i < 32; i++) {
-        sum += h[i]*(1<<(8*(i-16)));
-    }
-    h1 <== sum;
+    // var sum = 0;
+    // for (var i = 0; i < 16; i++) {
+    //     sum += h[i]*(1<<(8*i));
+    // }
+    // h0 <== sum;
+
+    // sum = 0;
+    // for (var i = 16; i < 32; i++) {
+    //     sum += h[i]*(1<<(8*(i-16)));
+    // }
+    // h1 <== sum;
 }

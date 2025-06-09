@@ -16,7 +16,7 @@
 pragma circom 2.2.2;
 
 include "./anon_nullifier_base.circom";
-include "../lib/kyber/kyber.circom";
+include "../lib/kyber/mlkem.circom";
 include "../lib/hash_signals.circom";
 // include "../lib/sha256_signals.circom";
 
@@ -45,11 +45,9 @@ template transfer(nInputs, nOutputs, nSMTLevels) {
   signal input outputSalts[nOutputs];
   // additional input signals for the cipher texts
   // TODO: add the cipher text inputs
-  signal input m[256];
   signal input randomness[256];
 
-  signal output ct_h0;
-  signal output ct_h1;
+  signal output c[25];
 
   Zeto(nInputs, nOutputs, nSMTLevels)(
     nullifiers <== nullifiers,
@@ -67,6 +65,9 @@ template transfer(nInputs, nOutputs, nSMTLevels) {
     outputSalts <== outputSalts
   );
   // additional constraints for the cipher texts
-  // TODO: kyber encryption constraints
-  (ct_h0, ct_h1) <== kyber_enc()(randomness, m);
+  signal K[256];
+  component kem = mlkem_encaps();
+  kem.m <== randomness;
+  K <== kem.K;
+  c <== kem.c_short;
 }
