@@ -1,6 +1,6 @@
 # How Zeto tokens work
 
-![Zeto overview](../images/overview.jpg)
+[![Zeto overview](../images/overview.jpg)](../images/overview.jpg)
 
 - Party A owns 3 Zeto tokens at the beginning: `#1, #2, #3`. The 3 tokens have been minted in the Zeto smart contract and represented by their commitments, aka `hash(value, owner public key, salt)`
   - As the owner of the tokens, party A also has access to the secrets that the commitments can be opened to, namely the value and salt. The secrets are represented as private states: `s1, s2, s3`

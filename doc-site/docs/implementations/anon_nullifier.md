@@ -22,4 +22,4 @@ The statements in the proof include:
 - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers
 - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 
-![wiring_anon_nullifier](../images/circuit_wiring_anon_nullifier.jpg)
+[![wiring_anon_nullifier](../images/circuit_wiring_anon_nullifier.jpg)](../images/circuit_wiring_anon_nullifier.jpg)
