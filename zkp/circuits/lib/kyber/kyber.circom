@@ -48,6 +48,8 @@ template kyber_enc() {
 
     var eta1 = 3;
     var eta2 = 2;
+    var du = 10;
+    var dv = 4;
 
     var l1 = 2*eta1*n;
     var l2 = 2*eta2*n;
@@ -55,7 +57,15 @@ template kyber_enc() {
     signal input randomness[n];
     signal input m[n]; // entries in {0,1665}
 
-    // sample r, e1, e2
+    /*
+        Sample r, e1, e2 as follows:
+        r  is a 512-byte string, generated with two PRF calls
+        e1 is a 512-byte string, generated with two PRF calls
+        e2 is a 256-byte string, generated with a single PRF call
+        In the K-PKE spec, N is incremented for each PRF call.
+        We manually increment N by defining variables 'zero' through 'four.'
+    */
+
     var zero[8] = [0,0,0,0,0,0,0,0];
     var one[8] = [1,0,0,0,0,0,0,0];
     var two[8] = [0,1,0,0,0,0,0,0];
@@ -183,9 +193,9 @@ template kyber_enc() {
     signal compressed_v[n];
 
     for (var i = 0; i < n; i++) {
-        compressed_u[0][i] <== ModSwitchInt(1<<10, q)(u[0][i]);
-        compressed_u[1][i] <== ModSwitchInt(1<<10, q)(u[1][i]);
-        compressed_v[i] <== ModSwitchInt(1<<4, q)(v[i]);
+        compressed_u[0][i] <== ModSwitchInt(1<<du, q)(u[0][i]);
+        compressed_u[1][i] <== ModSwitchInt(1<<du, q)(u[1][i]);
+        compressed_v[i] <== ModSwitchInt(1<<dv, q)(v[i]);
     }
 
     // convert to bytes according to the spec to get c1 and c2
@@ -193,42 +203,42 @@ template kyber_enc() {
     signal c2[n]; // 256*1 entries in 2^4 amounts to 128 bytes
 
     // convert compressed_u and compressed_v to bits using Num2Bits
-    signal compressed_u_bits[2*n*10];
-    signal compressed_v_bits[n*4];
+    signal compressed_u_bits[k*n*du];
+    signal compressed_v_bits[n*dv];
 
     for (var i = 0; i < n; i++) {
-        var out[10] = Num2Bits(10)(compressed_u[0][i]);
-        for (var j = 0; j < 10; j++) {
-            compressed_u_bits[10*i + j] <== out[j];
+        var out[du] = Num2Bits(du)(compressed_u[0][i]);
+        for (var j = 0; j < du; j++) {
+            compressed_u_bits[du*i + j] <== out[j];
         }
     }
 
     for (var i = 0; i < n; i++) {
-        var out[10] = Num2Bits(10)(compressed_u[1][i]);
-        for (var j = 0; j < 10; j++) {
-            compressed_u_bits[10*n + 10*i + j] <== out[j];
+        var out[du] = Num2Bits(du)(compressed_u[1][i]);
+        for (var j = 0; j < du; j++) {
+            compressed_u_bits[du*n + du*i + j] <== out[j];
         }
     }
 
     for (var i = 0; i < n; i++) {
-        var out[4] = Num2Bits(4)(compressed_v[i]);
-        for (var j = 0; j < 4; j++) {
-            compressed_v_bits[4*i + j] <== out[j];
+        var out[dv] = Num2Bits(dv)(compressed_v[i]);
+        for (var j = 0; j < dv; j++) {
+            compressed_v_bits[dv*i + j] <== out[j];
         }
     }
     
     // compute the SHA256 hash of the concatenation of c1 and c2
-    signal sha256_input[2*n*10 + n*4];
-    for (var i = 0; i < 2*n*10; i++) {
+    signal sha256_input[k*n*du + n*dv];
+    for (var i = 0; i < k*n*du; i++) {
         sha256_input[i] <== compressed_u_bits[i];
     }
-    for (var i = 0; i < n*4; i++) {
-        sha256_input[2*n*10 + i] <== compressed_v_bits[i];
+    for (var i = 0; i < n*dv; i++) {
+        sha256_input[k*n*du + i] <== compressed_v_bits[i];
     }
 
     // convert to bytes
-    signal sha256_input_bytes[(2*n*10 + n*4)/8];
-    for (var i = 0; i < (2*n*10 + n*4)/8; i++) {
+    signal sha256_input_bytes[(k*n*du + n*dv)/8];
+    for (var i = 0; i < (k*n*du + n*dv)/8; i++) {
         sha256_input_bytes[i] <== Bits2Num(8)(
             [sha256_input[8*i], 
             sha256_input[8*i+1], 
@@ -241,7 +251,7 @@ template kyber_enc() {
         );
     }
 
-    signal h[32] <== Sha256_hash_bytes_digest((2*n*10 + n*4)/8)(sha256_input_bytes);
+    signal h[32] <== Sha256_hash_bytes_digest((k*n*du + n*dv)/8)(sha256_input_bytes);
 
     signal output h0;
     signal output h1;
