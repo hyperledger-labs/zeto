@@ -210,7 +210,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
         expect(verifyResult).to.be.true;
 
         // check that the ZKP verification fails if the public signals are tampered with
-        const tamperedOutputHash = poseidonHash([BigInt(100), salt3, ...Bob.pubKey]);
+        const tamperedOutputHash = poseidonHash([BigInt(100), outputSalts[0], ...Bob.pubKey]);
         let tamperedPublicSignals = publicSignals.map((ps) => (ps.toString() === outputCommitments[0].toString() ? tamperedOutputHash : ps));
         verifyResult = await groth16.verify(verificationKey, tamperedPublicSignals, proof);
         expect(verifyResult).to.be.false;
