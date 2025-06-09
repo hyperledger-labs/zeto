@@ -61,6 +61,12 @@ interface IZeto {
         bytes data
     );
 
+    struct ClientData {
+        bytes4 version;
+        bytes16 txId;
+        bytes appData;
+    }
+
     struct QurrencyData {
         uint256 root;
         bytes encryptedAESKey;

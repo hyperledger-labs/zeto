@@ -192,6 +192,13 @@ export function parseUTXOEvents(
         submitter: event?.args.submitter,
         ecdhPublicKey: event?.args.ecdhPublicKey,
       };
+    } else if (event?.name === "UTXOTransferWithQurrencyValues") {
+      e = {
+        inputs: event?.args.inputs,
+        outputs: event?.args.outputs,
+        submitter: event?.args.submitter,
+        qurrencyData: event?.args.qurrencyData,
+      };
     } else if (event?.name === "UTXOTransferNonRepudiation") {
       e = {
         inputs: event?.args.inputs,

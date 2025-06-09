@@ -161,7 +161,13 @@ contract Zeto_AnonNullifierQurrency is
             nullifierArray[i] = nullifiers[i];
             outputArray[i] = outputs[i];
         }
-        emit UTXOTransfer(nullifierArray, outputArray, msg.sender, clientData);
+        emit UTXOTransferWithQurrencyValues(
+            nullifierArray,
+            outputArray,
+            msg.sender,
+            qd,
+            clientData
+        );
         return true;
     }
 

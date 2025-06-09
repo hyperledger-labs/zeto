@@ -21,6 +21,7 @@
     "maci-crypto": "1.1.1",
     "prettier": "^3.3.3",
     "snarkjs": "0.7.5",
+    "uuid": "^11.1.0",
     "zeto-js": "file:../zkp/js"
   },
   "dependencies": {

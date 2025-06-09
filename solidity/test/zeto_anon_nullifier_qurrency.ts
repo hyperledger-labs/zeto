@@ -25,6 +25,7 @@ import {
 } from "zeto-js";
 import { groth16 } from "snarkjs";
 import { randomFillSync } from "crypto";
+import * as uuid from "uuid";
 import { Merkletree, InMemoryDB, str2Bytes } from "@iden3/js-merkletree";
 import {
   UTXO,
@@ -618,8 +619,14 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
       aesIV,
       aesCiphertext: "0x",
     }]);
+    // generate a unique UUID for the transaction. This is important for a few reasons:
+    // 1. It allows the application to track the transaction in logs and events.
+    // 2. It helps to prevent replay attacks by ensuring that each transaction is unique. The UUID is used as a nonce.
+    //    Regular EVM nonces are not suitable for this purpose because the transaction may be sent from any address
+    const transactionId = uuid.v4();
+    const txIdHex = Buffer.from(uuid.parse(transactionId)).toString("hex");
     const data = new ethers.AbiCoder().encode(["bytes", "bytes"], [
-      "0x",
+      txIdHex,
       tokenData,
     ]);
 
@@ -638,7 +645,7 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
         outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
         root,
         encodedProof,
-        "0x",
+        data,
       );
     }
     const results: ContractTransactionReceipt | null = await tx.wait();
