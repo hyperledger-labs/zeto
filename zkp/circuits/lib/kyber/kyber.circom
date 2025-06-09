@@ -58,8 +58,8 @@ template kyber_enc() {
     signal input m[n]; // entries in {0,1665}
 
     /*
-        Sample r, e1, e2 as follows:
-        r  is a 512-byte string, generated with two PRF calls
+        Sample y, e1, e2 as follows:
+        y  is a 512-byte string, generated with two PRF calls
         e1 is a 512-byte string, generated with two PRF calls
         e2 is a 256-byte string, generated with a single PRF call
         In the K-PKE spec, N is incremented for each PRF call.
@@ -99,21 +99,21 @@ template kyber_enc() {
     signal prf_e2[l2];
     prf_e2 <== SHAKE256(33*8, l2)(shake_input_bits[4]);
     
-    signal r[2][n];
+    signal y[2][n];
     signal e1[2][n];
     signal e2[n];
 
-    r[0] <== samplePolyCBD(l1,eta1)(prf_r[0]);
-    r[1] <== samplePolyCBD(l1,eta1)(prf_r[1]);
+    y[0] <== samplePolyCBD(l1,eta1)(prf_y[0]);
+    y[1] <== samplePolyCBD(l1,eta1)(prf_y[1]);
 
     e1[0] <== samplePolyCBD(l2,eta2)(prf_e1[0]);
     e1[1] <== samplePolyCBD(l2,eta2)(prf_e1[1]);
 
     e2 <== samplePolyCBD(l2,eta2)(prf_e2);
 
-    signal r_hat[2][n];
-    r_hat[0] <== halfNTT()(r[0]);
-    r_hat[1] <== halfNTT()(r[1]);
+    signal y_hat[2][n];
+    y_hat[0] <== halfNTT()(y[0]);
+    y_hat[1] <== halfNTT()(y[1]);
 
     // NTT-ed and transposed public key matrix A
     var a[2][2][n];
@@ -130,32 +130,32 @@ template kyber_enc() {
 
     t[1] = [3116,3286,1180,506,1186,1921,519,1129,1980,1093,607,731,3191,2261,1971,2221,2641,2749,60,2717,3240,1256,1239,2818,1015,1816,1572,1718,2791,1387,954,776,2327,1804,3256,1464,1985,873,1133,2468,1208,1788,1940,656,1592,1513,2604,1397,101,1193,2012,2904,875,1261,2185,2232,536,2128,472,2226,1906,2349,2085,1978,2497,2145,2538,66,2029,2155,1561,2666,214,3190,997,73,2101,915,2507,2666,168,121,1155,2020,764,2045,1769,271,462,2139,3079,3027,782,2618,1809,2195,1559,1479,1047,1982,1646,1211,2015,383,2535,2939,2774,924,1681,1489,2712,1291,1504,307,718,603,1306,98,609,1155,750,2332,2476,1368,2089,2910,2255,565,2786,1776,1195,1178,583,141,3053,1620,2917,2592,1833,3092,1293,1534,2742,4,2381,1271,697,1119,442,1451,643,49,1150,2784,97,859,2840,3298,1032,1567,1877,950,2786,2720,3035,454,3020,1635,3303,3001,2592,1826,1448,2759,3062,1380,2406,369,1896,1320,1040,2380,430,3328,2090,1265,3023,555,3222,69,1976,774,1037,2505,3001,564,1664,1578,3173,997,1791,1330,1590,2247,274,2296,1746,867,416,941,3165,2670,3105,684,20,2391,1349,2667,488,1415,2183,1163,330,2556,2524,2252,2662,1434,1947,353,2694,113,2553,1056,3017,1788,2204,2264,815,1480,2987,1472,742,3278,363,720,382,2705,940,221,2084,1082,362,2054,2423,2630];
 
-    // compute u = A^T * r + e1
+    // compute u = A^T * y + e1
     // intermediate values
-    signal a00_r0[n];
-    signal a01_r1[n];
-    signal a10_r0[n];
-    signal a11_r1[n];
+    signal a00_y0[n];
+    signal a01_y1[n];
+    signal a10_y0[n];
+    signal a11_y1[n];
 
-    a00_r0 <== multiply_nttvec()(a[0][0],r_hat[0]);
-    a01_r1 <== multiply_nttvec()(a[0][1],r_hat[1]);
-    a10_r0 <== multiply_nttvec()(a[1][0],r_hat[0]);
-    a11_r1 <== multiply_nttvec()(a[1][1],r_hat[1]);
+    a00_y0 <== multiply_nttvec()(a[0][0],y_hat[0]);
+    a01_y1 <== multiply_nttvec()(a[0][1],y_hat[1]);
+    a10_y0 <== multiply_nttvec()(a[1][0],y_hat[0]);
+    a11_y1 <== multiply_nttvec()(a[1][1],y_hat[1]);
     
-    signal ATr_hat[2][n];
+    signal ATy_hat[2][n];
     for (var i = 0; i < n; i++) {
-        ATr_hat[0][i] <== FastAddMod(q)([a00_r0[i],a01_r1[i]]);
-        ATr_hat[1][i] <== FastAddMod(q)([a10_r0[i],a11_r1[i]]);
+        ATy_hat[0][i] <== FastAddMod(q)([a00_y0[i],a01_y1[i]]);
+        ATy_hat[1][i] <== FastAddMod(q)([a10_y0[i],a11_y1[i]]);
     }
 
-    signal ATr[2][n];
-    ATr[0] <== inv_halfNTT()(ATr_hat[0]);
-    ATr[1] <== inv_halfNTT()(ATr_hat[1]);
+    signal ATy[2][n];
+    ATy[0] <== inv_halfNTT()(ATy_hat[0]);
+    ATy[1] <== inv_halfNTT()(ATy_hat[1]);
 
     signal u[2][n];
     for (var i = 0; i < n; i++) {
-        u[0][i] <== FastAddMod(q)([ATr[0][i],e1[0][i]]);
-        u[1][i] <== FastAddMod(q)([ATr[1][i],e1[1][i]]);
+        u[0][i] <== FastAddMod(q)([ATy[0][i],e1[0][i]]);
+        u[1][i] <== FastAddMod(q)([ATy[1][i],e1[1][i]]);
     }
 
     // check that m is either 0 or 1665
@@ -163,30 +163,30 @@ template kyber_enc() {
         m[i] * (1665 - m[i]) === 0;
     }
 
-    // compute v = t*r + e2 + m
+    // compute v = t*y + e2 + m
     // intermediate values
-    signal t0_r0[n];
-    signal t1_r1[n];
+    signal t0_y0[n];
+    signal t1_y1[n];
 
-    t0_r0 <== multiply_nttvec()(t[0],r_hat[0]);
-    t1_r1 <== multiply_nttvec()(t[1],r_hat[1]);
+    t0_y0 <== multiply_nttvec()(t[0],y_hat[0]);
+    t1_y1 <== multiply_nttvec()(t[1],y_hat[1]);
 
-    signal t_r_hat[n];
+    signal t_y_hat[n];
     for (var i = 0; i < n; i++) {
-        t_r_hat[i] <== FastAddMod(q)([t0_r0[i],t1_r1[i]]);
+        t_y_hat[i] <== FastAddMod(q)([t0_y0[i],t1_y1[i]]);
     }
 
-    signal t_r[n];
-    t_r <== inv_halfNTT()(t_r_hat);
+    signal t_y[n];
+    t_y <== inv_halfNTT()(t_y_hat);
 
-    signal t_r_e2[n];
+    signal t_y_e2[n];
     for (var i = 0; i < n; i++) {
-        t_r_e2[i] <== FastAddMod(q)([t_r[i],e2[i]]);
+        t_y_e2[i] <== FastAddMod(q)([t_y[i],e2[i]]);
     }
 
     signal v[n];
     for (var i = 0; i < n; i++) {
-        v[i] <== FastAddMod(q)([t_r_e2[i],m[i]]);
+        v[i] <== FastAddMod(q)([t_y_e2[i],m[i]]);
     }
 
     signal compressed_u[2][n];
