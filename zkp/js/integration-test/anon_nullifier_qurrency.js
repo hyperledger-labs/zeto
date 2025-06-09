@@ -117,7 +117,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
       let inputValues, outputValues, inputSalts, outputSalts;
       let nullifiers, inputCommitments, outputCommitments;
       let root, merkleProof;
-      let aesKey, aesIV, aesCiphertext;
+      let aesKey, aesIV, aesCiphertext, aesPlaintext;
       const aesAlg = 'aes-256-cbc';
 
       it('Prepare the environment by creating UTXOs and add them to the local SMT', async () => {
@@ -159,7 +159,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
 
       it('Alice generates the ciphertext for the auditor', async () => {
         // Generate ciphertext intended for the auditor
-        const aesPlaintext = JSON.stringify([
+        aesPlaintext = JSON.stringify([
           inputCommitments.map((x) => x.toString(16)),
           inputValues,
           inputSalts.map((x) => x.toString(16)),
@@ -208,6 +208,12 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
 
         let verifyResult = await groth16.verify(verificationKey, publicSignals, proof);
         expect(verifyResult).to.be.true;
+
+        // check that the ZKP verification fails if the public signals are tampered with
+        const tamperedOutputHash = poseidonHash([BigInt(100), salt3, ...Bob.pubKey]);
+        let tamperedPublicSignals = publicSignals.map((ps) => (ps.toString() === outputCommitments[0].toString() ? tamperedOutputHash : ps));
+        verifyResult = await groth16.verify(verificationKey, tamperedPublicSignals, proof);
+        expect(verifyResult).to.be.false;
       }).timeout(600000);
 
       it('Alice extracts the K-PKE ciphertext from the witness and verify the hash', async () => {
@@ -244,18 +250,16 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
         expect(computed_pubSignals).to.deep.equal(expected_pubSignals);
       }).timeout(600000);
 
-      it('Bob uses the K-PKE decapsulation key to decrypt the ciphertext and recover the AES encryption key', async () => {
+      it('Bob uses the K-PKE decapsulation key to decrypt the ciphertext and recover the AES encryption key, to then recover the tx secrets', async () => {
+        // TODO: Implement the decryption logic for Bob using the K-PKE decapsulation key.
+        // for now cheat by using the same key as Alice
+        const recoveredAesKey = aesKey;
+
         // Check that the AES ciphertext for the auditor decrypts correctly
-        const aesDecipher = createDecipheriv(aesAlg, aesKey, aesIV);
+        const aesDecipher = createDecipheriv(aesAlg, recoveredAesKey, aesIV);
         let aesDecrypted = aesDecipher.update(aesCiphertext, 'hex', 'utf8');
         aesDecrypted += aesDecipher.final('utf8');
         expect(aesDecrypted).to.deep.equal(aesPlaintext);
-
-        const tamperedOutputHash = poseidonHash([BigInt(100), salt3, ...Bob.pubKey]);
-        let tamperedPublicSignals = publicSignals.map((ps) => (ps.toString() === outputCommitments[0].toString() ? tamperedOutputHash : ps));
-
-        verifyResult = await groth16.verify(verificationKey, tamperedPublicSignals, proof);
-        expect(verifyResult).to.be.false;
       }).timeout(600000);
     });
   });
