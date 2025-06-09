@@ -57,7 +57,7 @@ template mlkem_encaps_internal() {
         r[i] <== sha_512_digest[256 + i];
     }
 
-    signal c[768*8] <== kpke_enc()(m, r);
+    signal c[768*8] <== kpke_enc()(r, m);
 
     // Split the ciphertext c into pieces of 254 bits, and fit each
     // piece into a single group element
@@ -67,8 +67,13 @@ template mlkem_encaps_internal() {
     for (var i = 0; i < 24; i++) {
         sum = 0;
         for (var j = 0; j < 254; j++) {
-            sum += c[j + i*254]*(1<<(8*(j - (i*254))));
+            sum += c[j + i*254]*(1<<j);
         }
         c_short[i] <== sum;
     }
+    sum = 0;
+    for (var j = 0; j < (768*8 - 24*254); j++) {
+        sum += c[j + 24*254]*(1<<j);
+    }
+    c_short[24] <== sum;
 }

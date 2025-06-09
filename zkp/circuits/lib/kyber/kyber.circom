@@ -158,11 +158,6 @@ template kpke_enc() {
         u[1][i] <== FastAddMod(q)([ATy[1][i],e1[1][i]]);
     }
 
-    // check that m is either 0 or 1665
-    for (var i = 0; i < n; i++) {
-        m[i] * (1665 - m[i]) === 0;
-    }
-
     // compute v = NTTinv(t*y) + e2 + m
     // intermediate values
     signal t0_y0[n];
@@ -184,9 +179,14 @@ template kpke_enc() {
         t_y_e2[i] <== FastAddMod(q)([t_y[i],e2[i]]);
     }
 
+    signal m_compress[256];
+    for (var i = 0; i < 256; i++) {
+        m_compress[i] <== m[i] * 1665;
+    }
+
     signal v[n];
     for (var i = 0; i < n; i++) {
-        v[i] <== FastAddMod(q)([t_y_e2[i],m[i]]);
+        v[i] <== FastAddMod(q)([t_y_e2[i],m_compress[i]]);
     }
 
     signal compressed_u[2][n];
