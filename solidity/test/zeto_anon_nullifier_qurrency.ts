@@ -24,6 +24,7 @@ import {
   getKyberCipherText,
 } from "zeto-js";
 import { groth16 } from "snarkjs";
+import { randomFillSync } from "crypto";
 import { Merkletree, InMemoryDB, str2Bytes } from "@iden3/js-merkletree";
 import {
   UTXO,
@@ -604,6 +605,18 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
       buff.writeUInt8(Number(ciphertext[i]), i);
     }
     const ciphertextHex = "0x" + buff.toString("hex");
+    const aesIV = await randomFillSync(new Uint8Array(16));
+
+    const tokenData = new ethers.AbiCoder().encode(["tuple(uint256 root, bytes encryptedAESKey, bytes16 aesIV, bytes aesCiphertext)"], [{
+      root,
+      encryptedAESKey: ciphertextHex,
+      aesIV,
+      aesCiphertext: "0x",
+    }]);
+    const data = new ethers.AbiCoder().encode(["bytes", "bytes"], [
+      "0x",
+      tokenData,
+    ]);
 
     const startTx = Date.now();
     let tx: any;
@@ -611,10 +624,8 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
       tx = await zeto.connect(signer.signer).transfer(
         nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
         outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
-        root,
-        ciphertextHex,
         encodedProof,
-        "0x",
+        data,
       );
     } else {
       tx = await zeto.connect(signer.signer).transferLocked(
@@ -664,21 +675,7 @@ async function prepareProof(
 
   // TODO: construct the message by generating an AES-256 key (the encryption key is the message)
   // as part of the KEM protocol. Replace 1 with 1665.
-  const m = [
-    1665, 1665, 0, 1665, 0, 1665, 1665, 0, 1665, 0, 0, 1665, 1665, 1665, 1665,
-    0, 0, 1665, 0, 0, 0, 1665, 1665, 0, 1665, 0, 1665, 0, 0, 1665, 1665, 0, 0,
-    1665, 0, 0, 1665, 1665, 1665, 0, 0, 0, 0, 0, 0, 1665, 0, 0, 1665, 0, 0,
-    1665, 0, 1665, 1665, 0, 1665, 1665, 0, 0, 1665, 1665, 1665, 0, 0, 0, 0, 0,
-    0, 1665, 0, 0, 1665, 1665, 0, 0, 0, 1665, 1665, 0, 1665, 1665, 1665, 1665,
-    0, 1665, 1665, 0, 1665, 1665, 1665, 1665, 0, 1665, 1665, 0, 0, 0, 1665,
-    1665, 0, 1665, 1665, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  ];
+  const m = randomBytesAsDigitArray(32).map((b) => b * 1665);
 
   const randomness = randomBytesAsDigitArray(32);
   const startWitnessCalculation = Date.now();
@@ -731,6 +728,7 @@ async function prepareProof(
     outputCommitments,
     encodedProof,
     ciphertext,
+    m,
   };
 }
 

@@ -129,7 +129,6 @@ contract Zeto_AnonNullifierQurrency is
      *
      * @param nullifiers Array of nullifiers that are secretly bound to UTXOs to be spent by the transaction.
      * @param outputs Array of new UTXOs to generate, for future transactions to spend.
-     * @param root The root hash of the Sparse Merkle Tree that contains the nullifiers.
      * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
      *      that the outputs are valid in terms of obeying mass conservation rules.
      *
@@ -138,11 +137,16 @@ contract Zeto_AnonNullifierQurrency is
     function transfer(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
-        uint256 root,
-        bytes memory ciphertext,
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public returns (bool) {
+        bytes memory clientData;
+        bytes memory tokenData;
+        (clientData, tokenData) = Commonlib.parseTransactionData(data);
+        QurrencyData memory qd = abi.decode(tokenData, (QurrencyData));
+        uint256 root = qd.root;
+        bytes memory ciphertext = qd.encryptedAESKey;
+
         nullifiers = checkAndPadCommitments(nullifiers);
         outputs = checkAndPadCommitments(outputs);
         validateTransactionProposal(nullifiers, outputs, root, false);
@@ -157,7 +161,7 @@ contract Zeto_AnonNullifierQurrency is
             nullifierArray[i] = nullifiers[i];
             outputArray[i] = outputs[i];
         }
-        emit UTXOTransfer(nullifierArray, outputArray, msg.sender, data);
+        emit UTXOTransfer(nullifierArray, outputArray, msg.sender, clientData);
         return true;
     }
 

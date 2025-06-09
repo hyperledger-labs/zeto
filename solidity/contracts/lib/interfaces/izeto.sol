@@ -46,6 +46,13 @@ interface IZeto {
         address indexed submitter,
         bytes data
     );
+    event UTXOTransferWithQurrencyValues(
+        uint256[] inputs,
+        uint256[] outputs,
+        address indexed submitter,
+        QurrencyData qurrencyData,
+        bytes clientData
+    );
     event UTXOWithdraw(
         uint256 amount,
         uint256[] inputs,
@@ -53,4 +60,11 @@ interface IZeto {
         address indexed submitter,
         bytes data
     );
+
+    struct QurrencyData {
+        uint256 root;
+        bytes encryptedAESKey;
+        bytes16 aesIV;
+        bytes aesCiphertext;
+    }
 }

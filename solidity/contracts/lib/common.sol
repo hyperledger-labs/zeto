@@ -59,4 +59,10 @@ library Commonlib {
 
         return keccak256(abi.encodePacked(inputs));
     }
+
+    function parseTransactionData(
+        bytes calldata data
+    ) internal pure returns (bytes memory clientData, bytes memory tokenData) {
+        return abi.decode(data, (bytes, bytes));
+    }
 }
