@@ -361,7 +361,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
     ]);
     expect(incomingUTXOs[0]).to.equal(hash);
 
-    // Bob uses the decrypted values to construct the UTXO received from the transaction
+    // Bob uses the received values to construct the UTXO received from the transaction
     utxo3 = newUTXO(receivedValue, Bob, receivedSalt);
   }).timeout(600000);
 

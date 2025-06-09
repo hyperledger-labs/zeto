@@ -113,6 +113,7 @@ nav:
   - Advanced Topics:
       - UTXO array sizes in ZKP circuits: advanced/utxo-array-sizes.md
       - ERC20 tokens integration: advanced/erc20-tokens-integration.md
+      - Privacy in DeFi Activities: advanced/shield-unshield.md
       - Locks for multi-step trade flows: advanced/locks.md
   - FAQs: faqs.md
   - Glossary: glossary.md
