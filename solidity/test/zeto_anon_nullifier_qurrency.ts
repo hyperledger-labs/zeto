@@ -104,160 +104,193 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
     expect(root.string()).to.equal(onchainRoot.toString());
   });
 
-  it("(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob & Charlie then withdraw should succeed", async function () {
+  describe("(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob & Charlie then withdraw should succeed", function () {
     this.timeout(600000);
 
-    // first mint the tokens for batch testing
-    const inputUtxos = [];
-    const nullifiers = [];
-    for (let i = 0; i < 10; i++) {
-      // mint 10 utxos
-      const _utxo = newUTXO(1, Alice);
-      nullifiers.push(newNullifier(_utxo, Alice));
-      inputUtxos.push(_utxo);
-    }
-    const mintResult = await doMint(zeto, deployer, inputUtxos);
+    let inputUtxos: UTXO[];
+    let nullifiers: UTXO[];
+    let outputUtxos: UTXO[];
+    let outputOwners: User[];
+    let mintResult: ContractTransactionReceipt;
+    let transferResult: any;
+    let aliceUTXOsToBeWithdrawn: UTXO[];
 
-    const mintEvents = parseUTXOEvents(zeto, mintResult);
-    const mintedHashes = mintEvents[0].outputs;
-    for (let i = 0; i < mintedHashes.length; i++) {
-      if (mintedHashes[i] !== 0) {
-        await smtAlice.add(mintedHashes[i], mintedHashes[i]);
-        await smtBob.add(mintedHashes[i], mintedHashes[i]);
+    it("mint 10 new UTXOs to Alice", async function () {
+      inputUtxos = [];
+      nullifiers = [];
+      for (let i = 0; i < 10; i++) {
+        // mint 10 utxos
+        const _utxo = newUTXO(1, Alice);
+        nullifiers.push(newNullifier(_utxo, Alice));
+        inputUtxos.push(_utxo);
+        // Alice locally tracks the UTXOs inside the Sparse Merkle Tree
+        await smtAlice.add(_utxo.hash, _utxo.hash);
       }
-    }
-    // Alice generates inclusion proofs for the UTXOs to be spent
-    let root = await smtAlice.root();
-    const mtps = [];
-    for (let i = 0; i < inputUtxos.length; i++) {
-      const p = await smtAlice.generateCircomVerifierProof(
-        inputUtxos[i].hash,
-        root,
+      mintResult = await doMint(zeto, deployer, inputUtxos);
+    });
+
+    it("Bob indexes the mint event and adds the UTXOs to his local Sparse Merkle Tree", async function () {
+      const mintEvents = parseUTXOEvents(zeto, mintResult);
+      const mintedHashes = mintEvents[0].outputs;
+      for (let i = 0; i < mintedHashes.length; i++) {
+        if (mintedHashes[i] !== 0) {
+          await smtBob.add(mintedHashes[i], mintedHashes[i]);
+        }
+      }
+    });
+
+    it("Alice transfers to Bob and Charlie, and remainders to herself", async function () {
+      this.timeout(600000);
+
+      const root = await smtAlice.root();
+      const mtps = [];
+      for (let i = 0; i < inputUtxos.length; i++) {
+        const p = await smtAlice.generateCircomVerifierProof(
+          inputUtxos[i].hash,
+          root,
+        );
+        mtps.push(p.siblings.map((s) => s.bigInt()));
+      }
+      aliceUTXOsToBeWithdrawn = [
+        newUTXO(1, Alice),
+        newUTXO(1, Alice),
+        newUTXO(1, Alice),
+      ];
+      // Alice proposes the output UTXOs, 1 utxo to bob, 1 utxo to charlie and 3 utxos to alice
+      const _bOut1 = newUTXO(6, Bob);
+      const _bOut2 = newUTXO(1, Charlie);
+
+      outputUtxos = [_bOut1, _bOut2, ...aliceUTXOsToBeWithdrawn];
+      for (let i = 0; i < outputUtxos.length; i++) {
+        // Alice locally tracks the UTXOs inside the Sparse Merkle Tree
+        await smtAlice.add(outputUtxos[i].hash, outputUtxos[i].hash);
+      }
+      outputOwners = [Bob, Charlie, Alice, Alice, Alice];
+      const inflatedOutputUtxos = [...outputUtxos];
+      const inflatedOutputOwners = [...outputOwners];
+      for (let i = 0; i < 10 - outputUtxos.length; i++) {
+        inflatedOutputUtxos.push(ZERO_UTXO);
+        inflatedOutputOwners.push(Bob);
+      }
+      // Alice transfers her UTXOs to Bob
+      transferResult = await doTransfer(
+        Alice,
+        inputUtxos,
+        nullifiers,
+        inflatedOutputUtxos,
+        root.bigInt(),
+        mtps,
+        inflatedOutputOwners,
       );
-      mtps.push(p.siblings.map((s) => s.bigInt()));
-    }
-    const aliceUTXOsToBeWithdrawn = [
-      newUTXO(1, Alice),
-      newUTXO(1, Alice),
-      newUTXO(1, Alice),
-    ];
-    // Alice proposes the output UTXOs, 1 utxo to bob, 1 utxo to charlie and 3 utxos to alice
-    const _bOut1 = newUTXO(6, Bob);
-    const _bOut2 = newUTXO(1, Charlie);
+    });
 
-    const outputUtxos = [_bOut1, _bOut2, ...aliceUTXOsToBeWithdrawn];
-    const outputOwners = [Bob, Charlie, Alice, Alice, Alice];
-    const inflatedOutputUtxos = [...outputUtxos];
-    const inflatedOutputOwners = [...outputOwners];
-    for (let i = 0; i < 10 - outputUtxos.length; i++) {
-      inflatedOutputUtxos.push(ZERO_UTXO);
-      inflatedOutputOwners.push(Bob);
-    }
-    // Alice transfers her UTXOs to Bob
-    const result = await doTransfer(
-      Alice,
-      inputUtxos,
-      nullifiers,
-      inflatedOutputUtxos,
-      root.bigInt(),
-      mtps,
-      inflatedOutputOwners,
-    );
+    it("Bob and Charlie should have received the UTXOs", async function () {
+      const signerAddress = await Alice.signer.getAddress();
+      const events = parseUTXOEvents(zeto, transferResult.txResult!);
+      expect(events[0].submitter).to.equal(signerAddress);
+      expect(events[0].inputs).to.deep.equal(nullifiers.map((n) => n.hash));
 
-    const signerAddress = await Alice.signer.getAddress();
-    const events = parseUTXOEvents(zeto, result.txResult!);
-    expect(events[0].submitter).to.equal(signerAddress);
-    expect(events[0].inputs).to.deep.equal(nullifiers.map((n) => n.hash));
+      const incomingUTXOs: any = events[0].outputs;
+      // check the non-empty output hashes are correct.
+      // the empty output hashes are in the end of the array and ignored
+      for (let i = 0; i < outputUtxos.length; i++) {
+        // Bob uses the information received from Alice to reconstruct the UTXO sent to him
+        const receivedValue = outputUtxos[i].value;
+        const receivedSalt = outputUtxos[i].salt;
+        const hash = Poseidon.poseidon4([
+          BigInt(receivedValue),
+          receivedSalt,
+          outputOwners[i].babyJubPublicKey[0],
+          outputOwners[i].babyJubPublicKey[1],
+        ]);
+        expect(incomingUTXOs[i]).to.equal(hash);
+        await smtBob.add(incomingUTXOs[i], incomingUTXOs[i]);
+      }
 
-    const incomingUTXOs: any = events[0].outputs;
-    // check the non-empty output hashes are correct
-    for (let i = 0; i < outputUtxos.length; i++) {
-      // Bob uses the information received from Alice to reconstruct the UTXO sent to him
-      const receivedValue = outputUtxos[i].value;
-      const receivedSalt = outputUtxos[i].salt;
-      const hash = Poseidon.poseidon4([
-        BigInt(receivedValue),
-        receivedSalt,
-        outputOwners[i].babyJubPublicKey[0],
-        outputOwners[i].babyJubPublicKey[1],
+      // check empty hashes are empty
+      for (let i = outputUtxos.length; i < 10; i++) {
+        expect(incomingUTXOs[i]).to.equal(0);
+      }
+    });
+
+    it("Alice should be able to withdraw her UTXOs to ERC20 tokens", async function () {
+      this.timeout(600000);
+
+      // mint sufficient balance in Zeto contract address for Alice to withdraw
+      const mintTx = await erc20.connect(deployer).mint(zeto, 3);
+      await mintTx.wait();
+      const startingBalance = await erc20.balanceOf(Alice.ethAddress);
+
+      // Alice generates the nullifiers for the UTXOs to be spent
+      const root = await smtAlice.root();
+      const inflatedWithdrawNullifiers = [];
+      const inflatedWithdrawInputs = [];
+      const inflatedWithdrawMTPs = [];
+      for (let i = 0; i < aliceUTXOsToBeWithdrawn.length; i++) {
+        inflatedWithdrawInputs.push(aliceUTXOsToBeWithdrawn[i]);
+        inflatedWithdrawNullifiers.push(
+          newNullifier(aliceUTXOsToBeWithdrawn[i], Alice),
+        );
+        const _withdrawUTXOProof = await smtAlice.generateCircomVerifierProof(
+          aliceUTXOsToBeWithdrawn[i].hash,
+          root,
+        );
+        inflatedWithdrawMTPs.push(
+          _withdrawUTXOProof.siblings.map((s) => s.bigInt()),
+        );
+      }
+      // Alice generates inclusion proofs for the UTXOs to be spent
+
+      for (let i = aliceUTXOsToBeWithdrawn.length; i < 10; i++) {
+        inflatedWithdrawInputs.push(ZERO_UTXO);
+        inflatedWithdrawNullifiers.push(ZERO_UTXO);
+        const _zeroProof = await smtAlice.generateCircomVerifierProof(0n, root);
+        inflatedWithdrawMTPs.push(_zeroProof.siblings.map((s) => s.bigInt()));
+      }
+
+      const {
+        nullifiers: _withdrawNullifiers,
+        outputCommitments: withdrawCommitments,
+        encodedProof: withdrawEncodedProof,
+      } = await prepareNullifierWithdrawProof(
+        Alice,
+        inflatedWithdrawInputs,
+        inflatedWithdrawNullifiers,
+        ZERO_UTXO,
+        root.bigInt(),
+        inflatedWithdrawMTPs,
+      );
+
+      // generate a unique UUID for the transaction. This is important for a few reasons:
+      // 1. It allows the application to track the transaction in logs and events.
+      // 2. It helps to prevent replay attacks by ensuring that each transaction is unique. The UUID is used as a nonce.
+      //    Regular EVM nonces are not suitable for this purpose because the transaction may be sent from any address
+      const transactionId = uuid.v4();
+      const txIdHex = "0x" + Buffer.from(uuid.parse(transactionId)).toString("hex");
+
+      const tokenData = new ethers.AbiCoder().encode(["uint256"], [root.bigInt()]);
+      const data = new ethers.AbiCoder().encode(["bytes", "bytes"], [
+        txIdHex,
+        tokenData,
       ]);
-      expect(incomingUTXOs[i]).to.equal(hash);
-      await smtAlice.add(incomingUTXOs[i], incomingUTXOs[i]);
-      await smtBob.add(incomingUTXOs[i], incomingUTXOs[i]);
-    }
 
-    // check empty hashes are empty
-    for (let i = outputUtxos.length; i < 10; i++) {
-      expect(incomingUTXOs[i]).to.equal(0);
-    }
+      // Alice withdraws her UTXOs to ERC20 tokens
+      const tx = await zeto
+        .connect(Alice.signer)
+        .withdraw(
+          3,
+          _withdrawNullifiers,
+          withdrawCommitments[0],
+          withdrawEncodedProof,
+          data,
+        );
+      await tx.wait();
 
-    // mint sufficient balance in Zeto contract address for Alice to withdraw
-    const mintTx = await erc20.connect(deployer).mint(zeto, 3);
-    await mintTx.wait();
-    const startingBalance = await erc20.balanceOf(Alice.ethAddress);
-
-    // Alice generates the nullifiers for the UTXOs to be spent
-    root = await smtAlice.root();
-    const inflatedWithdrawNullifiers = [];
-    const inflatedWithdrawInputs = [];
-    const inflatedWithdrawMTPs = [];
-    for (let i = 0; i < aliceUTXOsToBeWithdrawn.length; i++) {
-      inflatedWithdrawInputs.push(aliceUTXOsToBeWithdrawn[i]);
-      inflatedWithdrawNullifiers.push(
-        newNullifier(aliceUTXOsToBeWithdrawn[i], Alice),
-      );
-      const _withdrawUTXOProof = await smtAlice.generateCircomVerifierProof(
-        aliceUTXOsToBeWithdrawn[i].hash,
-        root,
-      );
-      inflatedWithdrawMTPs.push(
-        _withdrawUTXOProof.siblings.map((s) => s.bigInt()),
-      );
-    }
-    // Alice generates inclusion proofs for the UTXOs to be spent
-
-    for (let i = aliceUTXOsToBeWithdrawn.length; i < 10; i++) {
-      inflatedWithdrawInputs.push(ZERO_UTXO);
-      inflatedWithdrawNullifiers.push(ZERO_UTXO);
-      const _zeroProof = await smtAlice.generateCircomVerifierProof(0n, root);
-      inflatedWithdrawMTPs.push(_zeroProof.siblings.map((s) => s.bigInt()));
-    }
-
-    const {
-      nullifiers: _withdrawNullifiers,
-      outputCommitments: withdrawCommitments,
-      encodedProof: withdrawEncodedProof,
-    } = await prepareNullifierWithdrawProof(
-      Alice,
-      inflatedWithdrawInputs,
-      inflatedWithdrawNullifiers,
-      ZERO_UTXO,
-      root.bigInt(),
-      inflatedWithdrawMTPs,
-    );
-
-    const tokenData = new ethers.AbiCoder().encode(["uint256"], [root.bigInt()]);
-    const data = new ethers.AbiCoder().encode(["bytes", "bytes"], [
-      "0x",
-      tokenData,
-    ]);
-
-    // Alice withdraws her UTXOs to ERC20 tokens
-    const tx = await zeto
-      .connect(Alice.signer)
-      .withdraw(
-        3,
-        _withdrawNullifiers,
-        withdrawCommitments[0],
-        withdrawEncodedProof,
-        data,
-      );
-    await tx.wait();
-
-    // Alice checks her ERC20 balance
-    const endingBalance = await erc20.balanceOf(Alice.ethAddress);
-    expect(endingBalance - startingBalance).to.be.equal(3);
-  }).timeout(60000);
+      // Alice checks her ERC20 balance
+      const endingBalance = await erc20.balanceOf(Alice.ethAddress);
+      expect(endingBalance - startingBalance).to.be.equal(3);
+    });
+  });
 
   it("mint ERC20 tokens to Alice to deposit to Zeto should succeed", async function () {
     const startingBalance = await erc20.balanceOf(Alice.ethAddress);
@@ -286,93 +319,110 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
     await smtBob.add(utxo0.hash, utxo0.hash);
   });
 
-  it("mint to Alice and transfer UTXOs honestly to Bob should succeed", async function () {
-    const startingBalance = await erc20.balanceOf(Alice.ethAddress);
-    // The authority mints a new UTXO and assigns it to Alice
-    utxo1 = newUTXO(10, Alice);
-    utxo2 = newUTXO(20, Alice);
-    const result1 = await doMint(zeto, deployer, [utxo1, utxo2]);
+  describe("mint to Alice and transfer UTXOs honestly to Bob should succeed", function () {
+    this.timeout(600000);
 
-    // check the private mint activity is not exposed in the ERC20 contract
-    const afterMintBalance = await erc20.balanceOf(Alice.ethAddress);
-    expect(afterMintBalance).to.equal(startingBalance);
+    let mintResult: ContractTransactionReceipt;
+    let transferResult: any;
+    let nullifiers: UTXO[];
+    let outputUtxos: UTXO[];
 
-    // Alice locally tracks the UTXOs inside the Sparse Merkle Tree
-    // hardhat doesn't have a good way to subscribe to events so we have to parse the Tx result object
-    const mintEvents = parseUTXOEvents(zeto, result1);
-    const [_utxo1, _utxo2] = mintEvents[0].outputs;
-    await smtAlice.add(_utxo1, _utxo1);
-    await smtAlice.add(_utxo2, _utxo2);
-    let root = await smtAlice.root();
-    let onchainRoot = await zeto.getRoot();
-    expect(root.string()).to.equal(onchainRoot.toString());
-    // Bob also locally tracks the UTXOs inside the Sparse Merkle Tree
-    await smtBob.add(_utxo1, _utxo1);
-    await smtBob.add(_utxo2, _utxo2);
+    it("mint 2 new UTXOs to Alice", async function () {
+      const startingBalance = await erc20.balanceOf(Alice.ethAddress);
+      // The authority mints a new UTXO and assigns it to Alice
+      utxo1 = newUTXO(10, Alice);
+      utxo2 = newUTXO(20, Alice);
+      mintResult = await doMint(zeto, deployer, [utxo1, utxo2]);
 
-    // Alice proposes the output UTXOs for the transfer to Bob
-    const _utxo3 = newUTXO(25, Bob);
-    utxo4 = newUTXO(5, Alice);
+      // check the private mint activity is not exposed in the ERC20 contract
+      const afterMintBalance = await erc20.balanceOf(Alice.ethAddress);
+      expect(afterMintBalance).to.equal(startingBalance);
 
-    // Alice generates the nullifiers for the UTXOs to be spent
-    const nullifier1 = newNullifier(utxo1, Alice);
-    const nullifier2 = newNullifier(utxo2, Alice);
+      // Alice locally tracks the UTXOs inside the Sparse Merkle Tree
+      await smtAlice.add(utxo1.hash, utxo1.hash);
+      await smtAlice.add(utxo2.hash, utxo2.hash);
+    });
 
-    // Alice generates inclusion proofs for the UTXOs to be spent
-    const proof1 = await smtAlice.generateCircomVerifierProof(utxo1.hash, root);
-    const proof2 = await smtAlice.generateCircomVerifierProof(utxo2.hash, root);
-    const merkleProofs = [
-      proof1.siblings.map((s) => s.bigInt()),
-      proof2.siblings.map((s) => s.bigInt()),
-    ];
+    it("Bob indexes the mint event and adds the UTXOs to his local Sparse Merkle Tree", async function () {
+      // hardhat doesn't have a good way to subscribe to events so we have to parse the Tx result object
+      const mintEvents = parseUTXOEvents(zeto, mintResult);
+      const [_utxo1, _utxo2] = mintEvents[0].outputs;
+      // Bob also locally tracks the UTXOs inside the Sparse Merkle Tree
+      await smtBob.add(_utxo1, _utxo1);
+      await smtBob.add(_utxo2, _utxo2);
+      const root = await smtBob.root();
+      let onchainRoot = await zeto.getRoot();
+      expect(root.string()).to.equal(onchainRoot.toString());
+    });
 
-    // Alice transfers her UTXOs to Bob
-    const result2 = await doTransfer(
-      Alice,
-      [utxo1, utxo2],
-      [nullifier1, nullifier2],
-      [_utxo3, utxo4],
-      root.bigInt(),
-      merkleProofs,
-      [Bob, Alice],
-    );
+    it("Alice transfers her UTXOs to Bob", async function () {
+      this.timeout(60000);
 
-    // check the private transfer activity is not exposed in the ERC20 contract
-    const afterTransferBalance = await erc20.balanceOf(Alice.ethAddress);
-    expect(afterTransferBalance).to.equal(startingBalance);
+      // Alice proposes the output UTXOs for the transfer to Bob
+      const _utxo3 = newUTXO(25, Bob);
+      utxo4 = newUTXO(5, Alice);
+      outputUtxos = [_utxo3, utxo4];
 
-    // Alice locally tracks the UTXOs inside the Sparse Merkle Tree
-    await smtAlice.add(_utxo3.hash, _utxo3.hash);
-    await smtAlice.add(utxo4.hash, utxo4.hash);
-    root = await smtAlice.root();
-    onchainRoot = await zeto.getRoot();
-    expect(root.string()).to.equal(onchainRoot.toString());
+      // Alice generates the nullifiers for the UTXOs to be spent
+      const nullifier1 = newNullifier(utxo1, Alice);
+      const nullifier2 = newNullifier(utxo2, Alice);
+      nullifiers = [nullifier1, nullifier2];
 
-    // Bob locally tracks the UTXOs inside the Sparse Merkle Tree
-    // Bob parses the UTXOs from the onchain event
-    const signerAddress = await Alice.signer.getAddress();
-    const events = parseUTXOEvents(zeto, result2.txResult!);
-    expect(events[0].submitter).to.equal(signerAddress);
-    expect(events[0].inputs).to.deep.equal([nullifier1.hash, nullifier2.hash]);
-    expect(events[0].outputs).to.deep.equal([_utxo3.hash, utxo4.hash]);
-    await smtBob.add(events[0].outputs[0], events[0].outputs[0]);
-    await smtBob.add(events[0].outputs[1], events[0].outputs[1]);
+      // Alice generates inclusion proofs for the UTXOs to be spent
+      const root = await smtAlice.root();
+      const proof1 = await smtAlice.generateCircomVerifierProof(utxo1.hash, root);
+      const proof2 = await smtAlice.generateCircomVerifierProof(utxo2.hash, root);
+      const merkleProofs = [
+        proof1.siblings.map((s) => s.bigInt()),
+        proof2.siblings.map((s) => s.bigInt()),
+      ];
 
-    // Bob uses the information received from Alice to reconstruct the UTXO sent to him
-    const receivedValue = _utxo3.value!;
-    const receivedSalt = _utxo3.salt;
-    const incomingUTXOs: any = events[0].outputs;
-    const hash = Poseidon.poseidon4([
-      BigInt(receivedValue),
-      receivedSalt,
-      Bob.babyJubPublicKey[0],
-      Bob.babyJubPublicKey[1],
-    ]);
-    expect(incomingUTXOs[0]).to.equal(hash);
+      const startingBalance = await erc20.balanceOf(Alice.ethAddress);
+      // Alice transfers her UTXOs to Bob
+      transferResult = await doTransfer(
+        Alice,
+        [utxo1, utxo2],
+        nullifiers,
+        outputUtxos,
+        root.bigInt(),
+        merkleProofs,
+        [Bob, Alice],
+      );
 
-    // Bob uses the decrypted values to construct the UTXO received from the transaction
-    utxo3 = newUTXO(receivedValue, Bob, receivedSalt);
-  }).timeout(600000);
+      // check the private transfer activity is not exposed in the ERC20 contract
+      const afterTransferBalance = await erc20.balanceOf(Alice.ethAddress);
+      expect(afterTransferBalance).to.equal(startingBalance);
+
+      // Alice locally tracks the UTXOs inside the Sparse Merkle Tree
+      await smtAlice.add(_utxo3.hash, _utxo3.hash);
+      await smtAlice.add(utxo4.hash, utxo4.hash);
+    });
+
+    it("Bob should have received the UTXOs", async function () {
+      // Bob locally tracks the UTXOs inside the Sparse Merkle Tree
+      // Bob parses the UTXOs from the onchain event
+      const signerAddress = await Alice.signer.getAddress();
+      const events = parseUTXOEvents(zeto, transferResult.txResult!);
+      expect(events[0].submitter).to.equal(signerAddress);
+      await smtBob.add(events[0].outputs[0], events[0].outputs[0]);
+      await smtBob.add(events[0].outputs[1], events[0].outputs[1]);
+
+      // Bob uses the information received from Alice to reconstruct the UTXO sent to him
+      const receivedValue = outputUtxos[0].value!;
+      const receivedSalt = outputUtxos[0].salt;
+      const incomingUTXOs: any = events[0].outputs;
+      const hash = Poseidon.poseidon4([
+        BigInt(receivedValue),
+        receivedSalt,
+        Bob.babyJubPublicKey[0],
+        Bob.babyJubPublicKey[1],
+      ]);
+      expect(incomingUTXOs[0]).to.equal(hash);
+
+      // Bob uses the decrypted values to construct the UTXO received from the transaction
+      utxo3 = newUTXO(receivedValue, Bob, receivedSalt);
+    });
+  });
 
   // describe("lock() tests", function () {
   //   let lockedUtxo1: UTXO;
@@ -611,7 +661,7 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
       buff.writeUInt8(Number(ciphertext[i]), i);
     }
     const ciphertextHex = "0x" + buff.toString("hex");
-    const aesIV = await randomFillSync(new Uint8Array(16));
+    const aesIV = "0x" + Buffer.from(randomFillSync(new Uint8Array(16))).toString("hex");
 
     const tokenData = new ethers.AbiCoder().encode(["tuple(uint256 root, bytes encryptedAESKey, bytes16 aesIV, bytes aesCiphertext)"], [{
       root,
@@ -624,7 +674,7 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
     // 2. It helps to prevent replay attacks by ensuring that each transaction is unique. The UUID is used as a nonce.
     //    Regular EVM nonces are not suitable for this purpose because the transaction may be sent from any address
     const transactionId = uuid.v4();
-    const txIdHex = Buffer.from(uuid.parse(transactionId)).toString("hex");
+    const txIdHex = "0x" + Buffer.from(uuid.parse(transactionId)).toString("hex");
     const data = new ethers.AbiCoder().encode(["bytes", "bytes"], [
       txIdHex,
       tokenData,
