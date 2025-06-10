@@ -20,7 +20,7 @@ async function generateQurrencyKey() {
   console.log(`a[1][0]: [${a[1][0].slice(0, 256)}]\n`);
   console.log(`a[1][1]: [${a[1][1].slice(0, 256)}]\n`);
   console.log(`PUBLIC KEY: [${ek}]\n`);
-  console.log(`SECRET KEY: [${dk.slice(0, 768)}]`);
+  console.log(`SECRET KEY: [${dk}]`);
 }
 
 generateQurrencyKey()
