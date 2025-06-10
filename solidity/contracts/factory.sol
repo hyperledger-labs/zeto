@@ -97,9 +97,9 @@ contract ZetoTokenFactory is Ownable {
     }
 
     function deployZetoNonFungibleToken(
-        string memory tokenImplementation,
         string memory name,
         string memory symbol,
+        string memory tokenImplementation,
         address initialOwner
     ) public returns (address) {
         ImplementationInfo memory args = implementations[tokenImplementation];
