@@ -17,6 +17,7 @@
 package integration_test
 
 import (
+	"crypto/rand"
 	"fmt"
 	"math/big"
 	"time"
@@ -31,7 +32,6 @@ import (
 )
 
 func (s *E2ETestSuite) TestZeto_anon_nullifier_qurrency_SuccessfulProving() {
-	s.T().Skip("Skipping anon_nullifier_qurrency_transfer test due to pending implementation")
 	calc, provingKey, err := loadCircuit("anon_nullifier_qurrency_transfer")
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
@@ -85,6 +85,24 @@ func (s *E2ETestSuite) TestZeto_anon_nullifier_qurrency_SuccessfulProving() {
 	for i, s := range circomProof2.Siblings[0 : len(circomProof2.Siblings)-1] {
 		proof2Siblings[i] = s.BigInt()
 	}
+
+	// generate an AES 256 encryption key and IV
+	aesKey, _ := generateRandomBytes(32) // 256 bits
+	// convert to bit array
+	aesKeyBits := crypto.BytesToBits(aesKey)
+	// convert all "1" bits to 1665
+	for i := range aesKeyBits {
+		aesKeyBits[i] = big.NewInt(0).Mul(aesKeyBits[i], big.NewInt(1665))
+	}
+
+	// iv, _ := generateRandomBytes(16) // 128 bits. usage skipped in this test, but included for completeness
+
+	// generate randomness for Kyber encryption
+	randomness, _ := generateRandomBytes(32) // 256 bits
+	fmt.Printf("Randomness: %x\n", randomness)
+	randomnessBits := crypto.BytesToBits(randomness)
+	fmt.Printf("Randomness bits: %v\n", randomnessBits)
+
 	witnessInputs := map[string]interface{}{
 		"nullifiers":            nullifiers,
 		"inputCommitments":      inputCommitments,
@@ -98,6 +116,8 @@ func (s *E2ETestSuite) TestZeto_anon_nullifier_qurrency_SuccessfulProving() {
 		"outputValues":          outputValues,
 		"outputSalts":           []*big.Int{salt3, salt4},
 		"outputOwnerPublicKeys": [][]*big.Int{{receiver.PublicKey.X, receiver.PublicKey.Y}, {sender.PublicKey.X, sender.PublicKey.Y}},
+		"m":                     aesKeyBits,
+		"randomness":            randomnessBits,
 	}
 
 	startTime := time.Now()
@@ -112,5 +132,14 @@ func (s *E2ETestSuite) TestZeto_anon_nullifier_qurrency_SuccessfulProving() {
 	assert.Equal(s.T(), 3, len(proof.Proof.A))
 	assert.Equal(s.T(), 3, len(proof.Proof.B))
 	assert.Equal(s.T(), 3, len(proof.Proof.C))
-	assert.Equal(s.T(), 7, len(proof.PubSignals))
+	assert.Equal(s.T(), 9, len(proof.PubSignals))
+}
+
+func generateRandomBytes(length int) ([]byte, error) {
+	bytes := make([]byte, length)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
 }

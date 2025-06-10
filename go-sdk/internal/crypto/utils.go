@@ -41,6 +41,18 @@ func NewEncryptionNonce() *big.Int {
 	return newRandomNumberInRange(max)
 }
 
+// BytesToBits converts a byte slice to a slice of bits (0 or 1)
+func BytesToBits(data []byte) []*big.Int {
+	bits := make([]*big.Int, 0, len(data)*8)
+	for _, b := range data {
+		for i := 7; i >= 0; i-- { // extract bits from MSB to LSB
+			bit := (b >> i) & 1
+			bits = append(bits, big.NewInt(int64(bit)))
+		}
+	}
+	return bits
+}
+
 func newRandomNumberInRange(max *big.Int) *big.Int {
 	// ensure that the salt fits inside the field of SNARKs
 	maxRounds := 10
