@@ -26,7 +26,6 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 abstract contract ZetoCommon is IZeto, OwnableUpgradeable {
     string private _name;
     string private _symbol;
-    uint8 private _decimals = 2; // Default to 2 decimals, can be overridden
 
     function __ZetoCommon_init(
         string memory name_,
@@ -65,7 +64,7 @@ abstract contract ZetoCommon is IZeto, OwnableUpgradeable {
      * no way affects any of the arithmetic of the contract, or the ZKP circuits.
      */
     function decimals() public view virtual returns (uint8) {
-        return _decimals;
+        return 2;
     }
 
     function checkAndPadCommitments(
