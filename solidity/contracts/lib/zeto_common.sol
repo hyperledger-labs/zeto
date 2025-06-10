@@ -24,8 +24,31 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 /// @author Kaleido, Inc.
 /// @dev Implements common functionalities of Zeto based tokens
 abstract contract ZetoCommon is IZeto, OwnableUpgradeable {
-    function __ZetoCommon_init(address initialOwner) internal onlyInitializing {
+    string private _name;
+    string private _symbol;
+
+    function __ZetoCommon_init(
+        string memory name_,
+        string memory symbol_,
+        address initialOwner
+    ) internal onlyInitializing {
         __Ownable_init(initialOwner);
+        _name = name_;
+        _symbol = symbol_;
+    }
+    /**
+     * @dev Returns the name of the token.
+     */
+    function name() public view virtual returns (string memory) {
+        return _name;
+    }
+
+    /**
+     * @dev Returns the symbol of the token, usually a shorter version of the
+     * name.
+     */
+    function symbol() public view virtual returns (string memory) {
+        return _symbol;
     }
     function checkAndPadCommitments(
         uint256[] memory commitments
