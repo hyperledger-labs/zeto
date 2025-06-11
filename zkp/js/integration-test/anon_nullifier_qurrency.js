@@ -68,12 +68,8 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
     ({ pk, sk } = testKeyPair);
 
     // Randomness: a 256-bit seed used in the ML-KEM circuit
-    // let r_bytes = new Uint8Array(32);
-    // await randomFillSync(r_bytes);
-    let r_bytes = new Uint8Array([88,  47,  95, 119, 235, 157, 120, 233,
-   69, 236,  29, 169,   9, 247, 203, 238,
-   69,  79, 236, 100, 207,  77, 140, 161,
-  228, 101,  54,  85, 249,   1, 159, 124]);
+    let r_bytes = new Uint8Array(32);
+    await randomFillSync(r_bytes);
     r = bytesToBits(r_bytes);
 
     // Generate the encapsulated key using r_bytes
@@ -267,8 +263,6 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
             outputSalts,
             outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
             // Extra inputs for K-PKE encryption.
-            // Map "1" bits to "1665" as required by the kyber_enc circuit.
-            // m: m.map((b) => 1665 * b),
             randomness: r,
           },
           true,
@@ -277,20 +271,13 @@ describe("main circuit tests for Zeto fungible tokens with anonymity using nulli
         // The encapsulated key is stored at indices 1 through 25 in the witness.
         const resultCiphertext = qurrencyCtToBytes(witness.slice(1, 26));
 
-        // Actual key in the circuit
-        const resultKey = bitsToBytes(witness.slice(26, 282).map(Number));
-        console.log('resultkey', resultKey);
-        console.log('computedkey', ssS);
-        expect(resultKey).to.deep.equal(ssS);
-        
-
         const auditor = new MlKem512();
         const ssR = await auditor.decap(resultCiphertext, sk); // Shared secret (recipient)
 
         // Check that the computed key was computed correctly
-        // expect(ssR).to.deep.equal(
-        //   ssS,
-        // );
+        expect(ssR).to.deep.equal(
+          ssS,
+        );
 
         expect(resultKey).to.deep.equal(ssS);
 
