@@ -43,11 +43,6 @@ template transfer(nInputs, nOutputs, nSMTLevels) {
   signal input outputValues[nOutputs];
   signal input outputOwnerPublicKeys[nOutputs][2];
   signal input outputSalts[nOutputs];
-  // additional input signals for the cipher texts
-  // TODO: add the cipher text inputs
-  signal input randomness[256];
-
-  signal output c[25];
 
   Zeto(nInputs, nOutputs, nSMTLevels)(
     nullifiers <== nullifiers,
@@ -64,10 +59,16 @@ template transfer(nInputs, nOutputs, nSMTLevels) {
     outputOwnerPublicKeys <== outputOwnerPublicKeys,
     outputSalts <== outputSalts
   );
-  // additional constraints for the cipher texts
+
+  // additional input signals for the cipher texts
+  // TODO: add the cipher text inputs
+  signal input randomness[256];
+  signal output c[25];
   signal K[256];
+
+  // additional constraints for the cipher texts
   component kem = mlkem_encaps();
   kem.m <== randomness;
-  K <== kem.K;
   c <== kem.c_short;
+  K <== kem.K;
 }

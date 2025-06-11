@@ -60,10 +60,10 @@ export async function prepareDepositProof(signer: User, outputs: [UTXO, UTXO]) {
   const outputOwnerPublicKeys: [
     [BigNumberish, BigNumberish],
     [BigNumberish, BigNumberish],
-  ] = [signer.babyJubPublicKey, outputs[1].hash ? signer.babyJubPublicKey : [0n, 0n]] as [
-    [BigNumberish, BigNumberish],
-    [BigNumberish, BigNumberish],
-  ];
+  ] = [
+    signer.babyJubPublicKey,
+    outputs[1].hash ? signer.babyJubPublicKey : [0n, 0n],
+  ] as [[BigNumberish, BigNumberish], [BigNumberish, BigNumberish]];
 
   const inputObj = {
     outputCommitments,

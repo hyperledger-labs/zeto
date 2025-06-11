@@ -47,7 +47,7 @@ export async function deployDependencies() {
         batchLockVerifier: "0x0000000000000000000000000000000000000000", //batchLockVerifier.target,
         burnVerifier: "0x0000000000000000000000000000000000000000",
         batchBurnVerifier: "0x0000000000000000000000000000000000000000",
-      }
+      },
     ],
     libraries: {
       SmtLib: smtLib.target,
