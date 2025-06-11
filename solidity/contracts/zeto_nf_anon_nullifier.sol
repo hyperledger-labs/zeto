@@ -41,10 +41,12 @@ contract Zeto_NfAnonNullifier is
     Groth16Verifier_NfAnonNullifierTransferLocked _lockVerifier;
 
     function initialize(
+        string memory name,
+        string memory symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
-        __ZetoNullifier_init(initialOwner);
+        __ZetoNullifier_init(name, symbol, initialOwner);
         _verifier = (Groth16Verifier_NfAnonNullifierTransfer)(
             verifiers.verifier
         );

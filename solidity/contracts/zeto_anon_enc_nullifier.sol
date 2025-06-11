@@ -50,10 +50,12 @@ contract Zeto_AnonEncNullifier is
     Groth16Verifier_AnonEncNullifierBatch internal _batchVerifier;
 
     function initialize(
+        string memory name,
+        string memory symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
-        __ZetoNullifier_init(initialOwner);
+        __ZetoNullifier_init(name, symbol, initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(
             (Groth16Verifier_Deposit)(verifiers.depositVerifier),
             (Groth16Verifier_WithdrawNullifier)(verifiers.withdrawVerifier),

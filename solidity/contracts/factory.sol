@@ -54,9 +54,11 @@ contract ZetoTokenFactory is Ownable {
 
     function deployZetoFungibleToken(
         string memory name,
+        string memory symbol,
+        string memory tokenImplementation,
         address initialOwner
     ) public returns (address) {
-        ImplementationInfo memory args = implementations[name];
+        ImplementationInfo memory args = implementations[tokenImplementation];
         require(
             args.implementation != address(0),
             "Factory: failed to find implementation"
@@ -84,16 +86,23 @@ contract ZetoTokenFactory is Ownable {
             instance != address(0),
             "Factory: failed to clone implementation"
         );
-        (IZetoInitializable(instance)).initialize(initialOwner, args.verifiers);
+        (IZetoInitializable(instance)).initialize(
+            name,
+            symbol,
+            initialOwner,
+            args.verifiers
+        );
         emit ZetoTokenDeployed(instance);
         return instance;
     }
 
     function deployZetoNonFungibleToken(
         string memory name,
+        string memory symbol,
+        string memory tokenImplementation,
         address initialOwner
     ) public returns (address) {
-        ImplementationInfo memory args = implementations[name];
+        ImplementationInfo memory args = implementations[tokenImplementation];
         require(
             args.implementation != address(0),
             "Factory: failed to find implementation"
@@ -103,7 +112,12 @@ contract ZetoTokenFactory is Ownable {
             instance != address(0),
             "Factory: failed to clone implementation"
         );
-        (IZetoInitializable(instance)).initialize(initialOwner, args.verifiers);
+        (IZetoInitializable(instance)).initialize(
+            name,
+            symbol,
+            initialOwner,
+            args.verifiers
+        );
         emit ZetoTokenDeployed(instance);
         return instance;
     }

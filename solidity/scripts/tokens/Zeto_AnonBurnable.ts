@@ -32,6 +32,8 @@ export async function deployDependencies() {
   return {
     deployer,
     args: [
+      "Zeto Anon Burnable",
+      "ZAB",
       await deployer.getAddress(),
       {
         verifier: verifier.target,

@@ -49,7 +49,7 @@ export async function deployZeto(tokenName: string) {
       : deployNonFungibleCloneable;
     const result = await deployFunc(tokenName);
     ({ deployer, zetoImpl, erc20, args } = result as any);
-    let [deployerAddr, verifiers] = args;
+    let [name, symbol, deployerAddr, verifiers] = args;
 
     // we want to test the effectiveness of the factory contract
     // to create clones of the Zeto implementation contract
@@ -69,11 +69,11 @@ export async function deployZeto(tokenName: string) {
     if (isFungible) {
       tx2 = await factory
         .connect(deployer)
-        .deployZetoFungibleToken(tokenName, deployerAddr);
+        .deployZetoFungibleToken(name, symbol, tokenName, deployerAddr);
     } else {
       tx2 = await factory
         .connect(deployer)
-        .deployZetoNonFungibleToken(tokenName, deployerAddr);
+        .deployZetoNonFungibleToken(name, symbol, tokenName, deployerAddr);
     }
     const result1 = await tx2.wait();
 

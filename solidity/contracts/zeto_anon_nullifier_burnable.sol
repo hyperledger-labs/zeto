@@ -35,10 +35,12 @@ contract Zeto_AnonNullifierBurnable is
     ZetoFungibleBurnableWithNullifiers
 {
     function initialize(
+        string memory name,
+        string memory symbol,
         address initialOwner,
         VerifiersInfo calldata verifiers
     ) public override initializer {
-        __ZetoAnonNullifier_init(initialOwner, verifiers);
+        __ZetoAnonNullifier_init(name, symbol, initialOwner, verifiers);
         __ZetoFungibleBurnableWithNullifiers_init(
             (Groth16Verifier_BurnNullifier)(verifiers.burnVerifier),
             (Groth16Verifier_BurnNullifierBatch)(verifiers.batchBurnVerifier)

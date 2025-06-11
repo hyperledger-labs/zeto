@@ -41,8 +41,12 @@ abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
     mapping(uint256 => UTXOStatus) internal _lockedUtxos;
     mapping(uint256 => address) internal delegates;
 
-    function __ZetoBase_init(address initialOwner) internal onlyInitializing {
-        __ZetoCommon_init(initialOwner);
+    function __ZetoBase_init(
+        string memory name_,
+        string memory symbol_,
+        address initialOwner
+    ) internal onlyInitializing {
+        __ZetoCommon_init(name_, symbol_, initialOwner);
     }
 
     /// @dev query whether a UTXO is currently spent

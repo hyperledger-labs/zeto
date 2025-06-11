@@ -13,25 +13,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pragma solidity ^0.8.27;
 
-interface IZetoInitializable {
-    struct VerifiersInfo {
-        address verifier;
-        address depositVerifier;
-        address withdrawVerifier;
-        address lockVerifier;
-        address burnVerifier;
-        address batchVerifier;
-        address batchWithdrawVerifier;
-        address batchLockVerifier;
-        address batchBurnVerifier;
-    }
+import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-    function initialize(
-        string memory name,
-        string memory symbol,
-        address initialOwner,
-        VerifiersInfo memory verifiersInfo
-    ) external;
-}
+export default buildModule("TenDecimals", (m) => {
+  const tendecimals = m.contract("TenDecimals", []);
+  return { tendecimals };
+});

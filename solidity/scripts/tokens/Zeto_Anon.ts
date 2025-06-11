@@ -30,6 +30,8 @@ export async function deployDependencies() {
   return {
     deployer,
     args: [
+      "Zeto Anon",
+      "ZA",
       await deployer.getAddress(),
       {
         verifier: verifier.target,
