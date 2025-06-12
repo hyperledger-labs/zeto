@@ -47,7 +47,7 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
         batchLockVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
         burnVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
         batchBurnVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
-      }
+      },
     };
     await expect(
       factory.connect(nonOwner).registerImplementation("test", implInfo as any),
@@ -73,7 +73,7 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
         batchLockVerifier: "0x0000000000000000000000000000000000000000",
         burnVerifier: "0x0000000000000000000000000000000000000000",
         batchBurnVerifier: "0x0000000000000000000000000000000000000000",
-      }
+      },
     };
     await expect(
       factory.connect(deployer).registerImplementation("test", implInfo as any),
@@ -99,7 +99,7 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
         batchLockVerifier: "0x0000000000000000000000000000000000000000",
         burnVerifier: "0x0000000000000000000000000000000000000000",
         batchBurnVerifier: "0x0000000000000000000000000000000000000000",
-      }
+      },
     };
     await expect(
       factory.connect(deployer).registerImplementation("test", implInfo as any),
@@ -125,7 +125,7 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
         batchLockVerifier: "0x0000000000000000000000000000000000000000",
         burnVerifier: "0x0000000000000000000000000000000000000000",
         batchBurnVerifier: "0x0000000000000000000000000000000000000000",
-      }
+      },
     };
     await expect(
       factory.connect(deployer).registerImplementation("test", implInfo as any),
@@ -151,7 +151,7 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
         batchLockVerifier: "0x0000000000000000000000000000000000000000",
         burnVerifier: "0x0000000000000000000000000000000000000000",
         batchBurnVerifier: "0x0000000000000000000000000000000000000000",
-      }
+      },
     };
     const tx1 = await factory
       .connect(deployer)
@@ -183,7 +183,7 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
         batchLockVerifier: "0x0000000000000000000000000000000000000000",
         burnVerifier: "0x0000000000000000000000000000000000000000",
         batchBurnVerifier: "0x0000000000000000000000000000000000000000",
-      }
+      },
     };
     const tx1 = await factory
       .connect(deployer)
@@ -216,7 +216,7 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
         batchLockVerifier: "0x0000000000000000000000000000000000000000",
         burnVerifier: "0x0000000000000000000000000000000000000000",
         batchBurnVerifier: "0x0000000000000000000000000000000000000000",
-      }
+      },
     };
     const tx1 = await factory
       .connect(deployer)
@@ -249,7 +249,7 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
         batchLockVerifier: "0x0000000000000000000000000000000000000000",
         burnVerifier: "0x0000000000000000000000000000000000000000",
         batchBurnVerifier: "0x0000000000000000000000000000000000000000",
-      }
+      },
     };
     const tx1 = await factory
       .connect(deployer)
@@ -340,7 +340,7 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
         batchLockVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
         burnVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
         batchBurnVerifier: "0xae92d5aD7583AD66E49A0c67BAd18F6ba52dDDc1",
-      }
+      },
     };
     const tx1 = await factory
       .connect(deployer)
