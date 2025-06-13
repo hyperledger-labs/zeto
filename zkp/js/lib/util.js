@@ -14,10 +14,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { genRandomSalt } = require("maci-crypto");
-const { poseidon4: poseidon, poseidon2 } = require("poseidon-lite");
-const { solidityPackedKeccak256 } = require("ethers");
-const { createHash, randomBytes } = require("crypto");
+const { genRandomSalt } = require('maci-crypto');
+const { poseidon4: poseidon, poseidon2 } = require('poseidon-lite');
+const { solidityPackedKeccak256 } = require('ethers');
+const { createHash, randomBytes } = require('crypto');
 
 // The ciphertext is produced inside the ZKP circuit. The following are
 // the index of the ciphertext in the witness array, which is dependent on the circuit.
@@ -35,16 +35,14 @@ function newSalt() {
 // per the encryption scheme in ../circuits/lib/encrypt.circom,
 // the nonce must not be larger than 2^128
 function newEncryptionNonce() {
-  const hex = randomBytes(16).toString("hex");
+  const hex = randomBytes(16).toString('hex');
   const nonce = BigInt(`0x${hex}`);
   return nonce;
 }
 
-const two128 = BigInt("340282366920938463463374607431768211456");
+const two128 = BigInt('340282366920938463463374607431768211456');
 // Field modulus for BN254
-const F = BigInt(
-  "21888242871839275222246405745257275088548364400416034343698204186575808495617",
-);
+const F = BigInt('21888242871839275222246405745257275088548364400416034343698204186575808495617');
 
 // Implements the encryption and decryption functions using Poseidon hash
 // as described: https://drive.google.com/file/d/1EVrP3DzoGbmzkRmYnyEDcIQcXVU7GlOd/view
@@ -120,22 +118,10 @@ function poseidonDecrypt(ciphertext, key, nonce, length) {
   // If length > 3, check if the last (3 - (l mod 3)) elements of the message are 0
   if (length > 3) {
     if (length % 3 === 2) {
-      checkEqual(
-        message[message.length - 1],
-        0n,
-        "The last element of the message must be 0",
-      );
+      checkEqual(message[message.length - 1], 0n, 'The last element of the message must be 0');
     } else if (length % 3 === 1) {
-      checkEqual(
-        message[message.length - 1],
-        0n,
-        "The last element of the message must be 0",
-      );
-      checkEqual(
-        message[message.length - 2],
-        0n,
-        "The second to last element of the message must be 0",
-      );
+      checkEqual(message[message.length - 1], 0n, 'The last element of the message must be 0');
+      checkEqual(message[message.length - 2], 0n, 'The second to last element of the message must be 0');
     }
   }
 
@@ -143,11 +129,7 @@ function poseidonDecrypt(ciphertext, key, nonce, length) {
   state = poseidon(state, 4);
 
   // Check the last ciphertext element
-  checkEqual(
-    ciphertext[ciphertext.length - 1],
-    state[1],
-    "The last ciphertext element must match the second item of the permuted state",
-  );
+  checkEqual(ciphertext[ciphertext.length - 1], state[1], 'The last ciphertext element must match the second item of the permuted state');
 
   return message.slice(0, length);
 }
@@ -171,24 +153,24 @@ function addMod(a, b) {
 
 function validateInputs(msg, key, nonce, length) {
   if (!Array.isArray(msg)) {
-    throw new Error("The message must be an array");
+    throw new Error('The message must be an array');
   }
   for (let i = 0; i < msg.length; i += 1) {
-    if (typeof msg[i] !== "bigint") {
-      throw new Error("Each message element must be a BigInt");
+    if (typeof msg[i] !== 'bigint') {
+      throw new Error('Each message element must be a BigInt');
     }
   }
   if (key.length !== 2) {
-    throw new Error("The key must be an array of two elements");
+    throw new Error('The key must be an array of two elements');
   }
-  if (typeof key[0] !== "bigint" || typeof key[1] !== "bigint") {
-    throw new Error("The key must be an array of two BigInts");
+  if (typeof key[0] !== 'bigint' || typeof key[1] !== 'bigint') {
+    throw new Error('The key must be an array of two BigInts');
   }
-  if (typeof nonce !== "bigint") {
-    throw new Error("The nonce must be a BigInt");
+  if (typeof nonce !== 'bigint') {
+    throw new Error('The nonce must be a BigInt');
   }
   if (length && length < 1) {
-    throw new Error("The length must be at least 1");
+    throw new Error('The length must be at least 1');
   }
 }
 
@@ -216,15 +198,15 @@ function getProofHash(encodedProof) {
     BigInt(encodedProof.pC[0]),
     BigInt(encodedProof.pC[1]),
   ];
-  const hash = solidityPackedKeccak256(["uint[8]"], [flat]);
+  const hash = solidityPackedKeccak256(['uint[8]'], [flat]);
   return hash;
 }
 
 function tokenUriHash(tokenUri) {
-  const hash = createHash("sha256").update(tokenUri).digest("hex");
+  const hash = createHash('sha256').update(tokenUri).digest('hex');
   // to fit the result within the range of the Finite Field used in the poseidon hash,
   // use 253 bit long numbers. we need to remove the most significant three bits.
-  return BigInt.asUintN(253, "0x" + hash);
+  return BigInt.asUintN(253, '0x' + hash);
 }
 
 function kycHash(bjjPublicKey) {
@@ -241,19 +223,32 @@ function getKyberCipherText(witnessObj, circuitName) {
   return cipherTexts;
 }
 
+// the bit array is assumed to be in the Little Endian format
 function bitsToBytes(bitArray) {
   const bytes = [];
   for (let i = 0; i < bitArray.length; i += 8) {
     let byte = 0;
     for (let j = 0; j < 8 && i + j < bitArray.length; j++) {
-      if (bitArray[i + j] === 1) {
-        byte |= 1 << (7 - j);
-      }
+      byte += bitArray[i + j] * (1 << j); // Ensure bit is treated as a number
     }
     bytes.push(byte);
   }
 
   return new Uint8Array(bytes);
+}
+
+// Unpacks a byte array into a bit array, in the Little Endian format.
+function bytesToBits(byteArray) {
+  let bitArray = [];
+
+  for (let byte of byteArray) {
+    for (let i = 0; i < 8; i++) {
+      const bit = (byte >> i) & 1;
+      bitArray.push(bit);
+    }
+  }
+
+  return bitArray;
 }
 
 /**
@@ -270,11 +265,11 @@ function hashCiphertextAsFieldSignals(ciphertext) {
   for (let i = 0; i < ciphertext.length; i++) {
     buff.writeUInt8(parseInt(ciphertext[i].toString()), i);
   }
-  const hash = createHash("sha256").update(buff).digest("hex");
+  const hash = createHash('sha256').update(buff).digest('hex');
   // compare this with the console.log printout in Solidity
   // console.log("ciphertext hash", hash);
 
-  const hashBuffer = Buffer.from(hash, "hex");
+  const hashBuffer = Buffer.from(hash, 'hex');
   const computed_pubSignals = [BigInt(0), BigInt(0)];
   // Calculate h0: sum of the first 16 bytes
   for (let i = 0; i < 16; i++) {
@@ -302,6 +297,7 @@ module.exports = {
   kycHash,
   getKyberCipherText,
   bitsToBytes,
+  bytesToBits,
   hashCiphertextAsFieldSignals,
   CT_INDEX,
 };
