@@ -234,7 +234,7 @@ function bitsToBytes(bitArray) {
     bytes.push(byte);
   }
 
-  return new Uint8Array(bytes);
+  return bytes;
 }
 
 // Unpacks a byte array into a bit array, in the Little Endian format.
