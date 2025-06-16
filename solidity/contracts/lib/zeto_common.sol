@@ -57,14 +57,14 @@ abstract contract ZetoCommon is IZeto, OwnableUpgradeable {
      * be displayed to a user as `5.05` (`505 / 10 ** 2`).
      *
      * Tokens usually opt for a value of 18, imitating the relationship between
-     * Ether and Wei. But Zeto uses 2 as the default, based on its target use cases
+     * Ether and Wei. But Zeto uses 4 as the default, based on its target use cases
      * in CBDCs and tokenized commercial money. The default value can be overridden.
      *
      * NOTE: This information is only used for _display_ purposes: it in
      * no way affects any of the arithmetic of the contract, or the ZKP circuits.
      */
     function decimals() public view virtual returns (uint8) {
-        return 2;
+        return 4;
     }
 
     function checkAndPadCommitments(

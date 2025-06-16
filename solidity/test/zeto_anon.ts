@@ -81,7 +81,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
 
   it("has 2 decimals", async function () {
     const decimals = await zeto.decimals();
-    expect(decimals).to.equal(2, "Decimals should be 2");
+    expect(decimals).to.equal(4, "Decimals should be 4");
   });
 
   it("(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob & Charlie then withdraw should succeed", async function () {
