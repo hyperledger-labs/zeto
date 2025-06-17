@@ -61,7 +61,7 @@ jobs:
         working-directory: ${{ runner.temp }}/zeto-artifacts
         run: |
           tar -czvf zeto-wasm-$ZETO_VER.tar.gz **/*.wasm
-          tar -czvf --exclude='*qurrency*' zeto-test-proving-keys-$ZETO_VER.tar.gz *.zkey *-vkey.json
+          tar --exclude='*qurrency*' -czvf zeto-test-proving-keys-$ZETO_VER.tar.gz *.zkey *-vkey.json
           tar -czvf zeto-qurrency-test-proving-keys-$ZETO_VER.tar.gz *qurrency*.zkey *qurrency*-vkey.json
 
       - name: Create contract archives
