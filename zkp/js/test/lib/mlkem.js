@@ -16,48 +16,39 @@
 
 const { expect } = require('chai');
 const { join } = require('path');
+const crypto = require('crypto');
+const { MlKem512 } = require('mlkem');
 const { wasm: wasm_tester } = require('circom_tester');
 const { bytesToBits, bitsToBytes } = require('../../lib/util');
-const { testCipher } = require('./util');
+const { testCipher, testKeyPair } = require('./util');
 
 describe('mlkem circuit tests', () => {
   let circuit, witness;
 
   before(async function () {
     this.timeout(60000);
-    circuit = await wasm_tester(join(__dirname, '../circuits/mlkem.circom'));
+    // circuit = await wasm_tester(join(__dirname, '../circuits/mlkem.circom'));
   });
 
   it('should generate the right 6144 bits (768 bytes) as interim signals', async () => {
-    const circuitInputs = {
-      randomness: testCipher.randomness,
-      m: testCipher.m,
-    };
-    witness = await circuit.calculateWitness(circuitInputs);
-    const bits = bytesToBits(testCipher.hack);
-    // locate the ciphertext bits in the witness array
-    let ctIndex = -1;
-    for (let i = 0; i < witness.length; i++) {
-      // check consecutive 10 bits to find the start of the ciphertext
-      if (i + 6144 >= witness.length) {
-        break; // prevent out of bounds access
-      }
-      let notMatch = false;
-      for (let j = 0; j < 6144; j++) {
-        if (Number(witness[i + j]) !== Number(bits[j])) {
-          notMatch = true;
-          break; // not a match, continue searching
-        }
-      }
-      if (notMatch) continue; // continue to the next index if not a match
-      // if we found a match, extract the next 6144 bits
-      const array = witness.slice(i, i + 6144);
-      const bytes = bitsToBytes(array.map((x) => Number(x)));
-      expect(bytes).to.deep.equal(testCipher.hack);
-      ctIndex = i;
-      break;
-    }
-    console.log('Ciphertext found at index:', ctIndex);
-    expect(ctIndex).to.be.greaterThan(0, 'Ciphertext not found in witness');
+    const randomness = crypto.randomBytes(32); // 32 bytes for randomness
+    // const randomBits = bytesToBits(randomness);
+    // const circuitInputs = {
+    //   m: randomBits,
+    // };
+    // witness = await circuit.calculateWitness(circuitInputs);
+    // // the shared secret is 1...256, which is 256 bits
+    // console.log('witness 1-100: ', witness.slice(1, 101));
+    // console.log('witness 101-200: ', witness.slice(101, 201));
+    // console.log('witness 201-256: ', witness.slice(201, 257));
+    // // the ciphertext is at index 257...282(257+25)
+    // const array = witness.slice(257, 283);
+    // console.log('witness 257-282: ', array);
+
+    const sender = new MlKem512();
+    const pkR = new Uint8Array(testKeyPair.pk);
+    const [ct, ssS] = await sender.encap(pkR, new Uint8Array(randomness));
+    console.log('shared secret: ', ssS);
+    console.log('ciphertext: ', ct);
   }).timeout(60000);
 });

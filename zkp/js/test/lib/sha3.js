@@ -37,6 +37,25 @@ describe('SHA3_512_bytes circuit tests', () => {
   });
 });
 
+describe('SHA3_512 (bits) circuit tests', () => {
+  let circuit;
+  before(async function () {
+    this.timeout(60000);
+    circuit = await wasm_tester(join(__dirname, '../circuits/sha3_bits.circom'));
+  });
+
+  it('should generate the right sha3 hash', async () => {
+    const inputBits = bytesToBits([49, 50]);
+    const circuitInputs = {
+      inp: inputBits,
+    };
+    const witness = await circuit.calculateWitness(circuitInputs);
+    const array = witness.slice(1, 513);
+    const hash = Buffer.from(bitsToBytes(array.map((x) => Number(x)))).toString('hex');
+    expect(hash).to.equal('f235c129089233ce3c9c85f1d1554b9cb21952b27e0765bcbcf75d550dd4d2874e546889da5c44db9c066e05e268f4742d672889ff62fb9cb18a3d1b57f00658');
+  });
+});
+
 describe('Keccak_512_bytes circuit tests', () => {
   let circuit;
   before(async function () {
@@ -62,7 +81,7 @@ describe('Unpack bytes circuit tests', () => {
     circuit = await wasm_tester(join(__dirname, '../circuits/unpack_bytes.circom'));
   });
 
-  it('should unpack bytes to bits', async () => {
+  it('test bytesToBits() is equivalent to the UnpackBytes circuit', async () => {
     const bytes = [49, 50];
     const circuitInputs = {
       bytes,
@@ -81,7 +100,7 @@ describe('Pack bytes circuit tests', () => {
     circuit = await wasm_tester(join(__dirname, '../circuits/pack_bytes.circom'));
   });
 
-  it('should pack bits to bytes', async () => {
+  it('test bitToBytes() is equivalent to the PackBits circuit', async () => {
     const bits = [1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0];
     const circuitInputs = {
       bits,
@@ -89,8 +108,7 @@ describe('Pack bytes circuit tests', () => {
     const witness = await circuit.calculateWitness(circuitInputs);
     const array = witness.slice(1, 3);
     const expectedBytes = bitsToBytes(bits);
-    expect(array[0]).to.equal(BigInt(expectedBytes[0]));
-    expect(array[1]).to.equal(BigInt(expectedBytes[1]));
+    expect(array).to.deep.equal(expectedBytes.map((byte) => BigInt(byte)));
   });
 });
 
@@ -106,6 +124,6 @@ describe('bitsToBytes and bytesToBits functions', () => {
     const bytes = [49, 50];
     const bits = bytesToBits(bytes);
     const backToBytes = bitsToBytes(bits);
-    expect(backToBytes).to.deep.equal(new Uint8Array(bytes));
+    expect(backToBytes).to.deep.equal(bytes);
   });
 });

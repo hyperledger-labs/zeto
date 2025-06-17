@@ -15,7 +15,7 @@
 pragma circom 2.2.2;
 
 include "sha3_bits.circom";
-include "./util.circom";
+include "../../common/util.circom";
 
 //------------------------------------------------------------------------------
 // NIST SHA3 hash functions

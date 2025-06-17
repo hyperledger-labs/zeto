@@ -21,7 +21,7 @@ include "sha3/sha3_bits.circom";
 include "kyber.circom";
 
 template mlkem_encaps() {
-    signal input m[256];
+    signal input m[256]; // randomness input, should be random and unique for each encapsulation
 
     signal output K[256]; // this is the shared secret
     signal output c_short[25]; // this is the ciphertext to send to the receiver to recover the shared secret
@@ -33,31 +33,15 @@ template mlkem_encaps() {
 
 template mlkem_encaps_internal() {
     signal input m[256];
+    signal output K[256]; // this is the shared secret
 
-    // This is a precomputed digest of the public key, SHA3-256(ek)
-    signal sha3_256_digest[256] <== [0,1,1,0,0,1,0,0,1,1,1,0,0,1,1,0,0,0,0,0,1,1,1,0,1,0,0,0,1,1,1,1,1,1,0,0,0,1,0,1,1,0,0,1,0,1,1,0,0,1,0,0,1,0,0,0,1,0,0,1,0,1,1,1,1,1,1,1,0,0,1,1,1,0,0,1,0,1,0,0,0,1,0,1,0,0,0,1,1,1,0,0,1,0,0,1,0,0,1,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,0,1,0,1,1,1,1,1,1,0,1,1,1,0,0,0,1,0,0,1,0,1,1,1,1,1,0,0,0,0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,1,1,0,0,0,1,1,0,0,1,1,0,0,0,0,1,1,1,0,1,0,1,1,1,1,0,0,0,1,1,0,1,0,0,1,1,1,0,1,1,0,0,0,1,0,1,1,1,0,1,0,1,0,0,0,1,1,1,0,0,1,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,1,0,0,0,0,0,0,1,1,0,0,1,1,1,0,1];
-
-    // Concatenate m and H(ek)
-    signal sha3_512_input[512];
-    for (var i = 0; i < 256; i++) {
-        sha3_512_input[i] <== m[i];
-        sha3_512_input[256 + i] <== sha3_256_digest[i];
-    }
-    
-    signal sha_512_digest[512] <== SHA3_512(512)(sha3_512_input);
-
-    // K is the first half of the digest
-    signal output K[256];
-    for (var i = 0; i < 256; i++) {
-        K[i] <== sha_512_digest[i];
-    }
-
-    // r is the second half
+    component g = g();
+    g.m <== m;
     signal r[256];
-    for (var i = 0; i < 256; i++) {
-        r[i] <== sha_512_digest[256 + i];
-    }
+    K <== g.K; // K is the first half of the digest
+    r <== g.r; // r is the second half of the digest
 
+    // r is the random value used to encrypt the message m
     signal c[768*8] <== kpke_enc()(r, m);
 
     // Split the ciphertext c into pieces of 254 bits, and fit each
@@ -76,4 +60,35 @@ template mlkem_encaps_internal() {
         sum += c[j + 24*254]*(1<<(7-j));
     }
     c_short[24] <== sum;
+}
+
+// G(m || H(ek)) = SHA3_512(m || H(ek))
+template g() {
+    signal input m[256];
+
+    // This is a precomputed digest of the public key, H(ek) = SHA3-256(ek)
+    signal sha3_256_digest[256] <== [0,1,1,0,0,1,0,0,1,1,1,0,0,1,1,0,0,0,0,0,1,1,1,0,1,0,0,0,1,1,1,1,1,1,0,0,0,1,0,1,1,0,0,1,0,1,1,0,0,1,0,0,1,0,0,0,1,0,0,1,0,1,1,1,1,1,1,1,0,0,1,1,1,0,0,1,0,1,0,0,0,1,0,1,0,0,0,1,1,1,0,0,1,0,0,1,0,0,1,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,0,1,0,1,1,1,1,1,1,0,1,1,1,0,0,0,1,0,0,1,0,1,1,1,1,1,0,0,0,0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,1,1,0,0,0,1,1,0,0,1,1,0,0,0,0,1,1,1,0,1,0,1,1,1,1,0,0,0,1,1,0,1,0,0,1,1,1,0,1,1,0,0,0,1,0,1,1,1,0,1,0,1,0,0,0,1,1,1,0,0,1,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,1,0,0,0,0,0,0,1,1,0,0,1,1,1,0,1];
+
+    // Concatenate m and H(ek)
+    signal sha3_512_input[512];
+    for (var i = 0; i < 256; i++) {
+        sha3_512_input[i] <== m[i];
+        sha3_512_input[256 + i] <== sha3_256_digest[i];
+    }
+    
+    component sha3_512 = SHA3_512(512);
+    sha3_512.inp <== sha3_512_input;
+    signal sha_512_digest[512] <== sha3_512.out;
+
+    // K is the first half of the digest
+    signal output K[256];
+    for (var i = 0; i < 256; i++) {
+        K[i] <== sha_512_digest[i];
+    }
+
+    // r is the second half
+    signal output r[256];
+    for (var i = 0; i < 256; i++) {
+        r[i] <== sha_512_digest[256 + i];
+    }
 }
