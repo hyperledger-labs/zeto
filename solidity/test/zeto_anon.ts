@@ -79,7 +79,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     ({ provingKeyFile: batchProvingKey } = loadProvingKeys("anon_batch"));
   });
 
-  it("has 2 decimals", async function () {
+  it("has 4 decimals", async function () {
     const decimals = await zeto.decimals();
     expect(decimals).to.equal(4, "Decimals should be 4");
   });
