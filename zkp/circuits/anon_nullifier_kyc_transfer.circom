@@ -15,6 +15,6 @@
 // limitations under the License.
 pragma circom 2.2.2;
 
-include "./basetokens/anon_nullifier_kyc_base.circom";
+include "./basetokens/anon_nullifier_kyc__transfer_base.circom";
 
-component main { public [ nullifiers, outputCommitments, utxosRoot, identitiesRoot, enabled ] } = Zeto(2, 2, 64, 10);
+component main { public [ nullifiers, outputCommitments, utxosRoot, identitiesRoot, enabled ] } = transfer(2, 2, 64, 10);
