@@ -32,10 +32,12 @@ contract Zeto_NfAnon is IZeto, IZetoInitializable, ZetoBase, UUPSUpgradeable {
     Groth16Verifier_NfAnon internal _verifier;
 
     function initialize(
+        string memory name,
+        string memory symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
-        __ZetoBase_init(initialOwner);
+        __ZetoBase_init(name, symbol, initialOwner);
         _verifier = (Groth16Verifier_NfAnon)(verifiers.verifier);
     }
 

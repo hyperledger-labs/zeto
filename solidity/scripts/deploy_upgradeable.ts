@@ -1,7 +1,6 @@
 import { ethers, ignition, upgrades } from "hardhat";
 import erc20Module from "../ignition/modules/erc20";
 import { getLinkedContractFactory, deploy } from "./lib/common";
-import { Address } from "../typechain-types";
 
 export async function deployFungible(tokenName: string, erc20Address?: string) {
   let erc20: any;
