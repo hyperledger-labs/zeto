@@ -4,7 +4,7 @@ name: release
 on:
   push:
     tags:
-      - "v*.*.*"
+      - 'v*.*.*'
 
 env:
   ZETO_VER: ${{ github.ref_name }}
@@ -61,7 +61,8 @@ jobs:
         working-directory: ${{ runner.temp }}/zeto-artifacts
         run: |
           tar -czvf zeto-wasm-$ZETO_VER.tar.gz **/*.wasm
-          tar -czvf zeto-test-proving-keys-$ZETO_VER.tar.gz *.zkey *-vkey.json
+          tar -czvf --exclude='*qurrency*' zeto-test-proving-keys-$ZETO_VER.tar.gz *.zkey *-vkey.json
+          tar -czvf zeto-qurrency-test-proving-keys-$ZETO_VER.tar.gz *qurrency*.zkey *qurrency*-vkey.json
 
       - name: Create contract archives
         working-directory: solidity
@@ -77,6 +78,7 @@ jobs:
           path: |
             ${{ runner.temp }}/zeto-artifacts/zeto-wasm-*.tar.gz
             ${{ runner.temp }}/zeto-artifacts/zeto-test-proving-keys-*.tar.gz
+            ${{ runner.temp }}/zeto-artifacts/zeto-qurrency-test-proving-keys-*.tar.gz
             ${{ runner.temp }}/zeto-artifacts/zeto-contracts-*.tar.gz
 
   create-release:
@@ -93,7 +95,7 @@ jobs:
       - name: Release Zeto Version
         uses: ncipollo/release-action@v1
         with:
-          allowUpdates: "true"
+          allowUpdates: 'true'
           artifacts: zeto-wasm-and-proving-keys/*.tar.gz
           tag: ${{ env.ZETO_VER }}
         env:
