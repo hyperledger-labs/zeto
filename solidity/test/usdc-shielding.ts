@@ -36,11 +36,9 @@ import {
   prepareNullifierWithdrawProof,
 } from "./utils";
 import { Zeto_AnonNullifier } from "../typechain-types";
-import {
-  deployFungible as deployZeto,
-} from "../scripts/deploy_upgradeable";
+import { deployFungible as deployZeto } from "../scripts/deploy_upgradeable";
 
-const USDC_SEPOLIA_ADDRESS = '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238';
+const USDC_SEPOLIA_ADDRESS = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
 const TRANSFER_AMOUNT = 1000; // 0.001000 UDSC
 
 describe("Shield USDC balances, transact in privacy, and withdraw back to USDC", function () {
@@ -68,11 +66,17 @@ describe("Shield USDC balances, transact in privacy, and withdraw back to USDC",
     Alice2 = await newUser(b);
     Bob = await newUser(c);
 
-    const usdcAddress = network.name === "sepolia" ? USDC_SEPOLIA_ADDRESS : undefined;
-    ({ zeto, erc20: usdc } = await deployZeto("Zeto_AnonNullifier", usdcAddress));
+    const usdcAddress =
+      network.name === "sepolia" ? USDC_SEPOLIA_ADDRESS : undefined;
+    ({ zeto, erc20: usdc } = await deployZeto(
+      "Zeto_AnonNullifier",
+      usdcAddress,
+    ));
 
     circuit = await loadCircuit("anon_nullifier_transfer");
-    ({ provingKeyFile: provingKey } = loadProvingKeys("anon_nullifier_transfer"));
+    ({ provingKeyFile: provingKey } = loadProvingKeys(
+      "anon_nullifier_transfer",
+    ));
 
     const storage1 = new InMemoryDB(str2Bytes(""));
     smtAlice = new Merkletree(storage1, true, 64);
@@ -84,7 +88,9 @@ describe("Shield USDC balances, transact in privacy, and withdraw back to USDC",
   it("Alice shields some USDC balance into the Zeto contract, and get Zeto tokens of the same value", async function () {
     const balance = await usdc.balanceOf(Alice.ethAddress);
     expect(balance).to.be.gt(TRANSFER_AMOUNT);
-    const tx1 = await usdc.connect(Alice.signer).approve(zeto.target, TRANSFER_AMOUNT);
+    const tx1 = await usdc
+      .connect(Alice.signer)
+      .approve(zeto.target, TRANSFER_AMOUNT);
     await tx1.wait();
 
     // Alice proposes the output UTXOs to shield her USDC balance
@@ -179,10 +185,7 @@ describe("Shield USDC balances, transact in privacy, and withdraw back to USDC",
 
     // Alice generates inclusion proofs for the UTXOs to be spent
     let root = await smtAlice.root();
-    const proof1 = await smtAlice.generateCircomVerifierProof(
-      utxo3.hash,
-      root,
-    );
+    const proof1 = await smtAlice.generateCircomVerifierProof(utxo3.hash, root);
     const proof2 = await smtAlice.generateCircomVerifierProof(0n, root);
     const merkleProofs = [
       proof1.siblings.map((s) => s.bigInt()),
@@ -208,16 +211,14 @@ describe("Shield USDC balances, transact in privacy, and withdraw back to USDC",
     // she used to shield the USDC tokens. Other parties can not link the
     // original USDC tokens to the withdrawn USDC tokens, because the public key
     // information behind the UTXO is unknown to other parties.
-    const tx = await zeto
-      .connect(Alice2.signer)
-      .withdraw(
-        TRANSFER_AMOUNT / 2, // the amount to withdraw
-        nullifiers,
-        outputCommitments[0],
-        root.bigInt(),
-        encodedProof,
-        "0x",
-      );
+    const tx = await zeto.connect(Alice2.signer).withdraw(
+      TRANSFER_AMOUNT / 2, // the amount to withdraw
+      nullifiers,
+      outputCommitments[0],
+      root.bigInt(),
+      encodedProof,
+      "0x",
+    );
     await tx.wait();
 
     // Alice checks her ERC20 balance
