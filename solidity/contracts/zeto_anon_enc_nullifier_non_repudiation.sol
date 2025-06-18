@@ -205,7 +205,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is
                     proof.pC,
                     fixedSizeInputs
                 ),
-                "Invalid proof"
+                "Invalid proof (batch)"
             );
         } else {
             require(

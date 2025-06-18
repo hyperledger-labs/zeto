@@ -194,6 +194,119 @@ describe("main circuit tests for Zeto fungible tokens with anonymity, KYC, using
     expect(witness[6]).to.equal(proof3.root.bigInt());
   });
 
+  it("should succeed for valid witness when using empty output commitments", async () => {
+    const inputValues = [32, 40];
+    const outputValues = [72, 0];
+
+    // create two input UTXOs, each has their own salt, but same owner
+    const salt1 = newSalt();
+    const input1 = poseidonHash([
+      BigInt(inputValues[0]),
+      salt1,
+      ...Alice.pubKey,
+    ]);
+    const salt2 = newSalt();
+    const input2 = poseidonHash([
+      BigInt(inputValues[1]),
+      salt2,
+      ...Alice.pubKey,
+    ]);
+    const inputCommitments = [input1, input2];
+
+    // create the nullifiers for the inputs
+    const nullifier1 = poseidonHash3([
+      BigInt(inputValues[0]),
+      salt1,
+      senderPrivateKey,
+    ]);
+    const nullifier2 = poseidonHash3([
+      BigInt(inputValues[1]),
+      salt2,
+      senderPrivateKey,
+    ]);
+    const nullifiers = [nullifier1, nullifier2];
+
+    // calculate the root of the SMT
+    await smtAlice.add(input1, input1);
+    await smtAlice.add(input2, input2);
+
+    // generate the merkle proof for the inputs
+    const proof1 = await smtAlice.generateCircomVerifierProof(
+      input1,
+      ZERO_HASH,
+    );
+    const proof2 = await smtAlice.generateCircomVerifierProof(
+      input2,
+      ZERO_HASH,
+    );
+    const utxosRoot = proof1.root.bigInt();
+
+    // create two output UTXOs, they share the same salt, and different owner
+    const salt3 = newSalt();
+    const salt4 = newSalt();
+    const output2 = poseidonHash([
+      BigInt(outputValues[1]),
+      salt4,
+      ...Alice.pubKey,
+    ]);
+    const outputCommitments = [0, output2];
+
+    // generate the merkle proof for the transacting identities
+    const proof3 = await smtKYC.generateCircomVerifierProof(
+      poseidonHash2(Alice.pubKey),
+      ZERO_HASH,
+    );
+    const proof4 = await smtKYC.generateCircomVerifierProof(
+      poseidonHash2(Bob.pubKey),
+      ZERO_HASH,
+    );
+    const identitiesRoot = proof3.root.bigInt();
+
+    const witness = await circuit.calculateWitness(
+      {
+        nullifiers,
+        inputCommitments,
+        inputValues,
+        inputSalts: [salt1, salt2],
+        inputOwnerPrivateKey: senderPrivateKey,
+        utxosRoot,
+        utxosMerkleProof: [
+          proof1.siblings.map((s) => s.bigInt()),
+          proof2.siblings.map((s) => s.bigInt()),
+        ],
+        enabled: [1, 1],
+        identitiesRoot,
+        identitiesMerkleProof: [
+          proof3.siblings.map((s) => s.bigInt()),
+          proof4.siblings.map((s) => s.bigInt()),
+          proof3.siblings.map((s) => s.bigInt()),
+        ],
+        outputCommitments,
+        outputValues,
+        outputSalts: [0, salt4],
+        outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
+      },
+      true,
+    );
+
+    // console.log('witness', witness.slice(0, 20));
+    // console.log('nullifiers', nullifiers);
+    // console.log('inputCommitments', inputCommitments);
+    // console.log('inputValues', inputValues);
+    // console.log('inputSalts', [salt1, salt2]);
+    // console.log('outputCommitments', outputCommitments);
+    // console.log('utxosRoot', proof1.root.bigInt());
+    // console.log('outputValues', outputValues);
+    // console.log('outputSalt', salt3);
+    // console.log('outputOwnerPublicKeys', [Bob.pubKey, Alice.pubKey]);
+    // console.log('identitiesRoot', proof3.root.bigInt());
+
+    expect(witness[1]).to.equal(BigInt(nullifiers[0]));
+    expect(witness[2]).to.equal(BigInt(nullifiers[1]));
+    expect(witness[3]).to.equal(proof1.root.bigInt());
+    expect(witness[6]).to.equal(proof3.root.bigInt());
+  });
+
   it("should fail if not using the right identities merkle proofs", async () => {
     const inputValues = [32, 40];
     const outputValues = [20, 52];

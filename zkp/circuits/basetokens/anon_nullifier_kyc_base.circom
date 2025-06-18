@@ -22,6 +22,7 @@ include "../lib/check-nullifiers.circom";
 include "../lib/check-smt-proof.circom";
 include "../node_modules/circomlib/circuits/babyjub.circom";
 include "../node_modules/circomlib/circuits/poseidon.circom";
+include "../node_modules/circomlib/circuits/comparators.circom";
 
 // This version of the circuit performs the following operations:
 // - derive the sender's public key from the sender's private key
@@ -95,9 +96,11 @@ template Zeto(nInputs, nOutputs, nUTXOSMTLevels, nIdentitiesSMTLevels) {
 
   var identitiesMTPCheckEnabled[nOutputs + 1];
   identitiesMTPCheckEnabled[0] = 1;
+  var isCommitmentZero[nOutputs];
   for (var i = 0; i < nOutputs; i++) {
     ownerPublicKeyHashes[i+1] = Poseidon(2)(inputs <== outputOwnerPublicKeys[i]);
-    identitiesMTPCheckEnabled[i+1] = 1;
+    isCommitmentZero[i] = IsZero()(in <== outputCommitments[i]);
+    identitiesMTPCheckEnabled[i+1] = (1 - isCommitmentZero[i]); // only check the identity MTP if the output commitment is not zero
   }
 
   CheckSMTProof(nOutputs + 1, nIdentitiesSMTLevels)(root <== identitiesRoot, merkleProof <== identitiesMerkleProof, enabled <== identitiesMTPCheckEnabled, leafNodeIndexes <== ownerPublicKeyHashes, leafNodeValues <== ownerPublicKeyHashes);

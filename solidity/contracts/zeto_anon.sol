@@ -235,7 +235,7 @@ contract Zeto_Anon is
                     proof.pC,
                     fixedSizeInputs
                 ),
-                "Invalid proof"
+                "Invalid proof (batch)"
             );
         } else {
             uint256[] memory publicInputs = constructPublicInputs(

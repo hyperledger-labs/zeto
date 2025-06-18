@@ -175,7 +175,7 @@ contract Zeto_AnonEncNullifierKyc is
                     proof.pC,
                     fixedSizeInputs
                 ),
-                "Invalid proof"
+                "Invalid proof (batch)"
             );
         } else {
             uint256[] memory publicInputs = constructPublicInputs(
