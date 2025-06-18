@@ -17,6 +17,7 @@ pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
 import {MAX_BATCH} from "./lib/interfaces/izeto.sol";
+import {IGroth16Verifier} from "./lib/interfaces/izeto_verifier.sol";
 import {Groth16Verifier_Deposit} from "./verifiers/verifier_deposit.sol";
 import {Groth16Verifier_WithdrawNullifier} from "./verifiers/verifier_withdraw_nullifier.sol";
 import {Groth16Verifier_WithdrawNullifierBatch} from "./verifiers/verifier_withdraw_nullifier_batch.sol";
@@ -30,11 +31,6 @@ import {Commonlib} from "./lib/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {console} from "hardhat/console.sol";
-
-uint256 constant INPUT_SIZE = 7;
-uint256 constant INPUT_SIZE_LOCKED = 8;
-uint256 constant BATCH_INPUT_SIZE = 31;
-uint256 constant BATCH_INPUT_SIZE_LOCKED = 32;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and history masking
 /// @author Kaleido, Inc.
@@ -51,11 +47,10 @@ contract Zeto_AnonNullifier is
     ZetoFungibleWithdrawWithNullifiers,
     UUPSUpgradeable
 {
-    Groth16Verifier_AnonNullifierTransfer internal _verifier;
-    Groth16Verifier_AnonNullifierTransferBatch internal _batchVerifier;
-    Groth16Verifier_AnonNullifierTransferLocked internal _lockVerifier;
-    Groth16Verifier_AnonNullifierTransferLockedBatch
-        internal _batchLockVerifier;
+    IGroth16Verifier internal _verifier;
+    IGroth16Verifier internal _batchVerifier;
+    IGroth16Verifier internal _lockVerifier;
+    IGroth16Verifier internal _batchLockVerifier;
 
     function initialize(
         address initialOwner,
@@ -76,16 +71,10 @@ contract Zeto_AnonNullifier is
                 verifiers.batchWithdrawVerifier
             )
         );
-        _verifier = (Groth16Verifier_AnonNullifierTransfer)(verifiers.verifier);
-        _lockVerifier = (Groth16Verifier_AnonNullifierTransferLocked)(
-            verifiers.lockVerifier
-        );
-        _batchVerifier = (Groth16Verifier_AnonNullifierTransferBatch)(
-            verifiers.batchVerifier
-        );
-        _batchLockVerifier = (Groth16Verifier_AnonNullifierTransferLockedBatch)(
-            verifiers.batchLockVerifier
-        );
+        _verifier = (IGroth16Verifier)(verifiers.verifier);
+        _lockVerifier = (IGroth16Verifier)(verifiers.lockVerifier);
+        _batchVerifier = (IGroth16Verifier)(verifiers.batchVerifier);
+        _batchLockVerifier = (IGroth16Verifier)(verifiers.batchLockVerifier);
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -116,12 +105,24 @@ contract Zeto_AnonNullifier is
             publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
         }
 
+        // insert extra inputs if any
+        uint256[] memory extra = extraInputs();
+        for (uint256 i = 0; i < extra.length; i++) {
+            publicInputs[piIndex++] = extra[i];
+        }
+
         // copy output commitments
         for (uint256 i = 0; i < outputs.length; i++) {
             publicInputs[piIndex++] = outputs[i];
         }
 
         return publicInputs;
+    }
+
+    function extraInputs() internal pure virtual returns (uint256[] memory) {
+        // no extra inputs for this contract
+        uint256[] memory empty = new uint256[](0);
+        return empty;
     }
 
     /**
@@ -274,11 +275,6 @@ contract Zeto_AnonNullifier is
                 BATCH_INPUT_SIZE,
                 false
             );
-            // construct the public inputs for batchVerifier
-            uint256[BATCH_INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
 
             // Check the proof using batchVerifier
             require(
@@ -372,5 +368,32 @@ contract Zeto_AnonNullifier is
             );
         }
         return true;
+    }
+}
+
+uint256 constant INPUT_SIZE = 7;
+uint256 constant INPUT_SIZE_LOCKED = 8;
+uint256 constant BATCH_INPUT_SIZE = 31;
+uint256 constant BATCH_INPUT_SIZE_LOCKED = 32;
+
+library AnonNullifierVerifier is IGroth16Verifier {
+    Groth16Verifier_AnonNullifierTransfer internal _verifier;
+
+    constructor(IGroth16Verifier verifier) {
+        _verifier = (Groth16Verifier_AnonNullifierTransfer)(verifier);
+    }
+
+    function verifyProof(
+        uint256[2] calldata _pA,
+        uint256[2][2] calldata _pB,
+        uint256[2] calldata _pC,
+        uint256[] calldata _pubSignals
+    ) external view returns (bool) {
+        // construct the public inputs for batchVerifier
+        uint256[BATCH_INPUT_SIZE] memory fixedSizeInputs;
+        for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
+            fixedSizeInputs[i] = publicInputs[i];
+        }
+        return _verifier.verifyProof(_pA, _pB, _pC, _pubSignals);
     }
 }

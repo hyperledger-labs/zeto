@@ -15,28 +15,17 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {IZeto} from "./lib/interfaces/izeto.sol";
-import {Groth16Verifier_Deposit} from "./verifiers/verifier_deposit.sol";
-import {Groth16Verifier_WithdrawNullifier} from "./verifiers/verifier_withdraw_nullifier.sol";
-import {Groth16Verifier_WithdrawNullifierBatch} from "./verifiers/verifier_withdraw_nullifier_batch.sol";
+import {Zeto_AnonNullifier} from "./zeto_anon_nullifier.sol";
 import {Groth16Verifier_AnonNullifierKycTransfer} from "./verifiers/verifier_anon_nullifier_kyc_transfer.sol";
 import {Groth16Verifier_AnonNullifierKycTransferBatch} from "./verifiers/verifier_anon_nullifier_kyc_transfer_batch.sol";
 import {Groth16Verifier_AnonNullifierKycTransferLocked} from "./verifiers/verifier_anon_nullifier_kyc_transferLocked.sol";
 import {Groth16Verifier_AnonNullifierKycTransferLockedBatch} from "./verifiers/verifier_anon_nullifier_kyc_transferLocked_batch.sol";
-import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
-import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {console} from "hardhat/console.sol";
 
-uint256 constant INPUT_SIZE = 8;
-uint256 constant BATCH_INPUT_SIZE = 32;
-uint256 constant INPUT_SIZE_LOCKED = 9;
-uint256 constant BATCH_INPUT_SIZE_LOCKED = 33;
-
-/// @title A sample implementation of a Zeto based fungible token with anonymity and history masking
+/// @title A sample implementation of a Zeto based fungible token with anonymity, history masking and KYC
 /// @author Kaleido, Inc.
 /// @dev The proof has the following statements:
 ///        - each value in the output commitments must be a positive number in the range 0 ~ (2\*\*40 - 1)
@@ -44,45 +33,18 @@ uint256 constant BATCH_INPUT_SIZE_LOCKED = 33;
 ///        - the hashes in the input and output match the hash(value, salt, owner public key) formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
-contract Zeto_AnonNullifierKyc is
-    IZeto,
-    IZetoInitializable,
-    ZetoNullifier,
-    ZetoFungibleWithdrawWithNullifiers,
-    Registry,
-    UUPSUpgradeable
-{
-    Groth16Verifier_AnonNullifierKycTransfer internal _verifier;
-    Groth16Verifier_AnonNullifierKycTransferBatch internal _batchVerifier;
-    Groth16Verifier_AnonNullifierKycTransferLocked internal _lockVerifier;
-    Groth16Verifier_AnonNullifierKycTransferLockedBatch
-        internal _batchLockVerifier;
-
+contract Zeto_AnonNullifierKyc is Zeto_AnonNullifier, Registry {
     function initialize(
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
         __Registry_init();
-        __ZetoNullifier_init(initialOwner);
-        __ZetoFungibleWithdrawWithNullifiers_init(
-            (Groth16Verifier_Deposit)(verifiers.depositVerifier),
-            (Groth16Verifier_WithdrawNullifier)(verifiers.withdrawVerifier),
-            (Groth16Verifier_WithdrawNullifierBatch)(
-                verifiers.batchWithdrawVerifier
-            )
-        );
-        _verifier = (Groth16Verifier_AnonNullifierKycTransfer)(
-            verifiers.verifier
-        );
-        _batchVerifier = (Groth16Verifier_AnonNullifierKycTransferBatch)(
-            verifiers.batchVerifier
-        );
-        _lockVerifier = (Groth16Verifier_AnonNullifierKycTransferLocked)(
-            verifiers.lockVerifier
-        );
-        _batchLockVerifier = (
-            Groth16Verifier_AnonNullifierKycTransferLockedBatch
-        )(verifiers.batchLockVerifier);
+        __ZetoAnonNullifier_init(initialOwner, verifiers);
+
+        INPUT_SIZE = 8;
+        BATCH_INPUT_SIZE = 32;
+        INPUT_SIZE_LOCKED = 9;
+        BATCH_INPUT_SIZE_LOCKED = 33;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -91,42 +53,11 @@ contract Zeto_AnonNullifierKyc is
         _register(publicKey);
     }
 
-    function constructPublicInputs(
-        uint256[] memory nullifiers,
-        uint256[] memory outputs,
-        uint256 root,
-        uint256 size,
-        bool locked
-    ) internal view returns (uint256[] memory publicInputs) {
-        publicInputs = new uint256[](size);
-        uint256 piIndex = 0;
-        // copy input nullifiers
-        for (uint256 i = 0; i < nullifiers.length; i++) {
-            publicInputs[piIndex++] = nullifiers[i];
-        }
-        // when verifying locked transfers, additional public input
-        // for the lock delegate
-        if (locked) {
-            publicInputs[piIndex++] = uint256(uint160(msg.sender));
-        }
+    function extraInputs() internal view override returns (uint256[] memory) {
+        uint256[] memory extras = new uint256[](1);
 
-        // copy root
-        publicInputs[piIndex++] = root;
-
-        // populate enables
-        for (uint256 i = 0; i < nullifiers.length; i++) {
-            publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
-        }
-
-        // copy identities root
-        publicInputs[piIndex++] = getIdentitiesRoot();
-
-        // copy output commitments
-        for (uint256 i = 0; i < outputs.length; i++) {
-            publicInputs[piIndex++] = outputs[i];
-        }
-
-        return publicInputs;
+        extras[0] = getIdentitiesRoot();
+        return extras;
     }
 
     /**
