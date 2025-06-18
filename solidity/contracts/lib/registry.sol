@@ -19,6 +19,7 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit2L, PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
 import {Commonlib} from "./common.sol";
+import {IZeto} from "./interfaces/izeto.sol";
 
 uint256 constant MAX_SMT_DEPTH = 64;
 
@@ -31,8 +32,6 @@ uint256 constant MAX_SMT_DEPTH = 64;
 abstract contract Registry is OwnableUpgradeable {
     SmtLib.Data internal _publicKeysTree;
     using SmtLib for SmtLib.Data;
-
-    event IdentityRegistered(uint256[2] publicKey);
 
     error AlreadyRegistered(uint256[2]);
 
@@ -49,7 +48,7 @@ abstract contract Registry is OwnableUpgradeable {
             revert AlreadyRegistered(publicKey);
         }
         _publicKeysTree.addLeaf(nodeHash, nodeHash);
-        emit IdentityRegistered(publicKey);
+        emit IZeto.IdentityRegistered(publicKey);
     }
 
     /// @dev returns whether the given public key is registered
