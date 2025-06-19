@@ -41,14 +41,17 @@ abstract contract Registry is OwnableUpgradeable {
 
     /// @dev Register a new Zeto account
     /// @param publicKey The public Babyjubjub key to register
-    function _register(uint256[2] memory publicKey) internal {
+    function _register(
+        uint256[2] memory publicKey,
+        bytes calldata data
+    ) internal {
         uint256 nodeHash = _getIdentitiesLeafNodeHash(publicKey);
         SmtLib.Node memory node = _publicKeysTree.getNode(nodeHash);
         if (node.nodeType != SmtLib.NodeType.EMPTY) {
             revert AlreadyRegistered(publicKey);
         }
         _publicKeysTree.addLeaf(nodeHash, nodeHash);
-        emit IZeto.IdentityRegistered(publicKey);
+        emit IZeto.IdentityRegistered(publicKey, data);
     }
 
     /// @dev returns whether the given public key is registered
