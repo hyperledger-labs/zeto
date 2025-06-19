@@ -1,4 +1,4 @@
-// Copyright © 2024 Kaleido, Inc.
+// Copyright © 2025 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -15,23 +15,26 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-interface IZetoInitializable {
-    struct VerifiersInfo {
-        address verifier;
-        address depositVerifier;
-        address withdrawVerifier;
-        address lockVerifier;
-        address burnVerifier;
-        address batchVerifier;
-        address batchWithdrawVerifier;
-        address batchLockVerifier;
-        address batchBurnVerifier;
+import {Zeto_Anon} from "../zeto_anon.sol";
+import {IZeto} from "../lib/interfaces/izeto.sol";
+import {ZetoCommon} from "../lib/zeto_common.sol";
+
+contract TenDecimals is Zeto_Anon {
+    function decimals()
+        public
+        pure
+        override(IZeto, ZetoCommon)
+        returns (uint8)
+    {
+        return 10;
     }
 
     function initialize(
         string memory name,
         string memory symbol,
         address initialOwner,
-        VerifiersInfo memory verifiersInfo
-    ) external;
+        VerifiersInfo calldata verifiersInfo
+    ) public override initializer {
+        Zeto_Anon.initialize(name, symbol, initialOwner, verifiersInfo);
+    }
 }

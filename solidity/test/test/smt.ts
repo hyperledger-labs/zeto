@@ -10,9 +10,7 @@ describe("smt tests", function () {
     let [d] = await ethers.getSigners();
     deployer = d;
 
-    const {
-      testSmt,
-    } = await ignition.deploy(smtModule);
+    const { testSmt } = await ignition.deploy(smtModule);
     console.log(`TestSmt contract deployed at ${testSmt.target}`);
     smt = testSmt as Contract;
   });
@@ -25,7 +23,7 @@ describe("smt tests", function () {
 
   it("should retrieve a leaf: i=1", async function () {
     const result = await smt.get(1n, 1n);
-    console.log('node: ', result);
+    console.log("node: ", result);
   });
 
   it("should insert a leaf: i=1, v=2", async function () {
@@ -36,18 +34,22 @@ describe("smt tests", function () {
 
   it("should retrieve a leaf: i=1", async function () {
     const result1 = await smt.get(1n, 1n);
-    console.log('node (1, 1): ', result1);
+    console.log("node (1, 1): ", result1);
     const result2 = await smt.get(1n, 2n);
-    console.log('node (1, 2): ', result2);
+    console.log("node (1, 2): ", result2);
   });
 
   it("should retrieve a proof: i=1", async function () {
     const proof = await smt.getProof(1n);
-    console.log(`proof: ${proof} (existence: ${proof.existence}, value: ${proof.value})`);
+    console.log(
+      `proof: ${proof} (existence: ${proof.existence}, value: ${proof.value})`,
+    );
   });
 
   it("should retrieve a proof: i=2", async function () {
     const proof = await smt.getProof(2n);
-    console.log(`proof: ${proof} (existence: ${proof.existence}, value: ${proof.value})`);
+    console.log(
+      `proof: ${proof} (existence: ${proof.existence}, value: ${proof.value})`,
+    );
   });
 });

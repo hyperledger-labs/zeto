@@ -50,13 +50,17 @@ export async function prepareDepositProof(signer: User, outputs: [UTXO, UTXO]) {
     outputs[1].hash,
   ] as [BigNumberish, BigNumberish];
   const outputValues = [
-    BigInt(outputs[0].value || 0n),
-    BigInt(outputs[1].value || 0n),
+    BigInt(outputs[0].value || 0),
+    BigInt(outputs[1].value || 0),
+  ];
+  const outputSalts = [
+    BigInt(outputs[0].salt || 0n),
+    BigInt(outputs[1].salt || 0n),
   ];
   const outputOwnerPublicKeys: [
     [BigNumberish, BigNumberish],
     [BigNumberish, BigNumberish],
-  ] = [signer.babyJubPublicKey, signer.babyJubPublicKey] as [
+  ] = [signer.babyJubPublicKey, outputs[1].hash ? signer.babyJubPublicKey : [0n, 0n]] as [
     [BigNumberish, BigNumberish],
     [BigNumberish, BigNumberish],
   ];
@@ -64,7 +68,7 @@ export async function prepareDepositProof(signer: User, outputs: [UTXO, UTXO]) {
   const inputObj = {
     outputCommitments,
     outputValues,
-    outputSalts: [outputs[0].salt, outputs[1].salt],
+    outputSalts,
     outputOwnerPublicKeys,
   };
 
@@ -335,5 +339,5 @@ export function randomBytesAsDigitArray(length: number) {
   for (let i = 0; i < bytes.length; i++) {
     s += bytes[i].toString(2).padStart(8, "0");
   }
-  return s.split('').map(b => parseInt(b));
+  return s.split("").map((b) => parseInt(b));
 }

@@ -79,6 +79,11 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     ({ provingKeyFile: batchProvingKey } = loadProvingKeys("anon_batch"));
   });
 
+  it("has 4 decimals", async function () {
+    const decimals = await zeto.decimals();
+    expect(decimals).to.equal(4, "Decimals should be 4");
+  });
+
   it("(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob & Charlie then withdraw should succeed", async function () {
     // first mint the tokens for batch testing
     const inputUtxos = [];

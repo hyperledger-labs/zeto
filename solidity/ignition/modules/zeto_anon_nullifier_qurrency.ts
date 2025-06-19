@@ -25,7 +25,10 @@ import {
 const VerifierModule = buildModule(
   "Groth16Verifier_AnonNullifierQurrencyTransfer",
   (m) => {
-    const verifier = m.contract("Groth16Verifier_AnonNullifierQurrencyTransfer", []);
+    const verifier = m.contract(
+      "Groth16Verifier_AnonNullifierQurrencyTransfer",
+      [],
+    );
     return { verifier };
   },
 );
@@ -44,7 +47,10 @@ const VerifierModule = buildModule(
 const BatchVerifierModule = buildModule(
   "Groth16Verifier_AnonNullifierQurrencyTransferBatch",
   (m) => {
-    const verifier = m.contract("Groth16Verifier_AnonNullifierQurrencyTransferBatch", []);
+    const verifier = m.contract(
+      "Groth16Verifier_AnonNullifierQurrencyTransferBatch",
+      [],
+    );
     return { verifier };
   },
 );

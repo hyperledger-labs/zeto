@@ -42,9 +42,11 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
     error UTXORootNotFound(uint256 root);
 
     function __ZetoNullifier_init(
+        string memory name_,
+        string memory symbol_,
         address initialOwner
     ) internal onlyInitializing {
-        __ZetoCommon_init(initialOwner);
+        __ZetoCommon_init(name_, symbol_, initialOwner);
         _commitmentsTree.initialize(MAX_SMT_DEPTH);
         _lockedCommitmentsTree.initialize(MAX_SMT_DEPTH);
     }

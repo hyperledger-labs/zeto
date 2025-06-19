@@ -35,6 +35,8 @@ export async function deployDependencies() {
   return {
     deployer,
     args: [
+      "Zeto Anon Nullifier KYC",
+      "ZAENKYC",
       await deployer.getAddress(),
       {
         verifier: verifier.target,

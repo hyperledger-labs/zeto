@@ -361,7 +361,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
     ]);
     expect(incomingUTXOs[0]).to.equal(hash);
 
-    // Bob uses the decrypted values to construct the UTXO received from the transaction
+    // Bob uses the received values to construct the UTXO received from the transaction
     utxo3 = newUTXO(receivedValue, Bob, receivedSalt);
   }).timeout(600000);
 
@@ -538,8 +538,14 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
       const _utxo1 = newUTXO(1, Bob);
       const nullifier1 = newNullifier(utxo12, Alice);
       let root = await smtAlice.root();
-      const proof1 = await smtAlice.generateCircomVerifierProof(utxo12.hash, root);
-      const proof2 = await smtAlice.generateCircomVerifierProof(utxo12.hash, root);
+      const proof1 = await smtAlice.generateCircomVerifierProof(
+        utxo12.hash,
+        root,
+      );
+      const proof2 = await smtAlice.generateCircomVerifierProof(
+        utxo12.hash,
+        root,
+      );
       const merkleProofs = [
         proof1.siblings.map((s) => s.bigInt()),
         proof2.siblings.map((s) => s.bigInt()),
