@@ -19,6 +19,8 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit2L, PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
 import {Commonlib} from "./common.sol";
+import {IZeto} from "./interfaces/izeto.sol";
+import {IZetoKyc} from "./interfaces/izeto_kyc.sol";
 
 uint256 constant MAX_SMT_DEPTH = 64;
 
@@ -28,11 +30,9 @@ uint256 constant MAX_SMT_DEPTH = 64;
 ///   submitters can generate proofs of membership for the
 ///   accounts in a privacy-preserving manner.
 /// @author Kaleido, Inc.
-abstract contract Registry is OwnableUpgradeable {
+abstract contract Registry is OwnableUpgradeable, IZetoKyc {
     SmtLib.Data internal _publicKeysTree;
     using SmtLib for SmtLib.Data;
-
-    event IdentityRegistered(uint256[2] publicKey);
 
     error AlreadyRegistered(uint256[2]);
 
@@ -40,16 +40,11 @@ abstract contract Registry is OwnableUpgradeable {
         _publicKeysTree.initialize(MAX_SMT_DEPTH);
     }
 
-    /// @dev Register a new Zeto account
-    /// @param publicKey The public Babyjubjub key to register
-    function _register(uint256[2] memory publicKey) internal {
-        uint256 nodeHash = _getIdentitiesLeafNodeHash(publicKey);
-        SmtLib.Node memory node = _publicKeysTree.getNode(nodeHash);
-        if (node.nodeType != SmtLib.NodeType.EMPTY) {
-            revert AlreadyRegistered(publicKey);
-        }
-        _publicKeysTree.addLeaf(nodeHash, nodeHash);
-        emit IdentityRegistered(publicKey);
+    function register(
+        uint256[2] memory publicKey,
+        bytes calldata data
+    ) public onlyOwner {
+        _register(publicKey, data);
     }
 
     /// @dev returns whether the given public key is registered
@@ -65,6 +60,21 @@ abstract contract Registry is OwnableUpgradeable {
 
     function getIdentitiesRoot() public view returns (uint256) {
         return _publicKeysTree.getRoot();
+    }
+
+    /// @dev Register a new Zeto account
+    /// @param publicKey The public Babyjubjub key to register
+    function _register(
+        uint256[2] memory publicKey,
+        bytes calldata data
+    ) internal {
+        uint256 nodeHash = _getIdentitiesLeafNodeHash(publicKey);
+        SmtLib.Node memory node = _publicKeysTree.getNode(nodeHash);
+        if (node.nodeType != SmtLib.NodeType.EMPTY) {
+            revert AlreadyRegistered(publicKey);
+        }
+        _publicKeysTree.addLeaf(nodeHash, nodeHash);
+        emit IdentityRegistered(publicKey, data);
     }
 
     function _getIdentitiesLeafNodeHash(

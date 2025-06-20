@@ -22,6 +22,7 @@ include "../lib/check-nullifiers.circom";
 include "../lib/check-smt-proof.circom";
 include "../node_modules/circomlib/circuits/babyjub.circom";
 include "../node_modules/circomlib/circuits/poseidon.circom";
+include "../node_modules/circomlib/circuits/comparators.circom";
 
 // This version of the circuit performs the following operations:
 // - derive the sender's public key from the sender's private key
@@ -38,6 +39,8 @@ template Zeto(nInputs, nOutputs, nUTXOSMTLevels, nIdentitiesSMTLevels) {
   // must be properly hashed and trimmed to be compatible with the BabyJub curve.
   // Reference: https://github.com/iden3/circomlib/blob/master/test/babyjub.js#L103
   signal input inputOwnerPrivateKey;
+  // values for the SMT leaf nodes, with the index being the input commitments
+  signal input smtNodeValues[nInputs];
   signal input utxosRoot;
   signal input utxosMerkleProof[nInputs][nUTXOSMTLevels];
   // allows merkle proof verifications for empty input elements to be skipped
@@ -83,7 +86,7 @@ template Zeto(nInputs, nOutputs, nUTXOSMTLevels, nIdentitiesSMTLevels) {
   // are securely bound to the input commitments. Now we need to
   // demonstrate that the input commitments belong to the Sparse
   // Merkle Tree with the root `root`.
-  CheckSMTProof(nInputs, nUTXOSMTLevels)(root <== utxosRoot, merkleProof <== utxosMerkleProof, enabled <== enabled, leafNodeIndexes <== inputCommitments, leafNodeValues <== inputCommitments);
+  CheckSMTProof(nInputs, nUTXOSMTLevels)(root <== utxosRoot, merkleProof <== utxosMerkleProof, enabled <== enabled, leafNodeIndexes <== inputCommitments, leafNodeValues <== smtNodeValues);
 
   // Finally, we need to demonstrate that the owner public keys
   // for the inputs and outputs are included in the identities
@@ -93,9 +96,11 @@ template Zeto(nInputs, nOutputs, nUTXOSMTLevels, nIdentitiesSMTLevels) {
 
   var identitiesMTPCheckEnabled[nOutputs + 1];
   identitiesMTPCheckEnabled[0] = 1;
+  var isCommitmentZero[nOutputs];
   for (var i = 0; i < nOutputs; i++) {
     ownerPublicKeyHashes[i+1] = Poseidon(2)(inputs <== outputOwnerPublicKeys[i]);
-    identitiesMTPCheckEnabled[i+1] = 1;
+    isCommitmentZero[i] = IsZero()(in <== outputCommitments[i]);
+    identitiesMTPCheckEnabled[i+1] = (1 - isCommitmentZero[i]); // only check the identity MTP if the output commitment is not zero
   }
 
   CheckSMTProof(nOutputs + 1, nIdentitiesSMTLevels)(root <== identitiesRoot, merkleProof <== identitiesMerkleProof, enabled <== identitiesMTPCheckEnabled, leafNodeIndexes <== ownerPublicKeyHashes, leafNodeValues <== ownerPublicKeyHashes);

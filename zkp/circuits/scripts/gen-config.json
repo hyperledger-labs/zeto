@@ -21,7 +21,11 @@
       "ptau": "powersOfTau28_hez_final_22",
       "batchPtau": "powersOfTau28_hez_final_22"
     },
-    "anon_nullifier_kyc": {
+    "anon_nullifier_kyc_transfer": {
+      "ptau": "powersOfTau28_hez_final_17",
+      "batchPtau": "powersOfTau28_hez_final_19"
+    },
+    "anon_nullifier_kyc_transferLocked": {
       "ptau": "powersOfTau28_hez_final_17",
       "batchPtau": "powersOfTau28_hez_final_19"
     },

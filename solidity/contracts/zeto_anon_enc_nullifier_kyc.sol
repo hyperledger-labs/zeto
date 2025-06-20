@@ -74,10 +74,6 @@ contract Zeto_AnonEncNullifierKyc is
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
-    function register(uint256[2] memory publicKey) public onlyOwner {
-        _register(publicKey);
-    }
-
     function constructPublicInputs(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
@@ -177,7 +173,7 @@ contract Zeto_AnonEncNullifierKyc is
                     proof.pC,
                     fixedSizeInputs
                 ),
-                "Invalid proof"
+                "Invalid proof (batch)"
             );
         } else {
             uint256[] memory publicInputs = constructPublicInputs(

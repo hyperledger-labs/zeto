@@ -292,7 +292,7 @@ contract Zeto_AnonNullifier is
                     proof.pC,
                     fixedSizeInputs
                 ),
-                "Invalid proof"
+                "Invalid proof (batch)"
             );
         } else {
             uint256[] memory publicInputs = constructPublicInputs(
@@ -349,7 +349,7 @@ contract Zeto_AnonNullifier is
                     proof.pC,
                     fixedSizeInputs
                 ),
-                "Invalid proof"
+                "Invalid proof (batch)"
             );
         } else {
             uint256[] memory publicInputs = constructPublicInputs(
