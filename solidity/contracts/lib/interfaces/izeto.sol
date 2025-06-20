@@ -53,7 +53,6 @@ interface IZeto {
         address indexed submitter,
         bytes data
     );
-    event IdentityRegistered(uint256[2] publicKey, bytes data);
 
     /**
      * @dev Returns the name of the token.

@@ -89,13 +89,6 @@ contract Zeto_AnonNullifierKyc is
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
-    function register(
-        uint256[2] memory publicKey,
-        bytes calldata data
-    ) public onlyOwner {
-        _register(publicKey, data);
-    }
-
     function constructPublicInputs(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
