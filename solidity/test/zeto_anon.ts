@@ -84,7 +84,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     expect(decimals).to.equal(4, "Decimals should be 4");
   });
 
-  it.only("(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob & Charlie then withdraw should succeed", async function () {
+  it("(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob & Charlie then withdraw should succeed", async function () {
     // first mint the tokens for batch testing
     const inputUtxos = [];
     for (let i = 0; i < 10; i++) {
@@ -167,7 +167,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     expect(endingBalance - startingBalance).to.be.equal(3);
   });
 
-  it.only("mint ERC20 tokens to Alice to deposit to Zeto should succeed", async function () {
+  it("mint ERC20 tokens to Alice to deposit to Zeto should succeed", async function () {
     const startingBalance = await erc20.balanceOf(Alice.ethAddress);
     const tx = await erc20.connect(deployer).mint(Alice.ethAddress, 100);
     await tx.wait();
@@ -190,7 +190,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     console.log(`Method deposit() complete. Gas used: ${result?.gasUsed}`);
   });
 
-  it.only("mint to Alice and transfer UTXOs honestly to Bob should succeed", async function () {
+  it("mint to Alice and transfer UTXOs honestly to Bob should succeed", async function () {
     const startingBalance = await erc20.balanceOf(Alice.ethAddress);
     // first the authority mints UTXOs to Alice
     utxo1 = newUTXO(10, Alice);
@@ -237,7 +237,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     utxo3 = newUTXO(receivedValue, Bob, receivedSalt);
   }).timeout(60000);
 
-  it.only("Bob transfers UTXOs, previously received from Alice, honestly to Charlie should succeed", async function () {
+  it("Bob transfers UTXOs, previously received from Alice, honestly to Charlie should succeed", async function () {
     const startingBalance = await erc20.balanceOf(Alice.ethAddress);
     // give Bob another UTXO to be able to spend
     const _utxo1 = newUTXO(20, Bob);
@@ -259,7 +259,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     expect(afterTransferBalance).to.equal(startingBalance);
   });
 
-  it.only("Alice withdraws her UTXOs to ERC20 tokens should succeed", async function () {
+  it("Alice withdraws her UTXOs to ERC20 tokens should succeed", async function () {
     const startingBalance = await erc20.balanceOf(Alice.ethAddress);
 
     // Alice proposes the output ERC20 tokens
@@ -333,7 +333,8 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     const tx = await zetoBurnable
       .connect(Alice.signer)
       .burn(inputCommitments, outputCommitment, encodedProof, "0x");
-    await tx.wait();
+    const result = await tx.wait();
+    console.log(`Method burn() complete. Gas used: ${result?.gasUsed}`);
 
     // check that the burned UTXOs are spent
     let spent = await zetoBurnable.spent(inputCommitments[0]);
