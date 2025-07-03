@@ -36,10 +36,13 @@ const BurnVerifierModule = buildModule("Groth16Verifier_Burn", (m) => {
   return { verifier };
 });
 
-const BatchBurnVerifierModule = buildModule("Groth16Verifier_BurnBatch", (m) => {
-  const verifier = m.contract("Groth16Verifier_BurnBatch", []);
-  return { verifier };
-});
+const BatchBurnVerifierModule = buildModule(
+  "Groth16Verifier_BurnBatch",
+  (m) => {
+    const verifier = m.contract("Groth16Verifier_BurnBatch", []);
+    return { verifier };
+  },
+);
 
 export default buildModule("Zeto_AnonBurnable", (m) => {
   const { verifier } = m.useModule(VerifierModule);
@@ -50,9 +53,7 @@ export default buildModule("Zeto_AnonBurnable", (m) => {
     BatchWithdrawVerifierModule,
   );
   const { verifier: burnVerifier } = m.useModule(BurnVerifierModule);
-  const { verifier: batchBurnVerifier } = m.useModule(
-    BatchBurnVerifierModule,
-  );
+  const { verifier: batchBurnVerifier } = m.useModule(BatchBurnVerifierModule);
   return {
     depositVerifier,
     withdrawVerifier,
