@@ -1,4 +1,4 @@
-// Copyright © 2024 Kaleido, Inc.
+// Copyright © 2025 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -33,36 +33,18 @@ func (s *E2ETestSuite) TestZeto_anon_enc_SuccessfulProving() {
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
 
-	sender := testKeyFromKeyStorev3(s.T())
-	receiver := testutils.NewKeypair()
-
-	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
-	outputValues := []*big.Int{big.NewInt(32), big.NewInt(38)}
-
-	salt1 := crypto.NewSalt()
-	input1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PublicKey.X, sender.PublicKey.Y})
-	salt2 := crypto.NewSalt()
-	input2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PublicKey.X, sender.PublicKey.Y})
-	inputCommitments := []*big.Int{input1, input2}
-
-	salt3 := crypto.NewSalt()
-	output1, _ := poseidon.Hash([]*big.Int{outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-	salt4 := crypto.NewSalt()
-	output2, _ := poseidon.Hash([]*big.Int{outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
-	outputCommitments := []*big.Int{output1, output2}
-
 	encryptionNonce := crypto.NewEncryptionNonce()
 	ephemeralKeypair := testutils.NewKeypair()
 
 	witnessInputs := map[string]interface{}{
-		"inputCommitments":      inputCommitments,
-		"inputValues":           inputValues,
-		"inputSalts":            []*big.Int{salt1, salt2},
-		"inputOwnerPrivateKey":  sender.PrivateKeyForZkp,
-		"outputCommitments":     outputCommitments,
-		"outputValues":          outputValues,
-		"outputSalts":           []*big.Int{salt3, salt4},
-		"outputOwnerPublicKeys": [][]*big.Int{{receiver.PublicKey.X, receiver.PublicKey.Y}, {sender.PublicKey.X, sender.PublicKey.Y}},
+		"inputCommitments":      s.regularTest.inputCommitments,
+		"inputValues":           s.regularTest.inputValues,
+		"inputSalts":            s.regularTest.inputSalts,
+		"inputOwnerPrivateKey":  s.sender.PrivateKeyBigInt,
+		"outputCommitments":     s.regularTest.outputCommitments,
+		"outputValues":          s.regularTest.outputValues,
+		"outputSalts":           s.regularTest.outputSalts,
+		"outputOwnerPublicKeys": s.regularTest.outputOwnerPublicKeys,
 		"encryptionNonce":       encryptionNonce,
 		"ecdhPrivateKey":        ephemeralKeypair.PrivateKey.Scalar().BigInt(),
 	}
@@ -93,15 +75,15 @@ func (s *E2ETestSuite) TestZeto_anon_enc_SuccessfulProving() {
 	// the first two elements in the public signals are the encrypted value and salt
 	// for the first output. decrypt using the receiver's private key and compare with
 	// the UTXO hash
-	secret := crypto.GenerateECDHSharedSecret(receiver.PrivateKey, ephemeralKeypair.PublicKey)
+	secret := crypto.GenerateECDHSharedSecret(s.receiver.PrivateKey, ephemeralKeypair.PublicKey)
 	decrypted, err := crypto.PoseidonDecrypt(encryptedValues, []*big.Int{secret.X, secret.Y}, encryptionNonce, 2)
 	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), outputValues[0].String(), decrypted[0].String())
-	assert.Equal(s.T(), salt3.String(), decrypted[1].String())
+	assert.Equal(s.T(), s.regularTest.outputValues[0].String(), decrypted[0].String())
+	assert.Equal(s.T(), s.regularTest.outputSalts[0].String(), decrypted[1].String())
 
 	// as the receiver, to check if the decryption was successful, we hash the decrypted
 	// value and salt and compare with the output commitment
-	calculatedHash, err := poseidon.Hash([]*big.Int{decrypted[0], decrypted[1], receiver.PublicKey.X, receiver.PublicKey.Y})
+	calculatedHash, err := poseidon.Hash([]*big.Int{decrypted[0], decrypted[1], s.receiver.PublicKey.X, s.receiver.PublicKey.Y})
 	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), output1.String(), calculatedHash.String())
+	assert.Equal(s.T(), s.regularTest.outputCommitments[0].String(), calculatedHash.String())
 }

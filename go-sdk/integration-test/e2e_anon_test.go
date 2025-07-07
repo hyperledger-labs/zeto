@@ -21,7 +21,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/hyperledger-labs/zeto/go-sdk/internal/testutils"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/crypto"
 	"github.com/iden3/go-iden3-crypto/poseidon"
 	"github.com/iden3/go-rapidsnark/prover"
@@ -33,33 +32,15 @@ func (s *E2ETestSuite) TestZeto_anon_SuccessfulProving() {
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
 
-	sender := testKeyFromKeyStorev3(s.T())
-	receiver := testutils.NewKeypair()
-
-	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
-	outputValues := []*big.Int{big.NewInt(32), big.NewInt(38)}
-
-	salt1 := crypto.NewSalt()
-	input1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PublicKey.X, sender.PublicKey.Y})
-	salt2 := crypto.NewSalt()
-	input2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PublicKey.X, sender.PublicKey.Y})
-	inputCommitments := []*big.Int{input1, input2}
-
-	salt3 := crypto.NewSalt()
-	output1, _ := poseidon.Hash([]*big.Int{outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-	salt4 := crypto.NewSalt()
-	output2, _ := poseidon.Hash([]*big.Int{outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
-	outputCommitments := []*big.Int{output1, output2}
-
 	witnessInputs := map[string]interface{}{
-		"inputCommitments":      inputCommitments,
-		"inputValues":           inputValues,
-		"inputSalts":            []*big.Int{salt1, salt2},
-		"inputOwnerPrivateKey":  sender.PrivateKeyForZkp,
-		"outputCommitments":     outputCommitments,
-		"outputValues":          outputValues,
-		"outputSalts":           []*big.Int{salt3, salt4},
-		"outputOwnerPublicKeys": [][]*big.Int{{receiver.PublicKey.X, receiver.PublicKey.Y}, {sender.PublicKey.X, sender.PublicKey.Y}},
+		"inputCommitments":      s.regularTest.inputCommitments,
+		"inputValues":           s.regularTest.inputValues,
+		"inputSalts":            s.regularTest.inputSalts,
+		"inputOwnerPrivateKey":  s.sender.PrivateKeyBigInt,
+		"outputCommitments":     s.regularTest.outputCommitments,
+		"outputValues":          s.regularTest.outputValues,
+		"outputSalts":           s.regularTest.outputSalts,
+		"outputOwnerPublicKeys": s.regularTest.outputOwnerPublicKeys,
 	}
 
 	// calculate the witness object for checking correctness
@@ -68,10 +49,10 @@ func (s *E2ETestSuite) TestZeto_anon_SuccessfulProving() {
 	assert.NotNil(s.T(), witness)
 
 	assert.Equal(s.T(), 0, witness[0].Cmp(big.NewInt(1)))
-	assert.Equal(s.T(), 0, witness[1].Cmp(inputCommitments[0]))
-	assert.Equal(s.T(), 0, witness[2].Cmp(inputCommitments[1]))
-	assert.Equal(s.T(), 0, witness[3].Cmp(outputCommitments[0]))
-	assert.Equal(s.T(), 0, witness[4].Cmp(outputCommitments[1]))
+	assert.Equal(s.T(), 0, witness[1].Cmp(s.regularTest.inputCommitments[0]))
+	assert.Equal(s.T(), 0, witness[2].Cmp(s.regularTest.inputCommitments[1]))
+	assert.Equal(s.T(), 0, witness[3].Cmp(s.regularTest.outputCommitments[0]))
+	assert.Equal(s.T(), 0, witness[4].Cmp(s.regularTest.outputCommitments[1]))
 
 	// generate the witness binary to feed into the prover
 	startTime := time.Now()
@@ -94,44 +75,15 @@ func (s *E2ETestSuite) TestZeto_anon_batch_SuccessfulProving() {
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
 
-	sender := testKeyFromKeyStorev3(s.T())
-	receiver := testutils.NewKeypair()
-
-	inputValues := []*big.Int{big.NewInt(1), big.NewInt(2), big.NewInt(3), big.NewInt(4), big.NewInt(5), big.NewInt(6), big.NewInt(7), big.NewInt(8), big.NewInt(9), big.NewInt(10)}
-	outputValues := []*big.Int{big.NewInt(10), big.NewInt(9), big.NewInt(8), big.NewInt(7), big.NewInt(6), big.NewInt(5), big.NewInt(4), big.NewInt(3), big.NewInt(2), big.NewInt(1)}
-
-	inputCommitments := make([]*big.Int, 0, 10)
-	inputSalts := make([]*big.Int, 0, 10)
-	for _, value := range inputValues {
-		salt := crypto.NewSalt()
-		commitment, _ := poseidon.Hash([]*big.Int{value, salt, sender.PublicKey.X, sender.PublicKey.Y})
-		inputCommitments = append(inputCommitments, commitment)
-		inputSalts = append(inputSalts, salt)
-	}
-
-	outputCommitments := make([]*big.Int, 0, 10)
-	outputSalts := make([]*big.Int, 0, 10)
-	for _, value := range outputValues {
-		salt := crypto.NewSalt()
-		commitment, _ := poseidon.Hash([]*big.Int{value, salt, receiver.PublicKey.X, receiver.PublicKey.Y})
-		outputCommitments = append(outputCommitments, commitment)
-		outputSalts = append(outputSalts, salt)
-	}
-
-	outputOwnerPublicKeys := make([][]*big.Int, 0, 10)
-	for i := 0; i < 10; i++ {
-		outputOwnerPublicKeys = append(outputOwnerPublicKeys, []*big.Int{receiver.PublicKey.X, receiver.PublicKey.Y})
-	}
-
 	witnessInputs := map[string]interface{}{
-		"inputCommitments":      inputCommitments,
-		"inputValues":           inputValues,
-		"inputSalts":            inputSalts,
-		"inputOwnerPrivateKey":  sender.PrivateKeyForZkp,
-		"outputCommitments":     outputCommitments,
-		"outputValues":          outputValues,
-		"outputSalts":           outputSalts,
-		"outputOwnerPublicKeys": outputOwnerPublicKeys,
+		"inputCommitments":      s.batchTest.inputCommitments,
+		"inputValues":           s.batchTest.inputValues,
+		"inputSalts":            s.batchTest.inputSalts,
+		"inputOwnerPrivateKey":  s.sender.PrivateKeyBigInt,
+		"outputCommitments":     s.batchTest.outputCommitments,
+		"outputValues":          s.batchTest.outputValues,
+		"outputSalts":           s.batchTest.outputSalts,
+		"outputOwnerPublicKeys": s.batchTest.outputOwnerPublicKeys,
 	}
 
 	// generate the witness binary to feed into the prover
@@ -155,36 +107,23 @@ func (s *E2ETestSuite) TestZeto_anon_burn_SuccessfulProving() {
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
 
-	sender := testKeyFromKeyStorev3(s.T())
-
-	inputValues := []*big.Int{big.NewInt(10), big.NewInt(20)}
+	// burn 55 out of 70 with the two input values, and output 15
 	outputValues := []*big.Int{big.NewInt(15)}
-
-	size := 2
-
-	inputCommitments := make([]*big.Int, 0, size)
-	inputSalts := make([]*big.Int, 0, size)
-	for _, value := range inputValues {
-		salt := crypto.NewSalt()
-		commitment, _ := poseidon.Hash([]*big.Int{value, salt, sender.PublicKey.X, sender.PublicKey.Y})
-		inputCommitments = append(inputCommitments, commitment)
-		inputSalts = append(inputSalts, salt)
-	}
 
 	outputCommitments := make([]*big.Int, 0, 1)
 	outputSalts := make([]*big.Int, 0, 1)
 	for _, value := range outputValues {
 		salt := crypto.NewSalt()
-		commitment, _ := poseidon.Hash([]*big.Int{value, salt, sender.PublicKey.X, sender.PublicKey.Y})
+		commitment, _ := poseidon.Hash([]*big.Int{value, salt, s.sender.PublicKey.X, s.sender.PublicKey.Y})
 		outputCommitments = append(outputCommitments, commitment)
 		outputSalts = append(outputSalts, salt)
 	}
 
 	witnessInputs := map[string]interface{}{
-		"inputCommitments": inputCommitments,
-		"inputValues":      inputValues,
-		"inputSalts":       inputSalts,
-		"ownerPrivateKey":  sender.PrivateKeyForZkp,
+		"inputCommitments": s.regularTest.inputCommitments,
+		"inputValues":      s.regularTest.inputValues,
+		"inputSalts":       s.regularTest.inputSalts,
+		"ownerPrivateKey":  s.sender.PrivateKeyBigInt,
 		"outputCommitment": outputCommitments,
 		"outputValue":      outputValues,
 		"outputSalt":       outputSalts,

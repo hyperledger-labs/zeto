@@ -18,15 +18,19 @@ package integration_test
 
 import (
 	"fmt"
+	"math/big"
 	"os"
 	"path"
 	"testing"
 
-	keyscore "github.com/hyperledger-labs/zeto/go-sdk/pkg/key-manager/core"
-	"github.com/hyperledger-labs/zeto/go-sdk/pkg/key-manager/key"
+	"github.com/hyperledger-labs/zeto/go-sdk/internal/testutils"
+	"github.com/hyperledger-labs/zeto/go-sdk/pkg/crypto"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/core"
+	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/node"
+	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/smt"
 	"github.com/hyperledger/firefly-signer/pkg/keystorev3"
 	"github.com/hyperledger/firefly-signer/pkg/secp256k1"
+	"github.com/iden3/go-iden3-crypto/poseidon"
 	"github.com/iden3/go-rapidsnark/witness/v2"
 	"github.com/iden3/go-rapidsnark/witness/wasmer"
 	"github.com/sirupsen/logrus"
@@ -101,9 +105,18 @@ func decryptKeyStorev3(t *testing.T) *secp256k1.KeyPair {
 	return keypair
 }
 
-func testKeyFromKeyStorev3(t *testing.T) *keyscore.KeyEntry {
-	keypair := decryptKeyStorev3(t)
-	return key.NewKeyEntryFromPrivateKeyBytes([32]byte(keypair.PrivateKeyBytes()))
+type Signals struct {
+	inputValues           []*big.Int
+	inputSalts            []*big.Int
+	inputCommitments      []*big.Int
+	nullifiers            []*big.Int
+	outputValues          []*big.Int
+	outputSalts           []*big.Int
+	outputCommitments     []*big.Int
+	outputOwnerPublicKeys [][]*big.Int
+	merkleProofs          [][]*big.Int
+	enabled               []*big.Int
+	root                  *big.Int
 }
 
 type E2ETestSuite struct {
@@ -111,6 +124,12 @@ type E2ETestSuite struct {
 	db     core.Storage
 	dbfile *os.File
 	gormDB *gorm.DB
+
+	sender   *testutils.User
+	receiver *testutils.User
+
+	regularTest *Signals
+	batchTest   *Signals
 }
 
 func (s *E2ETestSuite) SetupSuite() {
@@ -121,6 +140,114 @@ func (s *E2ETestSuite) SetupSuite() {
 func (s *E2ETestSuite) TearDownSuite() {
 	err := os.Remove(s.dbfile.Name())
 	assert.NoError(s.T(), err)
+}
+
+func (s *E2ETestSuite) SetupTest() {
+	sender := testutils.NewKeypair()
+	receiver := testutils.NewKeypair()
+	s.sender = sender
+	s.receiver = receiver
+
+	// setup the signals for the regular circuits with 2 inputs and 2 outputs
+	s.regularTest = &Signals{
+		inputValues:  []*big.Int{big.NewInt(30), big.NewInt(40)},
+		outputValues: []*big.Int{big.NewInt(32), big.NewInt(38)},
+	}
+
+	salt1 := crypto.NewSalt()
+	input1, _ := poseidon.Hash([]*big.Int{s.regularTest.inputValues[0], salt1, sender.PublicKey.X, sender.PublicKey.Y})
+	salt2 := crypto.NewSalt()
+	input2, _ := poseidon.Hash([]*big.Int{s.regularTest.inputValues[1], salt2, sender.PublicKey.X, sender.PublicKey.Y})
+	s.regularTest.inputCommitments = []*big.Int{input1, input2}
+	s.regularTest.inputSalts = []*big.Int{salt1, salt2}
+
+	nullifier1, _ := poseidon.Hash([]*big.Int{s.regularTest.inputValues[0], salt1, sender.PrivateKeyBigInt})
+	nullifier2, _ := poseidon.Hash([]*big.Int{s.regularTest.inputValues[1], salt2, sender.PrivateKeyBigInt})
+	s.regularTest.nullifiers = []*big.Int{nullifier1, nullifier2}
+
+	s.regularTest.merkleProofs, s.regularTest.enabled, s.regularTest.root = s.buildMerkleProofs(s.regularTest.inputCommitments)
+
+	salt3 := crypto.NewSalt()
+	output1, _ := poseidon.Hash([]*big.Int{s.regularTest.outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
+	salt4 := crypto.NewSalt()
+	output2, _ := poseidon.Hash([]*big.Int{s.regularTest.outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
+	s.regularTest.outputCommitments = []*big.Int{output1, output2}
+	s.regularTest.outputSalts = []*big.Int{salt3, salt4}
+
+	s.regularTest.outputOwnerPublicKeys = [][]*big.Int{{s.receiver.PublicKey.X, receiver.PublicKey.Y}, {sender.PublicKey.X, sender.PublicKey.Y}}
+
+	// setup the signals for the batch circuits with 10 inputs and 10 outputs
+	s.batchTest = &Signals{
+		inputValues:  []*big.Int{big.NewInt(1), big.NewInt(2), big.NewInt(3), big.NewInt(4), big.NewInt(5), big.NewInt(6), big.NewInt(7), big.NewInt(8), big.NewInt(9), big.NewInt(10)},
+		outputValues: []*big.Int{big.NewInt(10), big.NewInt(9), big.NewInt(8), big.NewInt(7), big.NewInt(6), big.NewInt(5), big.NewInt(4), big.NewInt(3), big.NewInt(2), big.NewInt(1)},
+	}
+
+	s.batchTest.inputCommitments = make([]*big.Int, 0, 10)
+	s.batchTest.inputSalts = make([]*big.Int, 0, 10)
+	for _, value := range s.batchTest.inputValues {
+		salt := crypto.NewSalt()
+		commitment, _ := poseidon.Hash([]*big.Int{value, salt, sender.PublicKey.X, sender.PublicKey.Y})
+		s.batchTest.inputCommitments = append(s.batchTest.inputCommitments, commitment)
+		s.batchTest.inputSalts = append(s.batchTest.inputSalts, salt)
+	}
+
+	s.batchTest.nullifiers = make([]*big.Int, 0, 10)
+	for i, value := range s.batchTest.inputValues {
+		salt := s.batchTest.inputSalts[i]
+		nullifier, _ := poseidon.Hash([]*big.Int{value, salt, sender.PrivateKeyBigInt})
+		s.batchTest.nullifiers = append(s.batchTest.nullifiers, nullifier)
+	}
+
+	s.batchTest.merkleProofs, s.batchTest.enabled, s.batchTest.root = s.buildMerkleProofs(s.batchTest.inputCommitments)
+
+	s.batchTest.outputCommitments = make([]*big.Int, 0, 10)
+	s.batchTest.outputSalts = make([]*big.Int, 0, 10)
+	for _, value := range s.batchTest.outputValues {
+		salt := crypto.NewSalt()
+		commitment, _ := poseidon.Hash([]*big.Int{value, salt, receiver.PublicKey.X, receiver.PublicKey.Y})
+		s.batchTest.outputCommitments = append(s.batchTest.outputCommitments, commitment)
+		s.batchTest.outputSalts = append(s.batchTest.outputSalts, salt)
+	}
+
+	s.batchTest.outputOwnerPublicKeys = make([][]*big.Int, 0, 10)
+	for i := 0; i < 10; i++ {
+		s.batchTest.outputOwnerPublicKeys = append(s.batchTest.outputOwnerPublicKeys, []*big.Int{receiver.PublicKey.X, receiver.PublicKey.Y})
+	}
+
+}
+
+func (s *E2ETestSuite) buildMerkleProofs(inputCommitments []*big.Int) ([][]*big.Int, []*big.Int, *big.Int) {
+	mt, err := smt.NewMerkleTree(s.db, MAX_HEIGHT)
+	assert.NoError(s.T(), err)
+
+	for _, commitment := range inputCommitments {
+		idx, _ := node.NewNodeIndexFromBigInt(commitment)
+		utxo := node.NewIndexOnly(idx)
+		n, err := node.NewLeafNode(utxo)
+		assert.NoError(s.T(), err)
+		err = mt.AddLeaf(n)
+		assert.NoError(s.T(), err)
+	}
+
+	root := mt.Root().BigInt()
+
+	proofs, _, err := mt.GenerateProofs(inputCommitments, nil)
+	assert.NoError(s.T(), err)
+
+	smtProofs := make([][]*big.Int, len(proofs))
+	enabled := make([]*big.Int, len(proofs))
+	for i, proof := range proofs {
+		circomProof, err := proof.ToCircomVerifierProof(inputCommitments[i], inputCommitments[i], mt.Root(), MAX_HEIGHT)
+		assert.NoError(s.T(), err)
+		proofSiblings := make([]*big.Int, len(circomProof.Siblings)-1)
+		for i, s := range circomProof.Siblings[0 : len(circomProof.Siblings)-1] {
+			proofSiblings[i] = s.BigInt()
+		}
+		smtProofs[i] = proofSiblings
+		enabled[i] = big.NewInt(1)
+	}
+
+	return smtProofs, enabled, root
 }
 
 func TestE2ETestSuite(t *testing.T) {

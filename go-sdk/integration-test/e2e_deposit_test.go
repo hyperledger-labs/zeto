@@ -18,12 +18,8 @@ package integration_test
 
 import (
 	"fmt"
-	"math/big"
 	"time"
 
-	"github.com/hyperledger-labs/zeto/go-sdk/internal/testutils"
-	"github.com/hyperledger-labs/zeto/go-sdk/pkg/crypto"
-	"github.com/iden3/go-iden3-crypto/poseidon"
 	"github.com/iden3/go-rapidsnark/prover"
 	"github.com/stretchr/testify/assert"
 )
@@ -33,22 +29,11 @@ func (s *E2ETestSuite) TestZeto_deposit_SuccessfulProving() {
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
 
-	sender := testKeyFromKeyStorev3(s.T())
-	receiver := testutils.NewKeypair()
-
-	outputValues := []*big.Int{big.NewInt(32), big.NewInt(38)}
-
-	salt3 := crypto.NewSalt()
-	output1, _ := poseidon.Hash([]*big.Int{outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-	salt4 := crypto.NewSalt()
-	output2, _ := poseidon.Hash([]*big.Int{outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
-	outputCommitments := []*big.Int{output1, output2}
-
 	witnessInputs := map[string]interface{}{
-		"outputCommitments":     outputCommitments,
-		"outputValues":          outputValues,
-		"outputSalts":           []*big.Int{salt3, salt4},
-		"outputOwnerPublicKeys": [][]*big.Int{{receiver.PublicKey.X, receiver.PublicKey.Y}, {sender.PublicKey.X, sender.PublicKey.Y}},
+		"outputCommitments":     s.regularTest.outputCommitments,
+		"outputValues":          s.regularTest.outputValues,
+		"outputSalts":           s.regularTest.outputSalts,
+		"outputOwnerPublicKeys": s.regularTest.outputOwnerPublicKeys,
 	}
 
 	startTime := time.Now()
