@@ -21,44 +21,33 @@ include "sha3/sha3_bits.circom";
 include "kyber.circom";
 include "mlkem_g.circom";
 
-template mlkem_encaps() {
-    signal input m[256]; // randomness input, should be random and unique for each encapsulation
-
-    signal output K[256]; // this is the shared secret
-    signal output c_short[25]; // this is the ciphertext to send to the receiver to recover the shared secret
-    component anon = mlkem_encaps_internal();
-    anon.m <== m;
-    c_short <== anon.c_short;
-    K <== anon.K;
-}
-
 template mlkem_encaps_internal() {
     signal input m[256];
     signal output K[256]; // this is the shared secret
 
     component g = g();
     g.m <== m;
-    signal output r[256];
+    signal r[256];
     K <== g.K; // K is the first half of the digest
     r <== g.r; // r is the second half of the digest
 
-    // // r is the random value used to encrypt the message m
-    // signal c[768*8] <== kpke_enc()(r, m);
+    // r is the random value used to encrypt the message m
+    signal c[768*8] <== kpke_enc()(r, m);
 
-    // // Split the ciphertext c into pieces of 254 bits, and fit each
-    // // piece into a single group element
-    // signal output c_short[25];
-    // var sum;
-    // for (var i = 0; i < 24; i++) {
-    //     sum = 0;
-    //     for (var j = 0; j < 254; j++) {
-    //         sum += c[j + i*254]*(1<<(7-j));
-    //     }
-    //     c_short[i] <== sum;
-    // }
-    // sum = 0;
-    // for (var j = 0; j < (768*8 - 24*254); j++) {
-    //     sum += c[j + 24*254]*(1<<(7-j));
-    // }
-    // c_short[24] <== sum;
+    // Split the ciphertext c into pieces of 254 bits, and fit each
+    // piece into a single group element
+    signal output c_short[25];
+    var sum;
+    for (var i = 0; i < 24; i++) {
+        sum = 0;
+        for (var j = 0; j < 254; j++) {
+            sum += c[j + i*254]*(1<<(7-j));
+        }
+        c_short[i] <== sum;
+    }
+    sum = 0;
+    for (var j = 0; j < (768*8 - 24*254); j++) {
+        sum += c[j + 24*254]*(1<<(7-j));
+    }
+    c_short[24] <== sum;
 }

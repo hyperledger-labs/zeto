@@ -118,6 +118,24 @@ const hack = [
   164, 5, 229, 95, 231, 123, 195, 208, 133, 204, 24, 37, 67, 83, 112, 220, 188, 124, 234, 24, 1, 58, 89, 189, 37, 248, 179, 220, 148, 91, 168, 3, 186, 251, 149, 16, 54,
 ];
 
+function toBitArray(byteArray) {
+  return byteArray
+    .map((byte) => byte.toString(2).padStart(8, '0'))
+    .join('')
+    .split('')
+    .map(Number);
+}
+
+function toByteArray(bitArray) {
+  const byteArray = [];
+  for (let i = 0; i < bitArray.length; i += 8) {
+    const bitString = bitArray.slice(i, i + 8).join('');
+    const byte = parseInt(bitString, 2);
+    byteArray.push(byte);
+  }
+  return byteArray;
+}
+
 module.exports = {
   testKeyPair: {
     sk,
@@ -128,4 +146,6 @@ module.exports = {
     randomness,
     hack,
   },
+  toBitArray,
+  toByteArray,
 };

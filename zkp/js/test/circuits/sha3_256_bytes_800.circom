@@ -15,6 +15,6 @@
 // limitations under the License.
 pragma circom 2.2.2;
 
-include "../../../circuits/lib/kyber/mlkem_g.circom";
+include "../../../circuits/lib/kyber/sha3/sha3_bytes.circom";
 
-component main = g();
+component main = SHA3_256_bytes(800);
