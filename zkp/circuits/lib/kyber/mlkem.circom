@@ -25,10 +25,12 @@ template mlkem_encaps() {
     signal input m[256]; // randomness input, should be random and unique for each encapsulation
 
     signal output K[256]; // this is the shared secret
-    signal output c_short[25]; // this is the ciphertext to send to the receiver to recover the shared secret
+    // signal output c_short[25]; // this is the ciphertext to send to the receiver to recover the shared secret
+    signal output c[768*8]; // this is the full ciphertext, used for testing
     component anon = mlkem_encaps_internal();
     anon.m <== m;
-    c_short <== anon.c_short;
+    // c_short <== anon.c_short;
+    c <== anon.c; // c is the full ciphertext
     K <== anon.K;
 }
 
@@ -38,15 +40,15 @@ template mlkem_encaps_internal() {
 
     component g = g();
     g.m <== m;
-    signal output r[256];
+    signal r[256];
     K <== g.K; // K is the first half of the digest
     r <== g.r; // r is the second half of the digest
 
-    // // r is the random value used to encrypt the message m
-    // signal c[768*8] <== kpke_enc()(r, m);
+    // r is the random value used to encrypt the message m
+    signal output c[768*8] <== kpke_enc()(r, m);
 
-    // // Split the ciphertext c into pieces of 254 bits, and fit each
-    // // piece into a single group element
+    // Split the ciphertext c into pieces of 254 bits, and fit each
+    // piece into a single group element
     // signal output c_short[25];
     // var sum;
     // for (var i = 0; i < 24; i++) {
