@@ -1,4 +1,4 @@
-// Copyright © 2024 Kaleido, Inc.
+// Copyright © 2025 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -13,8 +13,21 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pragma circom 2.2.2;
+pragma solidity ^0.8.27;
 
-include "./basetokens/anon_nullifier_kyc_base.circom";
+import {Commonlib} from "../common.sol";
 
-component main { public [ nullifiers, outputCommitments, utxosRoot, identitiesRoot, enabled ] } = Zeto(10, 10, 64, 10);
+interface IZetoKyc {
+    event IdentityRegistered(uint256[2] publicKey, bytes data);
+
+    function register(
+        uint256[2] memory publicKey,
+        bytes calldata data
+    ) external;
+
+    function isRegistered(
+        uint256[2] memory publicKey
+    ) external view returns (bool);
+
+    function getIdentitiesRoot() external view returns (uint256);
+}

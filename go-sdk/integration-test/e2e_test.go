@@ -22,20 +22,15 @@ import (
 	"os"
 	"path"
 	"testing"
-	"time"
 
 	"github.com/hyperledger-labs/zeto/go-sdk/internal/testutils"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/crypto"
-	keyscore "github.com/hyperledger-labs/zeto/go-sdk/pkg/key-manager/core"
-	"github.com/hyperledger-labs/zeto/go-sdk/pkg/key-manager/key"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/core"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/node"
 	"github.com/hyperledger-labs/zeto/go-sdk/pkg/sparse-merkle-tree/smt"
-	"github.com/hyperledger-labs/zeto/go-sdk/pkg/utxo"
 	"github.com/hyperledger/firefly-signer/pkg/keystorev3"
 	"github.com/hyperledger/firefly-signer/pkg/secp256k1"
 	"github.com/iden3/go-iden3-crypto/poseidon"
-	"github.com/iden3/go-rapidsnark/prover"
 	"github.com/iden3/go-rapidsnark/witness/v2"
 	"github.com/iden3/go-rapidsnark/witness/wasmer"
 	"github.com/sirupsen/logrus"
@@ -110,9 +105,18 @@ func decryptKeyStorev3(t *testing.T) *secp256k1.KeyPair {
 	return keypair
 }
 
-func testKeyFromKeyStorev3(t *testing.T) *keyscore.KeyEntry {
-	keypair := decryptKeyStorev3(t)
-	return key.NewKeyEntryFromPrivateKeyBytes([32]byte(keypair.PrivateKeyBytes()))
+type Signals struct {
+	inputValues           []*big.Int
+	inputSalts            []*big.Int
+	inputCommitments      []*big.Int
+	nullifiers            []*big.Int
+	outputValues          []*big.Int
+	outputSalts           []*big.Int
+	outputCommitments     []*big.Int
+	outputOwnerPublicKeys [][]*big.Int
+	merkleProofs          [][]*big.Int
+	enabled               []*big.Int
+	root                  *big.Int
 }
 
 type E2ETestSuite struct {
@@ -120,6 +124,12 @@ type E2ETestSuite struct {
 	db     core.Storage
 	dbfile *os.File
 	gormDB *gorm.DB
+
+	sender   *testutils.User
+	receiver *testutils.User
+
+	regularTest *Signals
+	batchTest   *Signals
 }
 
 func (s *E2ETestSuite) SetupSuite() {
@@ -132,542 +142,112 @@ func (s *E2ETestSuite) TearDownSuite() {
 	assert.NoError(s.T(), err)
 }
 
-func (s *E2ETestSuite) TestZeto_anon_SuccessfulProving() {
-	calc, provingKey, err := loadCircuit("anon")
-	assert.NoError(s.T(), err)
-	assert.NotNil(s.T(), calc)
-
-	sender := testKeyFromKeyStorev3(s.T())
-	receiver := testutils.NewKeypair()
-
-	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
-	outputValues := []*big.Int{big.NewInt(32), big.NewInt(38)}
-
-	salt1 := crypto.NewSalt()
-	input1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PublicKey.X, sender.PublicKey.Y})
-	salt2 := crypto.NewSalt()
-	input2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PublicKey.X, sender.PublicKey.Y})
-	inputCommitments := []*big.Int{input1, input2}
-
-	salt3 := crypto.NewSalt()
-	output1, _ := poseidon.Hash([]*big.Int{outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-	salt4 := crypto.NewSalt()
-	output2, _ := poseidon.Hash([]*big.Int{outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
-	outputCommitments := []*big.Int{output1, output2}
-
-	witnessInputs := map[string]interface{}{
-		"inputCommitments":      inputCommitments,
-		"inputValues":           inputValues,
-		"inputSalts":            []*big.Int{salt1, salt2},
-		"inputOwnerPrivateKey":  sender.PrivateKeyForZkp,
-		"outputCommitments":     outputCommitments,
-		"outputValues":          outputValues,
-		"outputSalts":           []*big.Int{salt3, salt4},
-		"outputOwnerPublicKeys": [][]*big.Int{{receiver.PublicKey.X, receiver.PublicKey.Y}, {sender.PublicKey.X, sender.PublicKey.Y}},
-	}
-
-	// calculate the witness object for checking correctness
-	witness, err := calc.CalculateWitness(witnessInputs, true)
-	assert.NoError(s.T(), err)
-	assert.NotNil(s.T(), witness)
-
-	assert.Equal(s.T(), 0, witness[0].Cmp(big.NewInt(1)))
-	assert.Equal(s.T(), 0, witness[1].Cmp(inputCommitments[0]))
-	assert.Equal(s.T(), 0, witness[2].Cmp(inputCommitments[1]))
-	assert.Equal(s.T(), 0, witness[3].Cmp(outputCommitments[0]))
-	assert.Equal(s.T(), 0, witness[4].Cmp(outputCommitments[1]))
-
-	// generate the witness binary to feed into the prover
-	startTime := time.Now()
-	witnessBin, err := calc.CalculateWTNSBin(witnessInputs, true)
-	assert.NoError(s.T(), err)
-	assert.NotNil(s.T(), witnessBin)
-
-	proof, err := prover.Groth16Prover(provingKey, witnessBin)
-	elapsedTime := time.Since(startTime)
-	fmt.Printf("Proving time: %s\n", elapsedTime)
-	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), 3, len(proof.Proof.A))
-	assert.Equal(s.T(), 3, len(proof.Proof.B))
-	assert.Equal(s.T(), 3, len(proof.Proof.C))
-	assert.Equal(s.T(), 4, len(proof.PubSignals))
-}
-
-func (s *E2ETestSuite) TestZeto_anon_enc_SuccessfulProving() {
-	calc, provingKey, err := loadCircuit("anon_enc")
-	assert.NoError(s.T(), err)
-	assert.NotNil(s.T(), calc)
-
-	sender := testKeyFromKeyStorev3(s.T())
-	receiver := testutils.NewKeypair()
-
-	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
-	outputValues := []*big.Int{big.NewInt(32), big.NewInt(38)}
-
-	salt1 := crypto.NewSalt()
-	input1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PublicKey.X, sender.PublicKey.Y})
-	salt2 := crypto.NewSalt()
-	input2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PublicKey.X, sender.PublicKey.Y})
-	inputCommitments := []*big.Int{input1, input2}
-
-	salt3 := crypto.NewSalt()
-	output1, _ := poseidon.Hash([]*big.Int{outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-	salt4 := crypto.NewSalt()
-	output2, _ := poseidon.Hash([]*big.Int{outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
-	outputCommitments := []*big.Int{output1, output2}
-
-	encryptionNonce := crypto.NewEncryptionNonce()
-	ephemeralKeypair := testutils.NewKeypair()
-
-	witnessInputs := map[string]interface{}{
-		"inputCommitments":      inputCommitments,
-		"inputValues":           inputValues,
-		"inputSalts":            []*big.Int{salt1, salt2},
-		"inputOwnerPrivateKey":  sender.PrivateKeyForZkp,
-		"outputCommitments":     outputCommitments,
-		"outputValues":          outputValues,
-		"outputSalts":           []*big.Int{salt3, salt4},
-		"outputOwnerPublicKeys": [][]*big.Int{{receiver.PublicKey.X, receiver.PublicKey.Y}, {sender.PublicKey.X, sender.PublicKey.Y}},
-		"encryptionNonce":       encryptionNonce,
-		"ecdhPrivateKey":        ephemeralKeypair.PrivateKey.Scalar().BigInt(),
-	}
-
-	startTime := time.Now()
-	witnessBin, err := calc.CalculateWTNSBin(witnessInputs, true)
-	assert.NoError(s.T(), err)
-	assert.NotNil(s.T(), witnessBin)
-
-	proof, err := prover.Groth16Prover(provingKey, witnessBin)
-	elapsedTime := time.Since(startTime)
-	fmt.Printf("Proving time: %s\n", elapsedTime)
-	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), 3, len(proof.Proof.A))
-	assert.Equal(s.T(), 3, len(proof.Proof.B))
-	assert.Equal(s.T(), 3, len(proof.Proof.C))
-	assert.Equal(s.T(), 15, len(proof.PubSignals))
-
-	// the receiver would be able to get the encrypted values and salts
-	// from the transaction events
-	encryptedValues := make([]*big.Int, 4)
-	for i := 0; i < 4; i++ {
-		v, ok := new(big.Int).SetString(proof.PubSignals[i+2], 10)
-		assert.True(s.T(), ok)
-		encryptedValues[i] = v
-	}
-
-	// the first two elements in the public signals are the encrypted value and salt
-	// for the first output. decrypt using the receiver's private key and compare with
-	// the UTXO hash
-	secret := crypto.GenerateECDHSharedSecret(receiver.PrivateKey, ephemeralKeypair.PublicKey)
-	decrypted, err := crypto.PoseidonDecrypt(encryptedValues, []*big.Int{secret.X, secret.Y}, encryptionNonce, 2)
-	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), outputValues[0].String(), decrypted[0].String())
-	assert.Equal(s.T(), salt3.String(), decrypted[1].String())
-
-	// as the receiver, to check if the decryption was successful, we hash the decrypted
-	// value and salt and compare with the output commitment
-	calculatedHash, err := poseidon.Hash([]*big.Int{decrypted[0], decrypted[1], receiver.PublicKey.X, receiver.PublicKey.Y})
-	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), output1.String(), calculatedHash.String())
-}
-
-func (s *E2ETestSuite) TestZeto_anon_nullifier_SuccessfulProving() {
-	calc, provingKey, err := loadCircuit("anon_nullifier_transfer")
-	assert.NoError(s.T(), err)
-	assert.NotNil(s.T(), calc)
-
+func (s *E2ETestSuite) SetupTest() {
 	sender := testutils.NewKeypair()
 	receiver := testutils.NewKeypair()
+	s.sender = sender
+	s.receiver = receiver
 
-	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
-	outputValues := []*big.Int{big.NewInt(32), big.NewInt(38)}
+	// setup the signals for the regular circuits with 2 inputs and 2 outputs
+	s.regularTest = &Signals{
+		inputValues:  []*big.Int{big.NewInt(30), big.NewInt(40)},
+		outputValues: []*big.Int{big.NewInt(32), big.NewInt(38)},
+	}
 
 	salt1 := crypto.NewSalt()
-	input1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PublicKey.X, sender.PublicKey.Y})
+	input1, _ := poseidon.Hash([]*big.Int{s.regularTest.inputValues[0], salt1, sender.PublicKey.X, sender.PublicKey.Y})
 	salt2 := crypto.NewSalt()
-	input2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PublicKey.X, sender.PublicKey.Y})
-	inputCommitments := []*big.Int{input1, input2}
+	input2, _ := poseidon.Hash([]*big.Int{s.regularTest.inputValues[1], salt2, sender.PublicKey.X, sender.PublicKey.Y})
+	s.regularTest.inputCommitments = []*big.Int{input1, input2}
+	s.regularTest.inputSalts = []*big.Int{salt1, salt2}
 
-	nullifier1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PrivateKeyBigInt})
-	nullifier2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PrivateKeyBigInt})
-	nullifiers := []*big.Int{nullifier1, nullifier2}
+	nullifier1, _ := poseidon.Hash([]*big.Int{s.regularTest.inputValues[0], salt1, sender.PrivateKeyBigInt})
+	nullifier2, _ := poseidon.Hash([]*big.Int{s.regularTest.inputValues[1], salt2, sender.PrivateKeyBigInt})
+	s.regularTest.nullifiers = []*big.Int{nullifier1, nullifier2}
 
+	s.regularTest.merkleProofs, s.regularTest.enabled, s.regularTest.root = s.buildMerkleProofs(s.regularTest.inputCommitments)
+
+	salt3 := crypto.NewSalt()
+	output1, _ := poseidon.Hash([]*big.Int{s.regularTest.outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
+	salt4 := crypto.NewSalt()
+	output2, _ := poseidon.Hash([]*big.Int{s.regularTest.outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
+	s.regularTest.outputCommitments = []*big.Int{output1, output2}
+	s.regularTest.outputSalts = []*big.Int{salt3, salt4}
+
+	s.regularTest.outputOwnerPublicKeys = [][]*big.Int{{s.receiver.PublicKey.X, receiver.PublicKey.Y}, {sender.PublicKey.X, sender.PublicKey.Y}}
+
+	// setup the signals for the batch circuits with 10 inputs and 10 outputs
+	s.batchTest = &Signals{
+		inputValues:  []*big.Int{big.NewInt(1), big.NewInt(2), big.NewInt(3), big.NewInt(4), big.NewInt(5), big.NewInt(6), big.NewInt(7), big.NewInt(8), big.NewInt(9), big.NewInt(10)},
+		outputValues: []*big.Int{big.NewInt(10), big.NewInt(9), big.NewInt(8), big.NewInt(7), big.NewInt(6), big.NewInt(5), big.NewInt(4), big.NewInt(3), big.NewInt(2), big.NewInt(1)},
+	}
+
+	s.batchTest.inputCommitments = make([]*big.Int, 0, 10)
+	s.batchTest.inputSalts = make([]*big.Int, 0, 10)
+	for _, value := range s.batchTest.inputValues {
+		salt := crypto.NewSalt()
+		commitment, _ := poseidon.Hash([]*big.Int{value, salt, sender.PublicKey.X, sender.PublicKey.Y})
+		s.batchTest.inputCommitments = append(s.batchTest.inputCommitments, commitment)
+		s.batchTest.inputSalts = append(s.batchTest.inputSalts, salt)
+	}
+
+	s.batchTest.nullifiers = make([]*big.Int, 0, 10)
+	for i, value := range s.batchTest.inputValues {
+		salt := s.batchTest.inputSalts[i]
+		nullifier, _ := poseidon.Hash([]*big.Int{value, salt, sender.PrivateKeyBigInt})
+		s.batchTest.nullifiers = append(s.batchTest.nullifiers, nullifier)
+	}
+
+	s.batchTest.merkleProofs, s.batchTest.enabled, s.batchTest.root = s.buildMerkleProofs(s.batchTest.inputCommitments)
+
+	s.batchTest.outputCommitments = make([]*big.Int, 0, 10)
+	s.batchTest.outputSalts = make([]*big.Int, 0, 10)
+	for _, value := range s.batchTest.outputValues {
+		salt := crypto.NewSalt()
+		commitment, _ := poseidon.Hash([]*big.Int{value, salt, receiver.PublicKey.X, receiver.PublicKey.Y})
+		s.batchTest.outputCommitments = append(s.batchTest.outputCommitments, commitment)
+		s.batchTest.outputSalts = append(s.batchTest.outputSalts, salt)
+	}
+
+	s.batchTest.outputOwnerPublicKeys = make([][]*big.Int, 0, 10)
+	for i := 0; i < 10; i++ {
+		s.batchTest.outputOwnerPublicKeys = append(s.batchTest.outputOwnerPublicKeys, []*big.Int{receiver.PublicKey.X, receiver.PublicKey.Y})
+	}
+
+}
+
+func (s *E2ETestSuite) buildMerkleProofs(inputCommitments []*big.Int) ([][]*big.Int, []*big.Int, *big.Int) {
 	mt, err := smt.NewMerkleTree(s.db, MAX_HEIGHT)
 	assert.NoError(s.T(), err)
-	utxo1 := node.NewFungible(inputValues[0], sender.PublicKey, salt1)
-	n1, err := node.NewLeafNode(utxo1)
-	assert.NoError(s.T(), err)
-	err = mt.AddLeaf(n1)
-	assert.NoError(s.T(), err)
-	utxo2 := node.NewFungible(inputValues[1], sender.PublicKey, salt2)
-	n2, err := node.NewLeafNode(utxo2)
-	assert.NoError(s.T(), err)
-	err = mt.AddLeaf(n2)
-	assert.NoError(s.T(), err)
-	proofs, _, err := mt.GenerateProofs([]*big.Int{input1, input2}, nil)
-	assert.NoError(s.T(), err)
-	circomProof1, err := proofs[0].ToCircomVerifierProof(input1, input1, mt.Root(), MAX_HEIGHT)
-	assert.NoError(s.T(), err)
-	circomProof2, err := proofs[1].ToCircomVerifierProof(input2, input2, mt.Root(), MAX_HEIGHT)
-	assert.NoError(s.T(), err)
 
-	salt3 := crypto.NewSalt()
-	output1, _ := poseidon.Hash([]*big.Int{outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-	salt4 := crypto.NewSalt()
-	output2, _ := poseidon.Hash([]*big.Int{outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
-	outputCommitments := []*big.Int{output1, output2}
-
-	proof1Siblings := make([]*big.Int, len(circomProof1.Siblings)-1)
-	for i, s := range circomProof1.Siblings[0 : len(circomProof1.Siblings)-1] {
-		proof1Siblings[i] = s.BigInt()
-	}
-	proof2Siblings := make([]*big.Int, len(circomProof2.Siblings)-1)
-	for i, s := range circomProof2.Siblings[0 : len(circomProof2.Siblings)-1] {
-		proof2Siblings[i] = s.BigInt()
-	}
-	witnessInputs := map[string]interface{}{
-		"nullifiers":            nullifiers,
-		"inputCommitments":      inputCommitments,
-		"inputValues":           inputValues,
-		"inputSalts":            []*big.Int{salt1, salt2},
-		"inputOwnerPrivateKey":  sender.PrivateKeyBigInt,
-		"root":                  mt.Root().BigInt(),
-		"merkleProof":           [][]*big.Int{proof1Siblings, proof2Siblings},
-		"enabled":               []*big.Int{big.NewInt(1), big.NewInt(1)},
-		"outputCommitments":     outputCommitments,
-		"outputValues":          outputValues,
-		"outputSalts":           []*big.Int{salt3, salt4},
-		"outputOwnerPublicKeys": [][]*big.Int{{receiver.PublicKey.X, receiver.PublicKey.Y}, {sender.PublicKey.X, sender.PublicKey.Y}},
+	for _, commitment := range inputCommitments {
+		idx, _ := node.NewNodeIndexFromBigInt(commitment)
+		utxo := node.NewIndexOnly(idx)
+		n, err := node.NewLeafNode(utxo)
+		assert.NoError(s.T(), err)
+		err = mt.AddLeaf(n)
+		assert.NoError(s.T(), err)
 	}
 
-	startTime := time.Now()
-	witnessBin, err := calc.CalculateWTNSBin(witnessInputs, true)
-	assert.NoError(s.T(), err)
-	assert.NotNil(s.T(), witnessBin)
+	root := mt.Root().BigInt()
 
-	proof, err := prover.Groth16Prover(provingKey, witnessBin)
-	elapsedTime := time.Since(startTime)
-	fmt.Printf("Proving time: %s\n", elapsedTime)
-	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), 3, len(proof.Proof.A))
-	assert.Equal(s.T(), 3, len(proof.Proof.B))
-	assert.Equal(s.T(), 3, len(proof.Proof.C))
-	assert.Equal(s.T(), 7, len(proof.PubSignals))
-}
-
-func (s *E2ETestSuite) TestZeto_anon_enc_nullifier_SuccessfulProving() {
-	calc, provingKey, err := loadCircuit("anon_enc_nullifier")
-	assert.NoError(s.T(), err)
-	assert.NotNil(s.T(), calc)
-
-	sender := testutils.NewKeypair()
-	receiver := testutils.NewKeypair()
-
-	inputValues := []*big.Int{big.NewInt(30), big.NewInt(40)}
-	outputValues := []*big.Int{big.NewInt(32), big.NewInt(38)}
-
-	salt1 := crypto.NewSalt()
-	input1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PublicKey.X, sender.PublicKey.Y})
-	salt2 := crypto.NewSalt()
-	input2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PublicKey.X, sender.PublicKey.Y})
-	inputCommitments := []*big.Int{input1, input2}
-
-	nullifier1, _ := poseidon.Hash([]*big.Int{inputValues[0], salt1, sender.PrivateKeyBigInt})
-	nullifier2, _ := poseidon.Hash([]*big.Int{inputValues[1], salt2, sender.PrivateKeyBigInt})
-	nullifiers := []*big.Int{nullifier1, nullifier2}
-
-	mt, err := smt.NewMerkleTree(s.db, MAX_HEIGHT)
-	assert.NoError(s.T(), err)
-	utxo1 := node.NewFungible(inputValues[0], sender.PublicKey, salt1)
-	n1, err := node.NewLeafNode(utxo1)
-	assert.NoError(s.T(), err)
-	err = mt.AddLeaf(n1)
-	assert.NoError(s.T(), err)
-	utxo2 := node.NewFungible(inputValues[1], sender.PublicKey, salt2)
-	n2, err := node.NewLeafNode(utxo2)
-	assert.NoError(s.T(), err)
-	err = mt.AddLeaf(n2)
-	assert.NoError(s.T(), err)
-	proofs, _, err := mt.GenerateProofs([]*big.Int{input1, input2}, nil)
-	assert.NoError(s.T(), err)
-	circomProof1, err := proofs[0].ToCircomVerifierProof(input1, input1, mt.Root(), MAX_HEIGHT)
-	assert.NoError(s.T(), err)
-	circomProof2, err := proofs[1].ToCircomVerifierProof(input2, input2, mt.Root(), MAX_HEIGHT)
+	proofs, _, err := mt.GenerateProofs(inputCommitments, nil)
 	assert.NoError(s.T(), err)
 
-	salt3 := crypto.NewSalt()
-	output1, _ := poseidon.Hash([]*big.Int{outputValues[0], salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-	salt4 := crypto.NewSalt()
-	output2, _ := poseidon.Hash([]*big.Int{outputValues[1], salt4, sender.PublicKey.X, sender.PublicKey.Y})
-	outputCommitments := []*big.Int{output1, output2}
-
-	encryptionNonce := crypto.NewEncryptionNonce()
-	ephemeralKeypair := testutils.NewKeypair()
-
-	proof1Siblings := make([]*big.Int, len(circomProof1.Siblings)-1)
-	for i, s := range circomProof1.Siblings[0 : len(circomProof1.Siblings)-1] {
-		proof1Siblings[i] = s.BigInt()
-	}
-	proof2Siblings := make([]*big.Int, len(circomProof2.Siblings)-1)
-	for i, s := range circomProof2.Siblings[0 : len(circomProof2.Siblings)-1] {
-		proof2Siblings[i] = s.BigInt()
-	}
-	witnessInputs := map[string]interface{}{
-		"nullifiers":            nullifiers,
-		"inputCommitments":      inputCommitments,
-		"inputValues":           inputValues,
-		"inputSalts":            []*big.Int{salt1, salt2},
-		"inputOwnerPrivateKey":  sender.PrivateKeyBigInt,
-		"root":                  mt.Root().BigInt(),
-		"merkleProof":           [][]*big.Int{proof1Siblings, proof2Siblings},
-		"enabled":               []*big.Int{big.NewInt(1), big.NewInt(1)},
-		"outputCommitments":     outputCommitments,
-		"outputValues":          outputValues,
-		"outputSalts":           []*big.Int{salt3, salt4},
-		"outputOwnerPublicKeys": [][]*big.Int{{receiver.PublicKey.X, receiver.PublicKey.Y}, {sender.PublicKey.X, sender.PublicKey.Y}},
-		"encryptionNonce":       encryptionNonce,
-		"ecdhPrivateKey":        ephemeralKeypair.PrivateKey.Scalar().BigInt(),
-	}
-
-	startTime := time.Now()
-	witnessBin, err := calc.CalculateWTNSBin(witnessInputs, true)
-	assert.NoError(s.T(), err)
-	assert.NotNil(s.T(), witnessBin)
-
-	proof, err := prover.Groth16Prover(provingKey, witnessBin)
-	elapsedTime := time.Since(startTime)
-	fmt.Printf("Proving time: %s\n", elapsedTime)
-	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), 3, len(proof.Proof.A))
-	assert.Equal(s.T(), 3, len(proof.Proof.B))
-	assert.Equal(s.T(), 3, len(proof.Proof.C))
-	assert.Equal(s.T(), 18, len(proof.PubSignals))
-}
-
-func (s *E2ETestSuite) TestZeto_nf_anon_SuccessfulProving() {
-	calc, provingKey, err := loadCircuit("nf_anon")
-	assert.NoError(s.T(), err)
-	assert.NotNil(s.T(), calc)
-
-	sender := testutils.NewKeypair()
-	receiver := testutils.NewKeypair()
-
-	tokenId := big.NewInt(1001)
-	tokenUri, err := utxo.HashTokenUri("https://example.com/token/1001")
-	assert.NoError(s.T(), err)
-
-	salt1 := crypto.NewSalt()
-	input1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt1, sender.PublicKey.X, sender.PublicKey.Y})
-	assert.NoError(s.T(), err)
-
-	salt3 := crypto.NewSalt()
-	output1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-	assert.NoError(s.T(), err)
-
-	witnessInputs := map[string]interface{}{
-		"tokenIds":              []*big.Int{tokenId},
-		"tokenUris":             []*big.Int{tokenUri},
-		"inputCommitments":      []*big.Int{input1},
-		"inputSalts":            []*big.Int{salt1},
-		"inputOwnerPrivateKey":  sender.PrivateKeyBigInt,
-		"outputCommitments":     []*big.Int{output1},
-		"outputSalts":           []*big.Int{salt3},
-		"outputOwnerPublicKeys": [][]*big.Int{{receiver.PublicKey.X, receiver.PublicKey.Y}},
-	}
-
-	// calculate the witness object for checking correctness
-	witness, err := calc.CalculateWitness(witnessInputs, true)
-	assert.NoError(s.T(), err)
-	assert.NotNil(s.T(), witness)
-
-	assert.Equal(s.T(), 0, witness[0].Cmp(big.NewInt(1)))
-	assert.Equal(s.T(), 0, witness[1].Cmp(input1))
-	assert.Equal(s.T(), 0, witness[2].Cmp(output1))
-	assert.Equal(s.T(), 0, witness[3].Cmp(tokenId))
-	assert.Equal(s.T(), 0, witness[4].Cmp(tokenUri))
-
-	// generate the witness binary to feed into the prover
-	startTime := time.Now()
-	witnessBin, err := calc.CalculateWTNSBin(witnessInputs, true)
-	assert.NoError(s.T(), err)
-	assert.NotNil(s.T(), witnessBin)
-
-	proof, err := prover.Groth16Prover(provingKey, witnessBin)
-	elapsedTime := time.Since(startTime)
-	fmt.Printf("Proving time: %s\n", elapsedTime)
-	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), 3, len(proof.Proof.A))
-	assert.Equal(s.T(), 3, len(proof.Proof.B))
-	assert.Equal(s.T(), 3, len(proof.Proof.C))
-	assert.Equal(s.T(), 2, len(proof.PubSignals))
-
-}
-
-func (s *E2ETestSuite) TestZeto_nf_anon_SuccessfulProvingWithConcurrency() {
-	concurrency := 10
-	resultChan := make(chan struct{}, concurrency)
-
-	for i := 0; i < concurrency; i++ {
-		index := i
-		go func() {
-			defer func() {
-				resultChan <- struct{}{}
-			}()
-			calc, provingKey, err := loadCircuit("nf_anon")
-			assert.NoError(s.T(), err)
-			assert.NotNil(s.T(), calc)
-
-			sender := testutils.NewKeypair()
-			receiver := testutils.NewKeypair()
-
-			tokenId := big.NewInt(int64(index + 1)) // ensure different token uris for each run
-			tokenUri, err := utxo.HashTokenUri("https://example.com/token/" + tokenId.String())
-			assert.NoError(s.T(), err)
-
-			salt1 := crypto.NewSalt()
-			input1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt1, sender.PublicKey.X, sender.PublicKey.Y})
-			assert.NoError(s.T(), err)
-
-			salt3 := crypto.NewSalt()
-			output1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-			assert.NoError(s.T(), err)
-
-			witnessInputs := map[string]interface{}{
-				"tokenIds":              []*big.Int{tokenId},
-				"tokenUris":             []*big.Int{tokenUri},
-				"inputCommitments":      []*big.Int{input1},
-				"inputSalts":            []*big.Int{salt1},
-				"inputOwnerPrivateKey":  sender.PrivateKeyBigInt,
-				"outputCommitments":     []*big.Int{output1},
-				"outputSalts":           []*big.Int{salt3},
-				"outputOwnerPublicKeys": [][]*big.Int{{receiver.PublicKey.X, receiver.PublicKey.Y}},
-			}
-			// calculate the witness object for checking correctness
-			witness, err := calc.CalculateWitness(witnessInputs, true)
-			assert.NoError(s.T(), err)
-			assert.NotNil(s.T(), witness)
-
-			assert.Equal(s.T(), 0, witness[0].Cmp(big.NewInt(1)))
-			assert.Equal(s.T(), 0, witness[1].Cmp(input1))
-			assert.Equal(s.T(), 0, witness[2].Cmp(output1))
-			assert.Equal(s.T(), 0, witness[3].Cmp(tokenId))
-			assert.Equal(s.T(), 0, witness[4].Cmp(tokenUri))
-
-			// generate the witness binary to feed into the prover
-			startTime := time.Now()
-			witnessBin, err := calc.CalculateWTNSBin(witnessInputs, true)
-			assert.NoError(s.T(), err)
-			assert.NotNil(s.T(), witnessBin)
-
-			proof, err := prover.Groth16Prover(provingKey, witnessBin)
-			elapsedTime := time.Since(startTime)
-			fmt.Printf("Proving time: %s\n", elapsedTime)
-			fmt.Printf("token uri from witness: %s\n", witness[3])
-			assert.NoError(s.T(), err)
-			assert.Equal(s.T(), 3, len(proof.Proof.A))
-			assert.Equal(s.T(), 3, len(proof.Proof.B))
-			assert.Equal(s.T(), 3, len(proof.Proof.C))
-			assert.Equal(s.T(), 2, len(proof.PubSignals))
-
-		}()
-	}
-	count := 0
-	for {
-		<-resultChan
-		count++
-		if count == concurrency {
-			break
+	smtProofs := make([][]*big.Int, len(proofs))
+	enabled := make([]*big.Int, len(proofs))
+	for i, proof := range proofs {
+		circomProof, err := proof.ToCircomVerifierProof(inputCommitments[i], inputCommitments[i], mt.Root(), MAX_HEIGHT)
+		assert.NoError(s.T(), err)
+		proofSiblings := make([]*big.Int, len(circomProof.Siblings)-1)
+		for i, s := range circomProof.Siblings[0 : len(circomProof.Siblings)-1] {
+			proofSiblings[i] = s.BigInt()
 		}
+		smtProofs[i] = proofSiblings
+		enabled[i] = big.NewInt(1)
 	}
 
-}
-
-func (s *E2ETestSuite) TestZeto_nf_anon_nullifier_SuccessfulProving() {
-	calc, provingKey, err := loadCircuit("nf_anon_nullifier_transfer")
-	assert.NoError(s.T(), err)
-	assert.NotNil(s.T(), calc)
-
-	sender := testutils.NewKeypair()
-	receiver := testutils.NewKeypair()
-
-	tokenId := big.NewInt(1001)
-	uriString := "https://example.com/token/1001"
-	tokenUri, err := utxo.HashTokenUri(uriString)
-	assert.NoError(s.T(), err)
-
-	salt1 := crypto.NewSalt()
-	input1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt1, sender.PublicKey.X, sender.PublicKey.Y})
-	assert.NoError(s.T(), err)
-
-	nullifier1, _ := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt1, sender.PrivateKeyBigInt})
-
-	mt, err := smt.NewMerkleTree(s.db, MAX_HEIGHT)
-	assert.NoError(s.T(), err)
-	utxo1 := node.NewNonFungible(tokenId, uriString, sender.PublicKey, salt1)
-	n1, err := node.NewLeafNode(utxo1)
-	assert.NoError(s.T(), err)
-	err = mt.AddLeaf(n1)
-	assert.NoError(s.T(), err)
-	proofs, _, err := mt.GenerateProofs([]*big.Int{input1}, nil)
-	assert.NoError(s.T(), err)
-	circomProof1, err := proofs[0].ToCircomVerifierProof(input1, input1, mt.Root(), MAX_HEIGHT)
-	assert.NoError(s.T(), err)
-	proof1Siblings := make([]*big.Int, len(circomProof1.Siblings)-1)
-	for i, s := range circomProof1.Siblings[0 : len(circomProof1.Siblings)-1] {
-		proof1Siblings[i] = s.BigInt()
-	}
-
-	salt3 := crypto.NewSalt()
-	output1, err := poseidon.Hash([]*big.Int{tokenId, tokenUri, salt3, receiver.PublicKey.X, receiver.PublicKey.Y})
-	assert.NoError(s.T(), err)
-
-	witnessInputs := map[string]interface{}{
-		"tokenId":              tokenId,
-		"tokenUri":             tokenUri,
-		"nullifier":            nullifier1,
-		"inputCommitment":      input1,
-		"inputSalt":            salt1,
-		"inputOwnerPrivateKey": sender.PrivateKeyBigInt,
-		"root":                 mt.Root().BigInt(),
-		"merkleProof":          proof1Siblings,
-		"outputCommitment":     output1,
-		"outputSalt":           salt3,
-		"outputOwnerPublicKey": []*big.Int{receiver.PublicKey.X, receiver.PublicKey.Y},
-	}
-
-	// calculate the witness object for checking correctness
-	witness, err := calc.CalculateWitness(witnessInputs, true)
-	assert.NoError(s.T(), err)
-	assert.NotNil(s.T(), witness)
-
-	assert.Equal(s.T(), 0, witness[0].Cmp(big.NewInt(1)))
-	assert.Equal(s.T(), 0, witness[1].Cmp(nullifier1))
-
-	// generate the witness binary to feed into the prover
-	startTime := time.Now()
-	witnessBin, err := calc.CalculateWTNSBin(witnessInputs, true)
-	assert.NoError(s.T(), err)
-	assert.NotNil(s.T(), witnessBin)
-
-	proof, err := prover.Groth16Prover(provingKey, witnessBin)
-	elapsedTime := time.Since(startTime)
-	fmt.Printf("Proving time: %s\n", elapsedTime)
-	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), 3, len(proof.Proof.A))
-	assert.Equal(s.T(), 3, len(proof.Proof.B))
-	assert.Equal(s.T(), 3, len(proof.Proof.C))
-	assert.Equal(s.T(), 3, len(proof.PubSignals))
-}
-
-func (s *E2ETestSuite) TestKeyManager() {
-	keypair := decryptKeyStorev3(s.T())
-
-	keyEntry := key.NewKeyEntryFromPrivateKeyBytes([32]byte(keypair.PrivateKeyBytes()))
-	assert.NotNil(s.T(), keyEntry)
-
-	assert.NotNil(s.T(), keyEntry.PrivateKey)
-	assert.NotNil(s.T(), keyEntry.PublicKey)
-	assert.NotNil(s.T(), keyEntry.PrivateKeyForZkp)
+	return smtProofs, enabled, root
 }
 
 func TestE2ETestSuite(t *testing.T) {

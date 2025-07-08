@@ -1,4 +1,4 @@
-// Copyright © 2024 Kaleido, Inc.
+// Copyright © 2025 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -13,8 +13,21 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pragma circom 2.2.2;
 
-include "./basetokens/anon_nullifier_kyc_base.circom";
+package integration_test
 
-component main { public [ nullifiers, outputCommitments, utxosRoot, identitiesRoot, enabled ] } = Zeto(2, 2, 64, 10);
+import (
+	"github.com/hyperledger-labs/zeto/go-sdk/pkg/key-manager/key"
+	"github.com/stretchr/testify/assert"
+)
+
+func (s *E2ETestSuite) TestKeyManager() {
+	keypair := decryptKeyStorev3(s.T())
+
+	keyEntry := key.NewKeyEntryFromPrivateKeyBytes([32]byte(keypair.PrivateKeyBytes()))
+	assert.NotNil(s.T(), keyEntry)
+
+	assert.NotNil(s.T(), keyEntry.PrivateKey)
+	assert.NotNil(s.T(), keyEntry.PublicKey)
+	assert.NotNil(s.T(), keyEntry.PrivateKeyForZkp)
+}

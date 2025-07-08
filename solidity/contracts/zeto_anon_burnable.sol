@@ -32,10 +32,12 @@ uint256 constant BATCH_INPUT_SIZE = 20;
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
 contract Zeto_AnonBurnable is Zeto_Anon, ZetoFungibleBurnable {
     function initialize(
+        string memory name,
+        string memory symbol,
         address initialOwner,
         VerifiersInfo calldata verifiers
     ) public override initializer {
-        __ZetoAnon_init(initialOwner, verifiers);
+        __ZetoAnon_init(name, symbol, initialOwner, verifiers);
         __ZetoFungibleBurnable_init(
             (Groth16Verifier_Burn)(verifiers.burnVerifier),
             (Groth16Verifier_BurnBatch)(verifiers.batchBurnVerifier)

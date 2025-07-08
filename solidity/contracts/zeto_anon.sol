@@ -48,17 +48,21 @@ contract Zeto_Anon is
     Groth16Verifier_AnonBatch internal _batchVerifier;
 
     function initialize(
+        string memory name,
+        string memory symbol,
         address initialOwner,
         VerifiersInfo calldata verifiers
     ) public virtual initializer {
-        __ZetoAnon_init(initialOwner, verifiers);
+        __ZetoAnon_init(name, symbol, initialOwner, verifiers);
     }
 
     function __ZetoAnon_init(
+        string memory name_,
+        string memory symbol_,
         address initialOwner,
         VerifiersInfo calldata verifiers
     ) internal onlyInitializing {
-        __ZetoBase_init(initialOwner);
+        __ZetoBase_init(name_, symbol_, initialOwner);
         __ZetoFungibleWithdraw_init(
             (Groth16Verifier_Deposit)(verifiers.depositVerifier),
             (Groth16Verifier_Withdraw)(verifiers.withdrawVerifier),
@@ -235,7 +239,7 @@ contract Zeto_Anon is
                     proof.pC,
                     fixedSizeInputs
                 ),
-                "Invalid proof"
+                "Invalid proof (batch)"
             );
         } else {
             uint256[] memory publicInputs = constructPublicInputs(

@@ -246,7 +246,8 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
         withdrawEncodedProof,
         "0x",
       );
-    await tx.wait();
+    const result1 = await tx.wait();
+    console.log(`Method withdraw() complete. Gas used: ${result1?.gasUsed}`);
 
     // Alice checks her ERC20 balance
     const endingBalance = await erc20.balanceOf(Alice.ethAddress);
@@ -272,7 +273,8 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
     const tx2 = await zeto
       .connect(Alice.signer)
       .deposit(100, outputCommitments, encodedProof, "0x");
-    await tx2.wait();
+    const result = await tx2.wait();
+    console.log(`Method deposit() complete. Gas used: ${result?.gasUsed}`);
 
     await smtAlice.add(utxo100.hash, utxo100.hash);
     await smtAlice.add(utxo0.hash, utxo0.hash);
@@ -448,7 +450,8 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
         encodedProof,
         "0x",
       );
-    await tx.wait();
+    const result = await tx.wait();
+    console.log(`Method withdraw() complete. Gas used: ${result?.gasUsed}`);
 
     // Alice tracks the UTXO inside the SMT
     await smtAlice.add(withdrawChangesUTXO.hash, withdrawChangesUTXO.hash);
@@ -518,7 +521,8 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
         encodedProof,
         "0x",
       );
-    await tx.wait();
+    const result = await tx.wait();
+    console.log(`Method burn() complete. Gas used: ${result?.gasUsed}`);
   }).timeout(60000);
 
   describe("lock() tests", function () {
@@ -603,6 +607,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
           "0x",
         );
         const result: ContractTransactionReceipt | null = await tx.wait();
+        console.log(`Method lock() complete. Gas used: ${result?.gasUsed}`);
 
         // Note that the locked UTXO should NOT be added to the local SMT for UTXOs because it's tracked in a separate SMT onchain
         // we add it to the local SMT for locked UTXOs
@@ -1280,14 +1285,8 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
       encodedProof,
       lockDelegate !== undefined,
     );
-    // add the clear text value so that it can be used by tests to compare with the decrypted value
     return {
       txResult,
-      expectedPlainText: outputs.reduce((acc, o, i) => {
-        acc.push(BigInt(o.value || 0n) as BigNumberish);
-        acc.push((o.salt || 0n) as BigNumberish);
-        return acc;
-      }, [] as BigNumberish[]),
     };
   }
 

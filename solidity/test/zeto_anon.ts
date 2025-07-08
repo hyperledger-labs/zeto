@@ -79,6 +79,11 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     ({ provingKeyFile: batchProvingKey } = loadProvingKeys("anon_batch"));
   });
 
+  it("has 4 decimals", async function () {
+    const decimals = await zeto.decimals();
+    expect(decimals).to.equal(4, "Decimals should be 4");
+  });
+
   it("(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob & Charlie then withdraw should succeed", async function () {
     // first mint the tokens for batch testing
     const inputUtxos = [];
@@ -181,7 +186,8 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     const tx2 = await zeto
       .connect(Alice.signer)
       .deposit(100, outputCommitments, encodedProof, "0x");
-    await tx2.wait();
+    const result = await tx2.wait();
+    console.log(`Method deposit() complete. Gas used: ${result?.gasUsed}`);
   });
 
   it("mint to Alice and transfer UTXOs honestly to Bob should succeed", async function () {
@@ -266,7 +272,8 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     const tx = await zeto
       .connect(Alice.signer)
       .withdraw(80, inputCommitments, outputCommitments[0], encodedProof, "0x");
-    await tx.wait();
+    const result = await tx.wait();
+    console.log(`Method withdraw() complete. Gas used: ${result?.gasUsed}`);
 
     // Alice checks her ERC20 balance
     const endingBalance = await erc20.balanceOf(Alice.ethAddress);
@@ -326,7 +333,8 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     const tx = await zetoBurnable
       .connect(Alice.signer)
       .burn(inputCommitments, outputCommitment, encodedProof, "0x");
-    await tx.wait();
+    const result = await tx.wait();
+    console.log(`Method burn() complete. Gas used: ${result?.gasUsed}`);
 
     // check that the burned UTXOs are spent
     let spent = await zetoBurnable.spent(inputCommitments[0]);

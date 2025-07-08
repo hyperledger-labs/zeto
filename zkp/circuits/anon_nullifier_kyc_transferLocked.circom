@@ -13,25 +13,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pragma solidity ^0.8.27;
+pragma circom 2.2.2;
 
-interface IZetoInitializable {
-    struct VerifiersInfo {
-        address verifier;
-        address depositVerifier;
-        address withdrawVerifier;
-        address lockVerifier;
-        address burnVerifier;
-        address batchVerifier;
-        address batchWithdrawVerifier;
-        address batchLockVerifier;
-        address batchBurnVerifier;
-    }
+include "./basetokens/anon_nullifier_kyc__transferLocked_base.circom";
 
-    function initialize(
-        string memory name,
-        string memory symbol,
-        address initialOwner,
-        VerifiersInfo memory verifiersInfo
-    ) external;
-}
+component main { public [ nullifiers, lockDelegate, outputCommitments, utxosRoot, identitiesRoot, enabled ] } = transferLocked(2, 2, 64, 10);

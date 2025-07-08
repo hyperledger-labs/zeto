@@ -40,9 +40,9 @@ describe("main circuit tests for Zeto fungible tokens with anonymity, KYC, using
   let senderPrivateKey;
 
   before(async () => {
-    circuit = await loadCircuit("anon_nullifier_kyc");
+    circuit = await loadCircuit("anon_nullifier_kyc_transfer");
     ({ provingKeyFile, verificationKey } =
-      loadProvingKeys("anon_nullifier_kyc"));
+      loadProvingKeys("anon_nullifier_kyc_transfer"));
 
     let keypair = genKeypair();
     Alice.privKey = keypair.privKey;

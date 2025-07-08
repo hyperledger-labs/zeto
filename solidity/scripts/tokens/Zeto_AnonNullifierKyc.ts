@@ -25,6 +25,8 @@ export async function deployDependencies() {
     withdrawVerifier,
     verifier,
     batchVerifier,
+    lockVerifier,
+    batchLockVerifier,
     batchWithdrawVerifier,
     smtLib,
     poseidon2,
@@ -33,6 +35,8 @@ export async function deployDependencies() {
   return {
     deployer,
     args: [
+      "Zeto Anon Nullifier KYC",
+      "ZAENKYC",
       await deployer.getAddress(),
       {
         verifier: verifier.target,
@@ -40,8 +44,8 @@ export async function deployDependencies() {
         withdrawVerifier: withdrawVerifier.target,
         batchVerifier: batchVerifier.target,
         batchWithdrawVerifier: batchWithdrawVerifier.target,
-        lockVerifier: "0x0000000000000000000000000000000000000000",
-        batchLockVerifier: "0x0000000000000000000000000000000000000000",
+        lockVerifier: lockVerifier.target,
+        batchLockVerifier: batchLockVerifier.target,
         burnVerifier: "0x0000000000000000000000000000000000000000",
         batchBurnVerifier: "0x0000000000000000000000000000000000000000",
       },

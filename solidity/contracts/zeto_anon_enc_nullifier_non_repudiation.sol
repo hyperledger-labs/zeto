@@ -62,10 +62,12 @@ contract Zeto_AnonEncNullifierNonRepudiation is
     uint256[2] private arbiter;
 
     function initialize(
+        string memory name,
+        string memory symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
-        __ZetoNullifier_init(initialOwner);
+        __ZetoNullifier_init(name, symbol, initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(
             (Groth16Verifier_Deposit)(verifiers.depositVerifier),
             (Groth16Verifier_WithdrawNullifier)(verifiers.withdrawVerifier),
@@ -205,7 +207,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is
                     proof.pC,
                     fixedSizeInputs
                 ),
-                "Invalid proof"
+                "Invalid proof (batch)"
             );
         } else {
             require(
