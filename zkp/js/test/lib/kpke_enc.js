@@ -37,6 +37,7 @@ describe('kpke_enc circuit tests', () => {
     const pkR = new Uint8Array(testKeyPair.pk);
     const pkHash = h(pkR);
     const gBytes = g(new Uint8Array(randomness), pkHash);
+    const K = gBytes[0];
     const r = gBytes[1];
 
     const circuitInputs = {
@@ -48,10 +49,11 @@ describe('kpke_enc circuit tests', () => {
     // the ciphertext is at index 1...6144, which is 768*8
     const ciphertext = witness.slice(1, 6145);
     const ctBytes = bitsToBytes(ciphertext.map((x) => Number(x)));
-    console.log('ciphertext: ', Buffer.from(ctBytes).toString('hex'));
 
     const sender = new MlKem512();
     const [ct, ss] = await sender.encap(pkR, new Uint8Array(randomness));
-    console.log('ciphertext from encap: ', Buffer.from(ct).toString('hex'));
+
+    expect(ct).to.deep.equal(new Uint8Array(ctBytes));
+    expect(ss).to.deep.equal(new Uint8Array(K));
   }).timeout(60000);
 });

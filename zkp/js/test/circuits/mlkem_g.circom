@@ -15,6 +15,6 @@
 // limitations under the License.
 pragma circom 2.2.2;
 
-include "../../../circuits/lib/kyber/mlkem_g.circom";
+include "../../../circuits/lib/kyber/mlkem.circom";
 
 component main = g();
