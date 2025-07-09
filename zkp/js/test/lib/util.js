@@ -14,6 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+const { sha3_256, sha3_512 } = require('@noble/hashes/sha3');
+
 // K-PKE key setup
 const pk = [
   0, 233, 0, 205, 21, 57, 235, 83, 7, 229, 152, 117, 95, 179, 138, 19, 85, 148, 136, 32, 56, 204, 220, 164, 82, 202, 138, 24, 147, 0, 210, 85, 2, 22, 120, 204, 173, 16, 18, 185, 129, 125, 249, 188,
@@ -118,22 +120,19 @@ const hack = [
   164, 5, 229, 95, 231, 123, 195, 208, 133, 204, 24, 37, 67, 83, 112, 220, 188, 124, 234, 24, 1, 58, 89, 189, 37, 248, 179, 220, 148, 91, 168, 3, 186, 251, 149, 16, 54,
 ];
 
-function toBitArray(byteArray) {
-  return byteArray
-    .map((byte) => byte.toString(2).padStart(8, '0'))
-    .join('')
-    .split('')
-    .map(Number);
+// copied from node_modules/mlkem/script/src/mlKemBase.js
+function h(pk) {
+  const hash = sha3_256.create();
+  hash.update(pk);
+  return hash.digest();
 }
 
-function toByteArray(bitArray) {
-  const byteArray = [];
-  for (let i = 0; i < bitArray.length; i += 8) {
-    const bitString = bitArray.slice(i, i + 8).join('');
-    const byte = parseInt(bitString, 2);
-    byteArray.push(byte);
-  }
-  return byteArray;
+function g(m, hpk) {
+  const hash = sha3_512.create();
+  hash.update(m);
+  hash.update(hpk);
+  const res = hash.digest();
+  return [res.subarray(0, 32), res.subarray(32, 64)];
 }
 
 module.exports = {
@@ -146,6 +145,6 @@ module.exports = {
     randomness,
     hack,
   },
-  toBitArray,
-  toByteArray,
+  h,
+  g,
 };

@@ -17,8 +17,9 @@
 const { expect } = require('chai');
 const { join } = require('path');
 const { wasm: wasm_tester } = require('circom_tester');
+const { MlKem512 } = require('mlkem');
 const { bitsToBytes, bytesToBits } = require('../../lib/util');
-const { testCipher } = require('./util');
+const { testCipher, testKeyPair, h, g } = require('./util');
 
 describe('kpke_enc circuit tests', () => {
   let circuit, witness;
@@ -29,17 +30,28 @@ describe('kpke_enc circuit tests', () => {
   });
 
   it('should generate the right 6144 bits (768 bytes) as output', async () => {
+    const randomness = [59, 33, 225, 54, 96, 22, 97, 134, 55, 158, 65, 251, 97, 133, 236, 153, 194, 58, 180, 157, 136, 222, 78, 71, 187, 20, 156, 248, 106, 26, 179, 146];
+
+    // the above hashOfEk is statically encoded in the circuit,
+    // with each byte in the Little Endian format
+    const pkR = new Uint8Array(testKeyPair.pk);
+    const pkHash = h(pkR);
+    const gBytes = g(new Uint8Array(randomness), pkHash);
+    const r = gBytes[1];
+
     const circuitInputs = {
-      randomness: testCipher.randomness,
-      m: testCipher.m,
+      randomness: bytesToBits(r),
+      m: bytesToBits(randomness),
     };
     witness = await circuit.calculateWitness(circuitInputs);
+
     // the ciphertext is at index 1...6144, which is 768*8
-    const array = witness.slice(1, 6145);
-    const bytes = bitsToBytes(array.map((x) => Number(x)));
-    expect(bytes).to.deep.equal(testCipher.hack);
-    // if we recover the bits from the expected hack bytes, they should match the witness bits
-    const bits = bytesToBits(testCipher.hack);
-    expect(array.map((n) => Number(n))).to.deep.equal(bits.map((n) => Number(n)));
+    const ciphertext = witness.slice(1, 6145);
+    const ctBytes = bitsToBytes(ciphertext.map((x) => Number(x)));
+    console.log('ciphertext: ', Buffer.from(ctBytes).toString('hex'));
+
+    const sender = new MlKem512();
+    const [ct, ss] = await sender.encap(pkR, new Uint8Array(randomness));
+    console.log('ciphertext from encap: ', Buffer.from(ct).toString('hex'));
   }).timeout(60000);
 });

@@ -16,12 +16,9 @@
 
 const { expect } = require('chai');
 const { join } = require('path');
-const crypto = require('crypto');
-const { MlKem512 } = require('mlkem');
-const { sha3_256, sha3_512 } = require('@noble/hashes/sha3');
 const { wasm: wasm_tester } = require('circom_tester');
 const { bytesToBits, bitsToBytes } = require('../../lib/util');
-const { testCipher, testKeyPair } = require('./util');
+const { testKeyPair, h, g } = require('./util');
 
 describe('mlkem protocol G(m || H(ek)) circuit tests', () => {
   let circuit;
@@ -61,18 +58,3 @@ describe('mlkem protocol G(m || H(ek)) circuit tests', () => {
     expect(gBytes[1]).deep.equal(new Uint8Array(rBytes));
   }).timeout(60000);
 });
-
-// copied from node_modules/mlkem/script/src/mlKemBase.js
-function h(pk) {
-  const hash = sha3_256.create();
-  hash.update(pk);
-  return hash.digest();
-}
-
-function g(m, hpk) {
-  const hash = sha3_512.create();
-  hash.update(m);
-  hash.update(hpk);
-  const res = hash.digest();
-  return [res.subarray(0, 32), res.subarray(32, 64)];
-}
