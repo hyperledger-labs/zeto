@@ -138,8 +138,8 @@ template kpke_enc() {
     signal a11_y1[n];
 
     a00_y0 <== multiply_nttvec()(a[0][0],y_hat[0]);
-    a01_y1 <== multiply_nttvec()(a[0][1],y_hat[1]);
-    a10_y0 <== multiply_nttvec()(a[1][0],y_hat[0]);
+    a01_y1 <== multiply_nttvec()(a[1][0],y_hat[1]);
+    a10_y0 <== multiply_nttvec()(a[0][1],y_hat[0]);
     a11_y1 <== multiply_nttvec()(a[1][1],y_hat[1]);
     
     signal ATy_hat[2][n];
