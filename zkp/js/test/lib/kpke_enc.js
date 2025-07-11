@@ -19,7 +19,7 @@ const { join } = require('path');
 const { wasm: wasm_tester } = require('circom_tester');
 const { MlKem512 } = require('mlkem');
 const { bitsToBytes, bytesToBits } = require('../../lib/util');
-const { testCipher, testKeyPair, h, g } = require('./util');
+const { testKeyPair, h, g } = require('./util');
 
 describe('kpke_enc circuit tests', () => {
   let circuit, witness;

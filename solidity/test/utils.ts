@@ -332,12 +332,3 @@ export async function prepareNullifierBurnProof(
     encodedProof,
   };
 }
-
-export function randomBytesAsDigitArray(length: number) {
-  const bytes = crypto.randomBytes(length);
-  let s = "";
-  for (let i = 0; i < bytes.length; i++) {
-    s += bytes[i].toString(2).padStart(8, "0");
-  }
-  return s.split("").map((b) => parseInt(b));
-}

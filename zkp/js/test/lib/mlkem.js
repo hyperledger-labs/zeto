@@ -20,7 +20,7 @@ const crypto = require('crypto');
 const { MlKem512 } = require('mlkem');
 const { wasm: wasm_tester } = require('circom_tester');
 const { bytesToBits, bitsToBytes } = require('../../lib/util');
-const { testCipher, testKeyPair } = require('./util');
+const { testKeyPair } = require('./util');
 
 describe('mlkem circuit tests', () => {
   let circuit, witness;

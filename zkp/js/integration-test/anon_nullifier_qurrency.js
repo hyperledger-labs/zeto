@@ -35,7 +35,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
   let circuit, provingKeyFile, verificationKey, smtAlice;
 
   const Alice = {};
-  const Auditor = {};
+  const Bob = {};
   let senderPrivateKey;
   let pk, sk;
   let r, r_bytes;
@@ -50,8 +50,8 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
     senderPrivateKey = formatPrivKeyForBabyJub(Alice.privKey);
 
     keypair = genKeypair();
-    Auditor.privKey = keypair.privKey;
-    Auditor.pubKey = keypair.pubKey;
+    Bob.privKey = keypair.privKey;
+    Bob.pubKey = keypair.pubKey;
 
     // we use a fixed keypair for the tests, because the public key is statically
     // configured in the circuit.
@@ -102,7 +102,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
 
         // create two output UTXOs, they share the same salt, and different owner
         const salt3 = newSalt();
-        const output1 = poseidonHash([BigInt(outputValues[0]), salt3, ...Auditor.pubKey]);
+        const output1 = poseidonHash([BigInt(outputValues[0]), salt3, ...Bob.pubKey]);
         const output2 = poseidonHash([BigInt(outputValues[1]), salt3, ...Alice.pubKey]);
 
         outputSalts = [salt3, salt3];
@@ -135,7 +135,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
             outputCommitments,
             outputValues,
             outputSalts,
-            outputOwnerPublicKeys: [Auditor.pubKey, Alice.pubKey],
+            outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
             randomness: r,
             encryptionNonce: encNonce,
           },
@@ -145,11 +145,13 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
         const { proof, publicSignals } = await groth16.prove(provingKeyFile, witnessBin);
         console.log('Proving time: ', (Date.now() - startTime) / 1000, 's');
 
+        // console.log('Public signals: ', publicSignals);
+
         let verifyResult = await groth16.verify(verificationKey, publicSignals, proof);
         expect(verifyResult).to.be.true;
 
         // check that the ZKP verification fails if the public signals are tampered with
-        const tamperedOutputHash = poseidonHash([BigInt(100), outputSalts[0], ...Auditor.pubKey]);
+        const tamperedOutputHash = poseidonHash([BigInt(100), outputSalts[0], ...Bob.pubKey]);
         let tamperedPublicSignals = publicSignals.map((ps) => (ps.toString() === outputCommitments[0].toString() ? tamperedOutputHash : ps));
         verifyResult = await groth16.verify(verificationKey, tamperedPublicSignals, proof);
         expect(verifyResult).to.be.false;
@@ -169,7 +171,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
             outputCommitments,
             outputValues,
             outputSalts,
-            outputOwnerPublicKeys: [Auditor.pubKey, Alice.pubKey],
+            outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
             randomness: r,
             encryptionNonce: encNonce,
           },
@@ -186,6 +188,18 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
         const sender = new MlKem512();
         const [computedCiphertext, _] = await sender.encap(new Uint8Array(pk), new Uint8Array(r_bytes));
         expect(computedCiphertext).to.deep.equal(mlkemCiphertext);
+
+        // console.log('Ciphertext for encypted outputs: ', eCiphertext);
+        // console.log('ML-KEM ciphertext: ', mlkemCiphertext);
+        // console.log('nullifiers: ', nullifiers);
+        // console.log('inputCommitments: ', inputCommitments);
+        // console.log('inputValues: ', inputValues);
+        // console.log('inputSalts: ', inputSalts);
+        // console.log('outputCommitments: ', outputCommitments);
+        // console.log('outputValues: ', outputValues);
+        // console.log('outputSalts: ', outputSalts);
+        // console.log('encNonce: ', encNonce);
+        // console.log('root: ', root.bigInt());
       }).timeout(600000);
 
       it('The Auditor uses the K-PKE decapsulation key to decrypt the mlkem ciphertext and recover the symmetric encryption key, to then recover the tx secrets', async () => {
@@ -199,8 +213,8 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
         let plainText = poseidonDecrypt(outputsCiphertext[0], recoveredKey, encNonce, 4);
         expect(plainText[0]).to.equal(BigInt(outputValues[0]));
         expect(plainText[1]).to.equal(BigInt(outputSalts[0]));
-        expect(plainText[2]).to.equal(BigInt(Auditor.pubKey[0]));
-        expect(plainText[3]).to.equal(BigInt(Auditor.pubKey[1]));
+        expect(plainText[2]).to.equal(BigInt(Bob.pubKey[0]));
+        expect(plainText[3]).to.equal(BigInt(Bob.pubKey[1]));
       }).timeout(600000);
     });
   });
