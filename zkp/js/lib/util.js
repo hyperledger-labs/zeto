@@ -18,15 +18,8 @@ const { genRandomSalt } = require('maci-crypto');
 const { poseidon4: poseidon, poseidon2 } = require('poseidon-lite');
 const { solidityPackedKeccak256 } = require('ethers');
 const { createHash, randomBytes } = require('crypto');
-
-// The ciphertext is produced inside the ZKP circuit. The following are
-// the index of the ciphertext in the witness array, which is dependent on the circuit.
-// Every time a circuit changes, the corresponding index must be re-discovered using the code
-// snippet inside the circuit's unit test.
-const CT_INDEX = {
-  anon_nullifier_qurrency: 100975,
-  anon_nullifier_qurrency_batch: 410535,
-};
+const { Base8, mulPointEscalar } = require('@zk-kit/baby-jubjub');
+const ff = require('ffjavascript');
 
 function newSalt() {
   return genRandomSalt();
@@ -214,15 +207,6 @@ function kycHash(bjjPublicKey) {
   return hash;
 }
 
-function getKyberCipherText(witnessObj, circuitName) {
-  const idx = CT_INDEX[circuitName];
-  if (idx === undefined) {
-    throw new Error(`Ciphertext index not found for circuit: ${circuitName}`);
-  }
-  const cipherTexts = witnessObj.slice(idx, idx + 768);
-  return cipherTexts;
-}
-
 // the bit array is assumed to be in the Little Endian format
 function bitsToBytes(bitArray) {
   const bytes = [];
@@ -251,39 +235,33 @@ function bytesToBits(byteArray) {
   return bitArray;
 }
 
-/**
- * This function maps a ciphertext (represented as bytes) to a hash digest output by the kyber_enc circuit.
- * The circuit outputs a SHA256 hash, which fits in 256 bits, but field elements in the circuit are only 254 bits
- * large. Because of this, the circuit represents one SHA256 hash in the form of two field elements, and the
- * specific conversion algorithm is implemented below.
- * @method hashCiphertextAsFieldSignals
- * @param {Uint8Array} ciphertext
- * @returns {bigint[]}
- */
-function hashCiphertextAsFieldSignals(ciphertext) {
-  const buff = Buffer.alloc(ciphertext.length);
-  for (let i = 0; i < ciphertext.length; i++) {
-    buff.writeUInt8(parseInt(ciphertext[i].toString()), i);
-  }
-  const hash = createHash('sha256').update(buff).digest('hex');
-  // compare this with the console.log printout in Solidity
-  // console.log("ciphertext hash", hash);
+// the seed is a 32-byte array, which is trimmed to fit the group order
+// and then used to generate the public key
+function publicKeyFromSeed(seed) {
+  // perform the same operations in JS as in the circuit
+  // in order to trim the seed into the group order
+  seed[0] = seed[0] & 0xf8;
+  seed[31] = seed[31] & 0x7f;
+  seed[31] = seed[31] | 0x40;
+  let trim = bytesToBits(seed).slice(3);
+  const keyBytes = bitsToBytes(trim);
+  const privateKey = ff.utils.leBuff2int(Buffer.from(keyBytes));
+  const recoveredKey = mulPointEscalar(Base8, privateKey);
+  return recoveredKey;
+}
 
-  const hashBuffer = Buffer.from(hash, 'hex');
-  const computed_pubSignals = [BigInt(0), BigInt(0)];
-  // Calculate h0: sum of the first 16 bytes
-  for (let i = 0; i < 16; i++) {
-    computed_pubSignals[0] += BigInt(hashBuffer[i] * 2 ** (8 * i));
+// recovers the ciphertext, 768 bytes, from the circuit witness output
+// of 25 field elements, each 254 bits long
+function recoverMlKemCiphertextBytes(ciphertextAsNumbers) {
+  const cBytes = [];
+  for (let i = 0; i < 24; i++) {
+    const bytes = bitsToBytes(ciphertextAsNumbers[i].toString(2).padStart(248, '0').split('').map(Number).reverse());
+    cBytes.push(...bytes);
   }
-  // Calculate h1: sum of the next 16 bytes
-  for (let i = 16; i < 32; i++) {
-    computed_pubSignals[1] += BigInt(hashBuffer[i] * 2 ** (8 * (i - 16)));
-  }
-  // compare these with the console.log printout in Solidity
-  // console.log("computed_pubSignals[0]: ", computed_pubSignals[0]);
-  // console.log("computed_pubSignals[1]: ", computed_pubSignals[1]);
-
-  return computed_pubSignals;
+  // The last number is 192 bits, so we need to handle it separately
+  const lastBytes = bitsToBytes(ciphertextAsNumbers[24].toString(2).padStart(192, '0').split('').map(Number).reverse());
+  cBytes.push(...lastBytes);
+  return Buffer.from(cBytes);
 }
 
 module.exports = {
@@ -295,9 +273,8 @@ module.exports = {
   getProofHash,
   tokenUriHash,
   kycHash,
-  getKyberCipherText,
   bitsToBytes,
   bytesToBits,
-  hashCiphertextAsFieldSignals,
-  CT_INDEX,
+  publicKeyFromSeed,
+  recoverMlKemCiphertextBytes,
 };

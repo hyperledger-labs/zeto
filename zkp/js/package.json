@@ -12,7 +12,9 @@
     "test:e2e": "mocha --exit integration-test/*.js"
   },
   "dependencies": {
+    "@zk-kit/baby-jubjub": "^1.0.3",
     "ethers": "^6.13.2",
+    "ffjavascript": "^0.3.1",
     "maci-crypto": "^1.1.1",
     "poseidon-lite": "^0.3.0"
   },
