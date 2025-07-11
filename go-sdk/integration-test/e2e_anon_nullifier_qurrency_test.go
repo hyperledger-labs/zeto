@@ -17,18 +17,32 @@
 package integration_test
 
 import (
+	"crypto/rand"
 	"fmt"
+	"math/big"
 	"time"
 
+	zetoCrypto "github.com/hyperledger-labs/zeto/go-sdk/pkg/crypto"
 	"github.com/iden3/go-rapidsnark/prover"
 	"github.com/stretchr/testify/assert"
 )
 
 func (s *E2ETestSuite) TestZeto_anon_nullifier_qurrency_SuccessfulProving() {
-	s.T().Skip("Skipping anon_nullifier_qurrency_transfer test due to pending implementation")
 	calc, provingKey, err := loadCircuit("anon_nullifier_qurrency_transfer")
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
+
+	nonce := zetoCrypto.NewEncryptionNonce()
+	randomBytes := make([]byte, 32)
+	n, _ := rand.Read(randomBytes)
+	assert.Equal(s.T(), 32, n, "Expected to read 32 random bytes")
+	// convert the randomBytes into a little-endian bit array
+	bitArray := zetoCrypto.BytesToBits(randomBytes)
+	// convert the bit array into a big.Int array
+	randomBits := make([]*big.Int, len(bitArray))
+	for i, bit := range bitArray {
+		randomBits[i] = big.NewInt(int64(bit))
+	}
 
 	witnessInputs := map[string]interface{}{
 		"nullifiers":            s.regularTest.nullifiers,
@@ -43,6 +57,8 @@ func (s *E2ETestSuite) TestZeto_anon_nullifier_qurrency_SuccessfulProving() {
 		"outputValues":          s.regularTest.outputValues,
 		"outputSalts":           s.regularTest.outputSalts,
 		"outputOwnerPublicKeys": s.regularTest.outputOwnerPublicKeys,
+		"encryptionNonce":       nonce,
+		"randomness":            randomBits,
 	}
 
 	startTime := time.Now()
@@ -57,5 +73,5 @@ func (s *E2ETestSuite) TestZeto_anon_nullifier_qurrency_SuccessfulProving() {
 	assert.Equal(s.T(), 3, len(proof.Proof.A))
 	assert.Equal(s.T(), 3, len(proof.Proof.B))
 	assert.Equal(s.T(), 3, len(proof.Proof.C))
-	assert.Equal(s.T(), 7, len(proof.PubSignals))
+	assert.Equal(s.T(), 46, len(proof.PubSignals))
 }

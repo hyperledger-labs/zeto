@@ -44,3 +44,7 @@ func PoseidonDecrypt(ciphertext []*big.Int, key []*big.Int, nonce *big.Int, leng
 func GenerateECDHSharedSecret(privKey *babyjub.PrivateKey, pubKey *babyjub.PublicKey) *babyjub.Point {
 	return crypto.GenerateECDHSharedSecret(privKey, pubKey)
 }
+
+func BytesToBits(data []byte) []uint8 {
+	return crypto.BytesToBits(data)
+}
