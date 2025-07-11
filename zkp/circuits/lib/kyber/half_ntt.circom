@@ -15,7 +15,7 @@
 // limitations under the License.
 pragma circom 2.2.2;
 
-include "util.circom";
+include "../common/util.circom";
 include "mod.circom";
 include "fast_compconstant.circom";
 

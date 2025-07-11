@@ -41,6 +41,20 @@ func NewEncryptionNonce() *big.Int {
 	return newRandomNumberInRange(max)
 }
 
+func BytesToBits(data []byte) []uint8 {
+	bits := make([]uint8, len(data)*8)
+	for i, b := range data {
+		for j := 0; j < 8; j++ {
+			// For little-endian bit order within each byte:
+			// The j-th bit (0-7) of the current byte 'b'
+			// is extracted using a bitwise AND with a left-shifted 1.
+			// The result is true if the bit is set, false otherwise.
+			bits[i*8+j] = (b >> j) & 1
+		}
+	}
+	return bits
+}
+
 func newRandomNumberInRange(max *big.Int) *big.Int {
 	// ensure that the salt fits inside the field of SNARKs
 	maxRounds := 10

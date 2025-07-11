@@ -15,7 +15,7 @@
 pragma circom 2.2.2;
 
 include "../../node_modules/circomlib/circuits/bitify.circom";
-include "util.circom";
+include "../common/util.circom";
 
 /*
     Performs bit decomposition of n bits and returns the most significant bit.

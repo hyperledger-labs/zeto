@@ -14,7 +14,7 @@
 // limitations under the License.
 pragma circom 2.2.2;
 
-include "../../util.circom";
+include "../../../common/util.circom";
 
 //------------------------------------------------------------------------------
 // compute the number of chunks

@@ -32,9 +32,23 @@ import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {console} from "hardhat/console.sol";
 
-uint256 constant INPUT_SIZE = 9;
+// the public inputs for the non-batch proof have the following structure:
+//  - 14 elements for the encrypted values (7 elements per output commitment)
+//  - 25 elements for the ML-KEM ciphertext
+//  - 2 elements for the nullifiers
+//  - 1 element for the root hash
+//  - 2 elements for the "enabled" flags (1 for each nullifier)
+//  - 2 elements for the output commitments
+uint256 constant INPUT_SIZE = 46;
+// the public inputs for the non-batch proof have the following structure:
+//  - 70 elements for the encrypted values (7 elements per output commitment)
+//  - 25 elements for the ML-KEM ciphertext
+//  - 10 elements for the nullifiers
+//  - 1 element for the root hash
+//  - 10 elements for the "enabled" flags (1 for each nullifier)
+//  - 10 elements for the output commitments
+uint256 constant BATCH_INPUT_SIZE = 126;
 // uint256 constant INPUT_SIZE_LOCKED = 8;
-uint256 constant BATCH_INPUT_SIZE = 33;
 // uint256 constant BATCH_INPUT_SIZE_LOCKED = 32;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and history masking
@@ -89,19 +103,25 @@ contract Zeto_AnonNullifierQurrency is
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
     function constructPublicInputs(
-        uint[2] memory computed_hashes,
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         uint256 root,
+        uint256[] memory encryptedValues,
+        uint256[25] memory mlkemCiphertext,
         uint256 size,
         bool locked
     ) internal view returns (uint256[] memory publicInputs) {
         publicInputs = new uint256[](size);
-        // copy computed hashes
-        publicInputs[0] = computed_hashes[0];
-        publicInputs[1] = computed_hashes[1];
-        uint256 piIndex = 2;
-        // copy input commitments
+        uint256 piIndex = 0;
+        // copy the encrypted output values
+        for (uint256 i = 0; i < encryptedValues.length; ++i) {
+            publicInputs[piIndex++] = encryptedValues[i];
+        }
+        // copy the ML-KEM ciphertext
+        for (uint256 i = 0; i < mlkemCiphertext.length; ++i) {
+            publicInputs[piIndex++] = mlkemCiphertext[i];
+        }
+        // copy nullifiers
         for (uint256 i = 0; i < nullifiers.length; i++) {
             publicInputs[piIndex++] = nullifiers[i];
         }
@@ -112,12 +132,10 @@ contract Zeto_AnonNullifierQurrency is
         }
         // copy root
         publicInputs[piIndex++] = root;
-
         // populate enables
         for (uint256 i = 0; i < nullifiers.length; i++) {
             publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
         }
-
         // copy output commitments
         for (uint256 i = 0; i < outputs.length; i++) {
             publicInputs[piIndex++] = outputs[i];
@@ -132,6 +150,9 @@ contract Zeto_AnonNullifierQurrency is
      * @param nullifiers Array of nullifiers that are secretly bound to UTXOs to be spent by the transaction.
      * @param outputs Array of new UTXOs to generate, for future transactions to spend.
      * @param root The root hash of the Sparse Merkle Tree that contains the nullifiers.
+     * @param encryptionNonce A nonce used to encrypt the outputs.
+     * @param encryptedValues An array of encrypted values corresponding to the outputs (7 elements per output).
+     * @param mlkemCiphertext The ciphertext for ML-KEM decapsulation to recover the shared secret.
      * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
      *      that the outputs are valid in terms of obeying mass conservation rules.
      *
@@ -141,15 +162,23 @@ contract Zeto_AnonNullifierQurrency is
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         uint256 root,
-        bytes memory ciphertext,
+        uint256 encryptionNonce,
+        uint256[] memory encryptedValues,
+        uint256[25] memory mlkemCiphertext,
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public returns (bool) {
         nullifiers = checkAndPadCommitments(nullifiers);
         outputs = checkAndPadCommitments(outputs);
         validateTransactionProposal(nullifiers, outputs, root, false);
-        uint[2] memory computed_pubSignals = calculateHash(ciphertext);
-        verifyProof(computed_pubSignals, nullifiers, outputs, root, proof);
+        verifyProof(
+            nullifiers,
+            outputs,
+            root,
+            encryptedValues,
+            mlkemCiphertext,
+            proof
+        );
         uint256[] memory empty;
         processInputsAndOutputs(nullifiers, outputs, empty, address(0));
 
@@ -159,7 +188,15 @@ contract Zeto_AnonNullifierQurrency is
             nullifierArray[i] = nullifiers[i];
             outputArray[i] = outputs[i];
         }
-        emit UTXOTransfer(nullifierArray, outputArray, msg.sender, data);
+        emit UTXOTransferWithMlkemEncryptedValues(
+            nullifierArray,
+            outputArray,
+            encryptionNonce,
+            mlkemCiphertext,
+            encryptedValues,
+            msg.sender,
+            data
+        );
         return true;
     }
 
@@ -265,18 +302,20 @@ contract Zeto_AnonNullifierQurrency is
     // }
 
     function verifyProof(
-        uint[2] memory computed_hashes,
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         uint256 root,
+        uint256[] memory encryptedValues,
+        uint256[25] memory mlkemCiphertext,
         Commonlib.Proof calldata proof
     ) public view returns (bool) {
         if (nullifiers.length > 2 || outputs.length > 2) {
             uint256[] memory publicInputs = constructPublicInputs(
-                computed_hashes,
                 nullifiers,
                 outputs,
                 root,
+                encryptedValues,
+                mlkemCiphertext,
                 BATCH_INPUT_SIZE,
                 false
             );
@@ -297,10 +336,11 @@ contract Zeto_AnonNullifierQurrency is
             );
         } else {
             uint256[] memory publicInputs = constructPublicInputs(
-                computed_hashes,
                 nullifiers,
                 outputs,
                 root,
+                encryptedValues,
+                mlkemCiphertext,
                 INPUT_SIZE,
                 false
             );
@@ -379,42 +419,4 @@ contract Zeto_AnonNullifierQurrency is
     //     }
     //     return true;
     // }
-
-    function calculateHash(
-        bytes memory ciphertext
-    ) internal view returns (uint[2] memory) {
-        bytes memory ret = new bytes(32); // return is a simple 0 or 1
-        bool ok;
-        uint256 result;
-        bytes memory ct = new bytes(768);
-        for (uint i = 0; i < ct.length; i++) {
-            ct[i] = ciphertext[i];
-        }
-        assembly {
-            ok := staticcall(
-                gas(),
-                0x02,
-                add(ct, 0x20),
-                768,
-                add(ret, 0x20),
-                0x20
-            )
-            result := mload(add(ret, 0x20))
-        }
-        require(ok, "hash failed");
-
-        bytes32 hash = bytes32(result);
-        uint[2] memory computed_pubSignals;
-        // Calculate h0: sum of the first 16 bytes
-        for (uint i = 0; i < 16; i++) {
-            computed_pubSignals[0] += uint256(uint8(hash[i])) * (1 << (8 * i));
-        }
-        // Calculate h1: sum of the next 16 bytes
-        for (uint i = 16; i < 32; i++) {
-            computed_pubSignals[1] +=
-                uint256(uint8(hash[i])) *
-                (1 << (8 * (i - 16)));
-        }
-        return computed_pubSignals;
-    }
 }

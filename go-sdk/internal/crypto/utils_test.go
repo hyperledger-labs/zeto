@@ -37,3 +37,14 @@ func TestNewEncryptionNonce(t *testing.T) {
 	max, _ := new(big.Int).SetString("340282366920938463463374607431768211456", 10)
 	assert.Less(t, nonce.Cmp(max), 0)
 }
+
+func TestBytesToBits(t *testing.T) {
+	data := []byte{0x01, 0x02, 0x03}
+	bits := BytesToBits(data)
+	expectedBits := []uint8{
+		1, 0, 0, 0, 0, 0, 0, 0,
+		0, 1, 0, 0, 0, 0, 0, 0,
+		1, 1, 0, 0, 0, 0, 0, 0,
+	}
+	assert.Equal(t, expectedBits, bits)
+}

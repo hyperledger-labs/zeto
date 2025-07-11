@@ -15,10 +15,11 @@
 // limitations under the License.
 
 import { ethers, ignition, network } from "hardhat";
-import { Signer, BigNumberish, ContractTransactionReceipt } from "ethers";
+import { BigNumberish, ContractTransactionReceipt } from "ethers";
+import crypto from "crypto";
 import { groth16 } from "snarkjs";
 import { Merkletree, InMemoryDB, str2Bytes } from "@iden3/js-merkletree";
-import { loadCircuit, encodeProof } from "zeto-js";
+import { loadCircuit, encodeProof, newEncryptionNonce, bytesToBits } from "zeto-js";
 import qurrencyModule from "../../ignition/modules/test/qurrency";
 import { User, newUser, newUTXO, newNullifier } from "../lib/utils";
 import { loadProvingKeys } from "../utils";
@@ -88,35 +89,9 @@ describe("Test Qurrency verifier", function () {
       Alice.babyJubPublicKey,
     ];
 
-    const m = [
-      1665, 1665, 0, 1665, 0, 1665, 1665, 0, 1665, 0, 0, 1665, 1665, 1665, 1665,
-      0, 0, 1665, 0, 0, 0, 1665, 1665, 0, 1665, 0, 1665, 0, 0, 1665, 1665, 0, 0,
-      1665, 0, 0, 1665, 1665, 1665, 0, 0, 0, 0, 0, 0, 1665, 0, 0, 1665, 0, 0,
-      1665, 0, 1665, 1665, 0, 1665, 1665, 0, 0, 1665, 1665, 1665, 0, 0, 0, 0, 0,
-      0, 1665, 0, 0, 1665, 1665, 0, 0, 0, 1665, 1665, 0, 1665, 1665, 1665, 1665,
-      0, 1665, 1665, 0, 1665, 1665, 1665, 1665, 0, 1665, 1665, 0, 0, 0, 1665,
-      1665, 0, 1665, 1665, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    ];
-
-    const randomness = [
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0,
-    ];
+    const randomness = crypto.randomBytes(32);
+    const r = bytesToBits(randomness);
+    const encryptionNonce = newEncryptionNonce();
 
     const inputObj: any = {
       nullifiers,
@@ -131,8 +106,8 @@ describe("Test Qurrency verifier", function () {
       outputValues,
       outputSalts,
       outputOwnerPublicKeys,
-      randomness,
-      m,
+      randomness: r,
+      encryptionNonce,
     };
     const witness = await circuit.calculateWTNSBin(inputObj, true);
     const startProofGeneration = Date.now();

@@ -16,9 +16,10 @@
 pragma circom 2.2.2;
 
 include "./anon_nullifier_base.circom";
-include "../lib/kyber/kyber.circom";
+include "../lib/kyber/mlkem.circom";
 include "../lib/hash_signals.circom";
-// include "../lib/sha256_signals.circom";
+include "../lib/pubkey.circom";
+include "../lib/encrypt.circom";
 
 // This version of the circuit performs the following operations:
 // - derive the sender's public key from the sender's private key
@@ -43,13 +44,9 @@ template transfer(nInputs, nOutputs, nSMTLevels) {
   signal input outputValues[nOutputs];
   signal input outputOwnerPublicKeys[nOutputs][2];
   signal input outputSalts[nOutputs];
-  // additional input signals for the cipher texts
-  // TODO: add the cipher text inputs
-  signal input m[256];
-  signal input randomness[256];
-
-  signal output ct_h0;
-  signal output ct_h1;
+  signal input encryptionNonce;
+  // the output for the list of encrypted output UTXOs cipher texts
+  signal output cipherTexts[nOutputs][7];
 
   Zeto(nInputs, nOutputs, nSMTLevels)(
     nullifiers <== nullifiers,
@@ -66,7 +63,33 @@ template transfer(nInputs, nOutputs, nSMTLevels) {
     outputOwnerPublicKeys <== outputOwnerPublicKeys,
     outputSalts <== outputSalts
   );
+
+  // additional input signals for the cipher texts
+  signal input randomness[256];
+  // the output cipher texts is sent to the receiver to recover the shared secret
+  signal output c[25];
+
   // additional constraints for the cipher texts
-  // TODO: kyber encryption constraints
-  (ct_h0, ct_h1) <== kyber_enc()(randomness, m);
+  component kem = mlkem_encaps();
+  kem.m <== randomness;
+  // the output of the mlkem_encaps is the shared secret K and the ciphertext c_short
+  // the ciphertext is split into 25 groups of 256 bits, each group is a single group element
+  // the first 24 groups are 248 bits each, and the last group is 192 bits long.
+  // we don't need the K because it can be calculated from any standard mlkem implementation
+  // using the same randomness and the sender's private key.
+  c <== kem.c_short;
+
+  // use the shared key from the mlkem encapsulation to derive the encryption key
+  // for the Poseidon encryption
+  signal sharedKey[256];
+  sharedKey <== kem.K;
+
+  signal encKey[2];
+  encKey <== PublicKeyFromSeed()(seed <== sharedKey);
+  // encKey is the public key derived from the shared key, which is used to encrypt
+  for (var i = 0; i < nOutputs; i++) {
+    // encrypt the value for the output UTXOs
+    var plainText[4] = [outputValues[i], outputSalts[i], outputOwnerPublicKeys[i][0], outputOwnerPublicKeys[i][1]];
+    cipherTexts[i] <== SymmetricEncrypt(4)(plainText <== plainText, key <== encKey, nonce <== encryptionNonce);
+  }
 }
