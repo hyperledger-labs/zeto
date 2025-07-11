@@ -18,7 +18,7 @@ const { expect } = require('chai');
 const { join } = require('path');
 const { wasm: wasm_tester } = require('circom_tester');
 const { bytesToBits, bitsToBytes } = require('../../lib/util');
-const { testKeyPair, toBitArray } = require('./util');
+const { testKeyPair } = require('./util');
 
 describe('SHA3_512_bytes circuit tests', () => {
   let circuit;
@@ -31,7 +31,7 @@ describe('SHA3_512_bytes circuit tests', () => {
     const circuitInputs = {
       inp_bytes: [49, 50],
     };
-    const witness = await circuit2.calculateWitness(circuitInputs);
+    const witness = await circuit.calculateWitness(circuitInputs);
     const array = witness.slice(1, 65);
     const hash = Buffer.from(array.map((x) => Number(x))).toString('hex');
     expect(hash).to.equal('f235c129089233ce3c9c85f1d1554b9cb21952b27e0765bcbcf75d550dd4d2874e546889da5c44db9c066e05e268f4742d672889ff62fb9cb18a3d1b57f00658');
@@ -63,7 +63,7 @@ describe('SHA3_256_bytes circuit tests', () => {
     circuit = await wasm_tester(join(__dirname, '../circuits/sha3_256_bytes_800.circom'));
   });
 
-  it.only('should generate the right h(ek) = sha3-256(ek), given the ek', async () => {
+  it('should generate the right h(ek) = sha3-256(ek), given the ek', async () => {
     const circuitInputs = {
       inp_bytes: testKeyPair.pk,
     };
@@ -72,13 +72,8 @@ describe('SHA3_256_bytes circuit tests', () => {
     const hash = Buffer.from(array.map((x) => Number(x))).toString('hex');
     expect(hash).to.equal('64e60e8fc5964897f39451c921c032bf712f812418cc3af1a762ea399249819d');
 
-    const bits = toBitArray(array.map((x) => Number(x)));
-    expect(bits).to.deep.equal([
-      0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1,
-      1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1,
-      1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1,
-      0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1,
-    ]);
+    const bits = bytesToBits(array.map((x) => Number(x)));
+    expect(bits).to.deep.equal(testKeyPair.hpk);
   });
 });
 
