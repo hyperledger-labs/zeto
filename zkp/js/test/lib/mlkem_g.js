@@ -28,15 +28,23 @@ describe('mlkem protocol G(m || H(ek)) circuit tests', () => {
     circuit = await wasm_tester(join(__dirname, '../circuits/mlkem_g.circom'));
   });
 
-  it('should generate the right K and r signals', async () => {
-    const randomness = [59, 33, 225, 54, 96, 22, 97, 134, 55, 158, 65, 251, 97, 133, 236, 153, 194, 58, 180, 157, 136, 222, 78, 71, 187, 20, 156, 248, 106, 26, 179, 146];
-    const hashOfEk = [100, 230, 14, 143, 197, 150, 72, 151, 243, 148, 81, 201, 33, 192, 50, 191, 113, 47, 129, 36, 24, 204, 58, 241, 167, 98, 234, 57, 146, 73, 129, 157];
-
-    // the above hashOfEk is statically encoded in the circuit,
+  it('verify the hash of the public key in the circuit is properly set', async () => {
+    // the hashOfEk is statically encoded in the circuit,
     // with each byte in the Little Endian format
+    const hashOfEk = [
+      0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1,
+      1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0,
+      0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1,
+      0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1,
+    ];
+    const hashOfEkBytes = bitsToBytes(hashOfEk);
     const pkR = new Uint8Array(testKeyPair.pk);
     const pkHash = h(pkR);
-    expect(pkHash).deep.equal(new Uint8Array(hashOfEk));
+    expect(pkHash).deep.equal(new Uint8Array(hashOfEkBytes));
+  });
+
+  it('should generate the right K and r signals', async () => {
+    const randomness = [59, 33, 225, 54, 96, 22, 97, 134, 55, 158, 65, 251, 97, 133, 236, 153, 194, 58, 180, 157, 136, 222, 78, 71, 187, 20, 156, 248, 106, 26, 179, 146];
 
     // the circuit expects the input to be in a bit array,
     // with each byte in the Little Endian format
@@ -53,6 +61,8 @@ describe('mlkem protocol G(m || H(ek)) circuit tests', () => {
     const KBytes = bitsToBytes(K.map((x) => Number(x)));
     const rBytes = bitsToBytes(r.map((x) => Number(x)));
 
+    const pkR = new Uint8Array(testKeyPair.pk);
+    const pkHash = h(pkR);
     const gBytes = g(new Uint8Array(randomness), pkHash);
     expect(gBytes[0]).deep.equal(new Uint8Array(KBytes));
     expect(gBytes[1]).deep.equal(new Uint8Array(rBytes));

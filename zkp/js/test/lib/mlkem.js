@@ -30,7 +30,7 @@ describe('mlkem circuit tests', () => {
     circuit = await wasm_tester(join(__dirname, '../circuits/mlkem.circom'));
   });
 
-  it('should generate the right 6144 bits (768 bytes) as 25 254-bit signals', async () => {
+  it('should generate the right ciphertext as 25 254-bit signals and used to recover the shared secret', async () => {
     const randomness = crypto.randomBytes(32); // 32 bytes for randomness
     const randomBits = bytesToBits(randomness);
     const circuitInputs = {
@@ -53,15 +53,15 @@ describe('mlkem circuit tests', () => {
 
     const sender = new MlKem512();
     const pkR = new Uint8Array(testKeyPair.pk);
-    const [ct, ss] = await sender.encap(pkR, new Uint8Array(randomness));
+    const [ct, ssSender] = await sender.encap(pkR, new Uint8Array(randomness));
 
     expect(ct.length).to.equal(768);
     expect(ct).to.deep.equal(new Uint8Array(cBytes));
-    expect(ss).to.deep.equal(new Uint8Array(KBytes));
+    expect(ssSender).to.deep.equal(new Uint8Array(KBytes));
 
     // check that the receiver can decap the ciphertext, and recover the same shared secret
     const receiver = new MlKem512();
-    const ssR = await receiver.decap(ct, new Uint8Array(testKeyPair.sk));
-    expect(ssR).to.deep.equal(new Uint8Array(KBytes));
+    const ssReceiver = await receiver.decap(ct, new Uint8Array(testKeyPair.sk));
+    expect(ssReceiver).to.deep.equal(new Uint8Array(KBytes));
   }).timeout(60000);
 });

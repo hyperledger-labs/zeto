@@ -32,8 +32,6 @@ describe('kpke_enc circuit tests', () => {
   it('should generate the right 6144 bits (768 bytes) as output', async () => {
     const randomness = [59, 33, 225, 54, 96, 22, 97, 134, 55, 158, 65, 251, 97, 133, 236, 153, 194, 58, 180, 157, 136, 222, 78, 71, 187, 20, 156, 248, 106, 26, 179, 146];
 
-    // the above hashOfEk is statically encoded in the circuit,
-    // with each byte in the Little Endian format
     const pkR = new Uint8Array(testKeyPair.pk);
     const pkHash = h(pkR);
     const gBytes = g(new Uint8Array(randomness), pkHash);
