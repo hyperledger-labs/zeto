@@ -16,7 +16,7 @@
 
 // K-PKE key setup
 // the following private key (sk) and public key (pk) correspond to the
-// public key statically configured in the circuit (mlkem_g.circom).
+// public key statically configured in the circuit (zkp/circuits/lib/kyber/kyber.circom).
 // Only used for testing purposes, for deployment, please generate a new keypair
 // and update the circuit accordingly.
 const pk = [
@@ -82,7 +82,18 @@ const sk = [
   35, 148, 184, 118, 6, 135, 193, 207, 192, 85, 4, 190, 171, 10, 10, 186, 226, 156, 78,
 ];
 
+// sha3_256 hash of the public key, arranged as a bit array
+// in Little Endian bit order. This is statically configured
+// in the circuit zkp/circuits/lib/kyber/mlkem.circom
+const hpk = [
+  0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1,
+  0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0,
+  1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1,
+  0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1,
+];
+
 module.exports = {
   pk,
   sk,
+  hpk,
 };
