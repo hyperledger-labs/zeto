@@ -18,32 +18,30 @@ const { expect } = require('chai');
 const { groth16 } = require('snarkjs');
 const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
 const { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } = require('@iden3/js-merkletree');
-const ethers = require('ethers');
-const { Poseidon, newSalt, loadCircuit } = require('../index.js');
+const { Poseidon, newSalt, loadCircuit, newEncryptionNonce } = require('../index.js');
 const { loadProvingKeys } = require('./utils.js');
-const { bitsToBytes, bytesToBits } = require('../lib/util.js');
+const { bytesToBits, recoverMlKemCiphertextBytes, publicKeyFromSeed, poseidonDecrypt } = require('../lib/util.js');
 const { testKeyPair } = require('../test/lib/util.js');
-const { randomFill, createCipheriv, createDecipheriv } = require('crypto');
-const { mlkem } = require('mlkem');
-
+const { randomFill } = require('crypto');
 const util = require('util');
-const { MlKem512 } = require('mlkem');
 const randomFillSync = util.promisify(randomFill);
+const { MlKem512 } = require('mlkem');
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
 const poseidonHash3 = Poseidon.poseidon3;
 
 describe('main circuit tests for Zeto fungible tokens with anonymity using nullifiers with Kyber encryption', () => {
-  let circuit, provingKeyFile, verificationKey, smtAlice, smtBob;
+  let circuit, provingKeyFile, verificationKey, smtAlice;
 
   const Alice = {};
-  const Bob = {};
+  const Auditor = {};
   let senderPrivateKey;
-  let sk;
-  let r;
-  let ssS; // Shared secret (sender)
-  let computedCiphertext;
+  let pk, sk;
+  let r, r_bytes;
+  let encNonce;
+  let mlkemCiphertext;
+  let outputsCiphertext;
 
   before(async () => {
     let keypair = genKeypair();
@@ -52,8 +50,8 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
     senderPrivateKey = formatPrivKeyForBabyJub(Alice.privKey);
 
     keypair = genKeypair();
-    Bob.privKey = keypair.privKey;
-    Bob.pubKey = keypair.pubKey;
+    Auditor.privKey = keypair.privKey;
+    Auditor.pubKey = keypair.pubKey;
 
     // we use a fixed keypair for the tests, because the public key is statically
     // configured in the circuit.
@@ -62,13 +60,9 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
     ({ pk, sk } = testKeyPair);
 
     // Randomness: a 256-bit seed used in the ML-KEM circuit
-    let r_bytes = new Uint8Array(32);
+    r_bytes = new Uint8Array(32);
     await randomFillSync(r_bytes);
     r = bytesToBits(r_bytes);
-
-    // Generate the encapsulated key using r_bytes
-    const sender = new MlKem512();
-    [computedCiphertext, ssS] = await sender.encap(pk, r_bytes);
   });
 
   describe('transfer()', () => {
@@ -79,18 +73,12 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
       // initialize the local storage for Alice to manage her UTXOs in the Sparse Merkle Tree
       const storage1 = new InMemoryDB(str2Bytes(''));
       smtAlice = new Merkletree(storage1, true, SMT_HEIGHT);
-
-      // initialize the local storage for Bob to manage his UTXOs in the Sparse Merkle Tree
-      const storage2 = new InMemoryDB(str2Bytes(''));
-      smtBob = new Merkletree(storage2, true, SMT_HEIGHT);
     });
 
     describe('end-2-end workflow between the sender (Alice) and receiver (Bob) using the Qurrency circuit', () => {
       let inputValues, outputValues, inputSalts, outputSalts;
       let nullifiers, inputCommitments, outputCommitments;
       let root, merkleProof;
-      let aesKey, aesIV, aesCiphertext, aesPlaintext;
-      const aesAlg = 'aes-256-cbc';
 
       it('Prepare the environment by creating UTXOs and add them to the local SMT', async () => {
         inputValues = [15, 100];
@@ -114,7 +102,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
 
         // create two output UTXOs, they share the same salt, and different owner
         const salt3 = newSalt();
-        const output1 = poseidonHash([BigInt(outputValues[0]), salt3, ...Bob.pubKey]);
+        const output1 = poseidonHash([BigInt(outputValues[0]), salt3, ...Auditor.pubKey]);
         const output2 = poseidonHash([BigInt(outputValues[1]), salt3, ...Alice.pubKey]);
 
         outputSalts = [salt3, salt3];
@@ -129,28 +117,9 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
         merkleProof = [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())];
       });
 
-      it('Alice generates the ciphertext for the auditor', async () => {
-        // Generate ciphertext intended for the auditor
-        aesPlaintext = JSON.stringify([
-          inputCommitments.map((x) => x.toString(16)),
-          inputValues,
-          inputSalts.map((x) => x.toString(16)),
-          Alice.pubKey.toString(16),
-          outputValues.map((x) => x.toString(16)),
-          outputSalts.map((x) => x.toString(16)),
-          [Bob.pubKey, Alice.pubKey].map((x) => x.toString(16)),
-        ]);
-
-        // Encrypt data for the auditor
-        aesIV = await randomFillSync(new Uint8Array(16));
-        aesKey = ssS;
-        const aesCipher = createCipheriv(aesAlg, aesKey, aesIV);
-        aesCiphertext = aesCipher.update(aesPlaintext, 'utf8', 'hex');
-        aesCiphertext += aesCipher.final('hex');
-      });
-
       it('Alice calculates the ZKP witness and verifies the proof', async () => {
         const startTime = Date.now();
+        encNonce = newEncryptionNonce();
 
         // Additionally compute the binary witness, so that we can compute and verify the associated proof
         const witnessBin = await circuit.calculateWTNSBin(
@@ -166,10 +135,9 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
             outputCommitments,
             outputValues,
             outputSalts,
-            outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
-            // Extra inputs for K-PKE encryption.
-            // Map "1" bits to "1665" as required by the kyber_enc circuit.
+            outputOwnerPublicKeys: [Auditor.pubKey, Alice.pubKey],
             randomness: r,
+            encryptionNonce: encNonce,
           },
           true
         );
@@ -181,7 +149,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
         expect(verifyResult).to.be.true;
 
         // check that the ZKP verification fails if the public signals are tampered with
-        const tamperedOutputHash = poseidonHash([BigInt(100), outputSalts[0], ...Bob.pubKey]);
+        const tamperedOutputHash = poseidonHash([BigInt(100), outputSalts[0], ...Auditor.pubKey]);
         let tamperedPublicSignals = publicSignals.map((ps) => (ps.toString() === outputCommitments[0].toString() ? tamperedOutputHash : ps));
         verifyResult = await groth16.verify(verificationKey, tamperedPublicSignals, proof);
         expect(verifyResult).to.be.false;
@@ -201,62 +169,39 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
             outputCommitments,
             outputValues,
             outputSalts,
-            outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey],
-            // Extra inputs for K-PKE encryption.
+            outputOwnerPublicKeys: [Auditor.pubKey, Alice.pubKey],
             randomness: r,
+            encryptionNonce: encNonce,
           },
           true
         );
 
+        const eCiphertext = witness.slice(1, 15); // The first 14 output signals contain the ciphertext from encryption
+        outputsCiphertext = [eCiphertext.slice(0, 7), eCiphertext.slice(7, 14)];
+
         // The encapsulated key is stored at indices 1 through 25 in the witness.
-        const resultCiphertext = qurrencyCtToBytes(witness.slice(1, 26));
+        mlkemCiphertext = recoverMlKemCiphertextBytes(witness.slice(15, 40));
 
-        const auditor = new MlKem512();
-        const ssR = await auditor.decap(resultCiphertext, sk); // Shared secret (recipient)
-
-        // Check that the computed key was computed correctly
-        expect(ssR).to.deep.equal(ssS);
-
-        expect(resultKey).to.deep.equal(ssS);
-
-        // // Check that the computed circuit outputs are computed correctly
-        // const computed_pubSignals = [witness[1], witness[2]];
-        // const expected_pubSignals = hashCiphertextAsFieldSignals(ct);
-        // expect(computed_pubSignals).to.deep.equal(expected_pubSignals);
+        // Alice can verify the mlkem ciphertexts generated by the circuit
+        const sender = new MlKem512();
+        const [computedCiphertext, _] = await sender.encap(new Uint8Array(pk), new Uint8Array(r_bytes));
+        expect(computedCiphertext).to.deep.equal(mlkemCiphertext);
       }).timeout(600000);
 
-      it('Bob uses the K-PKE decapsulation key to decrypt the ciphertext and recover the AES encryption key, to then recover the tx secrets', async () => {
-        // TODO: Implement the decryption logic for Bob using the K-PKE decapsulation key.
-        // for now cheat by using the same key as Alice
-        const recoveredAesKey = aesKey;
+      it('The Auditor uses the K-PKE decapsulation key to decrypt the mlkem ciphertext and recover the symmetric encryption key, to then recover the tx secrets', async () => {
+        const receiver = new MlKem512();
+        const ssReceiver = await receiver.decap(new Uint8Array(mlkemCiphertext), new Uint8Array(sk));
+        // corresponding to the logic in the circuit "pubkey.circom", we derive the symmetric key
+        // from the shared secret
+        expect(ssReceiver.length).to.equal(32);
+        const recoveredKey = publicKeyFromSeed(ssReceiver);
 
-        // Check that the AES ciphertext for the auditor decrypts correctly
-        const aesDecipher = createDecipheriv(aesAlg, recoveredAesKey, aesIV);
-        let aesDecrypted = aesDecipher.update(aesCiphertext, 'hex', 'utf8');
-        aesDecrypted += aesDecipher.final('utf8');
-        expect(aesDecrypted).to.deep.equal(aesPlaintext);
+        let plainText = poseidonDecrypt(outputsCiphertext[0], recoveredKey, encNonce, 4);
+        expect(plainText[0]).to.equal(BigInt(outputValues[0]));
+        expect(plainText[1]).to.equal(BigInt(outputSalts[0]));
+        expect(plainText[2]).to.equal(BigInt(Auditor.pubKey[0]));
+        expect(plainText[3]).to.equal(BigInt(Auditor.pubKey[1]));
       }).timeout(600000);
     });
   });
 });
-
-function qurrencyCtToBytes(ct) {
-  let bits = [];
-  for (var i = 0; i < 25; i++) {
-    let size;
-    // The first 24 output elements store 254 bits
-    if (i < 24) {
-      size = 254;
-    } else {
-      // The last element stores the last 48 bits
-      size = 48;
-    }
-    let elt = ct[i].toString(2);
-    while (elt.length < size) {
-      elt = '0' + elt;
-    }
-    bits.push(...elt.split('').map(Number));
-  }
-
-  return bitsToBytes(bits);
-}
