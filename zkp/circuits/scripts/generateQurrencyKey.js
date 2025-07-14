@@ -1,10 +1,16 @@
 const { polyFromBytes, MlKem512 } = require('crystals-kyber-js');
-const { bytesToBits } = require('../../js/lib/util.js');
 const { sha3_256 } = require('@noble/hashes/sha3');
+const crypto = require('crypto');
+const { bytesToBits } = require('../../js/lib/util.js');
 
 async function generateQurrencyKey() {
+  // generate a 64-byte seed, which can be used in any standard ML-KEM implementation
+  // to derive the public and private keys
+  const buff = crypto.randomBytes(64);
+  const seed = new Uint8Array(buff);
+
   let m = new MlKem512();
-  let [ek, dk] = await m.generateKeyPair();
+  let [ek, dk] = await m.deriveKeyPair(seed);
 
   let t0 = ek.slice(0, 384);
   let t1 = ek.slice(384, 768);
@@ -26,8 +32,9 @@ async function generateQurrencyKey() {
   console.log(`a[1][0]: [${a[1][0].slice(0, 256)}]\n`);
   console.log(`a[1][1]: [${a[1][1].slice(0, 256)}]\n`);
   console.log(`PUBLIC KEY: [${ek}]\n`);
-  console.log(`SECRET KEY: [${dk}]\n`);
   console.log(`PUBLIC KEY HASH: [${pkHashBits}]\n`);
+  console.log(`SECRET KEY: [${dk}]\n`);
+  console.log(`Secret seed: [${seed}]\n`);
 }
 
 // copied from node_modules/mlkem/script/src/mlKemBase.js
