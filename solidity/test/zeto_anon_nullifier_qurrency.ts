@@ -731,13 +731,6 @@ async function prepareProof(
     inputObj["lockDelegate"] = ethers.toBigInt(lockDelegate);
   }
 
-  // first call the calculateWitness function which returns
-  // the witness as an object, in order to get the ciphertext
-  const witnessObj = await circuit.calculateWitness(inputObj, true);
-  const idx = outputCommitments.length > 2 ? 71 : 15;
-  const outputsCiphertext = witnessObj.slice(1, idx);
-  const mlkemCiphertext = witnessObj.slice(idx, idx + 25);
-
   const witness = await circuit.calculateWTNSBin(inputObj, true);
   const timeWithnessCalculation = Date.now() - startWitnessCalculation;
 
@@ -747,6 +740,10 @@ async function prepareProof(
     witness,
   )) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
   const timeProofGeneration = Date.now() - startProofGeneration;
+
+  const idx = outputCommitments.length > 2 ? 70 : 14;
+  const outputsCiphertext = publicSignals.slice(0, idx);
+  const mlkemCiphertext = publicSignals.slice(idx, idx + 25);
 
   console.log(
     `Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`,
