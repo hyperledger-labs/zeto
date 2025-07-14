@@ -35,6 +35,13 @@ describe('mlkem protocol G(m || H(ek)) circuit tests', () => {
     expect(pkHash).deep.equal(new Uint8Array(hashOfEkBytes));
   });
 
+  it('verify the hash function in the generateQurrencyKey script', async () => {
+    const pkR = new Uint8Array(testKeyPair.pk);
+    const pkHash = h(pkR);
+    const bits = bytesToBits(pkHash);
+    expect(bits).deep.equal(testKeyPair.hpk);
+  });
+
   it('should generate the right K and r signals', async () => {
     const randomness = [59, 33, 225, 54, 96, 22, 97, 134, 55, 158, 65, 251, 97, 133, 236, 153, 194, 58, 180, 157, 136, 222, 78, 71, 187, 20, 156, 248, 106, 26, 179, 146];
 

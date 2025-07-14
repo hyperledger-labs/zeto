@@ -8,7 +8,7 @@ This implementation adds encryption, as described in the section above for Zeto_
 
 The statements in the proof include:
 
-- each value in the output commitments must be a positive number in the range 0 ~ (2\*\*40 - 1)
+- each value in the output commitments must be a positive number in the range 0 ~ (2\*\*100 - 1)
 - the sum of the nullified values match the sum of output values
 - the hashes in the output match the hash(value, salt, owner public key) formula
 - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers
