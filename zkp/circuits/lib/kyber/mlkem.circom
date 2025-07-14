@@ -70,7 +70,8 @@ template g() {
     // Note that the bit order within each byte is reversed compared to the
     // original output from the hashing function. This is because the circuit
     // treats all bit arrays as little-endian, with the least significant bit
-    // on the left
+    // on the left.
+    // Use the script `generateQurrencyKey.js` to generate this value (the "PUBLIC KEY HASH" in the print output).
     signal sha3_256_digest[256] <== [0,0,1,0,0,1,1,0,0,1,1,0,0,1,1,1,0,1,1,1,0,0,0,0,1,1,1,1,0,0,0,1,1,0,1,0,0,0,1,1,0,1,1,0,1,0,0,1,0,0,0,1,0,0,1,0,1,1,1,0,1,0,0,1,1,1,0,0,1,1,1,1,0,0,1,0,1,0,0,1,1,0,0,0,1,0,1,0,1,0,0,1,0,0,1,1,1,0,0,0,0,1,0,0,0,0,0,0,0,0,1,1,0,1,0,0,1,1,0,0,1,1,1,1,1,1,0,1,1,0,0,0,1,1,1,0,1,1,1,1,0,1,0,0,1,0,0,0,0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,1,1,0,0,0,0,0,1,1,0,0,1,1,0,1,0,1,1,1,0,0,1,0,0,0,1,1,1,1,1,1,1,0,0,1,0,1,0,1,0,0,0,1,1,0,0,1,0,1,0,1,1,1,1,0,0,1,1,1,0,0,0,1,0,0,1,0,0,1,1,0,0,1,0,0,1,0,1,0,0,0,0,0,0,1,1,0,1,1,1,0,0,1];
 
     // Concatenate m and H(ek)

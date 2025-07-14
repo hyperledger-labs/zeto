@@ -86,3 +86,4 @@ It prints out the following parts that are described above:
 - `a[1][1]`
 - `PUBLIC KEY`: corresponding to the `ek` described above. This is not used directly because it's expanded format with `t` and `a` arrays will be added to the circuit directly to perform the encapsulation
 - `SECRET KEY`: corresponding to the `dk` described above. This should be used to decapsulate to recover the AES key from the cipher text.
+- `PUBLIC KEY HASH`: corresponding to the `signal sha3_256_digest[256]` in the template `g()` of the circuit `zkp/circuits/lib/kyber/mlkem.circom`
