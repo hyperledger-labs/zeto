@@ -14,23 +14,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
-const { MlKem512 } = require('mlkem');
-const { bitsToBytes, bytesToBits } = require('../../lib/util');
-const { testKeyPair, h, g } = require('./util');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
+const { MlKem512 } = require("mlkem");
+const { bitsToBytes, bytesToBits } = require("../../lib/util");
+const { testKeyPair, h, g } = require("./util");
 
-describe('kpke_enc circuit tests', () => {
+describe("kpke_enc circuit tests", () => {
   let circuit, witness;
 
   before(async function () {
     this.timeout(60000);
-    circuit = await wasm_tester(join(__dirname, '../circuits/kpke_enc.circom'));
+    circuit = await wasm_tester(join(__dirname, "../circuits/kpke_enc.circom"));
   });
 
-  it('should generate the right 6144 bits (768 bytes) as output', async () => {
-    const randomness = [59, 33, 225, 54, 96, 22, 97, 134, 55, 158, 65, 251, 97, 133, 236, 153, 194, 58, 180, 157, 136, 222, 78, 71, 187, 20, 156, 248, 106, 26, 179, 146];
+  it("should generate the right 6144 bits (768 bytes) as output", async () => {
+    const randomness = [
+      59, 33, 225, 54, 96, 22, 97, 134, 55, 158, 65, 251, 97, 133, 236, 153,
+      194, 58, 180, 157, 136, 222, 78, 71, 187, 20, 156, 248, 106, 26, 179, 146,
+    ];
 
     const pkR = new Uint8Array(testKeyPair.pk);
     const pkHash = h(pkR);

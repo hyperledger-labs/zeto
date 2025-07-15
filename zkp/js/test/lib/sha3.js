@@ -70,7 +70,7 @@ describe('SHA3_256_bytes circuit tests', () => {
     const witness = await circuit.calculateWitness(circuitInputs);
     const array = witness.slice(1, 33);
     const hash = Buffer.from(array.map((x) => Number(x))).toString('hex');
-    expect(hash).to.equal('64e60e8fc5964897f39451c921c032bf712f812418cc3af1a762ea399249819d');
+    expect(hash).to.equal('5b9337ed21b50041f5325b42ec456df823303a09f07f45163edd010d0072b45c');
 
     const bits = bytesToBits(array.map((x) => Number(x)));
     expect(bits).to.deep.equal(testKeyPair.hpk);

@@ -14,21 +14,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const crypto = require('crypto');
-const { wasm: wasm_tester } = require('circom_tester');
-const { bytesToBits, publicKeyFromSeed } = require('../../lib/util');
+const { expect } = require("chai");
+const { join } = require("path");
+const crypto = require("crypto");
+const { wasm: wasm_tester } = require("circom_tester");
+const { bytesToBits, publicKeyFromSeed } = require("../../lib/util");
 
-describe('PublicKeyFromSeed circuit tests', () => {
+describe("PublicKeyFromSeed circuit tests", () => {
   let circuit;
   before(async function () {
     this.timeout(60000);
 
-    circuit = await wasm_tester(join(__dirname, '../circuits/pubkey.circom'));
+    circuit = await wasm_tester(join(__dirname, "../circuits/pubkey.circom"));
   });
 
-  it('should generate a public key', async () => {
+  it("should generate a public key", async () => {
     const randomness = crypto.randomBytes(32); // 32 bytes for randomness
     const seed = bytesToBits(randomness);
 

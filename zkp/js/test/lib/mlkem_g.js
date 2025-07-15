@@ -14,36 +14,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const { wasm: wasm_tester } = require('circom_tester');
-const { bytesToBits, bitsToBytes } = require('../../lib/util');
-const { testKeyPair, h, g } = require('./util');
+const { expect } = require("chai");
+const { join } = require("path");
+const { wasm: wasm_tester } = require("circom_tester");
+const { bytesToBits, bitsToBytes } = require("../../lib/util");
+const { testKeyPair, h, g } = require("./util");
 
-describe('mlkem protocol G(m || H(ek)) circuit tests', () => {
+describe("mlkem protocol G(m || H(ek)) circuit tests", () => {
   let circuit;
 
   before(async function () {
     this.timeout(60000);
-    circuit = await wasm_tester(join(__dirname, '../circuits/mlkem_g.circom'));
+    circuit = await wasm_tester(join(__dirname, "../circuits/mlkem_g.circom"));
   });
 
-  it('verify the hash of the public key in the circuit is properly set', async () => {
+  it("verify the hash of the public key in the circuit is properly set", async () => {
     const hashOfEkBytes = bitsToBytes(testKeyPair.hpk);
     const pkR = new Uint8Array(testKeyPair.pk);
     const pkHash = h(pkR);
     expect(pkHash).deep.equal(new Uint8Array(hashOfEkBytes));
   });
 
-  it('verify the hash function in the generateQurrencyKey script', async () => {
+  it("verify the hash function in the generateQurrencyKey script", async () => {
     const pkR = new Uint8Array(testKeyPair.pk);
     const pkHash = h(pkR);
     const bits = bytesToBits(pkHash);
     expect(bits).deep.equal(testKeyPair.hpk);
   });
 
-  it('should generate the right K and r signals', async () => {
-    const randomness = [59, 33, 225, 54, 96, 22, 97, 134, 55, 158, 65, 251, 97, 133, 236, 153, 194, 58, 180, 157, 136, 222, 78, 71, 187, 20, 156, 248, 106, 26, 179, 146];
+  it("should generate the right K and r signals", async () => {
+    const randomness = [
+      59, 33, 225, 54, 96, 22, 97, 134, 55, 158, 65, 251, 97, 133, 236, 153,
+      194, 58, 180, 157, 136, 222, 78, 71, 187, 20, 156, 248, 106, 26, 179, 146,
+    ];
 
     // the circuit expects the input to be in a bit array,
     // with each byte in the Little Endian format

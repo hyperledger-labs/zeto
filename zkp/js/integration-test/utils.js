@@ -14,13 +14,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const path = require('path');
-const { readFileSync } = require('fs');
+const path = require("path");
+const { readFileSync } = require("fs");
 
 function provingKeysRoot() {
   const PROVING_KEYS_ROOT = process.env.PROVING_KEYS_ROOT;
   if (!PROVING_KEYS_ROOT) {
-    throw new Error('PROVING_KEYS_ROOT env var is not set');
+    throw new Error("PROVING_KEYS_ROOT env var is not set");
   }
   return PROVING_KEYS_ROOT;
 }
@@ -28,14 +28,18 @@ function provingKeysRoot() {
 function circuitsRoot() {
   const CIRCUITS_ROOT = process.env.CIRCUITS_ROOT;
   if (!CIRCUITS_ROOT) {
-    throw new Error('CIRCUITS_ROOT env var is not set');
+    throw new Error("CIRCUITS_ROOT env var is not set");
   }
   return CIRCUITS_ROOT;
 }
 
 function loadProvingKeys(type) {
   const provingKeyFile = path.join(provingKeysRoot(), `${type}.zkey`);
-  const verificationKey = JSON.parse(new TextDecoder().decode(readFileSync(path.join(provingKeysRoot(), `${type}-vkey.json`))));
+  const verificationKey = JSON.parse(
+    new TextDecoder().decode(
+      readFileSync(path.join(provingKeysRoot(), `${type}-vkey.json`)),
+    ),
+  );
   return {
     provingKeyFile,
     wasmFile: path.join(circuitsRoot(), `${type}_js/${type}.wasm`),

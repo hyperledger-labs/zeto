@@ -14,23 +14,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { expect } = require('chai');
-const { join } = require('path');
-const crypto = require('crypto');
-const { MlKem512 } = require('mlkem');
-const { poseidonDecrypt } = require('../index.js');
-const { wasm: wasm_tester } = require('circom_tester');
-const { genKeypair, formatPrivKeyForBabyJub } = require('maci-crypto');
-const { Merkletree, InMemoryDB, str2Bytes, ZERO_HASH } = require('@iden3/js-merkletree');
-const { Poseidon, newSalt, newEncryptionNonce } = require('../index.js');
-const { bytesToBits, publicKeyFromSeed, recoverMlKemCiphertextBytes } = require('../lib/util.js');
-const { testKeyPair } = require('./lib/util.js');
+const { expect } = require("chai");
+const { join } = require("path");
+const crypto = require("crypto");
+const { MlKem512 } = require("mlkem");
+const { poseidonDecrypt } = require("../index.js");
+const { wasm: wasm_tester } = require("circom_tester");
+const { genKeypair, formatPrivKeyForBabyJub } = require("maci-crypto");
+const {
+  Merkletree,
+  InMemoryDB,
+  str2Bytes,
+  ZERO_HASH,
+} = require("@iden3/js-merkletree");
+const { Poseidon, newSalt, newEncryptionNonce } = require("../index.js");
+const {
+  bytesToBits,
+  publicKeyFromSeed,
+  recoverMlKemCiphertextBytes,
+} = require("../lib/util.js");
+const { testKeyPair } = require("./lib/util.js");
 
 const SMT_HEIGHT = 64;
 const poseidonHash = Poseidon.poseidon4;
 const poseidonHash3 = Poseidon.poseidon3;
 
-describe('main circuit tests for Zeto fungible tokens with anonymity using nullifiers and Kyber encryption for auditability', () => {
+describe("main circuit tests for Zeto fungible tokens with anonymity using nullifiers and Kyber encryption for auditability", () => {
   let circuit, smtAlice, smtBob;
 
   const Alice = {};
@@ -40,7 +49,9 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
   before(async function () {
     this.timeout(120000);
 
-    circuit = await wasm_tester(join(__dirname, '../../circuits/anon_nullifier_qurrency_transfer.circom'));
+    circuit = await wasm_tester(
+      join(__dirname, "../../circuits/anon_nullifier_qurrency_transfer.circom"),
+    );
 
     let keypair = genKeypair();
     Alice.privKey = keypair.privKey;
@@ -52,15 +63,15 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
     Bob.pubKey = keypair.pubKey;
 
     // initialize the local storage for Alice to manage her UTXOs in the Spart Merkle Tree
-    const storage1 = new InMemoryDB(str2Bytes(''));
+    const storage1 = new InMemoryDB(str2Bytes(""));
     smtAlice = new Merkletree(storage1, true, SMT_HEIGHT);
 
     // initialize the local storage for Bob to manage his UTXOs in the Spart Merkle Tree
-    const storage2 = new InMemoryDB(str2Bytes(''));
+    const storage2 = new InMemoryDB(str2Bytes(""));
     smtBob = new Merkletree(storage2, true, SMT_HEIGHT);
   });
 
-  it('should succeed for valid witness - input size = 2', async function () {
+  it("should succeed for valid witness - input size = 2", async function () {
     this.timeout(120000);
 
     const inputValues = [32, 40];
@@ -68,15 +79,31 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(inputValues[0]), salt1, ...Alice.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(inputValues[0]),
+      salt1,
+      ...Alice.pubKey,
+    ]);
     const salt2 = newSalt();
-    const input2 = poseidonHash([BigInt(inputValues[1]), salt2, ...Alice.pubKey]);
+    const input2 = poseidonHash([
+      BigInt(inputValues[1]),
+      salt2,
+      ...Alice.pubKey,
+    ]);
     const inputCommitments = [input1, input2];
     const inputSalts = [salt1, salt2];
 
     // create the nullifiers for the inputs
-    const nullifier1 = poseidonHash3([BigInt(inputValues[0]), salt1, senderPrivateKey]);
-    const nullifier2 = poseidonHash3([BigInt(inputValues[1]), salt2, senderPrivateKey]);
+    const nullifier1 = poseidonHash3([
+      BigInt(inputValues[0]),
+      salt1,
+      senderPrivateKey,
+    ]);
+    const nullifier2 = poseidonHash3([
+      BigInt(inputValues[1]),
+      salt2,
+      senderPrivateKey,
+    ]);
     const nullifiers = [nullifier1, nullifier2];
 
     // calculate the root of the SMT
@@ -84,14 +111,28 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
     await smtAlice.add(input2, input2);
 
     // generate the merkle proof for the inputs
-    const proof1 = await smtAlice.generateCircomVerifierProof(input1, ZERO_HASH);
-    const proof2 = await smtAlice.generateCircomVerifierProof(input2, ZERO_HASH);
+    const proof1 = await smtAlice.generateCircomVerifierProof(
+      input1,
+      ZERO_HASH,
+    );
+    const proof2 = await smtAlice.generateCircomVerifierProof(
+      input2,
+      ZERO_HASH,
+    );
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(outputValues[0]), salt3, ...Bob.pubKey]);
+    const output1 = poseidonHash([
+      BigInt(outputValues[0]),
+      salt3,
+      ...Bob.pubKey,
+    ]);
     const salt4 = newSalt();
-    const output2 = poseidonHash([BigInt(outputValues[1]), salt4, ...Alice.pubKey]);
+    const output2 = poseidonHash([
+      BigInt(outputValues[1]),
+      salt4,
+      ...Alice.pubKey,
+    ]);
     const outputCommitments = [output1, output2];
     const outputSalts = [salt3, salt4];
     const enabled = [1, 1];
@@ -108,7 +149,10 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
         inputSalts: inputSalts,
         inputOwnerPrivateKey: senderPrivateKey,
         root: proof1.root.bigInt(),
-        merkleProof: [proof1.siblings.map((s) => s.bigInt()), proof2.siblings.map((s) => s.bigInt())],
+        merkleProof: [
+          proof1.siblings.map((s) => s.bigInt()),
+          proof2.siblings.map((s) => s.bigInt()),
+        ],
         enabled,
         outputCommitments,
         outputValues,
@@ -117,7 +161,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
         randomness: m,
         encryptionNonce,
       },
-      true
+      true,
     );
 
     await circuit.checkConstraints(witness);
@@ -156,19 +200,32 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
     // the receiver can decap the ciphertext, and recover the shared secret
     // using the mlkem ciphertext and the receiver's private key
     const receiver = new MlKem512();
-    const ssReceiver = await receiver.decap(new Uint8Array(cBytes), new Uint8Array(testKeyPair.sk));
+    const ssReceiver = await receiver.decap(
+      new Uint8Array(cBytes),
+      new Uint8Array(testKeyPair.sk),
+    );
     // corresponding to the logic in the circuit "pubkey.circom", we derive the symmetric key
     // from the shared secret
     expect(ssReceiver.length).to.equal(32);
     const recoveredKey = publicKeyFromSeed(ssReceiver);
 
-    let plainText = poseidonDecrypt(cipherTexts[0], recoveredKey, encryptionNonce, 4);
+    let plainText = poseidonDecrypt(
+      cipherTexts[0],
+      recoveredKey,
+      encryptionNonce,
+      4,
+    );
     expect(plainText[0]).to.equal(BigInt(outputValues[0]));
     expect(plainText[1]).to.equal(BigInt(salt3));
     expect(plainText[2]).to.equal(BigInt(Bob.pubKey[0]));
     expect(plainText[3]).to.equal(BigInt(Bob.pubKey[1]));
 
-    plainText = poseidonDecrypt(cipherTexts[1], recoveredKey, encryptionNonce, 4);
+    plainText = poseidonDecrypt(
+      cipherTexts[1],
+      recoveredKey,
+      encryptionNonce,
+      4,
+    );
     expect(plainText[0]).to.equal(BigInt(outputValues[1]));
     expect(plainText[1]).to.equal(BigInt(salt4));
     expect(plainText[2]).to.equal(BigInt(Alice.pubKey[0]));
@@ -176,7 +233,7 @@ describe('main circuit tests for Zeto fungible tokens with anonymity using nulli
   });
 });
 
-describe('batch circuit tests for Zeto fungible tokens with anonymity using nullifiers and Kyber encryption for auditability', () => {
+describe("batch circuit tests for Zeto fungible tokens with anonymity using nullifiers and Kyber encryption for auditability", () => {
   let circuit, smtAlice, smtBob;
 
   const Alice = {};
@@ -186,7 +243,12 @@ describe('batch circuit tests for Zeto fungible tokens with anonymity using null
   before(async function () {
     this.timeout(120000);
 
-    circuit = await wasm_tester(join(__dirname, '../../circuits/anon_nullifier_qurrency_transfer_batch.circom'));
+    circuit = await wasm_tester(
+      join(
+        __dirname,
+        "../../circuits/anon_nullifier_qurrency_transfer_batch.circom",
+      ),
+    );
 
     let keypair = genKeypair();
     Alice.privKey = keypair.privKey;
@@ -198,15 +260,15 @@ describe('batch circuit tests for Zeto fungible tokens with anonymity using null
     Bob.pubKey = keypair.pubKey;
 
     // initialize the local storage for Alice to manage her UTXOs in the Spart Merkle Tree
-    const storage1 = new InMemoryDB(str2Bytes(''));
+    const storage1 = new InMemoryDB(str2Bytes(""));
     smtAlice = new Merkletree(storage1, true, SMT_HEIGHT);
 
     // initialize the local storage for Bob to manage his UTXOs in the Spart Merkle Tree
-    const storage2 = new InMemoryDB(str2Bytes(''));
+    const storage2 = new InMemoryDB(str2Bytes(""));
     smtBob = new Merkletree(storage2, true, SMT_HEIGHT);
   });
 
-  it('should succeed for valid witness - input size = 10', async function () {
+  it("should succeed for valid witness - input size = 10", async function () {
     this.timeout(120000);
 
     const inputValues = [32, 40, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -214,15 +276,31 @@ describe('batch circuit tests for Zeto fungible tokens with anonymity using null
 
     // create two input UTXOs, each has their own salt, but same owner
     const salt1 = newSalt();
-    const input1 = poseidonHash([BigInt(inputValues[0]), salt1, ...Alice.pubKey]);
+    const input1 = poseidonHash([
+      BigInt(inputValues[0]),
+      salt1,
+      ...Alice.pubKey,
+    ]);
     const salt2 = newSalt();
-    const input2 = poseidonHash([BigInt(inputValues[1]), salt2, ...Alice.pubKey]);
+    const input2 = poseidonHash([
+      BigInt(inputValues[1]),
+      salt2,
+      ...Alice.pubKey,
+    ]);
     const inputCommitments = [input1, input2, 0, 0, 0, 0, 0, 0, 0, 0];
     const inputSalts = [salt1, salt2, 0, 0, 0, 0, 0, 0, 0, 0];
 
     // create the nullifiers for the inputs
-    const nullifier1 = poseidonHash3([BigInt(inputValues[0]), salt1, senderPrivateKey]);
-    const nullifier2 = poseidonHash3([BigInt(inputValues[1]), salt2, senderPrivateKey]);
+    const nullifier1 = poseidonHash3([
+      BigInt(inputValues[0]),
+      salt1,
+      senderPrivateKey,
+    ]);
+    const nullifier2 = poseidonHash3([
+      BigInt(inputValues[1]),
+      salt2,
+      senderPrivateKey,
+    ]);
     const nullifiers = [nullifier1, nullifier2, 0, 0, 0, 0, 0, 0, 0, 0];
 
     // calculate the root of the SMT
@@ -230,14 +308,28 @@ describe('batch circuit tests for Zeto fungible tokens with anonymity using null
     await smtAlice.add(input2, input2);
 
     // generate the merkle proof for the inputs
-    const proof1 = await smtAlice.generateCircomVerifierProof(input1, ZERO_HASH);
-    const proof2 = await smtAlice.generateCircomVerifierProof(input2, ZERO_HASH);
+    const proof1 = await smtAlice.generateCircomVerifierProof(
+      input1,
+      ZERO_HASH,
+    );
+    const proof2 = await smtAlice.generateCircomVerifierProof(
+      input2,
+      ZERO_HASH,
+    );
 
     // create two output UTXOs, they share the same salt, and different owner
     const salt3 = newSalt();
-    const output1 = poseidonHash([BigInt(outputValues[0]), salt3, ...Bob.pubKey]);
+    const output1 = poseidonHash([
+      BigInt(outputValues[0]),
+      salt3,
+      ...Bob.pubKey,
+    ]);
     const salt4 = newSalt();
-    const output2 = poseidonHash([BigInt(outputValues[1]), salt4, ...Alice.pubKey]);
+    const output2 = poseidonHash([
+      BigInt(outputValues[1]),
+      salt4,
+      ...Alice.pubKey,
+    ]);
     const outputCommitments = [output1, output2, 0, 0, 0, 0, 0, 0, 0, 0];
     const outputSalts = [salt3, salt4, 0, 0, 0, 0, 0, 0, 0, 0];
     const enabled = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -262,11 +354,22 @@ describe('batch circuit tests for Zeto fungible tokens with anonymity using null
         outputCommitments,
         outputValues,
         outputSalts: outputSalts,
-        outputOwnerPublicKeys: [Bob.pubKey, Alice.pubKey, Alice.pubKey, Alice.pubKey, Alice.pubKey, Alice.pubKey, Alice.pubKey, Alice.pubKey, Alice.pubKey, Alice.pubKey],
+        outputOwnerPublicKeys: [
+          Bob.pubKey,
+          Alice.pubKey,
+          Alice.pubKey,
+          Alice.pubKey,
+          Alice.pubKey,
+          Alice.pubKey,
+          Alice.pubKey,
+          Alice.pubKey,
+          Alice.pubKey,
+          Alice.pubKey,
+        ],
         randomness: m,
         encryptionNonce,
       },
-      true
+      true,
     );
 
     await circuit.checkConstraints(witness);
@@ -294,13 +397,21 @@ describe('batch circuit tests for Zeto fungible tokens with anonymity using null
     // the receiver can decap the ciphertext, and recover the shared secret
     // using the mlkem ciphertext and the receiver's private key
     const receiver = new MlKem512();
-    const ssReceiver = await receiver.decap(new Uint8Array(cBytes), new Uint8Array(testKeyPair.sk));
+    const ssReceiver = await receiver.decap(
+      new Uint8Array(cBytes),
+      new Uint8Array(testKeyPair.sk),
+    );
     // corresponding to the logic in the circuit "pubkey.circom", we derive the symmetric key
     // from the shared secret
     expect(ssReceiver.length).to.equal(32);
     const recoveredKey = publicKeyFromSeed(ssReceiver);
 
-    let plainText = poseidonDecrypt(cipherTexts[0], recoveredKey, encryptionNonce, 4);
+    let plainText = poseidonDecrypt(
+      cipherTexts[0],
+      recoveredKey,
+      encryptionNonce,
+      4,
+    );
     expect(plainText[0]).to.equal(BigInt(outputValues[0]));
     expect(plainText[1]).to.equal(BigInt(salt3));
     expect(plainText[2]).to.equal(BigInt(Bob.pubKey[0]));
