@@ -17,7 +17,12 @@
 import { ethers, network } from "hardhat";
 import { ContractTransactionReceipt, Signer, BigNumberish, lock } from "ethers";
 import { expect } from "chai";
-import { loadCircuit, Poseidon, encodeProof, getKyberCipherText } from "zeto-js";
+import {
+  loadCircuit,
+  Poseidon,
+  encodeProof,
+  getKyberCipherText,
+} from "zeto-js";
 import { groth16 } from "snarkjs";
 import { Merkletree, InMemoryDB, str2Bytes } from "@iden3/js-merkletree";
 import {
@@ -70,7 +75,9 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
     Bob = await newUser(b);
     Charlie = await newUser(c);
 
-    ({ deployer, zeto, erc20 } = await deployZeto("Zeto_AnonNullifierQurrency"));
+    ({ deployer, zeto, erc20 } = await deployZeto(
+      "Zeto_AnonNullifierQurrency",
+    ));
 
     const storage1 = new InMemoryDB(str2Bytes(""));
     smtAlice = new Merkletree(storage1, true, 64);
@@ -596,7 +603,7 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
     for (let i = 0; i < ciphertext.length; i++) {
       buff.writeUInt8(Number(ciphertext[i]), i);
     }
-    const ciphertextHex = '0x' + buff.toString("hex");
+    const ciphertextHex = "0x" + buff.toString("hex");
 
     const startTx = Date.now();
     let tx: any;
@@ -658,11 +665,19 @@ async function prepareProof(
   // TODO: construct the message by generating an AES-256 key (the encryption key is the message)
   // as part of the KEM protocol. Replace 1 with 1665.
   const m = [
-    1665, 1665, 0, 1665, 0, 1665, 1665, 0, 1665, 0, 0, 1665, 1665, 1665, 1665, 0, 0, 1665, 0, 0, 0, 1665, 1665, 0, 1665, 0, 1665, 0, 0, 1665, 1665, 0, 0, 1665, 0, 0, 1665, 1665, 1665, 0, 0, 0, 0, 0,
-    0, 1665, 0, 0, 1665, 0, 0, 1665, 0, 1665, 1665, 0, 1665, 1665, 0, 0, 1665, 1665, 1665, 0, 0, 0, 0, 0, 0, 1665, 0, 0, 1665, 1665, 0, 0, 0, 1665, 1665, 0, 1665, 1665, 1665, 1665, 0, 1665, 1665, 0,
-    1665, 1665, 1665, 1665, 0, 1665, 1665, 0, 0, 0, 1665, 1665, 0, 1665, 1665, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    1665, 1665, 0, 1665, 0, 1665, 1665, 0, 1665, 0, 0, 1665, 1665, 1665, 1665,
+    0, 0, 1665, 0, 0, 0, 1665, 1665, 0, 1665, 0, 1665, 0, 0, 1665, 1665, 0, 0,
+    1665, 0, 0, 1665, 1665, 1665, 0, 0, 0, 0, 0, 0, 1665, 0, 0, 1665, 0, 0,
+    1665, 0, 1665, 1665, 0, 1665, 1665, 0, 0, 1665, 1665, 1665, 0, 0, 0, 0, 0,
+    0, 1665, 0, 0, 1665, 1665, 0, 0, 0, 1665, 1665, 0, 1665, 1665, 1665, 1665,
+    0, 1665, 1665, 0, 1665, 1665, 1665, 1665, 0, 1665, 1665, 0, 0, 0, 1665,
+    1665, 0, 1665, 1665, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   ];
 
   const randomness = randomBytesAsDigitArray(32);
@@ -690,7 +705,10 @@ async function prepareProof(
   // first call the calculateWitness function which returns
   // the witness as an object, in order to get the ciphertext
   const witnessObj = await circuit.calculateWitness(inputObj, true);
-  const circuitName = inputs.length > 2 ? "anon_nullifier_qurrency_batch" : "anon_nullifier_qurrency";
+  const circuitName =
+    inputs.length > 2
+      ? "anon_nullifier_qurrency_batch"
+      : "anon_nullifier_qurrency";
   const ciphertext = getKyberCipherText(witnessObj, circuitName);
 
   const witness = await circuit.calculateWTNSBin(inputObj, true);

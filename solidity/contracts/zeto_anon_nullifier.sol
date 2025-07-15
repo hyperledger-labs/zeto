@@ -53,17 +53,21 @@ contract Zeto_AnonNullifier is
     IGroth16Verifier internal _batchLockVerifier;
 
     function initialize(
+        string memory name,
+        string memory symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public virtual initializer {
-        __ZetoAnonNullifier_init(initialOwner, verifiers);
+        __ZetoAnonNullifier_init(name, symbol, initialOwner, verifiers);
     }
 
     function __ZetoAnonNullifier_init(
+        string memory name_,
+        string memory symbol_,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) internal onlyInitializing {
-        __ZetoNullifier_init(initialOwner);
+        __ZetoNullifier_init(name_, symbol_, initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(
             (Groth16Verifier_Deposit)(verifiers.depositVerifier),
             (Groth16Verifier_WithdrawNullifier)(verifiers.withdrawVerifier),

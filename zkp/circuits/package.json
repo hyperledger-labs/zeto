@@ -4,16 +4,20 @@
   "description": "Circom library for ZK circuits for use with Zeto based privacy-preserving tokens",
   "license": "Apache-2.0",
   "dependencies": {
+    "@noble/hashes": "^1.8.0",
     "circomlib": "^2.0.5"
   },
   "scripts": {
-    "gen": "node scripts/gen.js"
+    "gen": "node scripts/gen.js",
+    "qurrency-keygen": "node scripts/generateQurrencyKey.js"
   },
   "devDependencies": {
     "axios": "^1.7.3",
     "blakejs": "^1.2.1",
+    "crystals-kyber-js": "github:kaleido-io/crystals-kyber-js",
     "p-limit": "^6.1.0",
     "snarkjs": "0.7.5",
+    "typescript": "^5.8.3",
     "yargs": "^17.7.2"
   }
 }

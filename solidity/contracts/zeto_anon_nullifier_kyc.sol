@@ -35,11 +35,13 @@ import {console} from "hardhat/console.sol";
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 contract Zeto_AnonNullifierKyc is Zeto_AnonNullifier, Registry {
     function initialize(
+        string memory name,
+        string memory symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
         __Registry_init();
-        __ZetoAnonNullifier_init(initialOwner, verifiers);
+        __ZetoAnonNullifier_init(name, symbol, initialOwner, verifiers);
 
         INPUT_SIZE = 8;
         BATCH_INPUT_SIZE = 32;

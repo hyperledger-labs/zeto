@@ -79,11 +79,11 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
 
     ({ deployer, zeto, erc20 } = await deployZeto("Zeto_AnonNullifierKyc"));
 
-    const tx2 = await zeto.connect(deployer).register(Alice.babyJubPublicKey);
+    const tx2 = await zeto.connect(deployer).register(Alice.babyJubPublicKey, '0x');
     const result1 = await tx2.wait();
-    const tx3 = await zeto.connect(deployer).register(Bob.babyJubPublicKey);
+    const tx3 = await zeto.connect(deployer).register(Bob.babyJubPublicKey, '0x');
     const result2 = await tx3.wait();
-    const tx4 = await zeto.connect(deployer).register(Charlie.babyJubPublicKey);
+    const tx4 = await zeto.connect(deployer).register(Charlie.babyJubPublicKey, '0x');
     const result3 = await tx4.wait();
 
     const storage1 = new InMemoryDB(str2Bytes("alice"));

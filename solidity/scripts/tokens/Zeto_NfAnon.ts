@@ -24,6 +24,8 @@ export async function deployDependencies() {
   return {
     deployer,
     args: [
+      "Zeto NF Anon",
+      "ZNFA",
       await deployer.getAddress(),
       {
         verifier: verifier.target,
