@@ -42,8 +42,10 @@ uint256 constant INPUT_SIZE = 46;
 //  - 10 elements for the "enabled" flags (1 for each nullifier)
 //  - 10 elements for the output commitments
 uint256 constant BATCH_INPUT_SIZE = 126;
-// uint256 constant INPUT_SIZE_LOCKED = 8;
-// uint256 constant BATCH_INPUT_SIZE_LOCKED = 32;
+
+// NOT USED
+uint256 constant INPUT_SIZE_LOCKED = 8;
+uint256 constant BATCH_INPUT_SIZE_LOCKED = 32;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and history masking
 /// @author Kaleido, Inc.
@@ -66,24 +68,12 @@ contract Zeto_AnonNullifierQurrency is
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
-        __ZetoNullifier_init(name, symbol, initialOwner);
+        __ZetoNullifier_init(name, symbol, initialOwner, verifiers);
         __ZetoFungibleWithdrawWithNullifiers_init(
             (IGroth16Verifier)(verifiers.depositVerifier),
             (IGroth16Verifier)(verifiers.withdrawVerifier),
             (IGroth16Verifier)(verifiers.batchWithdrawVerifier)
         );
-        _verifier = (Groth16Verifier_AnonNullifierQurrencyTransfer)(
-            verifiers.verifier
-        );
-        // _lockVerifier = (Groth16Verifier_AnonNullifierTransferLocked)(
-        //     verifiers.lockVerifier
-        // );
-        _batchVerifier = (Groth16Verifier_AnonNullifierQurrencyTransferBatch)(
-            verifiers.batchVerifier
-        );
-        // _batchLockVerifier = (Groth16Verifier_AnonNullifierTransferLockedBatch)(
-        //     verifiers.batchLockVerifier
-        // );
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -94,9 +84,11 @@ contract Zeto_AnonNullifierQurrency is
         uint256 root,
         uint256[] memory encryptedValues,
         uint256[25] memory mlkemCiphertext,
-        uint256 size,
         bool locked
     ) internal view returns (uint256[] memory publicInputs) {
+        uint256 size = (nullifiers.length > 2 || outputs.length > 2)
+            ? (locked ? BATCH_INPUT_SIZE_LOCKED : BATCH_INPUT_SIZE)
+            : (locked ? INPUT_SIZE_LOCKED : INPUT_SIZE);
         publicInputs = new uint256[](size);
         uint256 piIndex = 0;
         // copy the encrypted output values
@@ -295,57 +287,16 @@ contract Zeto_AnonNullifierQurrency is
         uint256[25] memory mlkemCiphertext,
         Commonlib.Proof calldata proof
     ) public view returns (bool) {
-        if (nullifiers.length > 2 || outputs.length > 2) {
-            uint256[] memory publicInputs = constructPublicInputs(
-                nullifiers,
-                outputs,
-                root,
-                encryptedValues,
-                mlkemCiphertext,
-                BATCH_INPUT_SIZE,
-                false
-            );
-            // construct the public inputs for verifier
-            uint256[BATCH_INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
-            // Check the proof using batchVerifier
-            require(
-                _batchVerifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof (batch)"
-            );
-        } else {
-            uint256[] memory publicInputs = constructPublicInputs(
-                nullifiers,
-                outputs,
-                root,
-                encryptedValues,
-                mlkemCiphertext,
-                INPUT_SIZE,
-                false
-            );
-            // construct the public inputs for verifier
-            uint256[INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
-            // Check the proof
-            require(
-                _verifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof"
-            );
-        }
+        uint256[] memory publicInputs = constructPublicInputs(
+            nullifiers,
+            outputs,
+            root,
+            encryptedValues,
+            mlkemCiphertext,
+            false
+        );
+        bool isBatch = nullifiers.length > 2 || outputs.length > 2;
+        verifyProof(proof, publicInputs, isBatch, false);
         return true;
     }
 
