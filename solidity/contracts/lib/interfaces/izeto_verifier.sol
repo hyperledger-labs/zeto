@@ -16,7 +16,7 @@
 pragma solidity ^0.8.27;
 
 interface IGroth16Verifier {
-    function verifyProof(
+    function verify(
         uint[2] calldata _pA,
         uint[2][2] calldata _pB,
         uint[2] calldata _pC,
