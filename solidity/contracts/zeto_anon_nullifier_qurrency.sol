@@ -57,7 +57,6 @@ uint256 constant BATCH_INPUT_SIZE_LOCKED = 32;
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 contract Zeto_AnonNullifierQurrency is
     IZeto,
-    IZetoInitializable,
     ZetoNullifier,
     ZetoFungibleWithdrawWithNullifiers,
     UUPSUpgradeable

@@ -23,9 +23,6 @@ import {Commonlib} from "./lib/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-uint256 constant INPUT_SIZE = 18;
-uint256 constant BATCH_INPUT_SIZE = 74;
-
 /// @title A sample implementation of a Zeto based fungible token with anonymity, encryption and history masking
 /// @author Kaleido, Inc.
 /// @dev The proof has the following statements:
@@ -41,18 +38,32 @@ contract Zeto_AnonEncNullifier is
     ZetoFungibleWithdrawWithNullifiers,
     UUPSUpgradeable
 {
+    uint256 internal INPUT_SIZE;
+    uint256 internal BATCH_INPUT_SIZE;
+
     function initialize(
         string memory name,
         string memory symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
-    ) public initializer {
+    ) public virtual initializer {
+        __Zeto_AnonEncNullifier_init(name, symbol, initialOwner, verifiers);
+    }
+
+    function __Zeto_AnonEncNullifier_init(
+        string memory name,
+        string memory symbol,
+        address initialOwner,
+        IZetoInitializable.VerifiersInfo calldata verifiers
+    ) internal onlyInitializing {
         __ZetoNullifier_init(name, symbol, initialOwner, verifiers);
         __ZetoFungibleWithdrawWithNullifiers_init(
             (IGroth16Verifier)(verifiers.depositVerifier),
             (IGroth16Verifier)(verifiers.withdrawVerifier),
             (IGroth16Verifier)(verifiers.batchWithdrawVerifier)
         );
+        INPUT_SIZE = 18;
+        BATCH_INPUT_SIZE = 74;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -64,7 +75,7 @@ contract Zeto_AnonEncNullifier is
         uint256 encryptionNonce,
         uint256[2] memory ecdhPublicKey,
         uint256[] memory encryptedValues
-    ) internal pure returns (uint256[] memory publicInputs) {
+    ) internal view returns (uint256[] memory publicInputs) {
         uint256 size = (nullifiers.length > 2 || outputs.length > 2)
             ? BATCH_INPUT_SIZE
             : INPUT_SIZE;
@@ -91,6 +102,12 @@ contract Zeto_AnonEncNullifier is
             publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
         }
 
+        // insert extra inputs if any
+        uint256[] memory extra = extraInputs();
+        for (uint256 i = 0; i < extra.length; i++) {
+            publicInputs[piIndex++] = extra[i];
+        }
+
         // copy output commitments
         for (uint256 i = 0; i < outputs.length; i++) {
             publicInputs[piIndex++] = outputs[i];
@@ -99,6 +116,12 @@ contract Zeto_AnonEncNullifier is
         // copy encryption nonce
         publicInputs[piIndex++] = encryptionNonce;
         return publicInputs;
+    }
+
+    function extraInputs() internal view virtual returns (uint256[] memory) {
+        // no extra inputs for this contract
+        uint256[] memory empty = new uint256[](0);
+        return empty;
     }
 
     /**

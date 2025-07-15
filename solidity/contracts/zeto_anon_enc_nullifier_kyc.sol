@@ -17,15 +17,12 @@ pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
 import {IGroth16Verifier} from "./lib/interfaces/izeto_verifier.sol";
-import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
+import {Zeto_AnonEncNullifier} from "./zeto_anon_enc_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-
-uint256 constant INPUT_SIZE = 19;
-uint256 constant BATCH_INPUT_SIZE = 75;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity, encryption and history masking
 /// @author Kaleido, Inc.
@@ -36,181 +33,23 @@ uint256 constant BATCH_INPUT_SIZE = 75;
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers
 ///        - the encrypted value in the input is derived from the receiver's UTXO value and encrypted with a shared secret using the ECDH protocol between the sender and receiver (this guarantees data availability for the receiver)
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
-contract Zeto_AnonEncNullifierKyc is
-    IZeto,
-    ZetoNullifier,
-    ZetoFungibleWithdrawWithNullifiers,
-    Registry,
-    UUPSUpgradeable
-{
+contract Zeto_AnonEncNullifierKyc is Zeto_AnonEncNullifier, Registry {
     function initialize(
         string memory name,
         string memory symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
-    ) public initializer {
+    ) public override initializer {
         __Registry_init();
-        __ZetoNullifier_init(name, symbol, initialOwner, verifiers);
-        __ZetoFungibleWithdrawWithNullifiers_init(
-            (IGroth16Verifier)(verifiers.depositVerifier),
-            (IGroth16Verifier)(verifiers.withdrawVerifier),
-            (IGroth16Verifier)(verifiers.batchWithdrawVerifier)
-        );
+        __Zeto_AnonEncNullifier_init(name, symbol, initialOwner, verifiers);
+        INPUT_SIZE = 19;
+        BATCH_INPUT_SIZE = 75;
     }
 
-    function _authorizeUpgrade(address) internal override onlyOwner {}
+    function extraInputs() internal view override returns (uint256[] memory) {
+        uint256[] memory extras = new uint256[](1);
 
-    function constructPublicInputs(
-        uint256[] memory nullifiers,
-        uint256[] memory outputs,
-        uint256 root,
-        uint256 encryptionNonce,
-        uint256[2] memory ecdhPublicKey,
-        uint256[] memory encryptedValues
-    ) internal view returns (uint256[] memory publicInputs) {
-        uint256 size = (nullifiers.length > 2 || outputs.length > 2)
-            ? BATCH_INPUT_SIZE
-            : INPUT_SIZE;
-        publicInputs = new uint256[](size);
-        uint256 piIndex = 0;
-        // copy the ecdh public key
-        for (uint256 i = 0; i < ecdhPublicKey.length; ++i) {
-            publicInputs[piIndex++] = ecdhPublicKey[i];
-        }
-        // copy the encrypted value, salt and parity bit
-        for (uint256 i = 0; i < encryptedValues.length; ++i) {
-            publicInputs[piIndex++] = encryptedValues[i];
-        }
-        // copy input commitments
-        for (uint256 i = 0; i < nullifiers.length; i++) {
-            publicInputs[piIndex++] = nullifiers[i];
-        }
-
-        // copy root
-        publicInputs[piIndex++] = root;
-
-        // populate enables
-        for (uint256 i = 0; i < nullifiers.length; i++) {
-            publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
-        }
-
-        // copy identities root
-        publicInputs[piIndex++] = getIdentitiesRoot();
-        // copy output commitments
-        for (uint256 i = 0; i < outputs.length; i++) {
-            publicInputs[piIndex++] = outputs[i];
-        }
-
-        // copy encryption nonce
-        publicInputs[piIndex++] = encryptionNonce;
-
-        return publicInputs;
-    }
-
-    /**
-     * @dev the main function of the contract, which transfers values from one account (represented by Babyjubjub public keys)
-     *      to one or more receiver accounts (also represented by Babyjubjub public keys). One of the two nullifiers may be zero
-     *      if the transaction only needs one UTXO to be spent. Equally one of the two outputs may be zero if the transaction
-     *      only needs to create one new UTXO.
-     *
-     * @param nullifiers Array of nullifiers that are secretly bound to UTXOs to be spent by the transaction.
-     * @param outputs Array of new UTXOs to generate, for future transactions to spend.
-     * @param root The root hash of the Sparse Merkle Tree that contains the nullifiers.
-     * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
-     *      that the outputs are valid in terms of obeying mass conservation rules.
-     *
-     * Emits a {UTXOTransferWithEncryptedValues} event.
-     */
-    function transfer(
-        uint256[] memory nullifiers,
-        uint256[] memory outputs,
-        uint256 root,
-        uint256 encryptionNonce,
-        uint256[2] memory ecdhPublicKey,
-        uint256[] memory encryptedValues,
-        Commonlib.Proof calldata proof,
-        bytes calldata data
-    ) public returns (bool) {
-        // Check and pad commitments
-        nullifiers = checkAndPadCommitments(nullifiers);
-        outputs = checkAndPadCommitments(outputs);
-        validateTransactionProposal(nullifiers, outputs, root, false);
-
-        // Check the proof
-        uint256[] memory publicInputs = constructPublicInputs(
-            nullifiers,
-            outputs,
-            root,
-            encryptionNonce,
-            ecdhPublicKey,
-            encryptedValues
-        );
-        bool isBatch = (nullifiers.length > 2 || outputs.length > 2);
-        verifyProof(proof, publicInputs, isBatch, false);
-
-        // accept the transaction to consume the input UTXOs and produce new UTXOs
-        uint256[] memory empty;
-        processInputsAndOutputs(nullifiers, outputs, empty, address(0));
-
-        uint256[] memory encryptedValuesArray = new uint256[](
-            encryptedValues.length
-        );
-        for (uint256 i = 0; i < encryptedValues.length; ++i) {
-            encryptedValuesArray[i] = encryptedValues[i];
-        }
-
-        emit UTXOTransferWithEncryptedValues(
-            nullifiers,
-            outputs,
-            encryptionNonce,
-            ecdhPublicKey,
-            encryptedValuesArray,
-            msg.sender,
-            data
-        );
-        return true;
-    }
-
-    // in the current design, no KYC check is performed for deposit & withdraw functions
-    // this is to reduce gas fee for deposit and withdraw function
-    // users that doesn't pass KYC check will not be able to participate in transfers
-    // because the transfer circuit requires the input and output owners to be in the KYC list
-    // Therefore, token circulation from & to parties that are not in the KYC list is prevented
-    function deposit(
-        uint256 amount,
-        uint256[] memory outputs,
-        Commonlib.Proof calldata proof,
-        bytes calldata data
-    ) public {
-        _deposit(amount, outputs, proof);
-        _mint(outputs, data);
-    }
-
-    function withdraw(
-        uint256 amount,
-        uint256[] memory nullifiers,
-        uint256 output,
-        uint256 root,
-        Commonlib.Proof calldata proof,
-        bytes calldata data
-    ) public {
-        uint256[] memory outputs = new uint256[](nullifiers.length);
-        outputs[0] = output;
-        // Check and pad commitments
-        nullifiers = checkAndPadCommitments(nullifiers);
-        outputs = checkAndPadCommitments(outputs);
-        validateTransactionProposal(nullifiers, outputs, root, false);
-
-        _withdrawWithNullifiers(amount, nullifiers, output, root, proof);
-        uint256[] memory empty;
-        processInputsAndOutputs(nullifiers, outputs, empty, address(0));
-        emit UTXOWithdraw(amount, nullifiers, output, msg.sender, data);
-    }
-
-    function mint(
-        uint256[] memory utxos,
-        bytes calldata data
-    ) public onlyOwner {
-        _mint(utxos, data);
+        extras[0] = getIdentitiesRoot();
+        return extras;
     }
 }
