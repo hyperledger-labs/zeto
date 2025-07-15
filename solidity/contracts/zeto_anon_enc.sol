@@ -16,11 +16,7 @@
 pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
-import {Groth16Verifier_Deposit} from "./verifiers/verifier_deposit.sol";
-import {Groth16Verifier_Withdraw} from "./verifiers/verifier_withdraw.sol";
-import {Groth16Verifier_WithdrawBatch} from "./verifiers/verifier_withdraw_batch.sol";
-import {Groth16Verifier_AnonEnc} from "./verifiers/verifier_anon_enc.sol";
-import {Groth16Verifier_AnonEncBatch} from "./verifiers/verifier_anon_enc_batch.sol";
+import {IGroth16Verifier} from "./lib/interfaces/izeto_verifier.sol";
 import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
 import {Commonlib} from "./lib/common.sol";
@@ -41,29 +37,21 @@ uint256 constant BATCH_INPUT_SIZE = 63;
 ///          the ECDH protocol between the sender and receiver (this guarantees data availability for the receiver)
 contract Zeto_AnonEnc is
     IZeto,
-    IZetoInitializable,
     ZetoBase,
     ZetoFungibleWithdraw,
     UUPSUpgradeable
 {
-    Groth16Verifier_AnonEnc internal _verifier;
-    Groth16Verifier_AnonEncBatch internal _batchVerifier;
-
     function initialize(
         string memory name,
         string memory symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
-        __ZetoBase_init(name, symbol, initialOwner);
+        __ZetoBase_init(name, symbol, initialOwner, verifiers);
         __ZetoFungibleWithdraw_init(
-            (Groth16Verifier_Deposit)(verifiers.depositVerifier),
-            (Groth16Verifier_Withdraw)(verifiers.withdrawVerifier),
-            (Groth16Verifier_WithdrawBatch)(verifiers.batchWithdrawVerifier)
-        );
-        _verifier = (Groth16Verifier_AnonEnc)(verifiers.verifier);
-        _batchVerifier = (Groth16Verifier_AnonEncBatch)(
-            verifiers.batchVerifier
+            (IGroth16Verifier)(verifiers.depositVerifier),
+            (IGroth16Verifier)(verifiers.withdrawVerifier),
+            (IGroth16Verifier)(verifiers.batchWithdrawVerifier)
         );
     }
 
@@ -74,9 +62,11 @@ contract Zeto_AnonEnc is
         uint256[] memory outputs,
         uint256 encryptionNonce,
         uint256[2] memory ecdhPublicKey,
-        uint256[] memory encryptedValues,
-        uint256 size
+        uint256[] memory encryptedValues
     ) internal pure returns (uint256[] memory publicInputs) {
+        uint256 size = (inputs.length > 2 || outputs.length > 2)
+            ? BATCH_INPUT_SIZE
+            : INPUT_SIZE;
         publicInputs = new uint256[](size);
         uint256 piIndex = 0;
         // copy the ecdh public key
@@ -130,57 +120,17 @@ contract Zeto_AnonEnc is
         validateTransactionProposal(inputs, outputs, lockedOutputs, false);
 
         // Check the proof
-        if (inputs.length > 2 || outputs.length > 2) {
-            uint256[] memory publicInputs = constructPublicInputs(
-                inputs,
-                outputs,
-                encryptionNonce,
-                ecdhPublicKey,
-                encryptedValues,
-                BATCH_INPUT_SIZE
-            );
-            // construct the public inputs for batchVerifier
-            uint256[BATCH_INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
+        uint256[] memory publicInputs = constructPublicInputs(
+            inputs,
+            outputs,
+            encryptionNonce,
+            ecdhPublicKey,
+            encryptedValues
+        );
+        bool isBatch = (inputs.length > 2 || outputs.length > 2);
+        verifyProof(proof, publicInputs, isBatch, false);
 
-            // Check the proof using batchVerifier
-            require(
-                _batchVerifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof (batch)"
-            );
-        } else {
-            uint256[] memory publicInputs = constructPublicInputs(
-                inputs,
-                outputs,
-                encryptionNonce,
-                ecdhPublicKey,
-                encryptedValues,
-                INPUT_SIZE
-            );
-            // construct the public inputs for verifier
-            uint256[INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
-            // Check the proof
-            require(
-                _verifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof"
-            );
-        }
-
+        // accept the transaction proposal and process the inputs and outputs
         processInputsAndOutputs(inputs, outputs, lockedOutputs, false);
 
         uint256[] memory encryptedValuesArray = new uint256[](

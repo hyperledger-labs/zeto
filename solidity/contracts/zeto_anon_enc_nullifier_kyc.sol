@@ -16,11 +16,7 @@
 pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
-import {Groth16Verifier_Deposit} from "./verifiers/verifier_deposit.sol";
-import {Groth16Verifier_WithdrawNullifier} from "./verifiers/verifier_withdraw_nullifier.sol";
-import {Groth16Verifier_WithdrawNullifierBatch} from "./verifiers/verifier_withdraw_nullifier_batch.sol";
-import {Groth16Verifier_AnonEncNullifierKyc} from "./verifiers/verifier_anon_enc_nullifier_kyc.sol";
-import {Groth16Verifier_AnonEncNullifierKycBatch} from "./verifiers/verifier_anon_enc_nullifier_kyc_batch.sol";
+import {IGroth16Verifier} from "./lib/interfaces/izeto_verifier.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Registry} from "./lib/registry.sol";
@@ -42,15 +38,11 @@ uint256 constant BATCH_INPUT_SIZE = 75;
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 contract Zeto_AnonEncNullifierKyc is
     IZeto,
-    IZetoInitializable,
     ZetoNullifier,
     ZetoFungibleWithdrawWithNullifiers,
     Registry,
     UUPSUpgradeable
 {
-    Groth16Verifier_AnonEncNullifierKyc internal _verifier;
-    Groth16Verifier_AnonEncNullifierKycBatch internal _batchVerifier;
-
     function initialize(
         string memory name,
         string memory symbol,
@@ -58,17 +50,11 @@ contract Zeto_AnonEncNullifierKyc is
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
         __Registry_init();
-        __ZetoNullifier_init(name, symbol, initialOwner);
+        __ZetoNullifier_init(name, symbol, initialOwner, verifiers);
         __ZetoFungibleWithdrawWithNullifiers_init(
-            (Groth16Verifier_Deposit)(verifiers.depositVerifier),
-            (Groth16Verifier_WithdrawNullifier)(verifiers.withdrawVerifier),
-            (Groth16Verifier_WithdrawNullifierBatch)(
-                verifiers.batchWithdrawVerifier
-            )
-        );
-        _verifier = (Groth16Verifier_AnonEncNullifierKyc)(verifiers.verifier);
-        _batchVerifier = (Groth16Verifier_AnonEncNullifierKycBatch)(
-            verifiers.batchVerifier
+            (IGroth16Verifier)(verifiers.depositVerifier),
+            (IGroth16Verifier)(verifiers.withdrawVerifier),
+            (IGroth16Verifier)(verifiers.batchWithdrawVerifier)
         );
     }
 
@@ -80,9 +66,11 @@ contract Zeto_AnonEncNullifierKyc is
         uint256 root,
         uint256 encryptionNonce,
         uint256[2] memory ecdhPublicKey,
-        uint256[] memory encryptedValues,
-        uint256 size
+        uint256[] memory encryptedValues
     ) internal view returns (uint256[] memory publicInputs) {
+        uint256 size = (nullifiers.length > 2 || outputs.length > 2)
+            ? BATCH_INPUT_SIZE
+            : INPUT_SIZE;
         publicInputs = new uint256[](size);
         uint256 piIndex = 0;
         // copy the ecdh public key
@@ -149,58 +137,16 @@ contract Zeto_AnonEncNullifierKyc is
         validateTransactionProposal(nullifiers, outputs, root, false);
 
         // Check the proof
-        if (nullifiers.length > 2 || outputs.length > 2) {
-            uint256[] memory publicInputs = constructPublicInputs(
-                nullifiers,
-                outputs,
-                root,
-                encryptionNonce,
-                ecdhPublicKey,
-                encryptedValues,
-                BATCH_INPUT_SIZE
-            );
-            // construct the public inputs for batchVerifier
-            uint256[BATCH_INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
-
-            // Check the proof using batchVerifier
-            require(
-                _batchVerifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof (batch)"
-            );
-        } else {
-            uint256[] memory publicInputs = constructPublicInputs(
-                nullifiers,
-                outputs,
-                root,
-                encryptionNonce,
-                ecdhPublicKey,
-                encryptedValues,
-                INPUT_SIZE
-            );
-            // construct the public inputs for verifier
-            uint256[INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
-            // Check the proof
-            require(
-                _verifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof"
-            );
-        }
+        uint256[] memory publicInputs = constructPublicInputs(
+            nullifiers,
+            outputs,
+            root,
+            encryptionNonce,
+            ecdhPublicKey,
+            encryptedValues
+        );
+        bool isBatch = (nullifiers.length > 2 || outputs.length > 2);
+        verifyProof(proof, publicInputs, isBatch, false);
 
         // accept the transaction to consume the input UTXOs and produce new UTXOs
         uint256[] memory empty;

@@ -18,13 +18,7 @@ pragma solidity ^0.8.27;
 import {PoseidonUnit5L} from "@iden3/contracts/lib/Poseidon.sol";
 import {IZeto} from "./lib/interfaces/izeto.sol";
 import {MAX_BATCH} from "./lib/interfaces/izeto.sol";
-import {Groth16Verifier_Deposit} from "./verifiers/verifier_deposit.sol";
-import {Groth16Verifier_WithdrawNullifier} from "./verifiers/verifier_withdraw_nullifier.sol";
-import {Groth16Verifier_WithdrawNullifierBatch} from "./verifiers/verifier_withdraw_nullifier_batch.sol";
-import {Groth16Verifier_AnonNullifierQurrencyTransfer} from "./verifiers/verifier_anon_nullifier_qurrency_transfer.sol";
-// import {Groth16Verifier_AnonNullifierTransferLocked} from "./verifiers/verifier_anon_nullifier_transferLocked.sol";
-import {Groth16Verifier_AnonNullifierQurrencyTransferBatch} from "./verifiers/verifier_anon_nullifier_qurrency_transfer_batch.sol";
-// import {Groth16Verifier_AnonNullifierTransferLockedBatch} from "./verifiers/verifier_anon_nullifier_transferLocked_batch.sol";
+import {IGroth16Verifier} from "./lib/interfaces/izeto_verifier.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Commonlib} from "./lib/common.sol";
@@ -35,6 +29,7 @@ import {console} from "hardhat/console.sol";
 uint256 constant INPUT_SIZE = 9;
 // uint256 constant INPUT_SIZE_LOCKED = 8;
 uint256 constant BATCH_INPUT_SIZE = 33;
+
 // uint256 constant BATCH_INPUT_SIZE_LOCKED = 32;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and history masking
@@ -52,12 +47,6 @@ contract Zeto_AnonNullifierQurrency is
     ZetoFungibleWithdrawWithNullifiers,
     UUPSUpgradeable
 {
-    Groth16Verifier_AnonNullifierQurrencyTransfer internal _verifier;
-    Groth16Verifier_AnonNullifierQurrencyTransferBatch internal _batchVerifier;
-    // Groth16Verifier_AnonNullifierTransferLocked internal _lockVerifier;
-    // Groth16Verifier_AnonNullifierTransferLockedBatch
-    //     internal _batchLockVerifier;
-
     function initialize(
         string memory name,
         string memory symbol,
@@ -66,11 +55,9 @@ contract Zeto_AnonNullifierQurrency is
     ) public initializer {
         __ZetoNullifier_init(name, symbol, initialOwner);
         __ZetoFungibleWithdrawWithNullifiers_init(
-            (Groth16Verifier_Deposit)(verifiers.depositVerifier),
-            (Groth16Verifier_WithdrawNullifier)(verifiers.withdrawVerifier),
-            (Groth16Verifier_WithdrawNullifierBatch)(
-                verifiers.batchWithdrawVerifier
-            )
+            (IGroth16Verifier)(verifiers.depositVerifier),
+            (IGroth16Verifier)(verifiers.withdrawVerifier),
+            (IGroth16Verifier)(verifiers.batchWithdrawVerifier)
         );
         _verifier = (Groth16Verifier_AnonNullifierQurrencyTransfer)(
             verifiers.verifier
