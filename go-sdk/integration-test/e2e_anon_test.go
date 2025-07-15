@@ -28,6 +28,7 @@ import (
 )
 
 func (s *E2ETestSuite) TestZeto_anon_SuccessfulProving() {
+	// s.T().Skip()
 	calc, provingKey, err := loadCircuit("anon")
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
@@ -71,6 +72,7 @@ func (s *E2ETestSuite) TestZeto_anon_SuccessfulProving() {
 }
 
 func (s *E2ETestSuite) TestZeto_anon_batch_SuccessfulProving() {
+	// s.T().Skip()
 	calc, provingKey, err := loadCircuit("anon_batch")
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
@@ -103,6 +105,7 @@ func (s *E2ETestSuite) TestZeto_anon_batch_SuccessfulProving() {
 }
 
 func (s *E2ETestSuite) TestZeto_anon_burn_SuccessfulProving() {
+	// s.T().Skip()
 	calc, provingKey, err := loadCircuit("burn")
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)

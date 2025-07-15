@@ -46,6 +46,15 @@ interface IZeto {
         address indexed submitter,
         bytes data
     );
+    event UTXOTransferWithMlkemEncryptedValues(
+        uint256[] inputs,
+        uint256[] outputs,
+        uint256 encryptionNonce,
+        uint256[25] mlkemCiphertext,
+        uint256[] encryptedValues,
+        address indexed submitter,
+        bytes data
+    );
     event UTXOWithdraw(
         uint256 amount,
         uint256[] inputs,

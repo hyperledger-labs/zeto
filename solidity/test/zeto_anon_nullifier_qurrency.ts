@@ -15,14 +15,21 @@
 // limitations under the License.
 
 import { ethers, network } from "hardhat";
-import { ContractTransactionReceipt, Signer, BigNumberish, lock } from "ethers";
+import { ContractTransactionReceipt, Signer, BigNumberish } from "ethers";
+import crypto from "crypto";
 import { expect } from "chai";
+import { MlKem512 } from "mlkem";
 import {
   loadCircuit,
   Poseidon,
   encodeProof,
-  getKyberCipherText,
+  bytesToBits,
+  newEncryptionNonce,
+  poseidonDecrypt,
+  publicKeyFromSeed,
+  recoverMlKemCiphertextBytes,
 } from "zeto-js";
+import testKeyPair from "zeto-js/lib/testKeypair.js";
 import { groth16 } from "snarkjs";
 import { Merkletree, InMemoryDB, str2Bytes } from "@iden3/js-merkletree";
 import {
@@ -39,7 +46,6 @@ import {
   loadProvingKeys,
   prepareDepositProof,
   prepareNullifierWithdrawProof,
-  randomBytesAsDigitArray,
 } from "./utils";
 import { deployZeto } from "./lib/deploy";
 
@@ -95,277 +101,312 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
     ));
   });
 
-  it("onchain SMT root should be equal to the offchain SMT root", async function () {
-    const root = await smtAlice.root();
-    const onchainRoot = await zeto.getRoot();
-    expect(onchainRoot).to.equal(0n);
-    expect(root.string()).to.equal(onchainRoot.toString());
+  describe("batch transfer", function () {
+    it("onchain SMT root should be equal to the offchain SMT root", async function () {
+      const root = await smtAlice.root();
+      const onchainRoot = await zeto.getRoot();
+      expect(onchainRoot).to.equal(0n);
+      expect(root.string()).to.equal(onchainRoot.toString());
+    });
+
+    it("(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob & Charlie then withdraw should succeed", async function () {
+      this.timeout(600000);
+
+      // first mint the tokens for batch testing
+      const inputUtxos = [];
+      const nullifiers = [];
+      for (let i = 0; i < 10; i++) {
+        // mint 10 utxos
+        const _utxo = newUTXO(1, Alice);
+        nullifiers.push(newNullifier(_utxo, Alice));
+        inputUtxos.push(_utxo);
+      }
+      const mintResult = await doMint(zeto, deployer, inputUtxos);
+
+      const mintEvents = parseUTXOEvents(zeto, mintResult);
+      const mintedHashes = mintEvents[0].outputs;
+      for (let i = 0; i < mintedHashes.length; i++) {
+        if (mintedHashes[i] !== 0) {
+          await smtAlice.add(mintedHashes[i], mintedHashes[i]);
+          await smtBob.add(mintedHashes[i], mintedHashes[i]);
+        }
+      }
+      // Alice generates inclusion proofs for the UTXOs to be spent
+      let root = await smtAlice.root();
+      const mtps = [];
+      for (let i = 0; i < inputUtxos.length; i++) {
+        const p = await smtAlice.generateCircomVerifierProof(
+          inputUtxos[i].hash,
+          root,
+        );
+        mtps.push(p.siblings.map((s) => s.bigInt()));
+      }
+      const aliceUTXOsToBeWithdrawn = [
+        newUTXO(1, Alice),
+        newUTXO(1, Alice),
+        newUTXO(1, Alice),
+      ];
+      // Alice proposes the output UTXOs, 1 utxo to bob, 1 utxo to charlie and 3 utxos to alice
+      const _bOut1 = newUTXO(6, Bob);
+      const _bOut2 = newUTXO(1, Charlie);
+
+      const outputUtxos = [_bOut1, _bOut2, ...aliceUTXOsToBeWithdrawn];
+      const outputOwners = [Bob, Charlie, Alice, Alice, Alice];
+      const inflatedOutputUtxos = [...outputUtxos];
+      const inflatedOutputOwners = [...outputOwners];
+      for (let i = 0; i < 10 - outputUtxos.length; i++) {
+        inflatedOutputUtxos.push(ZERO_UTXO);
+        inflatedOutputOwners.push(Bob);
+      }
+      // Alice transfers her UTXOs to Bob
+      const result = await doTransfer(
+        Alice,
+        inputUtxos,
+        nullifiers,
+        inflatedOutputUtxos,
+        root.bigInt(),
+        mtps,
+        inflatedOutputOwners,
+      );
+
+      const signerAddress = await Alice.signer.getAddress();
+      const events = parseUTXOEvents(zeto, result.txResult!);
+      expect(events[0].submitter).to.equal(signerAddress);
+      expect(events[0].inputs).to.deep.equal(nullifiers.map((n) => n.hash));
+
+      const incomingUTXOs: any = events[0].outputs;
+      // check the non-empty output hashes are correct
+      for (let i = 0; i < outputUtxos.length; i++) {
+        // Bob uses the information received from Alice to reconstruct the UTXO sent to him
+        const receivedValue = outputUtxos[i].value;
+        const receivedSalt = outputUtxos[i].salt;
+        const hash = Poseidon.poseidon4([
+          BigInt(receivedValue),
+          receivedSalt,
+          outputOwners[i].babyJubPublicKey[0],
+          outputOwners[i].babyJubPublicKey[1],
+        ]);
+        expect(incomingUTXOs[i]).to.equal(hash);
+        await smtAlice.add(incomingUTXOs[i], incomingUTXOs[i]);
+        await smtBob.add(incomingUTXOs[i], incomingUTXOs[i]);
+      }
+
+      // check empty hashes are empty
+      for (let i = outputUtxos.length; i < 10; i++) {
+        expect(incomingUTXOs[i]).to.equal(0);
+      }
+
+      // mint sufficient balance in Zeto contract address for Alice to withdraw
+      const mintTx = await erc20.connect(deployer).mint(zeto, 3);
+      await mintTx.wait();
+      const startingBalance = await erc20.balanceOf(Alice.ethAddress);
+
+      // Alice generates the nullifiers for the UTXOs to be spent
+      root = await smtAlice.root();
+      const inflatedWithdrawNullifiers = [];
+      const inflatedWithdrawInputs = [];
+      const inflatedWithdrawMTPs = [];
+      for (let i = 0; i < aliceUTXOsToBeWithdrawn.length; i++) {
+        inflatedWithdrawInputs.push(aliceUTXOsToBeWithdrawn[i]);
+        inflatedWithdrawNullifiers.push(
+          newNullifier(aliceUTXOsToBeWithdrawn[i], Alice),
+        );
+        const _withdrawUTXOProof = await smtAlice.generateCircomVerifierProof(
+          aliceUTXOsToBeWithdrawn[i].hash,
+          root,
+        );
+        inflatedWithdrawMTPs.push(
+          _withdrawUTXOProof.siblings.map((s) => s.bigInt()),
+        );
+      }
+      // Alice generates inclusion proofs for the UTXOs to be spent
+
+      for (let i = aliceUTXOsToBeWithdrawn.length; i < 10; i++) {
+        inflatedWithdrawInputs.push(ZERO_UTXO);
+        inflatedWithdrawNullifiers.push(ZERO_UTXO);
+        const _zeroProof = await smtAlice.generateCircomVerifierProof(0n, root);
+        inflatedWithdrawMTPs.push(_zeroProof.siblings.map((s) => s.bigInt()));
+      }
+
+      const {
+        nullifiers: _withdrawNullifiers,
+        outputCommitments: withdrawCommitments,
+        encodedProof: withdrawEncodedProof,
+      } = await prepareNullifierWithdrawProof(
+        Alice,
+        inflatedWithdrawInputs,
+        inflatedWithdrawNullifiers,
+        ZERO_UTXO,
+        root.bigInt(),
+        inflatedWithdrawMTPs,
+      );
+
+      // Alice withdraws her UTXOs to ERC20 tokens
+      const tx = await zeto
+        .connect(Alice.signer)
+        .withdraw(
+          3,
+          _withdrawNullifiers,
+          withdrawCommitments[0],
+          root.bigInt(),
+          withdrawEncodedProof,
+          "0x",
+        );
+      await tx.wait();
+
+      // Alice checks her ERC20 balance
+      const endingBalance = await erc20.balanceOf(Alice.ethAddress);
+      expect(endingBalance - startingBalance).to.be.equal(3);
+    }).timeout(60000);
   });
 
-  it("(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob & Charlie then withdraw should succeed", async function () {
-    this.timeout(600000);
+  describe.only("transfer with verifications by the receiver and the audit authority", function () {
+    let event: any;
+    let outputUTXOs: UTXO[];
+    let outputOwners: User[];
 
-    // first mint the tokens for batch testing
-    const inputUtxos = [];
-    const nullifiers = [];
-    for (let i = 0; i < 10; i++) {
-      // mint 10 utxos
-      const _utxo = newUTXO(1, Alice);
-      nullifiers.push(newNullifier(_utxo, Alice));
-      inputUtxos.push(_utxo);
-    }
-    const mintResult = await doMint(zeto, deployer, inputUtxos);
+    it("mint ERC20 tokens to Alice to deposit to Zeto should succeed", async function () {
+      const startingBalance = await erc20.balanceOf(Alice.ethAddress);
+      const tx = await erc20.connect(deployer).mint(Alice.ethAddress, 100);
+      await tx.wait();
+      const endingBalance = await erc20.balanceOf(Alice.ethAddress);
+      expect(endingBalance - startingBalance).to.be.equal(100);
 
-    const mintEvents = parseUTXOEvents(zeto, mintResult);
-    const mintedHashes = mintEvents[0].outputs;
-    for (let i = 0; i < mintedHashes.length; i++) {
-      if (mintedHashes[i] !== 0) {
-        await smtAlice.add(mintedHashes[i], mintedHashes[i]);
-        await smtBob.add(mintedHashes[i], mintedHashes[i]);
-      }
-    }
-    // Alice generates inclusion proofs for the UTXOs to be spent
-    let root = await smtAlice.root();
-    const mtps = [];
-    for (let i = 0; i < inputUtxos.length; i++) {
-      const p = await smtAlice.generateCircomVerifierProof(
-        inputUtxos[i].hash,
-        root,
+      const tx1 = await erc20.connect(Alice.signer).approve(zeto.target, 100);
+      await tx1.wait();
+
+      utxo100 = newUTXO(100, Alice);
+      const utxo0 = newUTXO(0, Alice);
+      const { outputCommitments, encodedProof } = await prepareDepositProof(
+        Alice,
+        [utxo0, utxo100],
       );
-      mtps.push(p.siblings.map((s) => s.bigInt()));
-    }
-    const aliceUTXOsToBeWithdrawn = [
-      newUTXO(1, Alice),
-      newUTXO(1, Alice),
-      newUTXO(1, Alice),
-    ];
-    // Alice proposes the output UTXOs, 1 utxo to bob, 1 utxo to charlie and 3 utxos to alice
-    const _bOut1 = newUTXO(6, Bob);
-    const _bOut2 = newUTXO(1, Charlie);
+      const tx2 = await zeto
+        .connect(Alice.signer)
+        .deposit(100, outputCommitments, encodedProof, "0x");
+      await tx2.wait();
 
-    const outputUtxos = [_bOut1, _bOut2, ...aliceUTXOsToBeWithdrawn];
-    const outputOwners = [Bob, Charlie, Alice, Alice, Alice];
-    const inflatedOutputUtxos = [...outputUtxos];
-    const inflatedOutputOwners = [...outputOwners];
-    for (let i = 0; i < 10 - outputUtxos.length; i++) {
-      inflatedOutputUtxos.push(ZERO_UTXO);
-      inflatedOutputOwners.push(Bob);
-    }
-    // Alice transfers her UTXOs to Bob
-    const result = await doTransfer(
-      Alice,
-      inputUtxos,
-      nullifiers,
-      inflatedOutputUtxos,
-      root.bigInt(),
-      mtps,
-      inflatedOutputOwners,
-    );
+      await smtAlice.add(utxo100.hash, utxo100.hash);
+      await smtAlice.add(utxo0.hash, utxo0.hash);
+      await smtBob.add(utxo100.hash, utxo100.hash);
+      await smtBob.add(utxo0.hash, utxo0.hash);
+    });
 
-    const signerAddress = await Alice.signer.getAddress();
-    const events = parseUTXOEvents(zeto, result.txResult!);
-    expect(events[0].submitter).to.equal(signerAddress);
-    expect(events[0].inputs).to.deep.equal(nullifiers.map((n) => n.hash));
+    it("mint to Alice and transfer UTXOs honestly to Bob should succeed", async function () {
+      const startingBalance = await erc20.balanceOf(Alice.ethAddress);
+      // The authority mints a new UTXO and assigns it to Alice
+      utxo1 = newUTXO(10, Alice);
+      utxo2 = newUTXO(20, Alice);
+      const result1 = await doMint(zeto, deployer, [utxo1, utxo2]);
 
-    const incomingUTXOs: any = events[0].outputs;
-    // check the non-empty output hashes are correct
-    for (let i = 0; i < outputUtxos.length; i++) {
+      // check the private mint activity is not exposed in the ERC20 contract
+      const afterMintBalance = await erc20.balanceOf(Alice.ethAddress);
+      expect(afterMintBalance).to.equal(startingBalance);
+
+      // Alice locally tracks the UTXOs inside the Sparse Merkle Tree
+      // hardhat doesn't have a good way to subscribe to events so we have to parse the Tx result object
+      const mintEvents = parseUTXOEvents(zeto, result1);
+      const [_utxo1, _utxo2] = mintEvents[0].outputs;
+      await smtAlice.add(_utxo1, _utxo1);
+      await smtAlice.add(_utxo2, _utxo2);
+      let root = await smtAlice.root();
+      let onchainRoot = await zeto.getRoot();
+      expect(root.string()).to.equal(onchainRoot.toString());
+      // Bob also locally tracks the UTXOs inside the Sparse Merkle Tree
+      await smtBob.add(_utxo1, _utxo1);
+      await smtBob.add(_utxo2, _utxo2);
+
+      // Alice proposes the output UTXOs for the transfer to Bob
+      const _utxo3 = newUTXO(25, Bob);
+      utxo4 = newUTXO(5, Alice);
+
+      // Alice generates the nullifiers for the UTXOs to be spent
+      const nullifier1 = newNullifier(utxo1, Alice);
+      const nullifier2 = newNullifier(utxo2, Alice);
+
+      // Alice generates inclusion proofs for the UTXOs to be spent
+      const proof1 = await smtAlice.generateCircomVerifierProof(utxo1.hash, root);
+      const proof2 = await smtAlice.generateCircomVerifierProof(utxo2.hash, root);
+      const merkleProofs = [
+        proof1.siblings.map((s) => s.bigInt()),
+        proof2.siblings.map((s) => s.bigInt()),
+      ];
+
+      // Alice transfers her UTXOs to Bob
+      outputUTXOs = [_utxo3, utxo4];
+      outputOwners = [Bob, Alice];
+      const result2 = await doTransfer(
+        Alice,
+        [utxo1, utxo2],
+        [nullifier1, nullifier2],
+        outputUTXOs,
+        root.bigInt(),
+        merkleProofs,
+        outputOwners,
+      );
+
+      // check the private transfer activity is not exposed in the ERC20 contract
+      const afterTransferBalance = await erc20.balanceOf(Alice.ethAddress);
+      expect(afterTransferBalance).to.equal(startingBalance);
+
+      // Alice locally tracks the UTXOs inside the Sparse Merkle Tree
+      await smtAlice.add(_utxo3.hash, _utxo3.hash);
+      await smtAlice.add(utxo4.hash, utxo4.hash);
+      root = await smtAlice.root();
+      onchainRoot = await zeto.getRoot();
+      expect(root.string()).to.equal(onchainRoot.toString());
+
+      // Bob locally tracks the UTXOs inside the Sparse Merkle Tree
+      // Bob parses the UTXOs from the onchain event
+      const signerAddress = await Alice.signer.getAddress();
+      const events = parseUTXOEvents(zeto, result2.txResult!);
+      event = events[0];
+      expect(event.submitter).to.equal(signerAddress);
+      expect(event.inputs).to.deep.equal([nullifier1.hash, nullifier2.hash]);
+      expect(event.outputs).to.deep.equal([_utxo3.hash, utxo4.hash]);
+      await smtBob.add(event.outputs[0], event.outputs[0]);
+      await smtBob.add(event.outputs[1], event.outputs[1]);
+
       // Bob uses the information received from Alice to reconstruct the UTXO sent to him
-      const receivedValue = outputUtxos[i].value;
-      const receivedSalt = outputUtxos[i].salt;
+      const receivedValue = _utxo3.value!;
+      const receivedSalt = _utxo3.salt;
+      const incomingUTXOs: any = event.outputs;
       const hash = Poseidon.poseidon4([
         BigInt(receivedValue),
         receivedSalt,
-        outputOwners[i].babyJubPublicKey[0],
-        outputOwners[i].babyJubPublicKey[1],
+        Bob.babyJubPublicKey[0],
+        Bob.babyJubPublicKey[1],
       ]);
-      expect(incomingUTXOs[i]).to.equal(hash);
-      await smtAlice.add(incomingUTXOs[i], incomingUTXOs[i]);
-      await smtBob.add(incomingUTXOs[i], incomingUTXOs[i]);
-    }
+      expect(incomingUTXOs[0]).to.equal(hash);
 
-    // check empty hashes are empty
-    for (let i = outputUtxos.length; i < 10; i++) {
-      expect(incomingUTXOs[i]).to.equal(0);
-    }
+      // Bob uses the decrypted values to construct the UTXO received from the transaction
+      utxo3 = newUTXO(receivedValue, Bob, receivedSalt);
+    }).timeout(600000);
 
-    // mint sufficient balance in Zeto contract address for Alice to withdraw
-    const mintTx = await erc20.connect(deployer).mint(zeto, 3);
-    await mintTx.wait();
-    const startingBalance = await erc20.balanceOf(Alice.ethAddress);
+    it("The audit authority can decrypt the encrypted values in the transfer event", async function () {
+      // The audit authority can decrypt the encrypted values in the transfer event
+      const mlkemCiphertext = event.mlkemCiphertext;
+      const cBytes = recoverMlKemCiphertextBytes(mlkemCiphertext);
+      // the receiver can decap the ciphertext, and recover the shared secret
+      // using the mlkem ciphertext and the receiver's private key
+      const receiver = new MlKem512();
+      const ssReceiver = await receiver.decap(new Uint8Array(cBytes), new Uint8Array(testKeyPair.sk));
+      // corresponding to the logic in the circuit "pubkey.circom", we derive the symmetric key
+      // from the shared secret
+      expect(ssReceiver.length).to.equal(32);
+      const recoveredKey = publicKeyFromSeed(ssReceiver);
 
-    // Alice generates the nullifiers for the UTXOs to be spent
-    root = await smtAlice.root();
-    const inflatedWithdrawNullifiers = [];
-    const inflatedWithdrawInputs = [];
-    const inflatedWithdrawMTPs = [];
-    for (let i = 0; i < aliceUTXOsToBeWithdrawn.length; i++) {
-      inflatedWithdrawInputs.push(aliceUTXOsToBeWithdrawn[i]);
-      inflatedWithdrawNullifiers.push(
-        newNullifier(aliceUTXOsToBeWithdrawn[i], Alice),
-      );
-      const _withdrawUTXOProof = await smtAlice.generateCircomVerifierProof(
-        aliceUTXOsToBeWithdrawn[i].hash,
-        root,
-      );
-      inflatedWithdrawMTPs.push(
-        _withdrawUTXOProof.siblings.map((s) => s.bigInt()),
-      );
-    }
-    // Alice generates inclusion proofs for the UTXOs to be spent
+      const encryptedValues = event.encryptedValues;
+      const encryptionNonce = event.encryptionNonce;
+      expect(encryptedValues.length).to.equal(14);
 
-    for (let i = aliceUTXOsToBeWithdrawn.length; i < 10; i++) {
-      inflatedWithdrawInputs.push(ZERO_UTXO);
-      inflatedWithdrawNullifiers.push(ZERO_UTXO);
-      const _zeroProof = await smtAlice.generateCircomVerifierProof(0n, root);
-      inflatedWithdrawMTPs.push(_zeroProof.siblings.map((s) => s.bigInt()));
-    }
-
-    const {
-      nullifiers: _withdrawNullifiers,
-      outputCommitments: withdrawCommitments,
-      encodedProof: withdrawEncodedProof,
-    } = await prepareNullifierWithdrawProof(
-      Alice,
-      inflatedWithdrawInputs,
-      inflatedWithdrawNullifiers,
-      ZERO_UTXO,
-      root.bigInt(),
-      inflatedWithdrawMTPs,
-    );
-
-    // Alice withdraws her UTXOs to ERC20 tokens
-    const tx = await zeto
-      .connect(Alice.signer)
-      .withdraw(
-        3,
-        _withdrawNullifiers,
-        withdrawCommitments[0],
-        root.bigInt(),
-        withdrawEncodedProof,
-        "0x",
-      );
-    await tx.wait();
-
-    // Alice checks her ERC20 balance
-    const endingBalance = await erc20.balanceOf(Alice.ethAddress);
-    expect(endingBalance - startingBalance).to.be.equal(3);
-  }).timeout(60000);
-
-  it("mint ERC20 tokens to Alice to deposit to Zeto should succeed", async function () {
-    const startingBalance = await erc20.balanceOf(Alice.ethAddress);
-    const tx = await erc20.connect(deployer).mint(Alice.ethAddress, 100);
-    await tx.wait();
-    const endingBalance = await erc20.balanceOf(Alice.ethAddress);
-    expect(endingBalance - startingBalance).to.be.equal(100);
-
-    const tx1 = await erc20.connect(Alice.signer).approve(zeto.target, 100);
-    await tx1.wait();
-
-    utxo100 = newUTXO(100, Alice);
-    const utxo0 = newUTXO(0, Alice);
-    const { outputCommitments, encodedProof } = await prepareDepositProof(
-      Alice,
-      [utxo0, utxo100],
-    );
-    const tx2 = await zeto
-      .connect(Alice.signer)
-      .deposit(100, outputCommitments, encodedProof, "0x");
-    await tx2.wait();
-
-    await smtAlice.add(utxo100.hash, utxo100.hash);
-    await smtAlice.add(utxo0.hash, utxo0.hash);
-    await smtBob.add(utxo100.hash, utxo100.hash);
-    await smtBob.add(utxo0.hash, utxo0.hash);
+      let plainText = poseidonDecrypt(encryptedValues.slice(0, 7), recoveredKey, encryptionNonce, 4);
+      expect(plainText[0]).to.equal(BigInt(outputUTXOs[0].value!));
+      expect(plainText[1]).to.equal(BigInt(outputUTXOs[0].salt!));
+      expect(plainText[2]).to.equal(BigInt(outputOwners[0].babyJubPublicKey[0]));
+      expect(plainText[3]).to.equal(BigInt(outputOwners[0].babyJubPublicKey[1]));
+    });
   });
-
-  it("mint to Alice and transfer UTXOs honestly to Bob should succeed", async function () {
-    const startingBalance = await erc20.balanceOf(Alice.ethAddress);
-    // The authority mints a new UTXO and assigns it to Alice
-    utxo1 = newUTXO(10, Alice);
-    utxo2 = newUTXO(20, Alice);
-    const result1 = await doMint(zeto, deployer, [utxo1, utxo2]);
-
-    // check the private mint activity is not exposed in the ERC20 contract
-    const afterMintBalance = await erc20.balanceOf(Alice.ethAddress);
-    expect(afterMintBalance).to.equal(startingBalance);
-
-    // Alice locally tracks the UTXOs inside the Sparse Merkle Tree
-    // hardhat doesn't have a good way to subscribe to events so we have to parse the Tx result object
-    const mintEvents = parseUTXOEvents(zeto, result1);
-    const [_utxo1, _utxo2] = mintEvents[0].outputs;
-    await smtAlice.add(_utxo1, _utxo1);
-    await smtAlice.add(_utxo2, _utxo2);
-    let root = await smtAlice.root();
-    let onchainRoot = await zeto.getRoot();
-    expect(root.string()).to.equal(onchainRoot.toString());
-    // Bob also locally tracks the UTXOs inside the Sparse Merkle Tree
-    await smtBob.add(_utxo1, _utxo1);
-    await smtBob.add(_utxo2, _utxo2);
-
-    // Alice proposes the output UTXOs for the transfer to Bob
-    const _utxo3 = newUTXO(25, Bob);
-    utxo4 = newUTXO(5, Alice);
-
-    // Alice generates the nullifiers for the UTXOs to be spent
-    const nullifier1 = newNullifier(utxo1, Alice);
-    const nullifier2 = newNullifier(utxo2, Alice);
-
-    // Alice generates inclusion proofs for the UTXOs to be spent
-    const proof1 = await smtAlice.generateCircomVerifierProof(utxo1.hash, root);
-    const proof2 = await smtAlice.generateCircomVerifierProof(utxo2.hash, root);
-    const merkleProofs = [
-      proof1.siblings.map((s) => s.bigInt()),
-      proof2.siblings.map((s) => s.bigInt()),
-    ];
-
-    // Alice transfers her UTXOs to Bob
-    const result2 = await doTransfer(
-      Alice,
-      [utxo1, utxo2],
-      [nullifier1, nullifier2],
-      [_utxo3, utxo4],
-      root.bigInt(),
-      merkleProofs,
-      [Bob, Alice],
-    );
-
-    // check the private transfer activity is not exposed in the ERC20 contract
-    const afterTransferBalance = await erc20.balanceOf(Alice.ethAddress);
-    expect(afterTransferBalance).to.equal(startingBalance);
-
-    // Alice locally tracks the UTXOs inside the Sparse Merkle Tree
-    await smtAlice.add(_utxo3.hash, _utxo3.hash);
-    await smtAlice.add(utxo4.hash, utxo4.hash);
-    root = await smtAlice.root();
-    onchainRoot = await zeto.getRoot();
-    expect(root.string()).to.equal(onchainRoot.toString());
-
-    // Bob locally tracks the UTXOs inside the Sparse Merkle Tree
-    // Bob parses the UTXOs from the onchain event
-    const signerAddress = await Alice.signer.getAddress();
-    const events = parseUTXOEvents(zeto, result2.txResult!);
-    expect(events[0].submitter).to.equal(signerAddress);
-    expect(events[0].inputs).to.deep.equal([nullifier1.hash, nullifier2.hash]);
-    expect(events[0].outputs).to.deep.equal([_utxo3.hash, utxo4.hash]);
-    await smtBob.add(events[0].outputs[0], events[0].outputs[0]);
-    await smtBob.add(events[0].outputs[1], events[0].outputs[1]);
-
-    // Bob uses the information received from Alice to reconstruct the UTXO sent to him
-    const receivedValue = _utxo3.value!;
-    const receivedSalt = _utxo3.salt;
-    const incomingUTXOs: any = events[0].outputs;
-    const hash = Poseidon.poseidon4([
-      BigInt(receivedValue),
-      receivedSalt,
-      Bob.babyJubPublicKey[0],
-      Bob.babyJubPublicKey[1],
-    ]);
-    expect(incomingUTXOs[0]).to.equal(hash);
-
-    // Bob uses the decrypted values to construct the UTXO received from the transaction
-    utxo3 = newUTXO(receivedValue, Bob, receivedSalt);
-  }).timeout(600000);
 
   // describe("lock() tests", function () {
   //   let lockedUtxo1: UTXO;
@@ -539,7 +580,9 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
   ) {
     let nullifiers: BigNumberish[];
     let outputCommitments: BigNumberish[];
-    let ciphertext: BigNumberish[];
+    let encryptionNonce: BigNumberish;
+    let outputsCiphertext: BigNumberish[];
+    let mlkemCiphertext: BigNumberish[];
     let encodedProof: any;
     const circuitToUse = lockDelegate
       ? circuitForLocked
@@ -568,14 +611,18 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
     ) as BigNumberish[];
     outputCommitments = result.outputCommitments;
     encodedProof = result.encodedProof;
-    ciphertext = result.ciphertext;
+    encryptionNonce = result.encryptionNonce;
+    outputsCiphertext = result.outputsCiphertext;
+    mlkemCiphertext = result.mlkemCiphertext;
 
     const txResult = await sendTx(
       signer,
       nullifiers,
       outputCommitments,
       root,
-      ciphertext,
+      encryptionNonce,
+      outputsCiphertext,
+      mlkemCiphertext,
       encodedProof,
       lockDelegate !== undefined,
     );
@@ -595,16 +642,12 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
     nullifiers: BigNumberish[],
     outputCommitments: BigNumberish[],
     root: BigNumberish,
-    ciphertext: BigNumberish[],
+    encryptionNonce: BigNumberish,
+    outputsCiphertext: BigNumberish[],
+    mlkemCiphertext: BigNumberish[],
     encodedProof: any,
     isLocked: boolean = false,
   ) {
-    const buff = Buffer.alloc(ciphertext.length);
-    for (let i = 0; i < ciphertext.length; i++) {
-      buff.writeUInt8(Number(ciphertext[i]), i);
-    }
-    const ciphertextHex = "0x" + buff.toString("hex");
-
     const startTx = Date.now();
     let tx: any;
     if (!isLocked) {
@@ -612,7 +655,9 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
         nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
         outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
         root,
-        ciphertextHex,
+        encryptionNonce,
+        outputsCiphertext,
+        mlkemCiphertext,
         encodedProof,
         "0x",
       );
@@ -662,25 +707,9 @@ async function prepareProof(
     (owner) => owner.babyJubPublicKey,
   ) as BigNumberish[][];
 
-  // TODO: construct the message by generating an AES-256 key (the encryption key is the message)
-  // as part of the KEM protocol. Replace 1 with 1665.
-  const m = [
-    1665, 1665, 0, 1665, 0, 1665, 1665, 0, 1665, 0, 0, 1665, 1665, 1665, 1665,
-    0, 0, 1665, 0, 0, 0, 1665, 1665, 0, 1665, 0, 1665, 0, 0, 1665, 1665, 0, 0,
-    1665, 0, 0, 1665, 1665, 1665, 0, 0, 0, 0, 0, 0, 1665, 0, 0, 1665, 0, 0,
-    1665, 0, 1665, 1665, 0, 1665, 1665, 0, 0, 1665, 1665, 1665, 0, 0, 0, 0, 0,
-    0, 1665, 0, 0, 1665, 1665, 0, 0, 0, 1665, 1665, 0, 1665, 1665, 1665, 1665,
-    0, 1665, 1665, 0, 1665, 1665, 1665, 1665, 0, 1665, 1665, 0, 0, 0, 1665,
-    1665, 0, 1665, 1665, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  ];
-
-  const randomness = randomBytesAsDigitArray(32);
+  const randomness = crypto.randomBytes(32);
+  const r = bytesToBits(randomness);
+  const encryptionNonce = newEncryptionNonce();
   const startWitnessCalculation = Date.now();
   const inputObj: any = {
     nullifiers,
@@ -695,21 +724,12 @@ async function prepareProof(
     outputValues,
     outputSalts: outputs.map((output) => output.salt || 0n),
     outputOwnerPublicKeys,
-    randomness,
-    m,
+    randomness: r,
+    encryptionNonce,
   };
   if (lockDelegate) {
     inputObj["lockDelegate"] = ethers.toBigInt(lockDelegate);
   }
-
-  // first call the calculateWitness function which returns
-  // the witness as an object, in order to get the ciphertext
-  const witnessObj = await circuit.calculateWitness(inputObj, true);
-  const circuitName =
-    inputs.length > 2
-      ? "anon_nullifier_qurrency_batch"
-      : "anon_nullifier_qurrency";
-  const ciphertext = getKyberCipherText(witnessObj, circuitName);
 
   const witness = await circuit.calculateWTNSBin(inputObj, true);
   const timeWithnessCalculation = Date.now() - startWitnessCalculation;
@@ -721,6 +741,10 @@ async function prepareProof(
   )) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
   const timeProofGeneration = Date.now() - startProofGeneration;
 
+  const idx = outputCommitments.length > 2 ? 70 : 14;
+  const outputsCiphertext = publicSignals.slice(0, idx);
+  const mlkemCiphertext = publicSignals.slice(idx, idx + 25);
+
   console.log(
     `Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`,
   );
@@ -730,7 +754,9 @@ async function prepareProof(
     inputCommitments,
     outputCommitments,
     encodedProof,
-    ciphertext,
+    encryptionNonce,
+    outputsCiphertext,
+    mlkemCiphertext,
   };
 }
 

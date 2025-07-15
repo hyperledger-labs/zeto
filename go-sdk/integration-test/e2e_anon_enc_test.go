@@ -29,6 +29,7 @@ import (
 )
 
 func (s *E2ETestSuite) TestZeto_anon_enc_SuccessfulProving() {
+	// s.T().Skip()
 	calc, provingKey, err := loadCircuit("anon_enc")
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)

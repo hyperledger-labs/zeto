@@ -192,6 +192,15 @@ export function parseUTXOEvents(
         submitter: event?.args.submitter,
         ecdhPublicKey: event?.args.ecdhPublicKey,
       };
+    } else if (event?.name === "UTXOTransferWithMlkemEncryptedValues") {
+      e = {
+        inputs: event?.args.inputs,
+        outputs: event?.args.outputs,
+        encryptedValues: event?.args.encryptedValues,
+        encryptionNonce: event?.args.encryptionNonce,
+        submitter: event?.args.submitter,
+        mlkemCiphertext: event?.args.mlkemCiphertext,
+      };
     } else if (event?.name === "UTXOTransferNonRepudiation") {
       e = {
         inputs: event?.args.inputs,

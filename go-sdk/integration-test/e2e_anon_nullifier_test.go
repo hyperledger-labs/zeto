@@ -30,6 +30,7 @@ import (
 )
 
 func (s *E2ETestSuite) TestZeto_anon_nullifier_SuccessfulProving() {
+	// s.T().Skip()
 	calc, provingKey, err := loadCircuit("anon_nullifier_transfer")
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
@@ -65,6 +66,7 @@ func (s *E2ETestSuite) TestZeto_anon_nullifier_SuccessfulProving() {
 }
 
 func (s *E2ETestSuite) TestZeto_anon_nullifier_locked_SuccessfulProving() {
+	// s.T().Skip()
 	calc, provingKey, err := loadCircuit("anon_nullifier_transferLocked")
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
@@ -129,6 +131,7 @@ func (s *E2ETestSuite) TestZeto_anon_nullifier_locked_SuccessfulProving() {
 }
 
 func (s *E2ETestSuite) TestZeto_anon_nullifier_batch_SuccessfulProving() {
+	// s.T().Skip()
 	calc, provingKey, err := loadCircuit("anon_nullifier_transfer_batch")
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
@@ -164,6 +167,7 @@ func (s *E2ETestSuite) TestZeto_anon_nullifier_batch_SuccessfulProving() {
 }
 
 func (s *E2ETestSuite) TestZeto_anon_nullifier_burn_SuccessfulProving() {
+	// s.T().Skip()
 	calc, provingKey, err := loadCircuit("burn_nullifier")
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
