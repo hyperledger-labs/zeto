@@ -15,7 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {Groth16Verifier_Deposit} from "../verifiers/verifier_deposit.sol";
+import {IGroth16Verifier} from "./interfaces/izeto_verifier.sol";
 import {Commonlib} from "./common.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -27,14 +27,14 @@ abstract contract ZetoFungible is OwnableUpgradeable {
     // _depositVerifier library for checking UTXOs against a claimed value.
     // this can be used in the optional deposit calls to verify that
     // the UTXOs match the deposited value
-    Groth16Verifier_Deposit internal _depositVerifier;
+    IGroth16Verifier internal _depositVerifier;
 
     error WithdrawArrayTooLarge(uint256 maxAllowed);
 
     IERC20 internal _erc20;
 
     function __ZetoFungible_init(
-        Groth16Verifier_Deposit depositVerifier
+        IGroth16Verifier depositVerifier
     ) public onlyInitializing {
         _depositVerifier = depositVerifier;
     }
@@ -51,19 +51,14 @@ abstract contract ZetoFungible is OwnableUpgradeable {
         // verifies that the output UTXOs match the claimed value
         // to be deposited
         // construct the public inputs
-        uint256[3] memory publicInputs;
+        uint256[] memory publicInputs = new uint256[](3);
         publicInputs[0] = amount;
         publicInputs[1] = outputs[0];
         publicInputs[2] = outputs[1];
 
         // Check the proof
         require(
-            _depositVerifier.verifyProof(
-                proof.pA,
-                proof.pB,
-                proof.pC,
-                publicInputs
-            ),
+            _depositVerifier.verify(proof.pA, proof.pB, proof.pC, publicInputs),
             "Invalid proof"
         );
 

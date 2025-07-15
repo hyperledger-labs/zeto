@@ -19,6 +19,7 @@ import {Commonlib} from "./common.sol";
 import {IZeto} from "./interfaces/izeto.sol";
 import {MAX_SMT_DEPTH} from "./interfaces/izeto.sol";
 import {IZetoLockable} from "./interfaces/izeto_lockable.sol";
+import {IZetoInitializable} from "./interfaces/izeto_initializable.sol";
 import {ZetoCommon} from "./zeto_common.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
@@ -44,9 +45,10 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
     function __ZetoNullifier_init(
         string memory name_,
         string memory symbol_,
-        address initialOwner
+        address initialOwner,
+        IZetoInitializable.VerifiersInfo calldata verifiers
     ) internal onlyInitializing {
-        __ZetoCommon_init(name_, symbol_, initialOwner);
+        __ZetoCommon_init(name_, symbol_, initialOwner, verifiers);
         _commitmentsTree.initialize(MAX_SMT_DEPTH);
         _lockedCommitmentsTree.initialize(MAX_SMT_DEPTH);
     }

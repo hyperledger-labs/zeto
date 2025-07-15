@@ -15,9 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {Groth16Verifier_Deposit} from "../verifiers/verifier_deposit.sol";
-import {Groth16Verifier_Withdraw} from "../verifiers/verifier_withdraw.sol";
-import {Groth16Verifier_WithdrawBatch} from "../verifiers/verifier_withdraw_batch.sol";
+import {IGroth16Verifier} from "./interfaces/izeto_verifier.sol";
 import {ZetoFungible} from "./zeto_fungible.sol";
 import {Commonlib} from "./common.sol";
 
@@ -31,13 +29,13 @@ abstract contract ZetoFungibleWithdraw is ZetoFungible {
     // nullifierVerifier library for checking nullifiers against a claimed value.
     // this can be used in the optional withdraw calls to verify that the nullifiers
     // match the withdrawn value
-    Groth16Verifier_Withdraw internal _withdrawVerifier;
-    Groth16Verifier_WithdrawBatch internal _batchWithdrawVerifier;
+    IGroth16Verifier internal _withdrawVerifier;
+    IGroth16Verifier internal _batchWithdrawVerifier;
 
     function __ZetoFungibleWithdraw_init(
-        Groth16Verifier_Deposit depositVerifier,
-        Groth16Verifier_Withdraw withdrawVerifier,
-        Groth16Verifier_WithdrawBatch batchWithdrawVerifier
+        IGroth16Verifier depositVerifier,
+        IGroth16Verifier withdrawVerifier,
+        IGroth16Verifier batchWithdrawVerifier
     ) public onlyInitializing {
         __ZetoFungible_init(depositVerifier);
         _withdrawVerifier = withdrawVerifier;
@@ -47,9 +45,12 @@ abstract contract ZetoFungibleWithdraw is ZetoFungible {
     function constructPublicInputs(
         uint256 amount,
         uint256[] memory inputs,
-        uint256 output,
-        uint256 size
+        uint256 output
     ) internal pure returns (uint256[] memory publicInputs) {
+        uint256 size = (inputs.length > 2)
+            ? BATCH_WITHDRAW_INPUT_SIZE
+            : WITHDRAW_INPUT_SIZE;
+
         publicInputs = new uint256[](size);
         uint256 piIndex = 0;
 
@@ -73,56 +74,23 @@ abstract contract ZetoFungibleWithdraw is ZetoFungible {
         uint256 output,
         Commonlib.Proof calldata proof
     ) public virtual {
-        // Check the proof
-        if (inputs.length > 2) {
-            // Check if inputs or outputs exceed batchMax and revert with custom error if necessary
-            if (inputs.length > BATCH_WITHDRAW_INPUT_SIZE) {
-                revert WithdrawArrayTooLarge(BATCH_WITHDRAW_INPUT_SIZE);
-            }
-            uint256[] memory publicInputs = constructPublicInputs(
-                amount,
-                inputs,
-                output,
-                BATCH_WITHDRAW_INPUT_SIZE
-            );
-            // construct the public inputs for verifier
-            uint256[BATCH_WITHDRAW_INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
-            // Check the proof
-            require(
-                _batchWithdrawVerifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof"
-            );
-        } else {
-            uint256[] memory publicInputs = constructPublicInputs(
-                amount,
-                inputs,
-                output,
-                WITHDRAW_INPUT_SIZE
-            );
-            // construct the public inputs for verifier
-            uint256[WITHDRAW_INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
-            // Check the proof
-            require(
-                _withdrawVerifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof"
-            );
+        // Check if inputs or outputs exceed batchMax and revert with custom error if necessary
+        if (inputs.length > BATCH_WITHDRAW_INPUT_SIZE) {
+            revert WithdrawArrayTooLarge(BATCH_WITHDRAW_INPUT_SIZE);
         }
+        uint256[] memory publicInputs = constructPublicInputs(
+            amount,
+            inputs,
+            output
+        );
+        // Check the proof
+        IGroth16Verifier verifier = (inputs.length > 2)
+            ? _batchWithdrawVerifier
+            : _withdrawVerifier;
+        require(
+            verifier.verify(proof.pA, proof.pB, proof.pC, publicInputs),
+            "Invalid proof"
+        );
 
         require(
             _erc20.transfer(msg.sender, amount),
