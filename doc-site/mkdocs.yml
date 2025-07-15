@@ -101,6 +101,7 @@ nav:
       - How Zeto Works: concepts/how-zeto-works.md
   - Implementations:
       - Overview: implementations/index.md
+      - Class Diagram: implementations/class_diagram.md
       - Fungible:
           - Zeto_Anon: implementations/anon.md
           - Zeto_AnonNullifier: implementations/anon_nullifier.md
