@@ -48,3 +48,15 @@ func GenerateECDHSharedSecret(privKey *babyjub.PrivateKey, pubKey *babyjub.Publi
 func BytesToBits(data []byte) []uint8 {
 	return crypto.BytesToBits(data)
 }
+
+func BitsToBytes(bits []uint8) ([]byte, error) {
+	return crypto.BitsToBytes(bits)
+}
+
+func RecoverMlkemCiphertextBytes(ciphertext []string) ([]byte, error) {
+	return crypto.RecoverMlkemCiphertextBytes(ciphertext)
+}
+
+func PublicKeyFromSeed(seed []byte) (*babyjub.Point, error) {
+	return crypto.PublicKeyFromSeed(seed)
+}

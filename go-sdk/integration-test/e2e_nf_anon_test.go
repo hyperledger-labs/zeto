@@ -30,6 +30,7 @@ import (
 )
 
 func (s *E2ETestSuite) TestZeto_nf_anon_SuccessfulProving() {
+	// s.T().Skip()
 	calc, provingKey, err := loadCircuit("nf_anon")
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
@@ -89,6 +90,7 @@ func (s *E2ETestSuite) TestZeto_nf_anon_SuccessfulProving() {
 }
 
 func (s *E2ETestSuite) TestZeto_nf_anon_SuccessfulProvingWithConcurrency() {
+	// s.T().Skip()
 	concurrency := 10
 	resultChan := make(chan struct{}, concurrency)
 
