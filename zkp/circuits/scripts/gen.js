@@ -233,7 +233,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGeneration) => {
   }
 
   log(circuit, `Generating solidity verifier`);
-  const solidityFile = path.join(__dirname, '..', '..', '..', 'solidity', 'contracts', 'verifiers', `verifier_${circuit}.sol`);
+  const solidityFile = path.join(__dirname, '..', '..', '..', 'solidity', 'contracts', 'verifiers', 'impl', `${circuit}.sol`);
   const { stdout: svOut, stderr: svErr } = await execAsync(`npx snarkjs zkey export solidityverifier ${zkeyOutput} ${solidityFile}`);
   if (verbose) {
     if (svOut) {
@@ -248,7 +248,7 @@ const processCircuit = async (circuit, ptau, skipSolidityGeneration) => {
   const solidityFileTmp = `${solidityFile}.tmp`;
 
   const fileContent = fs.readFileSync(solidityFile, 'utf8');
-  const updatedContent = fileContent.replace(' Groth16Verifier ', ` Groth16Verifier_${camelCaseCircuitName} `);
+  const updatedContent = fileContent.replace(' Groth16Verifier ', ` Verifier_${camelCaseCircuitName} `);
   fs.writeFileSync(solidityFileTmp, updatedContent);
   fs.renameSync(solidityFileTmp, solidityFile);
   log(circuit, `Circuit process complete`);
