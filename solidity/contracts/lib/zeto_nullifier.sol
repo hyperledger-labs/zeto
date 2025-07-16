@@ -215,25 +215,8 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
         address delegate,
         bytes calldata data
     ) internal {
-        for (uint256 i = 0; i < outputs.length; ++i) {
-            if (outputs[i] == 0) {
-                // skip the zero outputs
-                continue;
-            }
-            _commitmentsTree.addLeaf(outputs[i], outputs[i]);
-        }
-
-        // Check the locked outputs are all new UTXOs
-        for (uint256 i = 0; i < lockedOutputs.length; ++i) {
-            if (lockedOutputs[i] == 0) {
-                // skip the zero outputs
-                continue;
-            }
-            _lockedCommitmentsTree.addLeaf(
-                lockedOutputs[i],
-                uint256(uint160(delegate))
-            );
-        }
+        processOutputs(outputs);
+        processLockedOutputs(lockedOutputs, delegate);
 
         emit UTXOsLocked(
             nullifiers,
