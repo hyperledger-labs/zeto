@@ -29,7 +29,7 @@ The statements in the proof include:
 - the hashes in the output match the hash(value, salt, owner public key) formula
 - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers
 - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
-- the auditing authority's public key was correctly used in the ML-KEM encapsulation protocol, resulting in the ciphretext for decapsulation
+- the auditing authority's public key was correctly used in the ML-KEM encapsulation protocol, resulting in the ciphertext for decapsulation
 - the shared secret, resulted from the above ML-KEM encapsulation protocol, was correctly used to encrypt the secrets in the transaction outputs
 
 [![wiring_anon_nullifier_qurrency](../images/circuit_wiring_anon_nullifier_qurrency.jpg)](../images/circuit_wiring_anon_nullifier_qurrency.jpg)
