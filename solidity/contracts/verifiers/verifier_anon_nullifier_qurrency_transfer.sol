@@ -31,7 +31,7 @@ contract Groth16Verifier_AnonNullifierQurrencyTransfer is
         uint[2] calldata _pC,
         uint[] calldata _pubSignals
     ) public view returns (bool) {
-        uint256[46] memory fixedSizeInputs;
+        uint256[48] memory fixedSizeInputs;
         for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
             fixedSizeInputs[i] = _pubSignals[i];
         }

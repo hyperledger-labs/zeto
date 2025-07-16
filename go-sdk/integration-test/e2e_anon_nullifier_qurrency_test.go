@@ -76,7 +76,7 @@ func (s *E2ETestSuite) TestZeto_anon_nullifier_qurrency_SuccessfulProving() {
 	assert.Equal(s.T(), 3, len(proof.Proof.A))
 	assert.Equal(s.T(), 3, len(proof.Proof.B))
 	assert.Equal(s.T(), 3, len(proof.Proof.C))
-	assert.Equal(s.T(), 46, len(proof.PubSignals))
+	assert.Equal(s.T(), 48, len(proof.PubSignals))
 
 	// verify the process for the audit authority to decapsulate the ciphertexts
 	// to recover the shared secret and decrypt the output ciphertexts
@@ -85,8 +85,7 @@ func (s *E2ETestSuite) TestZeto_anon_nullifier_qurrency_SuccessfulProving() {
 	seed := []uint8{51, 190, 56, 93, 190, 118, 40, 91, 14, 74, 128, 211, 66, 120, 127, 86, 67, 166, 17, 26, 154, 169, 10, 216, 214, 25, 195, 191, 184, 98, 8, 105, 115, 68, 165, 251, 33, 221, 44, 71, 8, 21, 65, 118, 193, 19, 183, 220, 160, 154, 60, 139, 124, 187, 141, 141, 216, 250, 45, 78, 209, 229, 97, 196}
 	_, sk := mlkem512.NewKeyFromSeed(seed)
 
-	// outputsCiphertext := proof.PubSignals[:14]
-	mlkemCiphertextStrs := proof.PubSignals[14:39]
+	mlkemCiphertextStrs := proof.PubSignals[:25]
 	mlkemCiphertextBytes, err := zetoCrypto.RecoverMlkemCiphertextBytes(mlkemCiphertextStrs)
 	assert.NoError(s.T(), err, "Failed to recover MLKEM ciphertext bytes")
 	assert.Equal(s.T(), 768, len(mlkemCiphertextBytes), "MLKEM ciphertext bytes length mismatch")
@@ -100,7 +99,7 @@ func (s *E2ETestSuite) TestZeto_anon_nullifier_qurrency_SuccessfulProving() {
 	assert.NoError(s.T(), err, "Failed to convert shared secret to public key")
 
 	// use the recovered shared secret to decrypt the output ciphertexts
-	encryptedValueStrs := proof.PubSignals[:7]
+	encryptedValueStrs := proof.PubSignals[25:41]
 	var encryptedValues []*big.Int
 	for _, str := range encryptedValueStrs {
 		v, ok := new(big.Int).SetString(str, 10)
@@ -108,8 +107,8 @@ func (s *E2ETestSuite) TestZeto_anon_nullifier_qurrency_SuccessfulProving() {
 		encryptedValues = append(encryptedValues, v)
 	}
 
-	decrypted, err := crypto.PoseidonDecrypt(encryptedValues, []*big.Int{ssPoint.X, ssPoint.Y}, nonce, 4)
+	decrypted, err := crypto.PoseidonDecrypt(encryptedValues, []*big.Int{ssPoint.X, ssPoint.Y}, nonce, 14)
 	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), s.regularTest.outputValues[0].String(), decrypted[0].String())
-	assert.Equal(s.T(), s.regularTest.outputSalts[0].String(), decrypted[1].String())
+	assert.Equal(s.T(), s.sender.PublicKey.X.String(), decrypted[0].String())
+	assert.Equal(s.T(), s.sender.PublicKey.Y.String(), decrypted[1].String())
 }

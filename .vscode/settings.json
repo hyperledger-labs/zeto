@@ -1,7 +1,8 @@
 {
     "yaml.format.singleQuote": false,
     "prettier.enable": true,
-    "prettier.jsxSingleQuote": false,
+    "prettier.jsxSingleQuote": true,
+    "prettier.trailingComma": "es5",
     "yaml.format.enable": true,
     "cSpell.words": [
         "babyjub",

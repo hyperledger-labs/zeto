@@ -29,7 +29,7 @@ contract TestVerifierQurrency {
 
     function verifyProof(
         Commonlib.Proof memory proof,
-        uint256[46] memory publicInputs
+        uint256[48] memory publicInputs
     ) public returns (bool) {
         bool result = verifier.verifyProof(
             proof.pA,

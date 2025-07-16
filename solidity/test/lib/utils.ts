@@ -199,7 +199,7 @@ export function parseUTXOEvents(
         encryptedValues: event?.args.encryptedValues,
         encryptionNonce: event?.args.encryptionNonce,
         submitter: event?.args.submitter,
-        mlkemCiphertext: event?.args.mlkemCiphertext,
+        encapsulatedSharedSecret: event?.args.encapsulatedSharedSecret,
       };
     } else if (event?.name === "UTXOTransferNonRepudiation") {
       e = {

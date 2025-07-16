@@ -26,7 +26,8 @@ template PublicKeyFromSeed() {
     signal output publicKey[2];
 
     // trim the private key according to the BabyJub curve requirements
-    // https://github.com/iden3/circomlibjs/blob/main/src/eddsa.js#L29
+    // https://github.com/iden3/circomlibjs/blob/main/src/eddsa.js#L29,
+    // without performing the SHA-512 step.
     var privateKeyBits[253];
     for (var i = 0; i < 251; i++) {
         privateKeyBits[i] = seed[i + 3];

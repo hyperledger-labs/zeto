@@ -95,6 +95,10 @@ func RecoverMlkemCiphertextBytes(ciphertextStrs []string) ([]byte, error) {
 	return ciphertextBytes, nil
 }
 
+// the seed is a 32-byte array, which is trimmed to fit the group order
+// and then used to generate a valid EC point.
+// This is based on https://datatracker.ietf.org/doc/html/rfc8032#page-13,
+// but the SHA-512 step is skipped.
 func PublicKeyFromSeed(seed []byte) (*babyjub.Point, error) {
 	trimmed := seed[:]
 	trimmed[0] = trimmed[0] & 0xf8

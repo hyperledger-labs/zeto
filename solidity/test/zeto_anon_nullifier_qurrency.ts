@@ -385,8 +385,8 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
 
     it("The audit authority can decrypt the encrypted values in the transfer event", async function () {
       // The audit authority can decrypt the encrypted values in the transfer event
-      const mlkemCiphertext = event.mlkemCiphertext;
-      const cBytes = recoverMlKemCiphertextBytes(mlkemCiphertext);
+      const encapsulatedSharedSecret = event.encapsulatedSharedSecret;
+      const cBytes = recoverMlKemCiphertextBytes(encapsulatedSharedSecret);
       // the receiver can decap the ciphertext, and recover the shared secret
       // using the mlkem ciphertext and the receiver's private key
       const receiver = new MlKem512();
@@ -398,13 +398,13 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
 
       const encryptedValues = event.encryptedValues;
       const encryptionNonce = event.encryptionNonce;
-      expect(encryptedValues.length).to.equal(14);
+      expect(encryptedValues.length).to.equal(16);
 
-      let plainText = poseidonDecrypt(encryptedValues.slice(0, 7), recoveredKey, encryptionNonce, 4);
-      expect(plainText[0]).to.equal(BigInt(outputUTXOs[0].value!));
-      expect(plainText[1]).to.equal(BigInt(outputUTXOs[0].salt!));
-      expect(plainText[2]).to.equal(BigInt(outputOwners[0].babyJubPublicKey[0]));
-      expect(plainText[3]).to.equal(BigInt(outputOwners[0].babyJubPublicKey[1]));
+      let plainText = poseidonDecrypt(encryptedValues, recoveredKey, encryptionNonce, 14);
+      expect(plainText[0]).to.equal(Alice.babyJubPublicKey[0]);
+      expect(plainText[1]).to.equal(Alice.babyJubPublicKey[1]);
+      expect(plainText[2]).to.equal(BigInt(utxo1.value!));
+      expect(plainText[3]).to.equal(utxo1.salt!);
     });
   });
 
@@ -582,7 +582,7 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
     let outputCommitments: BigNumberish[];
     let encryptionNonce: BigNumberish;
     let outputsCiphertext: BigNumberish[];
-    let mlkemCiphertext: BigNumberish[];
+    let encapsulatedSharedSecret: BigNumberish[];
     let encodedProof: any;
     const circuitToUse = lockDelegate
       ? circuitForLocked
@@ -613,7 +613,7 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
     encodedProof = result.encodedProof;
     encryptionNonce = result.encryptionNonce;
     outputsCiphertext = result.outputsCiphertext;
-    mlkemCiphertext = result.mlkemCiphertext;
+    encapsulatedSharedSecret = result.encapsulatedSharedSecret;
 
     const txResult = await sendTx(
       signer,
@@ -622,7 +622,7 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
       root,
       encryptionNonce,
       outputsCiphertext,
-      mlkemCiphertext,
+      encapsulatedSharedSecret,
       encodedProof,
       lockDelegate !== undefined,
     );
@@ -644,7 +644,7 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
     root: BigNumberish,
     encryptionNonce: BigNumberish,
     outputsCiphertext: BigNumberish[],
-    mlkemCiphertext: BigNumberish[],
+    encapsulatedSharedSecret: BigNumberish[],
     encodedProof: any,
     isLocked: boolean = false,
   ) {
@@ -657,7 +657,7 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
         root,
         encryptionNonce,
         outputsCiphertext,
-        mlkemCiphertext,
+        encapsulatedSharedSecret,
         encodedProof,
         "0x",
       );
@@ -741,9 +741,9 @@ async function prepareProof(
   )) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
   const timeProofGeneration = Date.now() - startProofGeneration;
 
-  const idx = outputCommitments.length > 2 ? 70 : 14;
-  const outputsCiphertext = publicSignals.slice(0, idx);
-  const mlkemCiphertext = publicSignals.slice(idx, idx + 25);
+  const length = outputCommitments.length > 2 ? 64 : 16;
+  const encapsulatedSharedSecret = publicSignals.slice(0, 25);
+  const outputsCiphertext = publicSignals.slice(25, 25 + length);
 
   console.log(
     `Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`,
@@ -756,7 +756,7 @@ async function prepareProof(
     encodedProof,
     encryptionNonce,
     outputsCiphertext,
-    mlkemCiphertext,
+    encapsulatedSharedSecret,
   };
 }
 
