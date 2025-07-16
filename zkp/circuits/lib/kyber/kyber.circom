@@ -233,45 +233,4 @@ template kpke_enc() {
     for (var i = 0; i < n*dv; i++) {
         c[i + k*n*du] <== c2[i];
     }
-
-    // // compute the SHA256 hash of the concatenation of c1 and c2
-    // signal sha256_input[k*n*du + n*dv];
-    // for (var i = 0; i < k*n*du; i++) {
-    //     sha256_input[i] <== compressed_u_bits[i];
-    // }
-    // for (var i = 0; i < n*dv; i++) {
-    //     sha256_input[k*n*du + i] <== compressed_v_bits[i];
-    // }
-
-    // // convert to bytes
-    // signal sha256_input_bytes[(k*n*du + n*dv)/8];
-    // for (var i = 0; i < (k*n*du + n*dv)/8; i++) {
-    //     sha256_input_bytes[i] <== Bits2Num(8)(
-    //         [sha256_input[8*i], 
-    //         sha256_input[8*i+1], 
-    //         sha256_input[8*i+2], 
-    //         sha256_input[8*i+3], 
-    //         sha256_input[8*i+4], 
-    //         sha256_input[8*i+5], 
-    //         sha256_input[8*i+6], 
-    //         sha256_input[8*i+7]]
-    //     );
-    // }
-
-    // signal h[32] <== Sha256_hash_bytes_digest((k*n*du + n*dv)/8)(sha256_input_bytes);
-
-    // signal output h0;
-    // signal output h1;
-
-    // var sum = 0;
-    // for (var i = 0; i < 16; i++) {
-    //     sum += h[i]*(1<<(8*i));
-    // }
-    // h0 <== sum;
-
-    // sum = 0;
-    // for (var i = 16; i < 32; i++) {
-    //     sum += h[i]*(1<<(8*(i-16)));
-    // }
-    // h1 <== sum;
 }

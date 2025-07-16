@@ -47,7 +47,8 @@ template transferLocked(nInputs, nOutputs, nSMTLevels) {
     lockDelegates[i] = lockDelegate;
   }
 
-  Zeto(nInputs, nOutputs, nSMTLevels)(
+  var inputOwnerPubKeyAx, inputOwnerPubKeyAy;
+  (inputOwnerPubKeyAx, inputOwnerPubKeyAy) = Zeto(nInputs, nOutputs, nSMTLevels)(
     nullifiers <== nullifiers,
     inputCommitments <== inputCommitments,
     inputValues <== inputValues,
