@@ -80,12 +80,12 @@ func RecoverMlkemCiphertextBytes(ciphertextStrs []string) ([]byte, error) {
 			return nil, fmt.Errorf("failed to parse big.Int from string: %s", str)
 		}
 		if i < len(ciphertextStrs)-1 {
-			if len(v.Bytes()) != 248/8 {
-				return nil, fmt.Errorf("expected ciphertext to be %d bytes, got %d bytes", 248/8, len(v.Bytes()))
+			if len(v.Bytes()) > 248/8 {
+				return nil, fmt.Errorf("expected ciphertext to be up to %d bytes, got %d bytes", 248/8, len(v.Bytes()))
 			}
 		} else {
-			if len(v.Bytes()) != 192/8 {
-				return nil, fmt.Errorf("expected last ciphertext to be %d bytes, got %d bytes", 192/8, len(v.Bytes()))
+			if len(v.Bytes()) > 192/8 {
+				return nil, fmt.Errorf("expected last ciphertext to be up to %d bytes, got %d bytes", 192/8, len(v.Bytes()))
 			}
 		}
 		vBytes := v.Bytes()[:]
