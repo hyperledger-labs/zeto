@@ -109,16 +109,16 @@ func TestRecoverMlkemCiphertextBytes(t *testing.T) {
 	assert.EqualError(t, err, "failed to parse big.Int from string: bad number")
 
 	ctStrsBad = []string{
-		"332640836561318196418877187886999752488207783014",
+		"332640836561318196418877187886999752488207783014332640836561318196418877187886999752488207783014",
 		"332640836561318196418877187886999752488207783014",
 	}
 	_, err = RecoverMlkemCiphertextBytes(ctStrsBad)
-	assert.EqualError(t, err, "expected ciphertext to be 31 bytes, got 20 bytes")
+	assert.EqualError(t, err, "expected ciphertext to be up to 31 bytes, got 40 bytes")
 
 	ctStrsBad = ctStrs[:len(ctStrs)-1]
-	ctStrsBad[len(ctStrsBad)-1] = "403773752453604763154522985798000603429282531966553424"
+	ctStrsBad[len(ctStrsBad)-1] = "403773752453604763154522985798000603429282531966553424332640836561318196418877187886999752488207783014"
 	_, err = RecoverMlkemCiphertextBytes(ctStrsBad)
-	assert.EqualError(t, err, "expected last ciphertext to be 24 bytes, got 23 bytes")
+	assert.EqualError(t, err, "expected last ciphertext to be up to 24 bytes, got 43 bytes")
 }
 
 func TestPublicKeyFromSeed(t *testing.T) {
