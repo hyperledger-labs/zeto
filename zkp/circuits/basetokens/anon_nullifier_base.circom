@@ -51,8 +51,8 @@ template Zeto(nInputs, nOutputs, nSMTLevels) {
   // for the sender's private key. This step demonstrates
   // the sender really owns the private key for the input
   // UTXOs
-  var inputOwnerPubKeyAx, inputOwnerPubKeyAy;
-  (inputOwnerPubKeyAx, inputOwnerPubKeyAy) = BabyPbk()(in <== inputOwnerPrivateKey);
+  signal output inputOwnerPubKeyAx, inputOwnerPubKeyAy;
+  (inputOwnerPubKeyAx, inputOwnerPubKeyAy) <== BabyPbk()(in <== inputOwnerPrivateKey);
 
   CheckPositive(nOutputs)(outputValues <== outputValues);
 

@@ -33,21 +33,22 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {console} from "hardhat/console.sol";
 
 // the public inputs for the non-batch proof have the following structure:
-//  - 14 elements for the encrypted values (7 elements per output commitment)
-//  - 25 elements for the ML-KEM ciphertext
+//  - 25 elements for the ML-KEM encapsulated shared secret
+//  - 16 elements for the encrypted values (3n+1 for 14 encyrpted elements)
 //  - 2 elements for the nullifiers
 //  - 1 element for the root hash
 //  - 2 elements for the "enabled" flags (1 for each nullifier)
 //  - 2 elements for the output commitments
-uint256 constant INPUT_SIZE = 46;
-// the public inputs for the non-batch proof have the following structure:
-//  - 70 elements for the encrypted values (7 elements per output commitment)
-//  - 25 elements for the ML-KEM ciphertext
+uint256 constant INPUT_SIZE = 48;
+// the public inputs for the batch proof have the following structure:
+//  - 25 elements for the ML-KEM encapsulated shared secret
+//  - 64 elements for the encrypted values (3n+1 for 62 encyrpted elements)
 //  - 10 elements for the nullifiers
 //  - 1 element for the root hash
 //  - 10 elements for the "enabled" flags (1 for each nullifier)
 //  - 10 elements for the output commitments
-uint256 constant BATCH_INPUT_SIZE = 126;
+uint256 constant BATCH_INPUT_SIZE = 120;
+
 // uint256 constant INPUT_SIZE_LOCKED = 8;
 // uint256 constant BATCH_INPUT_SIZE_LOCKED = 32;
 
@@ -68,6 +69,7 @@ contract Zeto_AnonNullifierQurrency is
 {
     Groth16Verifier_AnonNullifierQurrencyTransfer internal _verifier;
     Groth16Verifier_AnonNullifierQurrencyTransferBatch internal _batchVerifier;
+
     // Groth16Verifier_AnonNullifierTransferLocked internal _lockVerifier;
     // Groth16Verifier_AnonNullifierTransferLockedBatch
     //     internal _batchLockVerifier;
@@ -107,19 +109,19 @@ contract Zeto_AnonNullifierQurrency is
         uint256[] memory outputs,
         uint256 root,
         uint256[] memory encryptedValues,
-        uint256[25] memory mlkemCiphertext,
+        uint256[25] memory encapsulatedSharedSecret,
         uint256 size,
         bool locked
     ) internal view returns (uint256[] memory publicInputs) {
         publicInputs = new uint256[](size);
         uint256 piIndex = 0;
+        // copy the ML-KEM encapsulated shared secret
+        for (uint256 i = 0; i < encapsulatedSharedSecret.length; ++i) {
+            publicInputs[piIndex++] = encapsulatedSharedSecret[i];
+        }
         // copy the encrypted output values
         for (uint256 i = 0; i < encryptedValues.length; ++i) {
             publicInputs[piIndex++] = encryptedValues[i];
-        }
-        // copy the ML-KEM ciphertext
-        for (uint256 i = 0; i < mlkemCiphertext.length; ++i) {
-            publicInputs[piIndex++] = mlkemCiphertext[i];
         }
         // copy nullifiers
         for (uint256 i = 0; i < nullifiers.length; i++) {
@@ -152,7 +154,7 @@ contract Zeto_AnonNullifierQurrency is
      * @param root The root hash of the Sparse Merkle Tree that contains the nullifiers.
      * @param encryptionNonce A nonce used to encrypt the outputs.
      * @param encryptedValues An array of encrypted values corresponding to the outputs (7 elements per output).
-     * @param mlkemCiphertext The ciphertext for ML-KEM decapsulation to recover the shared secret.
+     * @param encapsulatedSharedSecret The ciphertext for ML-KEM decapsulation to recover the shared secret.
      * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
      *      that the outputs are valid in terms of obeying mass conservation rules.
      *
@@ -164,7 +166,7 @@ contract Zeto_AnonNullifierQurrency is
         uint256 root,
         uint256 encryptionNonce,
         uint256[] memory encryptedValues,
-        uint256[25] memory mlkemCiphertext,
+        uint256[25] memory encapsulatedSharedSecret,
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public returns (bool) {
@@ -176,7 +178,7 @@ contract Zeto_AnonNullifierQurrency is
             outputs,
             root,
             encryptedValues,
-            mlkemCiphertext,
+            encapsulatedSharedSecret,
             proof
         );
         uint256[] memory empty;
@@ -192,7 +194,7 @@ contract Zeto_AnonNullifierQurrency is
             nullifierArray,
             outputArray,
             encryptionNonce,
-            mlkemCiphertext,
+            encapsulatedSharedSecret,
             encryptedValues,
             msg.sender,
             data
@@ -306,7 +308,7 @@ contract Zeto_AnonNullifierQurrency is
         uint256[] memory outputs,
         uint256 root,
         uint256[] memory encryptedValues,
-        uint256[25] memory mlkemCiphertext,
+        uint256[25] memory encapsulatedSharedSecret,
         Commonlib.Proof calldata proof
     ) public view returns (bool) {
         if (nullifiers.length > 2 || outputs.length > 2) {
@@ -315,7 +317,7 @@ contract Zeto_AnonNullifierQurrency is
                 outputs,
                 root,
                 encryptedValues,
-                mlkemCiphertext,
+                encapsulatedSharedSecret,
                 BATCH_INPUT_SIZE,
                 false
             );
@@ -340,7 +342,7 @@ contract Zeto_AnonNullifierQurrency is
                 outputs,
                 root,
                 encryptedValues,
-                mlkemCiphertext,
+                encapsulatedSharedSecret,
                 INPUT_SIZE,
                 false
             );

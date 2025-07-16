@@ -45,10 +45,9 @@ template transfer(nInputs, nOutputs, nSMTLevels) {
   signal input outputOwnerPublicKeys[nOutputs][2];
   signal input outputSalts[nOutputs];
   signal input encryptionNonce;
-  // the output for the list of encrypted output UTXOs cipher texts
-  signal output cipherTexts[nOutputs][7];
 
-  Zeto(nInputs, nOutputs, nSMTLevels)(
+  var inputOwnerPubKeyAx, inputOwnerPubKeyAy;
+  (inputOwnerPubKeyAx, inputOwnerPubKeyAy) = Zeto(nInputs, nOutputs, nSMTLevels)(
     nullifiers <== nullifiers,
     inputCommitments <== inputCommitments,
     inputValues <== inputValues,
@@ -76,7 +75,7 @@ template transfer(nInputs, nOutputs, nSMTLevels) {
   // the ciphertext is split into 25 groups of 256 bits, each group is a single group element
   // the first 24 groups are 248 bits each, and the last group is 192 bits long.
   // we don't need the K because it can be calculated from any standard mlkem implementation
-  // using the same randomness and the sender's private key.
+  // using the same randomness and the receiver's private key.
   c <== kem.c_short;
 
   // use the shared key from the mlkem encapsulation to derive the encryption key
@@ -86,10 +85,48 @@ template transfer(nInputs, nOutputs, nSMTLevels) {
 
   signal encKey[2];
   encKey <== PublicKeyFromSeed()(seed <== sharedKey);
-  // encKey is the public key derived from the shared key, which is used to encrypt
-  for (var i = 0; i < nOutputs; i++) {
-    // encrypt the value for the output UTXOs
-    var plainText[4] = [outputValues[i], outputSalts[i], outputOwnerPublicKeys[i][0], outputOwnerPublicKeys[i][1]];
-    cipherTexts[i] <== SymmetricEncrypt(4)(plainText <== plainText, key <== encKey, nonce <== encryptionNonce);
+
+  // the number of cipher text messages returned by
+  // the encryption template will be 3n+1 (multiple of 3, plus 1)
+  // encrypted elements length:
+  //   - input owner public key (x, y): 2
+  //   - secrets (value and salt) for each input UTXOs: 2 * nInputs
+  //   - output owner public keys (x, y): 2 * nOutputs
+  //   - secrets (value and salt) for each output UTXOs: 2 * nOutputs
+  // For 2 inputs and 2 outputs, the encrypted length is: 14, l = 16
+  // For 10 inputs and 10 outputs, the encrypted length is: 62, l = 64
+  var encElementsLength = 2 + 2 * nInputs + 2 * nOutputs + 2 * nOutputs;
+  var l = encElementsLength;
+  // ensure the length is a multiple of 3
+  if (l % 3 != 0) {
+    l += (3 - (l % 3));
   }
+  signal output cipherTextAuthority[l+1];
+
+  // prepare text to be created for the authority
+  var plainText[encElementsLength];
+  plainText[0] = inputOwnerPubKeyAx;
+  plainText[1] = inputOwnerPubKeyAy;
+  var idx1 = 2;
+  for (var i = 0; i < nInputs; i++) {
+    plainText[idx1] = inputValues[i];
+    idx1++;
+    plainText[idx1] = inputSalts[i];
+    idx1++;
+  }
+  for (var i = 0; i < nOutputs; i++) {
+    plainText[idx1] = outputOwnerPublicKeys[i][0];
+    idx1++;
+    plainText[idx1] = outputOwnerPublicKeys[i][1];
+    idx1++;
+  }
+  for (var i = 0; i < nOutputs; i++) {
+    plainText[idx1] = outputValues[i];
+    idx1++;
+    plainText[idx1] = outputSalts[i];
+    idx1++;
+  }
+
+  // encrypt the values for the authority
+  cipherTextAuthority <== SymmetricEncrypt(encElementsLength)(plainText <== plainText, key <== encKey, nonce <== encryptionNonce);
 }

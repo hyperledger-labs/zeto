@@ -236,7 +236,9 @@ function bytesToBits(byteArray) {
 }
 
 // the seed is a 32-byte array, which is trimmed to fit the group order
-// and then used to generate the public key
+// and then used to generate a valid EC point.
+// This is based on https://datatracker.ietf.org/doc/html/rfc8032#page-13,
+// but the SHA-512 step is skipped.
 function publicKeyFromSeed(seed) {
   // perform the same operations in JS as in the circuit
   // in order to trim the seed into the group order
