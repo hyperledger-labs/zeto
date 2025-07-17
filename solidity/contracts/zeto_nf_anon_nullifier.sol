@@ -156,7 +156,7 @@ contract Zeto_NfAnonNullifier is IZeto, ZetoNullifier, UUPSUpgradeable {
         Commonlib.Proof calldata proof
     ) internal view {
         // construct the public inputs
-        uint256[] memory publicInputs;
+        uint256[] memory publicInputs = new uint256[4]; 
         publicInputs[0] = nullifiers[0];
         publicInputs[1] = uint256(uint160(msg.sender));
         publicInputs[2] = root;
