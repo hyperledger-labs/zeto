@@ -40,7 +40,7 @@ export function loadProvingKeys(type: string) {
   );
   return {
     provingKeyFile,
-    verificationKey
+    verificationKey,
   };
 }
 

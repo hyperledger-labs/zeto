@@ -23,9 +23,6 @@ import {Commonlib} from "./lib/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-uint256 constant INPUT_SIZE = 15;
-uint256 constant BATCH_INPUT_SIZE = 63;
-
 /// @title A sample implementation of a Zeto based fungible token with anonymity, and encryption
 /// @author Kaleido, Inc.
 /// @dev The proof has the following statements:
@@ -64,9 +61,11 @@ contract Zeto_AnonEnc is
         uint256[2] memory ecdhPublicKey,
         uint256[] memory encryptedValues
     ) internal pure returns (uint256[] memory publicInputs) {
-        uint256 size = (inputs.length > 2 || outputs.length > 2)
-            ? BATCH_INPUT_SIZE
-            : INPUT_SIZE;
+        uint256 size = ecdhPublicKey.length +
+            encryptedValues.length +
+            inputs.length +
+            outputs.length +
+            1; // encryptionNonce
         publicInputs = new uint256[](size);
         uint256 piIndex = 0;
         // copy the ecdh public key

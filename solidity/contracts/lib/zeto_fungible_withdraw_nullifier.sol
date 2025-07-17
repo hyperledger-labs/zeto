@@ -19,9 +19,6 @@ import {IGroth16Verifier} from "./interfaces/izeto_verifier.sol";
 import {ZetoFungible} from "./zeto_fungible.sol";
 import {Commonlib} from "./common.sol";
 
-uint256 constant WITHDRAW_INPUT_SIZE = 7;
-uint256 constant BATCH_WITHDRAW_INPUT_SIZE = 23;
-
 /// @title A sample implementation of a base Zeto fungible token contract
 /// @author Kaleido, Inc.
 /// @dev Defines the verifier library for checking UTXOs against a claimed value.
@@ -48,9 +45,7 @@ abstract contract ZetoFungibleWithdrawWithNullifiers is ZetoFungible {
         uint256 output,
         uint256 root
     ) internal pure returns (uint256[] memory publicInputs) {
-        uint256 size = (nullifiers.length > 2)
-            ? BATCH_WITHDRAW_INPUT_SIZE
-            : WITHDRAW_INPUT_SIZE;
+        uint256 size = (nullifiers.length * 2) + 3; // nullifiers and the enabled flags, amount, root, output
         // construct the public inputs for verifier
         publicInputs = new uint256[](size);
         uint256 piIndex = 0;
@@ -84,9 +79,6 @@ abstract contract ZetoFungibleWithdrawWithNullifiers is ZetoFungible {
         uint256 root,
         Commonlib.Proof calldata proof
     ) public virtual {
-        if (nullifiers.length > BATCH_WITHDRAW_INPUT_SIZE) {
-            revert WithdrawArrayTooLarge(BATCH_WITHDRAW_INPUT_SIZE);
-        }
         uint256[] memory publicInputs = constructPublicInputs(
             amount,
             nullifiers,

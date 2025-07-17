@@ -19,9 +19,6 @@ import {IGroth16Verifier} from "./interfaces/izeto_verifier.sol";
 import {ZetoNullifier} from "./zeto_nullifier.sol";
 import {Commonlib} from "./common.sol";
 
-uint256 constant BURN_INPUT_SIZE = 6;
-uint256 constant BATCH_BURN_INPUT_SIZE = 22;
-
 /// @title A feature implementation of a Zeto fungible token burn contract
 /// @author Kaleido, Inc.
 /// @dev Can be added to a Zeto fungible token contract to allow for burning of tokens.

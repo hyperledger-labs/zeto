@@ -22,28 +22,43 @@ import {
   BatchWithdrawNullifierVerifierModule,
 } from "./lib/deps";
 
-const VerifierModule = buildModule("Groth16Verifier_AnonNullifierKycTransfer", (m) => {
-  const verifier = m.contract("Groth16Verifier_AnonNullifierKycTransfer", []);
-  return { verifier };
-});
-
-const BatchVerifierModule = buildModule(
-  "Groth16Verifier_AnonNullifierKycTransferBatch",
+const VerifierModule = buildModule(
+  "Groth16Verifier_AnonNullifierKycTransfer",
   (m) => {
-    const verifier = m.contract("Groth16Verifier_AnonNullifierKycTransferBatch", []);
+    const verifier = m.contract("Groth16Verifier_AnonNullifierKycTransfer", []);
     return { verifier };
   },
 );
 
-const LockVerifierModule = buildModule("Groth16Verifier_AnonNullifierKycTransferLocked", (m) => {
-  const verifier = m.contract("Groth16Verifier_AnonNullifierKycTransferLocked", []);
-  return { verifier };
-});
+const BatchVerifierModule = buildModule(
+  "Groth16Verifier_AnonNullifierKycTransferBatch",
+  (m) => {
+    const verifier = m.contract(
+      "Groth16Verifier_AnonNullifierKycTransferBatch",
+      [],
+    );
+    return { verifier };
+  },
+);
+
+const LockVerifierModule = buildModule(
+  "Groth16Verifier_AnonNullifierKycTransferLocked",
+  (m) => {
+    const verifier = m.contract(
+      "Groth16Verifier_AnonNullifierKycTransferLocked",
+      [],
+    );
+    return { verifier };
+  },
+);
 
 const BatchLockVerifierModule = buildModule(
   "Groth16Verifier_AnonNullifierKycTransferLockedBatch",
   (m) => {
-    const verifier = m.contract("Groth16Verifier_AnonNullifierKycTransferLockedBatch", []);
+    const verifier = m.contract(
+      "Groth16Verifier_AnonNullifierKycTransferLockedBatch",
+      [],
+    );
     return { verifier };
   },
 );

@@ -29,8 +29,6 @@ abstract contract ZetoFungible is OwnableUpgradeable {
     // the UTXOs match the deposited value
     IGroth16Verifier internal _depositVerifier;
 
-    error WithdrawArrayTooLarge(uint256 maxAllowed);
-
     IERC20 internal _erc20;
 
     function __ZetoFungible_init(

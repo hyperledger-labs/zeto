@@ -79,11 +79,17 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
 
     ({ deployer, zeto, erc20 } = await deployZeto("Zeto_AnonNullifierKyc"));
 
-    const tx2 = await zeto.connect(deployer).register(Alice.babyJubPublicKey, '0x');
+    const tx2 = await zeto
+      .connect(deployer)
+      .register(Alice.babyJubPublicKey, "0x");
     const result1 = await tx2.wait();
-    const tx3 = await zeto.connect(deployer).register(Bob.babyJubPublicKey, '0x');
+    const tx3 = await zeto
+      .connect(deployer)
+      .register(Bob.babyJubPublicKey, "0x");
     const result2 = await tx3.wait();
-    const tx4 = await zeto.connect(deployer).register(Charlie.babyJubPublicKey, '0x');
+    const tx4 = await zeto
+      .connect(deployer)
+      .register(Charlie.babyJubPublicKey, "0x");
     const result3 = await tx4.wait();
 
     const storage1 = new InMemoryDB(str2Bytes("alice"));
@@ -106,7 +112,9 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
     await smtKyc.add(kycHash(publicKey3), kycHash(publicKey3));
 
     circuit = await loadCircuit("anon_nullifier_kyc_transfer");
-    ({ provingKeyFile: provingKey } = loadProvingKeys("anon_nullifier_kyc_transfer"));
+    ({ provingKeyFile: provingKey } = loadProvingKeys(
+      "anon_nullifier_kyc_transfer",
+    ));
     batchCircuit = await loadCircuit("anon_nullifier_kyc_transfer_batch");
     ({ provingKeyFile: batchProvingKey } = loadProvingKeys(
       "anon_nullifier_kyc_transfer_batch",
@@ -775,7 +783,10 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
       utxo12 = newUTXO(0, Alice);
 
       let root = await smtAlice.root();
-      const proof1 = await smtAlice.generateCircomVerifierProof(utxo10.hash, root);
+      const proof1 = await smtAlice.generateCircomVerifierProof(
+        utxo10.hash,
+        root,
+      );
       const proof2 = await smtAlice.generateCircomVerifierProof(0n, root);
       const merkleProofs = [
         proof1.siblings.map((s) => s.bigInt()),
@@ -1845,7 +1856,8 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
     }
     const results: ContractTransactionReceipt | null = await tx.wait();
     console.log(
-      `Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${results?.gasUsed
+      `Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${
+        results?.gasUsed
       }`,
     );
     return results;

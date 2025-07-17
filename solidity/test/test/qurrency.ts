@@ -19,7 +19,12 @@ import { BigNumberish, ContractTransactionReceipt } from "ethers";
 import crypto from "crypto";
 import { groth16 } from "snarkjs";
 import { Merkletree, InMemoryDB, str2Bytes } from "@iden3/js-merkletree";
-import { loadCircuit, encodeProof, newEncryptionNonce, bytesToBits } from "zeto-js";
+import {
+  loadCircuit,
+  encodeProof,
+  newEncryptionNonce,
+  bytesToBits,
+} from "zeto-js";
 import qurrencyModule from "../../ignition/modules/test/qurrency";
 import { User, newUser, newUTXO, newNullifier } from "../lib/utils";
 import { loadProvingKeys } from "../utils";

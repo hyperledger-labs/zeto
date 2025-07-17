@@ -26,27 +26,6 @@ import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {console} from "hardhat/console.sol";
 
-// the public inputs for the non-batch proof have the following structure:
-//  - 25 elements for the ML-KEM encapsulated shared secret
-//  - 16 elements for the encrypted values (3n+1 for 14 encyrpted elements)
-//  - 2 elements for the nullifiers
-//  - 1 element for the root hash
-//  - 2 elements for the "enabled" flags (1 for each nullifier)
-//  - 2 elements for the output commitments
-uint256 constant INPUT_SIZE = 48;
-// the public inputs for the batch proof have the following structure:
-//  - 25 elements for the ML-KEM encapsulated shared secret
-//  - 64 elements for the encrypted values (3n+1 for 62 encyrpted elements)
-//  - 10 elements for the nullifiers
-//  - 1 element for the root hash
-//  - 10 elements for the "enabled" flags (1 for each nullifier)
-//  - 10 elements for the output commitments
-uint256 constant BATCH_INPUT_SIZE = 120;
-
-// NOT USED
-uint256 constant INPUT_SIZE_LOCKED = 8;
-uint256 constant BATCH_INPUT_SIZE_LOCKED = 32;
-
 /// @title A sample implementation of a Zeto based fungible token with anonymity and history masking
 /// @author Kaleido, Inc.
 /// @dev The proof has the following statements:
@@ -85,9 +64,20 @@ contract Zeto_AnonNullifierQurrency is
         uint256[25] memory encapsulatedSharedSecret,
         bool locked
     ) internal view returns (uint256[] memory publicInputs) {
-        uint256 size = (nullifiers.length > 2 || outputs.length > 2)
-            ? (locked ? BATCH_INPUT_SIZE_LOCKED : BATCH_INPUT_SIZE)
-            : (locked ? INPUT_SIZE_LOCKED : INPUT_SIZE);
+        // the public inputs for the non-batch proof have the following structure:
+        //  - 25 elements for the ML-KEM encapsulated shared secret
+        //  - 16 or 64 elements for the encrypted values (3n+1 for 14 or 62 encyrpted elements)
+        //  - 2 or 10 elements for the nullifiers
+        //  - 1 element for the root hash
+        //  - 2 or 10 elements for the "enabled" flags (1 for each nullifier)
+        //  - 2 or 10 elements for the output commitments
+        uint256 size = encapsulatedSharedSecret.length +
+            encryptedValues.length +
+            (nullifiers.length * 2) + // nullifiers and the enabled flags
+            outputs.length +
+            2 + // root and encryptionNonce
+            (locked ? 1 : 0); // lock delegate if locked
+
         publicInputs = new uint256[](size);
         uint256 piIndex = 0;
         // copy the ML-KEM encapsulated shared secret

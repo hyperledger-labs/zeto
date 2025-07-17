@@ -22,9 +22,6 @@ import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_n
 import {Commonlib} from "./lib/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 
-uint256 constant INPUT_SIZE = 36;
-uint256 constant BATCH_INPUT_SIZE = 140;
-
 /// @title A sample implementation of a Zeto based fungible token with anonymity, encryption and history masking
 /// @author Kaleido, Inc.
 /// @dev The proof has the following statements:
@@ -86,9 +83,13 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         uint256[] memory encryptedValuesForReceiver,
         uint256[] memory encryptedValuesForAuthority
     ) internal view returns (uint256[] memory publicInputs) {
-        uint256 size = (nullifiers.length > 2 || outputs.length > 2)
-            ? BATCH_INPUT_SIZE
-            : INPUT_SIZE;
+        uint256 size = ecdhPublicKey.length +
+            encryptedValuesForReceiver.length +
+            encryptedValuesForAuthority.length +
+            nullifiers.length +
+            outputs.length +
+            2 + // root and encryptionNonce
+            2; // arbiter public key
         publicInputs = new uint256[](size);
         uint256 piIndex = 0;
         // copy the ecdh public key

@@ -20,9 +20,6 @@ import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {Zeto_Anon} from "./zeto_anon.sol";
 import {ZetoFungibleBurnable} from "./lib/zeto_fungible_burn.sol";
 
-uint256 constant INPUT_SIZE = 4;
-uint256 constant BATCH_INPUT_SIZE = 20;
-
 /// @title A sample implementation of a Zeto based fungible token with anonymity and no encryption
 /// @author Kaleido, Inc.
 /// @dev The proof has the following statements:

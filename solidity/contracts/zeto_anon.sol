@@ -23,9 +23,6 @@ import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-uint256 constant INPUT_SIZE = 4;
-uint256 constant BATCH_INPUT_SIZE = 20;
-
 /// @title A sample implementation of a Zeto based fungible token with anonymity and no encryption
 /// @author Kaleido, Inc.
 /// @dev The proof has the following statements:
@@ -214,9 +211,7 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         uint256[] memory inputs,
         uint256[] memory outputs
     ) internal pure returns (uint256[] memory publicInputs) {
-        uint256 size = (inputs.length > 2 || outputs.length > 2)
-            ? BATCH_INPUT_SIZE
-            : INPUT_SIZE;
+        uint256 size = inputs.length + outputs.length;
         publicInputs = new uint256[](size);
         uint256 piIndex = 0;
         // copy input commitments
