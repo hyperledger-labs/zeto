@@ -64,7 +64,7 @@ contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
         validateTransactionProposal(inputs, outputs, lockedOutputs, false);
 
         // construct the public inputs
-        uint256[] memory publicInputs;
+        uint256[] memory publicInputs = new uint256[](2);
         publicInputs[0] = input;
         publicInputs[1] = output;
 
@@ -104,7 +104,7 @@ contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
         validateTransactionProposal(inputs, outputs, lockedOutputs, true);
 
         // construct the public inputs
-        uint256[] memory publicInputs;
+        uint256[] memory publicInputs = new uint256[](2);
         publicInputs[0] = input;
         publicInputs[1] = output;
 
@@ -139,7 +139,7 @@ contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
         validateTransactionProposal(inputs, outputs, lockedOutputs, false);
 
         // construct the public inputs
-        uint256[] memory publicInputs;
+        uint256[] memory publicInputs = new uint256[](2);
         publicInputs[0] = input;
         publicInputs[1] = lockedOutput;
 
