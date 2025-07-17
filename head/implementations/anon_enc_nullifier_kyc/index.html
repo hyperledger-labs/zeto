@@ -1387,7 +1387,7 @@
 <p>This implementation adds encryption, as described in the section above for Zeto_AnonEnc, to the pattern Zeto_AnonNullifierKyc above.</p>
 <p>The statements in the proof include:</p>
 <ul>
-<li>each value in the output commitments must be a positive number in the range 0 ~ (2**40 - 1)</li>
+<li>each value in the output commitments must be a positive number in the range 0 ~ (2**100 - 1)</li>
 <li>the sum of the nullified values match the sum of output values</li>
 <li>the hashes in the output match the hash(value, salt, owner public key) formula</li>
 <li>the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers</li>
@@ -1482,6 +1482,10 @@
     
     
       <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
     
   </body>

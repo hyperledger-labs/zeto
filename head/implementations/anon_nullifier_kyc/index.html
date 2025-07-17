@@ -1389,7 +1389,7 @@
 <p>The implementation of this pattern maintains a KYC registry in the smart contract as a Sparse Merkle Tree. The registry is maintained by a designated authority, and includes the public keys of entities that have cleared the KYC process. Each transaction must demonstrate that the public keys of the sender and the receivers are included in the KYC merkle tree, by generating a merkle proof and using it as a private input to the ZKP circuit.</p>
 <p>The statements in the proof include:</p>
 <ul>
-<li>each value in the output commitments must be a positive number in the range 0 ~ (2**40 - 1)</li>
+<li>each value in the output commitments must be a positive number in the range 0 ~ (2**100 - 1)</li>
 <li>the sum of the nullified values match the sum of output values</li>
 <li>the hashes in the output match the hash(value, salt, owner public key) formula</li>
 <li>the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers</li>
@@ -1483,6 +1483,10 @@
     
     
       <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
     
   </body>
