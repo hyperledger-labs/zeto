@@ -186,6 +186,11 @@ contract Zeto_AnonNullifier is
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public {
+                uint256[] memory publicInputs = new uint256[](3);
+        publicInputs[0] = amount;
+        publicInputs[1] = outputs[0];
+        publicInputs[2] = outputs[1];
+
         _deposit(amount, outputs, proof);
         _mint(outputs, data);
     }

@@ -17,9 +17,9 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import {
   SmtLibModule,
-  DepositVerifierModule,
   WithdrawNullifierVerifierModule,
   BatchWithdrawNullifierVerifierModule,
+  DepositKycVerifierModule,
 } from "./lib/deps";
 
 const VerifierModule = buildModule(
@@ -69,7 +69,7 @@ export default buildModule("Zeto_AnonNullifierKyc", (m) => {
   const { verifier: batchVerifier } = m.useModule(BatchVerifierModule);
   const { verifier: lockVerifier } = m.useModule(LockVerifierModule);
   const { verifier: batchLockVerifier } = m.useModule(BatchLockVerifierModule);
-  const { verifier: depositVerifier } = m.useModule(DepositVerifierModule);
+  const { verifier: depositVerifier } = m.useModule(DepositKycVerifierModule);
   const { verifier: withdrawVerifier } = m.useModule(
     WithdrawNullifierVerifierModule,
   );

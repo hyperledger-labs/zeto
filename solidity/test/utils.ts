@@ -97,6 +97,61 @@ export async function prepareDepositProof(signer: User, outputs: [UTXO, UTXO]) {
   };
 }
 
+export async function prepareDepositKycProof(signer: User, outputs: [UTXO, UTXO], identitiesRoot: BigInt, identitiesMerkleProof: BigInt[][]) {
+  const outputCommitments: [BigNumberish, BigNumberish] = [
+    outputs[0].hash,
+    outputs[1].hash,
+  ] as [BigNumberish, BigNumberish];
+  const outputValues = [
+    BigInt(outputs[0].value || 0),
+    BigInt(outputs[1].value || 0),
+  ];
+  const outputSalts = [
+    BigInt(outputs[0].salt || 0n),
+    BigInt(outputs[1].salt || 0n),
+  ];
+  const outputOwnerPublicKeys: [
+    [BigNumberish, BigNumberish],
+    [BigNumberish, BigNumberish],
+  ] = [
+    signer.babyJubPublicKey,
+    outputs[1].hash ? signer.babyJubPublicKey : [0n, 0n],
+  ] as [[BigNumberish, BigNumberish], [BigNumberish, BigNumberish]];
+
+  const inputObj = {
+    outputCommitments,
+    outputValues,
+    outputSalts,
+    outputOwnerPublicKeys,
+    identitiesRoot,
+    identitiesMerkleProof,
+  };
+
+  const circuit = await loadCircuit("deposit_kyc");
+  const { provingKeyFile } = loadProvingKeys("deposit_kyc");
+
+  const startWitnessCalculation = Date.now();
+  const witness = await circuit.calculateWTNSBin(inputObj, true);
+  const timeWithnessCalculation = Date.now() - startWitnessCalculation;
+
+  const startProofGeneration = Date.now();
+  const { proof, publicSignals } = (await groth16.prove(
+    provingKeyFile,
+    witness,
+  )) as { proof: BigNumberish[]; publicSignals: BigNumberish[] };
+  const timeProofGeneration = Date.now() - startProofGeneration;
+
+  console.log(
+    `Witness calculation time: ${timeWithnessCalculation}ms. Proof generation time: ${timeProofGeneration}ms.`,
+  );
+
+  const encodedProof = encodeProof(proof);
+  return {
+    outputCommitments,
+    encodedProof,
+  };
+}
+
 export async function prepareWithdrawProof(
   signer: User,
   inputs: UTXO[],

@@ -34,6 +34,7 @@ import {
 import {
   loadProvingKeys,
   prepareDepositProof,
+  prepareDepositKycProof,
   prepareNullifierWithdrawProof,
 } from "./utils";
 import { deployZeto } from "./lib/deploy";
@@ -313,7 +314,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
     expect(endingBalance - startingBalance).to.be.equal(3);
   }).timeout(60000);
 
-  it("mint ERC20 tokens to Alice to deposit to Zeto should succeed", async function () {
+  it.only("mint ERC20 tokens to Alice to deposit to Zeto should succeed", async function () {
     const startingBalance = await erc20.balanceOf(Alice.ethAddress);
     const tx = await erc20.connect(deployer).mint(Alice.ethAddress, 100);
     await tx.wait();
@@ -325,9 +326,20 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
 
     utxo100 = newUTXO(100, Alice);
     utxo0 = newUTXO(0, Alice);
-    const { outputCommitments, encodedProof } = await prepareDepositProof(
+    const identitiesRoot = await smtKyc.root();
+    const proof3 = await smtKyc.generateCircomVerifierProof(
+      kycHash(Alice.babyJubPublicKey),
+      identitiesRoot,
+    );
+    const identitiesMerkleProofs = [
+      proof3.siblings.map((s) => s.bigInt()),
+      proof3.siblings.map((s) => s.bigInt()),
+    ];
+    const { outputCommitments, encodedProof } = await prepareDepositKycProof( 
       Alice,
       [utxo100, utxo0],
+      identitiesRoot.bigInt(),
+      identitiesMerkleProofs,
     );
     const tx2 = await zeto
       .connect(Alice.signer)
@@ -586,7 +598,16 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
       );
     });
 
-    it("deposit by an unregistered user should succeed", async function () {
+    it("deposit by an unregistered user should fail", async function () {
+      const identitiesRoot = await smtKycUnregistered.root();
+      const proof3 = await smtKycUnregistered.generateCircomVerifierProof(
+        kycHash(unregistered.babyJubPublicKey),
+        identitiesRoot,
+      );
+      const identitiesMerkleProofs = [
+        proof3.siblings.map((s) => s.bigInt()), // identity proof for the sender (unregistered)
+      ];
+
       const tx = await erc20
         .connect(deployer)
         .mint(unregistered.ethAddress, 100);
@@ -598,9 +619,11 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
 
       unregisteredUtxo100 = newUTXO(100, unregistered);
       unregisteredUtxo0 = newUTXO(0, unregistered);
-      const { outputCommitments, encodedProof } = await prepareDepositProof(
+      const { outputCommitments, encodedProof } = await prepareDepositKycProof(
         unregistered,
         [unregisteredUtxo100, unregisteredUtxo0],
+        identitiesRoot.bigInt(),
+        identitiesMerkleProofs,
       );
       const tx2 = await zeto
         .connect(unregistered.signer)

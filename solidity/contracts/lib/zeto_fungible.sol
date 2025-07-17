@@ -44,16 +44,9 @@ abstract contract ZetoFungible is OwnableUpgradeable {
     function _deposit(
         uint256 amount,
         uint256[] memory outputs,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof calldata proof,
+        uint256[] memory publicInputs
     ) public virtual {
-        // verifies that the output UTXOs match the claimed value
-        // to be deposited
-        // construct the public inputs
-        uint256[] memory publicInputs = new uint256[](3);
-        publicInputs[0] = amount;
-        publicInputs[1] = outputs[0];
-        publicInputs[2] = outputs[1];
-
         // Check the proof
         require(
             _depositVerifier.verify(proof.pA, proof.pB, proof.pC, publicInputs),
