@@ -14,6 +14,8 @@
 // limitations under the License.
 pragma circom 2.2.2;
 
+include "../../common/util.circom";
+
 //------------------------------------------------------------------------------
 // compute (compile time) the log2 of a number
 

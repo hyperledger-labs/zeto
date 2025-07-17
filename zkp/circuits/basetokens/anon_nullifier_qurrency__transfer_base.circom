@@ -16,9 +16,10 @@
 pragma circom 2.2.2;
 
 include "./anon_nullifier_base.circom";
-include "../lib/kyber/kyber.circom";
+include "../lib/kyber/mlkem.circom";
 include "../lib/hash_signals.circom";
-// include "../lib/sha256_signals.circom";
+include "../lib/pubkey.circom";
+include "../lib/encrypt.circom";
 
 // This version of the circuit performs the following operations:
 // - derive the sender's public key from the sender's private key
@@ -43,15 +44,10 @@ template transfer(nInputs, nOutputs, nSMTLevels) {
   signal input outputValues[nOutputs];
   signal input outputOwnerPublicKeys[nOutputs][2];
   signal input outputSalts[nOutputs];
-  // additional input signals for the cipher texts
-  // TODO: add the cipher text inputs
-  signal input m[256];
-  signal input randomness[256];
+  signal input encryptionNonce;
 
-  signal output ct_h0;
-  signal output ct_h1;
-
-  Zeto(nInputs, nOutputs, nSMTLevels)(
+  var inputOwnerPubKeyAx, inputOwnerPubKeyAy;
+  (inputOwnerPubKeyAx, inputOwnerPubKeyAy) = Zeto(nInputs, nOutputs, nSMTLevels)(
     nullifiers <== nullifiers,
     inputCommitments <== inputCommitments,
     inputValues <== inputValues,
@@ -66,7 +62,71 @@ template transfer(nInputs, nOutputs, nSMTLevels) {
     outputOwnerPublicKeys <== outputOwnerPublicKeys,
     outputSalts <== outputSalts
   );
+
+  // additional input signals for the cipher texts
+  signal input randomness[256];
+  // the output cipher texts is sent to the receiver to recover the shared secret
+  signal output c[25];
+
   // additional constraints for the cipher texts
-  // TODO: kyber encryption constraints
-  (ct_h0, ct_h1) <== kyber_enc()(randomness, m);
+  component kem = mlkem_encaps();
+  kem.m <== randomness;
+  // the output of the mlkem_encaps is the shared secret K and the ciphertext c_short
+  // the ciphertext is split into 25 groups of 256 bits, each group is a single group element
+  // the first 24 groups are 248 bits each, and the last group is 192 bits long.
+  // we don't need the K because it can be calculated from any standard mlkem implementation
+  // using the same randomness and the receiver's private key.
+  c <== kem.c_short;
+
+  // use the shared key from the mlkem encapsulation to derive the encryption key
+  // for the Poseidon encryption
+  signal sharedKey[256];
+  sharedKey <== kem.K;
+
+  signal encKey[2];
+  encKey <== PublicKeyFromSeed()(seed <== sharedKey);
+
+  // the number of cipher text messages returned by
+  // the encryption template will be 3n+1 (multiple of 3, plus 1)
+  // encrypted elements length:
+  //   - input owner public key (x, y): 2
+  //   - secrets (value and salt) for each input UTXOs: 2 * nInputs
+  //   - output owner public keys (x, y): 2 * nOutputs
+  //   - secrets (value and salt) for each output UTXOs: 2 * nOutputs
+  // For 2 inputs and 2 outputs, the encrypted length is: 14, l = 16
+  // For 10 inputs and 10 outputs, the encrypted length is: 62, l = 64
+  var encElementsLength = 2 + 2 * nInputs + 2 * nOutputs + 2 * nOutputs;
+  var l = encElementsLength;
+  // ensure the length is a multiple of 3
+  if (l % 3 != 0) {
+    l += (3 - (l % 3));
+  }
+  signal output cipherTextAuthority[l+1];
+
+  // prepare text to be created for the authority
+  var plainText[encElementsLength];
+  plainText[0] = inputOwnerPubKeyAx;
+  plainText[1] = inputOwnerPubKeyAy;
+  var idx1 = 2;
+  for (var i = 0; i < nInputs; i++) {
+    plainText[idx1] = inputValues[i];
+    idx1++;
+    plainText[idx1] = inputSalts[i];
+    idx1++;
+  }
+  for (var i = 0; i < nOutputs; i++) {
+    plainText[idx1] = outputOwnerPublicKeys[i][0];
+    idx1++;
+    plainText[idx1] = outputOwnerPublicKeys[i][1];
+    idx1++;
+  }
+  for (var i = 0; i < nOutputs; i++) {
+    plainText[idx1] = outputValues[i];
+    idx1++;
+    plainText[idx1] = outputSalts[i];
+    idx1++;
+  }
+
+  // encrypt the values for the authority
+  cipherTextAuthority <== SymmetricEncrypt(encElementsLength)(plainText <== plainText, key <== encKey, nonce <== encryptionNonce);
 }

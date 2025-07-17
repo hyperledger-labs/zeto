@@ -37,7 +37,10 @@ import {
   prepareNullifierBurnProof,
 } from "./utils";
 import { deployZeto } from "./lib/deploy";
-import { Zeto_AnonNullifier, Zeto_AnonNullifierBurnable } from "../typechain-types";
+import {
+  Zeto_AnonNullifier,
+  Zeto_AnonNullifierBurnable,
+} from "../typechain-types";
 
 describe("Zeto based fungible token with anonymity using nullifiers without encryption", function () {
   let deployer: Signer;

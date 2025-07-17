@@ -17,6 +17,7 @@ pragma solidity ^0.8.27;
 
 uint256 constant MAX_BATCH = 10;
 uint256 constant MAX_SMT_DEPTH = 64;
+
 interface IZeto {
     error UTXODuplicate(uint256 utxo);
     error UTXOArrayTooLarge(uint256 maxAllowed);
@@ -42,6 +43,15 @@ interface IZeto {
         uint256[] outputs,
         uint256 encryptionNonce,
         uint256[2] ecdhPublicKey,
+        uint256[] encryptedValues,
+        address indexed submitter,
+        bytes data
+    );
+    event UTXOTransferWithMlkemEncryptedValues(
+        uint256[] inputs,
+        uint256[] outputs,
+        uint256 encryptionNonce,
+        uint256[25] encapsulatedSharedSecret,
         uint256[] encryptedValues,
         address indexed submitter,
         bytes data

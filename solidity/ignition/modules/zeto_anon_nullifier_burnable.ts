@@ -44,7 +44,10 @@ const LockVerifierModule = buildModule(
 const BatchVerifierModule = buildModule(
   "Groth16Verifier_AnonNullifierTransferBatch",
   (m) => {
-    const verifier = m.contract("Groth16Verifier_AnonNullifierTransferBatch", []);
+    const verifier = m.contract(
+      "Groth16Verifier_AnonNullifierTransferBatch",
+      [],
+    );
     return { verifier };
   },
 );
@@ -52,20 +55,29 @@ const BatchVerifierModule = buildModule(
 const BatchLockVerifierModule = buildModule(
   "Groth16Verifier_AnonNullifierTransferLockedBatch",
   (m) => {
-    const verifier = m.contract("Groth16Verifier_AnonNullifierTransferLockedBatch", []);
+    const verifier = m.contract(
+      "Groth16Verifier_AnonNullifierTransferLockedBatch",
+      [],
+    );
     return { verifier };
   },
 );
 
-const BurnNullifierVerifierModule = buildModule("Groth16Verifier_BurnNullifier", (m) => {
-  const verifier = m.contract("Groth16Verifier_BurnNullifier", []);
-  return { verifier };
-});
+const BurnNullifierVerifierModule = buildModule(
+  "Groth16Verifier_BurnNullifier",
+  (m) => {
+    const verifier = m.contract("Groth16Verifier_BurnNullifier", []);
+    return { verifier };
+  },
+);
 
-const BatchBurnNullifierVerifierModule = buildModule("Groth16Verifier_BurnNullifierBatch", (m) => {
-  const verifier = m.contract("Groth16Verifier_BurnNullifierBatch", []);
-  return { verifier };
-});
+const BatchBurnNullifierVerifierModule = buildModule(
+  "Groth16Verifier_BurnNullifierBatch",
+  (m) => {
+    const verifier = m.contract("Groth16Verifier_BurnNullifierBatch", []);
+    return { verifier };
+  },
+);
 
 export default buildModule("Zeto_AnonNullifier", (m) => {
   const { smtLib, poseidon3 } = m.useModule(SmtLibModule);
@@ -80,9 +92,7 @@ export default buildModule("Zeto_AnonNullifier", (m) => {
   const { verifier: batchWithdrawVerifier } = m.useModule(
     BatchWithdrawNullifierVerifierModule,
   );
-  const { verifier: burnVerifier } = m.useModule(
-    BurnNullifierVerifierModule,
-  );
+  const { verifier: burnVerifier } = m.useModule(BurnNullifierVerifierModule);
   const { verifier: batchBurnVerifier } = m.useModule(
     BatchBurnNullifierVerifierModule,
   );

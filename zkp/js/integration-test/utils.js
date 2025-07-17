@@ -47,17 +47,4 @@ function loadProvingKeys(type) {
   };
 }
 
-function bytesToBits(byteArray) {
-  let bitArray = [];
-
-  for (let byte of byteArray) {
-    for (let i = 7; i >= 0; i--) {
-      const bit = (byte >> i) & 1;
-      bitArray.push(bit);
-    }
-  }
-
-  return bitArray;
-}
-
-module.exports = { loadProvingKeys, bytesToBits };
+module.exports = { loadProvingKeys };

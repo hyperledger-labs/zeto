@@ -25,6 +25,7 @@ import (
 )
 
 func (s *E2ETestSuite) TestZeto_deposit_SuccessfulProving() {
+	// s.T().Skip()
 	calc, provingKey, err := loadCircuit("deposit")
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)

@@ -8,31 +8,29 @@
 
 This implementation builds on top of the `anon_nullifiers` to add post-quantum cryptography inside the circuit to encrypt sensitive information for a designated authority, such as a regulator, for auditing purposes.
 
-To implement post-quantum secure encryption, these circuits use the public key encryption scheme internal to ML-KEM (Module-Lattice-Based Key-Encapsulation Mechanism), which is derived from the CRYSTALS-KYBER algorithm. This algorithm has been selected by NIST for standardization of post-quantum secure encryption, meaning even quantum computers cannot break the cryptosystem.
+To implement post-quantum secure encryption, these circuits use the public key encryption scheme in ML-KEM (Module-Lattice-Based Key-Encapsulation Mechanism), which is derived from the CRYSTALS-KYBER algorithm. This algorithm has been selected by NIST for standardization of post-quantum secure encryption, meaning even quantum computers cannot break the cryptosystem.
 
 The encryption is performed in the follow step, according to the ML-KEM scheme:
 
-- An AES-256 encryption key is generated for the transaction. This key is used only for this transaction
-  - AES-256 is a quantum-secure block cipher.
-- The secrets meant for the auditing authority are encrypted with this key, and sent as part of the transaction payload
-- The key is passed into the circuit as a private input and encrypted inside the circuit under the ML-KEM scheme, using the auditing authority's public key
+- A 256-bit randomness is generated, and used as a private input to the ZKP circuit, which carries out the ML-KEM key encapsulation protocol along with the public key of the auditing authority
   - The public key is statically programmed into the circuit. This is to avoid making it a signal which would be very inefficient due to the large size of the public key (1184 bytes)
   - <span style="color:red">IMPORTANT:</span> This means for a real world deployment, the deployer MUST update the circuit with the auditing authority's public key and re-compile the circuit
-- The ciphertext is extracted from the circuit's witness array and sent as a part of the transaction payload
-- The circuit also calculates the SHA256 hash of the ciphertext to use as a public input, instead of using the ciphertext itself as a public input
-  - This is an optimization step. The ciphertext is a large array of 768 numbers (of value 0 or 1), to represent the 768-bit ciphertext, which would make proof verification more expensive
-  - The SHA256 hashing algorithm is picked to make verification inside EVM more efficient, due to the native sha256 support via EVM precompiles.
-- The authority can then use the private key to decrypt the ciphertext to recover the AES encryption key, then use the recovered key to decrypt the AES ciphertext to recover the secrets
+- The result of the ML-KEM protocol is a 256-bit shared secret
+  - In addition, an encapsulated shared secret is also generated to be shared with the receiver (the auditing authority) to recover the shared secret
+- The secrets targeted for the auditing authority are encrypted with this shared secret, and sent as part of the transaction payload
+- The ciphertext for the encrypted secrets, and the encapsulated shared secret for the ML-KEM decapsulation (the process to recover the shared secret) are returned by the circuit as output signals
+- The auditing authority can then use their private key, along with the encapsulated shared secret which is included in the emitted blockchain event, to recover the shared secret via the ML-KEM decapsulation protocol
+  - The recovered shared secret can then be used to decrypt the ciphertext of the encrypted secrets, giving the auditing authority full information about the secrets involved in the transaction
 
 The statements in the proof include:
 
-- each value in the output commitments must be a positive number in the range 0 ~ (2\*\*40 - 1)
+- each value in the output commitments must be a positive number in the range 0 ~ (2\*\*100 - 1)
 - the sum of the nullified values match the sum of output values
 - the hashes in the output match the hash(value, salt, owner public key) formula
 - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers
 - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
-- the AES encryption key is correctly encrypted using the auditing authority's public key, resulting in the ciphretext
-- the public signals representing the SHA256 hash of the ciphertext is correctly calculated
+- the auditing authority's public key was correctly used in the ML-KEM encapsulation protocol, resulting in the ciphertext for decapsulation
+- the shared secret, resulted from the above ML-KEM encapsulation protocol, was correctly used to encrypt the secrets in the transaction outputs
 
 [![wiring_anon_nullifier_qurrency](../images/circuit_wiring_anon_nullifier_qurrency.jpg)](../images/circuit_wiring_anon_nullifier_qurrency.jpg)
 
@@ -88,3 +86,4 @@ It prints out the following parts that are described above:
 - `a[1][1]`
 - `PUBLIC KEY`: corresponding to the `ek` described above. This is not used directly because it's expanded format with `t` and `a` arrays will be added to the circuit directly to perform the encapsulation
 - `SECRET KEY`: corresponding to the `dk` described above. This should be used to decapsulate to recover the AES key from the cipher text.
+- `PUBLIC KEY HASH`: corresponding to the `signal sha3_256_digest[256]` in the template `g()` of the circuit `zkp/circuits/lib/kyber/mlkem.circom`

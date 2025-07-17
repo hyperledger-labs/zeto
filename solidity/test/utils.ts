@@ -40,7 +40,7 @@ export function loadProvingKeys(type: string) {
   );
   return {
     provingKeyFile,
-    verificationKey,
+    verificationKey
   };
 }
 
@@ -60,10 +60,10 @@ export async function prepareDepositProof(signer: User, outputs: [UTXO, UTXO]) {
   const outputOwnerPublicKeys: [
     [BigNumberish, BigNumberish],
     [BigNumberish, BigNumberish],
-  ] = [signer.babyJubPublicKey, outputs[1].hash ? signer.babyJubPublicKey : [0n, 0n]] as [
-    [BigNumberish, BigNumberish],
-    [BigNumberish, BigNumberish],
-  ];
+  ] = [
+    signer.babyJubPublicKey,
+    outputs[1].hash ? signer.babyJubPublicKey : [0n, 0n],
+  ] as [[BigNumberish, BigNumberish], [BigNumberish, BigNumberish]];
 
   const inputObj = {
     outputCommitments,
@@ -331,13 +331,4 @@ export async function prepareNullifierBurnProof(
     outputCommitment: output.hash,
     encodedProof,
   };
-}
-
-export function randomBytesAsDigitArray(length: number) {
-  const bytes = crypto.randomBytes(length);
-  let s = "";
-  for (let i = 0; i < bytes.length; i++) {
-    s += bytes[i].toString(2).padStart(8, "0");
-  }
-  return s.split("").map((b) => parseInt(b));
 }

@@ -28,6 +28,7 @@ import (
 )
 
 func (s *E2ETestSuite) TestZeto_withdraw_SuccessfulProving() {
+	// s.T().Skip()
 	calc, provingKey, err := loadCircuit("withdraw")
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
@@ -66,6 +67,7 @@ func (s *E2ETestSuite) TestZeto_withdraw_SuccessfulProving() {
 }
 
 func (s *E2ETestSuite) TestZeto_withdraw_nullifier_SuccessfulProving() {
+	// s.T().Skip()
 	calc, provingKey, err := loadCircuit("withdraw_nullifier")
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), calc)
