@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import { ethers, network } from "hardhat";
-import { ContractTransactionReceipt, Signer, BigNumberish } from "ethers";
+import { ContractTransactionReceipt, Signer, BigNumberish, AbiCoder } from "ethers";
 import { expect } from "chai";
 import { loadCircuit, Poseidon, encodeProof, kycHash } from "zeto-js";
 import { groth16 } from "snarkjs";
@@ -766,8 +766,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
           [nullifier1.hash],
           [],
           outputCommitments,
-          root.bigInt(),
-          encodedProof,
+          encodeToBytes(root.bigInt(), encodedProof),
           Alice.ethAddress, // make Alice the delegate who can spend the state (if she has the right proof)
           "0x",
         );
@@ -844,8 +843,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
               [nullifier1.hash],
               [],
               outputCommitments,
-              root.bigInt(),
-              encodedProof,
+              encodeToBytes(root.bigInt(), encodedProof),
               Charlie.ethAddress,
               "0x",
             ),
@@ -1194,8 +1192,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
           [nullifier1.hash],
           [],
           outputCommitments,
-          root.bigInt(),
-          encodedProof,
+          encodeToBytes(root.bigInt(), encodedProof),
           Bob.ethAddress, // make Bob the delegate who can spend the state (if he has the right proof)
           "0x",
         );
@@ -1288,7 +1285,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
             Charlie, // Charlie must sign this transaction as he is the delegate now
             nullifiers,
             result.outputCommitments,
-            root.bigInt(),
+            root.bigInt(), 
             result.encodedProof,
             true,
           ),
@@ -1733,16 +1730,14 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
       tx = await zeto.connect(signer.signer).transfer(
         nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
         outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
-        root,
-        encodedProof,
+        encodeToBytes(root, encodedProof),
         "0x",
       );
     } else {
       tx = await zeto.connect(signer.signer).transferLocked(
         nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
         outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
-        root,
-        encodedProof,
+        encodeToBytes(root, encodedProof),
         "0x",
       );
     }
@@ -1755,3 +1750,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
     return results;
   }
 });
+
+function encodeToBytes(root: any, proof: any) {
+  return new AbiCoder().encode(["uint256 root", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [root, proof]);
+}
