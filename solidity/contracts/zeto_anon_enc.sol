@@ -105,12 +105,10 @@ contract Zeto_AnonEnc is
     function transfer(
         uint256[] memory inputs,
         uint256[] memory outputs,
-        uint256 encryptionNonce,
-        uint256[2] memory ecdhPublicKey,
-        uint256[] memory encryptedValues,
-        Commonlib.Proof calldata proof,
+        bytes calldata proof,
         bytes calldata data
     ) public returns (bool) {
+        (uint256 encryptionNonce, uint256[2] memory ecdhPublicKey, uint256[] memory encryptedValues, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, uint256[2], uint256[], Commonlib.Proof));
         // Check and pad commitments
         inputs = checkAndPadCommitments(inputs);
         outputs = checkAndPadCommitments(outputs);
@@ -126,7 +124,7 @@ contract Zeto_AnonEnc is
             encryptedValues
         );
         bool isBatch = (inputs.length > 2 || outputs.length > 2);
-        verifyProof(proof, publicInputs, isBatch, false);
+        verifyProof(proofStruct, publicInputs, isBatch, false);
 
         // accept the transaction proposal and process the inputs and outputs
         processInputsAndOutputs(inputs, outputs, lockedOutputs, false);

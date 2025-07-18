@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import { ethers, network } from "hardhat";
-import { ContractTransactionReceipt, Signer, BigNumberish } from "ethers";
+import { ContractTransactionReceipt, Signer, BigNumberish, AbiCoder } from "ethers";
 import { expect } from "chai";
 import {
   loadCircuit,
@@ -559,10 +559,7 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     const tx = await zeto.connect(signer.signer).transfer(
       inputCommitments.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
       outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
-      encryptionNonce,
-      ecdhPublicKey,
-      encryptedValues,
-      encodedProof,
+      encodeToBytes(encryptionNonce, ecdhPublicKey, encryptedValues, encodedProof),
       "0x",
     );
     const results: ContractTransactionReceipt | null = await tx.wait();
@@ -580,3 +577,7 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     return results;
   }
 });
+
+function encodeToBytes(encryptionNonce: any, ecdhPublicKey: any, encryptedValues: any, proof: any) {
+  return new AbiCoder().encode(["uint256 encryptionNonce", "uint256[2] ecdhPublicKey", "uint256[] encryptedValues", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [encryptionNonce, ecdhPublicKey, encryptedValues, proof]);
+}
