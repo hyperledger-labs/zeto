@@ -41,11 +41,7 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
-<<<<<<< Updated upstream
-        runs: 200,
-=======
         runs: 25,
->>>>>>> Stashed changes
       },
       viaIR: true,
     },
