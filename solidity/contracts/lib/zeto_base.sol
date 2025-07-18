@@ -17,6 +17,7 @@ pragma solidity ^0.8.27;
 
 import {IZeto} from "./interfaces/izeto.sol";
 import {IZetoLockable} from "./interfaces/izeto_lockable.sol";
+import {IZetoInitializable} from "./interfaces/izeto_initializable.sol";
 import {Commonlib} from "./common.sol";
 import {ZetoCommon} from "./zeto_common.sol";
 
@@ -44,9 +45,10 @@ abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
     function __ZetoBase_init(
         string memory name_,
         string memory symbol_,
-        address initialOwner
+        address initialOwner,
+        IZetoInitializable.VerifiersInfo calldata verifiers
     ) internal onlyInitializing {
-        __ZetoCommon_init(name_, symbol_, initialOwner);
+        __ZetoCommon_init(name_, symbol_, initialOwner, verifiers);
     }
 
     /// @dev query whether a UTXO is currently spent

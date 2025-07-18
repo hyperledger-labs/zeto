@@ -17,24 +17,13 @@ pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
 import {MAX_BATCH} from "./lib/interfaces/izeto.sol";
-import {Groth16Verifier_Deposit} from "./verifiers/verifier_deposit.sol";
-import {Groth16Verifier_WithdrawNullifier} from "./verifiers/verifier_withdraw_nullifier.sol";
-import {Groth16Verifier_WithdrawNullifierBatch} from "./verifiers/verifier_withdraw_nullifier_batch.sol";
-import {Groth16Verifier_AnonNullifierTransfer} from "./verifiers/verifier_anon_nullifier_transfer.sol";
-import {Groth16Verifier_AnonNullifierTransferLocked} from "./verifiers/verifier_anon_nullifier_transferLocked.sol";
-import {Groth16Verifier_AnonNullifierTransferBatch} from "./verifiers/verifier_anon_nullifier_transfer_batch.sol";
-import {Groth16Verifier_AnonNullifierTransferLockedBatch} from "./verifiers/verifier_anon_nullifier_transferLocked_batch.sol";
+import {IGroth16Verifier} from "./lib/interfaces/izeto_verifier.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Commonlib} from "./lib/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {console} from "hardhat/console.sol";
-
-uint256 constant INPUT_SIZE = 7;
-uint256 constant INPUT_SIZE_LOCKED = 8;
-uint256 constant BATCH_INPUT_SIZE = 31;
-uint256 constant BATCH_INPUT_SIZE_LOCKED = 32;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and history masking
 /// @author Kaleido, Inc.
@@ -46,17 +35,10 @@ uint256 constant BATCH_INPUT_SIZE_LOCKED = 32;
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 contract Zeto_AnonNullifier is
     IZeto,
-    IZetoInitializable,
     ZetoNullifier,
     ZetoFungibleWithdrawWithNullifiers,
     UUPSUpgradeable
 {
-    Groth16Verifier_AnonNullifierTransfer internal _verifier;
-    Groth16Verifier_AnonNullifierTransferBatch internal _batchVerifier;
-    Groth16Verifier_AnonNullifierTransferLocked internal _lockVerifier;
-    Groth16Verifier_AnonNullifierTransferLockedBatch
-        internal _batchLockVerifier;
-
     function initialize(
         string memory name,
         string memory symbol,
@@ -72,23 +54,11 @@ contract Zeto_AnonNullifier is
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) internal onlyInitializing {
-        __ZetoNullifier_init(name_, symbol_, initialOwner);
+        __ZetoNullifier_init(name_, symbol_, initialOwner, verifiers);
         __ZetoFungibleWithdrawWithNullifiers_init(
-            (Groth16Verifier_Deposit)(verifiers.depositVerifier),
-            (Groth16Verifier_WithdrawNullifier)(verifiers.withdrawVerifier),
-            (Groth16Verifier_WithdrawNullifierBatch)(
-                verifiers.batchWithdrawVerifier
-            )
-        );
-        _verifier = (Groth16Verifier_AnonNullifierTransfer)(verifiers.verifier);
-        _lockVerifier = (Groth16Verifier_AnonNullifierTransferLocked)(
-            verifiers.lockVerifier
-        );
-        _batchVerifier = (Groth16Verifier_AnonNullifierTransferBatch)(
-            verifiers.batchVerifier
-        );
-        _batchLockVerifier = (Groth16Verifier_AnonNullifierTransferLockedBatch)(
-            verifiers.batchLockVerifier
+            (IGroth16Verifier)(verifiers.depositVerifier),
+            (IGroth16Verifier)(verifiers.withdrawVerifier),
+            (IGroth16Verifier)(verifiers.batchWithdrawVerifier)
         );
     }
 
@@ -98,9 +68,14 @@ contract Zeto_AnonNullifier is
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         uint256 root,
-        uint256 size,
         bool locked
     ) internal view returns (uint256[] memory publicInputs) {
+        uint256[] memory extra = extraInputs();
+        uint256 size = (nullifiers.length * 2) + // nullifiers and enabled flags
+            (locked ? 1 : 0) +
+            1 + // root
+            extra.length +
+            outputs.length;
         publicInputs = new uint256[](size);
         uint256 piIndex = 0;
         // copy input commitments
@@ -120,12 +95,23 @@ contract Zeto_AnonNullifier is
             publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
         }
 
+        // insert extra inputs if any
+        for (uint256 i = 0; i < extra.length; i++) {
+            publicInputs[piIndex++] = extra[i];
+        }
+
         // copy output commitments
         for (uint256 i = 0; i < outputs.length; i++) {
             publicInputs[piIndex++] = outputs[i];
         }
 
         return publicInputs;
+    }
+
+    function extraInputs() internal view virtual returns (uint256[] memory) {
+        // no extra inputs for this contract
+        uint256[] memory empty = new uint256[](0);
+        return empty;
     }
 
     /**
@@ -270,54 +256,14 @@ contract Zeto_AnonNullifier is
         uint256 root,
         Commonlib.Proof calldata proof
     ) public view returns (bool) {
-        if (nullifiers.length > 2 || outputs.length > 2) {
-            uint256[] memory publicInputs = constructPublicInputs(
-                nullifiers,
-                outputs,
-                root,
-                BATCH_INPUT_SIZE,
-                false
-            );
-            // construct the public inputs for batchVerifier
-            uint256[BATCH_INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
-
-            // Check the proof using batchVerifier
-            require(
-                _batchVerifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof (batch)"
-            );
-        } else {
-            uint256[] memory publicInputs = constructPublicInputs(
-                nullifiers,
-                outputs,
-                root,
-                INPUT_SIZE,
-                false
-            );
-            // construct the public inputs for verifier
-            uint256[INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
-            // Check the proof
-            require(
-                _verifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof"
-            );
-        }
+        uint256[] memory publicInputs = constructPublicInputs(
+            nullifiers,
+            outputs,
+            root,
+            false
+        );
+        bool isBatch = (nullifiers.length > 2 || outputs.length > 2);
+        verifyProof(proof, publicInputs, isBatch, false);
         return true;
     }
 
@@ -327,54 +273,14 @@ contract Zeto_AnonNullifier is
         uint256 root,
         Commonlib.Proof calldata proof
     ) public view returns (bool) {
-        if (nullifiers.length > 2 || outputs.length > 2) {
-            uint256[] memory publicInputs = constructPublicInputs(
-                nullifiers,
-                outputs,
-                root,
-                BATCH_INPUT_SIZE_LOCKED,
-                true
-            );
-            // construct the public inputs for batchVerifier
-            uint256[BATCH_INPUT_SIZE_LOCKED] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
-
-            // Check the proof using batchVerifier
-            require(
-                _batchLockVerifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof (batch)"
-            );
-        } else {
-            uint256[] memory publicInputs = constructPublicInputs(
-                nullifiers,
-                outputs,
-                root,
-                INPUT_SIZE_LOCKED,
-                true
-            );
-            // construct the public inputs for verifier
-            uint256[INPUT_SIZE_LOCKED] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
-            // Check the proof
-            require(
-                _lockVerifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof"
-            );
-        }
+        uint256[] memory publicInputs = constructPublicInputs(
+            nullifiers,
+            outputs,
+            root,
+            true
+        );
+        bool isBatch = (nullifiers.length > 2 || outputs.length > 2);
+        verifyProof(proof, publicInputs, isBatch, true);
         return true;
     }
 }

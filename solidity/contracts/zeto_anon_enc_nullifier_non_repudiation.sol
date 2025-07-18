@@ -16,18 +16,11 @@
 pragma solidity ^0.8.27;
 
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {Groth16Verifier_Deposit} from "./verifiers/verifier_deposit.sol";
-import {Groth16Verifier_WithdrawNullifier} from "./verifiers/verifier_withdraw_nullifier.sol";
-import {Groth16Verifier_WithdrawNullifierBatch} from "./verifiers/verifier_withdraw_nullifier_batch.sol";
-import {Groth16Verifier_AnonEncNullifierNonRepudiation} from "./verifiers/verifier_anon_enc_nullifier_non_repudiation.sol";
-import {Groth16Verifier_AnonEncNullifierNonRepudiationBatch} from "./verifiers/verifier_anon_enc_nullifier_non_repudiation_batch.sol";
+import {IGroth16Verifier} from "./lib/interfaces/izeto_verifier.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Commonlib} from "./lib/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
-
-uint256 constant INPUT_SIZE = 36;
-uint256 constant BATCH_INPUT_SIZE = 140;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity, encryption and history masking
 /// @author Kaleido, Inc.
@@ -39,7 +32,6 @@ uint256 constant BATCH_INPUT_SIZE = 140;
 ///        - the encrypted value in the input is derived from the receiver's UTXO value and encrypted with a shared secret using the ECDH protocol between the sender and receiver (this guarantees data availability for the receiver)
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 contract Zeto_AnonEncNullifierNonRepudiation is
-    IZetoInitializable,
     ZetoNullifier,
     ZetoFungibleWithdrawWithNullifiers,
     UUPSUpgradeable
@@ -54,9 +46,6 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         address indexed submitter,
         bytes data
     );
-
-    Groth16Verifier_AnonEncNullifierNonRepudiation internal _verifier;
-    Groth16Verifier_AnonEncNullifierNonRepudiationBatch internal _batchVerifier;
     // the arbiter public key that must be used to
     // encrypt the secrets of every transaction
     uint256[2] private arbiter;
@@ -67,19 +56,11 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
-        __ZetoNullifier_init(name, symbol, initialOwner);
+        __ZetoNullifier_init(name, symbol, initialOwner, verifiers);
         __ZetoFungibleWithdrawWithNullifiers_init(
-            (Groth16Verifier_Deposit)(verifiers.depositVerifier),
-            (Groth16Verifier_WithdrawNullifier)(verifiers.withdrawVerifier),
-            (Groth16Verifier_WithdrawNullifierBatch)(
-                verifiers.batchWithdrawVerifier
-            )
-        );
-        _verifier = (Groth16Verifier_AnonEncNullifierNonRepudiation)(
-            verifiers.verifier
-        );
-        _batchVerifier = (Groth16Verifier_AnonEncNullifierNonRepudiationBatch)(
-            verifiers.batchVerifier
+            (IGroth16Verifier)(verifiers.depositVerifier),
+            (IGroth16Verifier)(verifiers.withdrawVerifier),
+            (IGroth16Verifier)(verifiers.batchWithdrawVerifier)
         );
     }
 
@@ -100,9 +81,15 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         uint256 encryptionNonce,
         uint256[2] memory ecdhPublicKey,
         uint256[] memory encryptedValuesForReceiver,
-        uint256[] memory encryptedValuesForAuthority,
-        uint256 size
+        uint256[] memory encryptedValuesForAuthority
     ) internal view returns (uint256[] memory publicInputs) {
+        uint256 size = ecdhPublicKey.length +
+            encryptedValuesForReceiver.length +
+            encryptedValuesForAuthority.length +
+            (nullifiers.length * 2) + // nullifiers and enabled flags
+            outputs.length +
+            2 + // root and encryptionNonce
+            2; // arbiter public key
         publicInputs = new uint256[](size);
         uint256 piIndex = 0;
         // copy the ecdh public key
@@ -183,63 +170,23 @@ contract Zeto_AnonEncNullifierNonRepudiation is
                 (encryptedValuesForAuthority.length == 64),
                 "Cipher Text for Authority must have a length of 64 with input or outputs number more than 2 and less than 10"
             );
-            uint256[] memory publicInputs = constructPublicInputs(
-                nullifiers,
-                outputs,
-                root,
-                encryptionNonce,
-                ecdhPublicKey,
-                encryptedValuesForReceiver,
-                encryptedValuesForAuthority,
-                BATCH_INPUT_SIZE
-            );
-            // construct the public inputs for batchVerifier
-            uint256[BATCH_INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
-
-            // Check the proof using batchVerifier
-            require(
-                _batchVerifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof (batch)"
-            );
         } else {
             require(
                 (encryptedValuesForAuthority.length == 16),
                 "Cipher Text for Authority must have a length of 16 for no more than 2 inputs or outputs"
             );
-            uint256[] memory publicInputs = constructPublicInputs(
-                nullifiers,
-                outputs,
-                root,
-                encryptionNonce,
-                ecdhPublicKey,
-                encryptedValuesForReceiver,
-                encryptedValuesForAuthority,
-                INPUT_SIZE
-            );
-            // construct the public inputs for verifier
-            uint256[INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
-            // Check the proof
-            require(
-                _verifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof"
-            );
         }
+        uint256[] memory publicInputs = constructPublicInputs(
+            nullifiers,
+            outputs,
+            root,
+            encryptionNonce,
+            ecdhPublicKey,
+            encryptedValuesForReceiver,
+            encryptedValuesForAuthority
+        );
+        bool isBatch = (nullifiers.length > 2 || outputs.length > 2);
+        verifyProof(proof, publicInputs, isBatch, false);
 
         // accept the transaction to consume the input UTXOs and produce new UTXOs
         uint256[] memory empty;

@@ -15,24 +15,20 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {Groth16Verifier_BurnNullifier} from "../verifiers/verifier_burn_nullifier.sol";
-import {Groth16Verifier_BurnNullifierBatch} from "../verifiers/verifier_burn_nullifier_batch.sol";
+import {IGroth16Verifier} from "./interfaces/izeto_verifier.sol";
 import {ZetoNullifier} from "./zeto_nullifier.sol";
 import {Commonlib} from "./common.sol";
-
-uint256 constant BURN_INPUT_SIZE = 6;
-uint256 constant BATCH_BURN_INPUT_SIZE = 22;
 
 /// @title A feature implementation of a Zeto fungible token burn contract
 /// @author Kaleido, Inc.
 /// @dev Can be added to a Zeto fungible token contract to allow for burning of tokens.
 abstract contract ZetoFungibleBurnableWithNullifiers is ZetoNullifier {
-    Groth16Verifier_BurnNullifier internal _burnVerifier;
-    Groth16Verifier_BurnNullifierBatch internal _batchBurnVerifier;
+    IGroth16Verifier internal _burnVerifier;
+    IGroth16Verifier internal _batchBurnVerifier;
 
     function __ZetoFungibleBurnableWithNullifiers_init(
-        Groth16Verifier_BurnNullifier burnVerifier,
-        Groth16Verifier_BurnNullifierBatch batchBurnVerifier
+        IGroth16Verifier burnVerifier,
+        IGroth16Verifier batchBurnVerifier
     ) public onlyInitializing {
         _burnVerifier = burnVerifier;
         _batchBurnVerifier = batchBurnVerifier;
@@ -71,52 +67,19 @@ abstract contract ZetoFungibleBurnableWithNullifiers is ZetoNullifier {
         Commonlib.Proof calldata proof,
         bytes calldata data
     ) public virtual {
-        // Check the proof
-        if (nullifiers.length > 2) {
-            // construct the public inputs for verifier
-            uint256[] memory publicInputs = constructPublicInputs(
-                nullifiers,
-                output,
-                root
-            );
-            // construct the public inputs for verifier
-            uint256[BATCH_BURN_INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
-            // Check the proof
-            require(
-                _batchBurnVerifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof"
-            );
-        } else {
-            // construct the public inputs for verifier
-            uint256[] memory publicInputs = constructPublicInputs(
-                nullifiers,
-                output,
-                root
-            );
-            // construct the public inputs for verifier
-            uint256[BURN_INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
-            // Check the proof
-            require(
-                _burnVerifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof"
-            );
-        }
+        uint256[] memory publicInputs = constructPublicInputs(
+            nullifiers,
+            output,
+            root
+        );
+
+        IGroth16Verifier verifier = (nullifiers.length > 2)
+            ? _batchBurnVerifier
+            : _burnVerifier;
+        require(
+            verifier.verify(proof.pA, proof.pB, proof.pC, publicInputs),
+            "Invalid proof"
+        );
 
         _burn(nullifiers, output, root, data);
     }

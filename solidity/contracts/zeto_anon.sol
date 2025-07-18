@@ -16,19 +16,12 @@
 pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
-import {Groth16Verifier_Deposit} from "./verifiers/verifier_deposit.sol";
-import {Groth16Verifier_Withdraw} from "./verifiers/verifier_withdraw.sol";
-import {Groth16Verifier_WithdrawBatch} from "./verifiers/verifier_withdraw_batch.sol";
-import {Groth16Verifier_Anon} from "./verifiers/verifier_anon.sol";
-import {Groth16Verifier_AnonBatch} from "./verifiers/verifier_anon_batch.sol";
+import {IGroth16Verifier} from "./lib/interfaces/izeto_verifier.sol";
 import {Commonlib} from "./lib/common.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-
-uint256 constant INPUT_SIZE = 4;
-uint256 constant BATCH_INPUT_SIZE = 20;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and no encryption
 /// @author Kaleido, Inc.
@@ -37,21 +30,12 @@ uint256 constant BATCH_INPUT_SIZE = 20;
 ///        - the sum of the input values match the sum of output values
 ///        - the hashes in the input and output match the `hash(value, salt, owner public key)` formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
-contract Zeto_Anon is
-    IZeto,
-    IZetoInitializable,
-    ZetoBase,
-    ZetoFungibleWithdraw,
-    UUPSUpgradeable
-{
-    Groth16Verifier_Anon internal _verifier;
-    Groth16Verifier_AnonBatch internal _batchVerifier;
-
+contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
     function initialize(
         string memory name,
         string memory symbol,
         address initialOwner,
-        VerifiersInfo calldata verifiers
+        IZetoInitializable.VerifiersInfo calldata verifiers
     ) public virtual initializer {
         __ZetoAnon_init(name, symbol, initialOwner, verifiers);
     }
@@ -60,16 +44,14 @@ contract Zeto_Anon is
         string memory name_,
         string memory symbol_,
         address initialOwner,
-        VerifiersInfo calldata verifiers
+        IZetoInitializable.VerifiersInfo calldata verifiers
     ) internal onlyInitializing {
-        __ZetoBase_init(name_, symbol_, initialOwner);
+        __ZetoBase_init(name_, symbol_, initialOwner, verifiers);
         __ZetoFungibleWithdraw_init(
-            (Groth16Verifier_Deposit)(verifiers.depositVerifier),
-            (Groth16Verifier_Withdraw)(verifiers.withdrawVerifier),
-            (Groth16Verifier_WithdrawBatch)(verifiers.batchWithdrawVerifier)
+            (IGroth16Verifier)(verifiers.depositVerifier),
+            (IGroth16Verifier)(verifiers.withdrawVerifier),
+            (IGroth16Verifier)(verifiers.batchWithdrawVerifier)
         );
-        _verifier = (Groth16Verifier_Anon)(verifiers.verifier);
-        _batchVerifier = (Groth16Verifier_AnonBatch)(verifiers.batchVerifier);
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -219,58 +201,17 @@ contract Zeto_Anon is
         uint256[] memory outputs,
         Commonlib.Proof calldata proof
     ) public view returns (bool) {
-        if (inputs.length > 2 || outputs.length > 2) {
-            uint256[] memory publicInputs = constructPublicInputs(
-                inputs,
-                outputs,
-                BATCH_INPUT_SIZE
-            );
-            // construct the public inputs for batchVerifier
-            uint256[BATCH_INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
-
-            // Check the proof using batchVerifier
-            require(
-                _batchVerifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof (batch)"
-            );
-        } else {
-            uint256[] memory publicInputs = constructPublicInputs(
-                inputs,
-                outputs,
-                INPUT_SIZE
-            );
-            // construct the public inputs for verifier
-            uint256[INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
-            // Check the proof
-            require(
-                _verifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof"
-            );
-        }
+        uint256[] memory publicInputs = constructPublicInputs(inputs, outputs);
+        bool isBatch = inputs.length > 2 || outputs.length > 2;
+        verifyProof(proof, publicInputs, isBatch, false);
         return true;
     }
 
     function constructPublicInputs(
         uint256[] memory inputs,
-        uint256[] memory outputs,
-        uint256 size
+        uint256[] memory outputs
     ) internal pure returns (uint256[] memory publicInputs) {
+        uint256 size = inputs.length + outputs.length;
         publicInputs = new uint256[](size);
         uint256 piIndex = 0;
         // copy input commitments

@@ -16,7 +16,7 @@
 pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
-import {Groth16Verifier_NfAnon} from "./verifiers/verifier_nf_anon.sol";
+import {IGroth16Verifier} from "./lib/interfaces/izeto_verifier.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
 import {Commonlib} from "./lib/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
@@ -28,17 +28,14 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 ///        - The sender owns the private key whose public key is part of the pre-image of the input UTXOs commitments
 ///          (aka the sender is authorized to spend the input UTXOs)
 ///        - The input UTXOs and output UTXOs are valid in terms of obeying mass conservation rules
-contract Zeto_NfAnon is IZeto, IZetoInitializable, ZetoBase, UUPSUpgradeable {
-    Groth16Verifier_NfAnon internal _verifier;
-
+contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
     function initialize(
         string memory name,
         string memory symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
-        __ZetoBase_init(name, symbol, initialOwner);
-        _verifier = (Groth16Verifier_NfAnon)(verifiers.verifier);
+        __ZetoBase_init(name, symbol, initialOwner, verifiers);
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -67,13 +64,13 @@ contract Zeto_NfAnon is IZeto, IZetoInitializable, ZetoBase, UUPSUpgradeable {
         validateTransactionProposal(inputs, outputs, lockedOutputs, false);
 
         // construct the public inputs
-        uint256[2] memory publicInputs;
+        uint256[] memory publicInputs = new uint256[](2);
         publicInputs[0] = input;
         publicInputs[1] = output;
 
         // Check the proof
         require(
-            _verifier.verifyProof(proof.pA, proof.pB, proof.pC, publicInputs),
+            _verifier.verify(proof.pA, proof.pB, proof.pC, publicInputs),
             "Invalid proof"
         );
 
@@ -107,13 +104,13 @@ contract Zeto_NfAnon is IZeto, IZetoInitializable, ZetoBase, UUPSUpgradeable {
         validateTransactionProposal(inputs, outputs, lockedOutputs, true);
 
         // construct the public inputs
-        uint256[2] memory publicInputs;
+        uint256[] memory publicInputs = new uint256[](2);
         publicInputs[0] = input;
         publicInputs[1] = output;
 
         // Check the proof
         require(
-            _verifier.verifyProof(proof.pA, proof.pB, proof.pC, publicInputs),
+            _verifier.verify(proof.pA, proof.pB, proof.pC, publicInputs),
             "Invalid proof"
         );
 
@@ -142,13 +139,13 @@ contract Zeto_NfAnon is IZeto, IZetoInitializable, ZetoBase, UUPSUpgradeable {
         validateTransactionProposal(inputs, outputs, lockedOutputs, false);
 
         // construct the public inputs
-        uint256[2] memory publicInputs;
+        uint256[] memory publicInputs = new uint256[](2);
         publicInputs[0] = input;
         publicInputs[1] = lockedOutput;
 
         // Check the proof
         require(
-            _verifier.verifyProof(proof.pA, proof.pB, proof.pC, publicInputs),
+            _verifier.verify(proof.pA, proof.pB, proof.pC, publicInputs),
             "Invalid proof"
         );
 

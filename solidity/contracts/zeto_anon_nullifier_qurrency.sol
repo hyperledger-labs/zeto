@@ -18,39 +18,13 @@ pragma solidity ^0.8.27;
 import {PoseidonUnit5L} from "@iden3/contracts/lib/Poseidon.sol";
 import {IZeto} from "./lib/interfaces/izeto.sol";
 import {MAX_BATCH} from "./lib/interfaces/izeto.sol";
-import {Groth16Verifier_Deposit} from "./verifiers/verifier_deposit.sol";
-import {Groth16Verifier_WithdrawNullifier} from "./verifiers/verifier_withdraw_nullifier.sol";
-import {Groth16Verifier_WithdrawNullifierBatch} from "./verifiers/verifier_withdraw_nullifier_batch.sol";
-import {Groth16Verifier_AnonNullifierQurrencyTransfer} from "./verifiers/verifier_anon_nullifier_qurrency_transfer.sol";
-// import {Groth16Verifier_AnonNullifierTransferLocked} from "./verifiers/verifier_anon_nullifier_transferLocked.sol";
-import {Groth16Verifier_AnonNullifierQurrencyTransferBatch} from "./verifiers/verifier_anon_nullifier_qurrency_transfer_batch.sol";
-// import {Groth16Verifier_AnonNullifierTransferLockedBatch} from "./verifiers/verifier_anon_nullifier_transferLocked_batch.sol";
+import {IGroth16Verifier} from "./lib/interfaces/izeto_verifier.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Commonlib} from "./lib/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {console} from "hardhat/console.sol";
-
-// the public inputs for the non-batch proof have the following structure:
-//  - 25 elements for the ML-KEM encapsulated shared secret
-//  - 16 elements for the encrypted values (3n+1 for 14 encyrpted elements)
-//  - 2 elements for the nullifiers
-//  - 1 element for the root hash
-//  - 2 elements for the "enabled" flags (1 for each nullifier)
-//  - 2 elements for the output commitments
-uint256 constant INPUT_SIZE = 48;
-// the public inputs for the batch proof have the following structure:
-//  - 25 elements for the ML-KEM encapsulated shared secret
-//  - 64 elements for the encrypted values (3n+1 for 62 encyrpted elements)
-//  - 10 elements for the nullifiers
-//  - 1 element for the root hash
-//  - 10 elements for the "enabled" flags (1 for each nullifier)
-//  - 10 elements for the output commitments
-uint256 constant BATCH_INPUT_SIZE = 120;
-
-// uint256 constant INPUT_SIZE_LOCKED = 8;
-// uint256 constant BATCH_INPUT_SIZE_LOCKED = 32;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and history masking
 /// @author Kaleido, Inc.
@@ -62,44 +36,22 @@ uint256 constant BATCH_INPUT_SIZE = 120;
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 contract Zeto_AnonNullifierQurrency is
     IZeto,
-    IZetoInitializable,
     ZetoNullifier,
     ZetoFungibleWithdrawWithNullifiers,
     UUPSUpgradeable
 {
-    Groth16Verifier_AnonNullifierQurrencyTransfer internal _verifier;
-    Groth16Verifier_AnonNullifierQurrencyTransferBatch internal _batchVerifier;
-
-    // Groth16Verifier_AnonNullifierTransferLocked internal _lockVerifier;
-    // Groth16Verifier_AnonNullifierTransferLockedBatch
-    //     internal _batchLockVerifier;
-
     function initialize(
         string memory name,
         string memory symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
-        __ZetoNullifier_init(name, symbol, initialOwner);
+        __ZetoNullifier_init(name, symbol, initialOwner, verifiers);
         __ZetoFungibleWithdrawWithNullifiers_init(
-            (Groth16Verifier_Deposit)(verifiers.depositVerifier),
-            (Groth16Verifier_WithdrawNullifier)(verifiers.withdrawVerifier),
-            (Groth16Verifier_WithdrawNullifierBatch)(
-                verifiers.batchWithdrawVerifier
-            )
+            (IGroth16Verifier)(verifiers.depositVerifier),
+            (IGroth16Verifier)(verifiers.withdrawVerifier),
+            (IGroth16Verifier)(verifiers.batchWithdrawVerifier)
         );
-        _verifier = (Groth16Verifier_AnonNullifierQurrencyTransfer)(
-            verifiers.verifier
-        );
-        // _lockVerifier = (Groth16Verifier_AnonNullifierTransferLocked)(
-        //     verifiers.lockVerifier
-        // );
-        _batchVerifier = (Groth16Verifier_AnonNullifierQurrencyTransferBatch)(
-            verifiers.batchVerifier
-        );
-        // _batchLockVerifier = (Groth16Verifier_AnonNullifierTransferLockedBatch)(
-        //     verifiers.batchLockVerifier
-        // );
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -110,9 +62,22 @@ contract Zeto_AnonNullifierQurrency is
         uint256 root,
         uint256[] memory encryptedValues,
         uint256[25] memory encapsulatedSharedSecret,
-        uint256 size,
         bool locked
     ) internal view returns (uint256[] memory publicInputs) {
+        // the public inputs for the non-batch proof have the following structure:
+        //  - 25 elements for the ML-KEM encapsulated shared secret
+        //  - 16 or 64 elements for the encrypted values (3n+1 for 14 or 62 encyrpted elements)
+        //  - 2 or 10 elements for the nullifiers
+        //  - 1 element for the root hash
+        //  - 2 or 10 elements for the "enabled" flags (1 for each nullifier)
+        //  - 2 or 10 elements for the output commitments
+        uint256 size = encapsulatedSharedSecret.length +
+            encryptedValues.length +
+            (nullifiers.length * 2) + // nullifiers and the enabled flags
+            outputs.length +
+            2 + // root and encryptionNonce
+            (locked ? 1 : 0); // lock delegate if locked
+
         publicInputs = new uint256[](size);
         uint256 piIndex = 0;
         // copy the ML-KEM encapsulated shared secret
@@ -311,57 +276,16 @@ contract Zeto_AnonNullifierQurrency is
         uint256[25] memory encapsulatedSharedSecret,
         Commonlib.Proof calldata proof
     ) public view returns (bool) {
-        if (nullifiers.length > 2 || outputs.length > 2) {
-            uint256[] memory publicInputs = constructPublicInputs(
-                nullifiers,
-                outputs,
-                root,
-                encryptedValues,
-                encapsulatedSharedSecret,
-                BATCH_INPUT_SIZE,
-                false
-            );
-            // construct the public inputs for verifier
-            uint256[BATCH_INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
-            // Check the proof using batchVerifier
-            require(
-                _batchVerifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof (batch)"
-            );
-        } else {
-            uint256[] memory publicInputs = constructPublicInputs(
-                nullifiers,
-                outputs,
-                root,
-                encryptedValues,
-                encapsulatedSharedSecret,
-                INPUT_SIZE,
-                false
-            );
-            // construct the public inputs for verifier
-            uint256[INPUT_SIZE] memory fixedSizeInputs;
-            for (uint256 i = 0; i < fixedSizeInputs.length; i++) {
-                fixedSizeInputs[i] = publicInputs[i];
-            }
-            // Check the proof
-            require(
-                _verifier.verifyProof(
-                    proof.pA,
-                    proof.pB,
-                    proof.pC,
-                    fixedSizeInputs
-                ),
-                "Invalid proof"
-            );
-        }
+        uint256[] memory publicInputs = constructPublicInputs(
+            nullifiers,
+            outputs,
+            root,
+            encryptedValues,
+            encapsulatedSharedSecret,
+            false
+        );
+        bool isBatch = nullifiers.length > 2 || outputs.length > 2;
+        verifyProof(proof, publicInputs, isBatch, false);
         return true;
     }
 

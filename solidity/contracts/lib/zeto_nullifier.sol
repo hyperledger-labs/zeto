@@ -19,6 +19,7 @@ import {Commonlib} from "./common.sol";
 import {IZeto} from "./interfaces/izeto.sol";
 import {MAX_SMT_DEPTH} from "./interfaces/izeto.sol";
 import {IZetoLockable} from "./interfaces/izeto_lockable.sol";
+import {IZetoInitializable} from "./interfaces/izeto_initializable.sol";
 import {ZetoCommon} from "./zeto_common.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
@@ -44,9 +45,10 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
     function __ZetoNullifier_init(
         string memory name_,
         string memory symbol_,
-        address initialOwner
+        address initialOwner,
+        IZetoInitializable.VerifiersInfo calldata verifiers
     ) internal onlyInitializing {
-        __ZetoCommon_init(name_, symbol_, initialOwner);
+        __ZetoCommon_init(name_, symbol_, initialOwner, verifiers);
         _commitmentsTree.initialize(MAX_SMT_DEPTH);
         _lockedCommitmentsTree.initialize(MAX_SMT_DEPTH);
     }
@@ -213,25 +215,8 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
         address delegate,
         bytes calldata data
     ) internal {
-        for (uint256 i = 0; i < outputs.length; ++i) {
-            if (outputs[i] == 0) {
-                // skip the zero outputs
-                continue;
-            }
-            _commitmentsTree.addLeaf(outputs[i], outputs[i]);
-        }
-
-        // Check the locked outputs are all new UTXOs
-        for (uint256 i = 0; i < lockedOutputs.length; ++i) {
-            if (lockedOutputs[i] == 0) {
-                // skip the zero outputs
-                continue;
-            }
-            _lockedCommitmentsTree.addLeaf(
-                lockedOutputs[i],
-                uint256(uint160(delegate))
-            );
-        }
+        processOutputs(outputs);
+        processLockedOutputs(lockedOutputs, delegate);
 
         emit UTXOsLocked(
             nullifiers,

@@ -260,7 +260,7 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
     }).timeout(60000);
   });
 
-  describe.only("transfer with verifications by the receiver and the audit authority", function () {
+  describe("transfer with verifications by the receiver and the audit authority", function () {
     let event: any;
     let outputUTXOs: UTXO[];
     let outputOwners: User[];
@@ -325,8 +325,14 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
       const nullifier2 = newNullifier(utxo2, Alice);
 
       // Alice generates inclusion proofs for the UTXOs to be spent
-      const proof1 = await smtAlice.generateCircomVerifierProof(utxo1.hash, root);
-      const proof2 = await smtAlice.generateCircomVerifierProof(utxo2.hash, root);
+      const proof1 = await smtAlice.generateCircomVerifierProof(
+        utxo1.hash,
+        root,
+      );
+      const proof2 = await smtAlice.generateCircomVerifierProof(
+        utxo2.hash,
+        root,
+      );
       const merkleProofs = [
         proof1.siblings.map((s) => s.bigInt()),
         proof2.siblings.map((s) => s.bigInt()),
@@ -390,7 +396,10 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
       // the receiver can decap the ciphertext, and recover the shared secret
       // using the mlkem ciphertext and the receiver's private key
       const receiver = new MlKem512();
-      const ssReceiver = await receiver.decap(new Uint8Array(cBytes), new Uint8Array(testKeyPair.sk));
+      const ssReceiver = await receiver.decap(
+        new Uint8Array(cBytes),
+        new Uint8Array(testKeyPair.sk),
+      );
       // corresponding to the logic in the circuit "pubkey.circom", we derive the symmetric key
       // from the shared secret
       expect(ssReceiver.length).to.equal(32);
@@ -400,7 +409,12 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
       const encryptionNonce = event.encryptionNonce;
       expect(encryptedValues.length).to.equal(16);
 
-      let plainText = poseidonDecrypt(encryptedValues, recoveredKey, encryptionNonce, 14);
+      let plainText = poseidonDecrypt(
+        encryptedValues,
+        recoveredKey,
+        encryptionNonce,
+        14,
+      );
       expect(plainText[0]).to.equal(Alice.babyJubPublicKey[0]);
       expect(plainText[1]).to.equal(Alice.babyJubPublicKey[1]);
       expect(plainText[2]).to.equal(BigInt(utxo1.value!));

@@ -16,8 +16,7 @@
 pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
-import {Groth16Verifier_NfAnonNullifierTransfer} from "./verifiers/verifier_nf_anon_nullifier_transfer.sol";
-import {Groth16Verifier_NfAnonNullifierTransferLocked} from "./verifiers/verifier_nf_anon_nullifier_transferLocked.sol";
+import {IGroth16Verifier} from "./lib/interfaces/izeto_verifier.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {Commonlib} from "./lib/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
@@ -31,28 +30,14 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 ///        - the hashes in the input and output match the hash(value, salt, owner public key) formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
-contract Zeto_NfAnonNullifier is
-    IZeto,
-    IZetoInitializable,
-    ZetoNullifier,
-    UUPSUpgradeable
-{
-    Groth16Verifier_NfAnonNullifierTransfer _verifier;
-    Groth16Verifier_NfAnonNullifierTransferLocked _lockVerifier;
-
+contract Zeto_NfAnonNullifier is IZeto, ZetoNullifier, UUPSUpgradeable {
     function initialize(
         string memory name,
         string memory symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
-        __ZetoNullifier_init(name, symbol, initialOwner);
-        _verifier = (Groth16Verifier_NfAnonNullifierTransfer)(
-            verifiers.verifier
-        );
-        _lockVerifier = (Groth16Verifier_NfAnonNullifierTransferLocked)(
-            verifiers.lockVerifier
-        );
+        __ZetoNullifier_init(name, symbol, initialOwner, verifiers);
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -80,7 +65,7 @@ contract Zeto_NfAnonNullifier is
         uint256[] memory outputs = new uint256[](1);
         outputs[0] = output;
         validateTransactionProposal(nullifiers, outputs, root, false);
-        checkProof(nullifiers, outputs, root, proof);
+        verifyProof(nullifiers, outputs, root, proof);
         uint256[] memory empty;
         processInputsAndOutputs(nullifiers, outputs, empty, address(0));
 
@@ -111,7 +96,7 @@ contract Zeto_NfAnonNullifier is
         uint256[] memory outputs = new uint256[](1);
         outputs[0] = output;
         validateTransactionProposal(nullifiers, outputs, root, true);
-        checkProofLocked(nullifiers, outputs, root, proof);
+        verifyProofLocked(nullifiers, outputs, root, proof);
         uint256[] memory empty;
         processInputsAndOutputs(nullifiers, outputs, empty, address(0));
 
@@ -136,7 +121,7 @@ contract Zeto_NfAnonNullifier is
         uint256[] memory lockedOutputs = new uint256[](1);
         lockedOutputs[0] = lockedOutput;
         validateTransactionProposal(nullifiers, lockedOutputs, root, false);
-        checkProof(nullifiers, lockedOutputs, root, proof);
+        verifyProof(nullifiers, lockedOutputs, root, proof);
 
         processNullifiers(nullifiers);
 
@@ -145,33 +130,33 @@ contract Zeto_NfAnonNullifier is
         _lock(nullifiers, outputs, lockedOutputs, delegate, data);
     }
 
-    function checkProof(
+    function verifyProof(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         uint256 root,
         Commonlib.Proof calldata proof
     ) internal view {
         // construct the public inputs
-        uint256[3] memory publicInputs;
+        uint256[] memory publicInputs = new uint256[](3);
         publicInputs[0] = nullifiers[0];
         publicInputs[1] = root;
         publicInputs[2] = outputs[0];
 
         // Check the proof
         require(
-            _verifier.verifyProof(proof.pA, proof.pB, proof.pC, publicInputs),
+            _verifier.verify(proof.pA, proof.pB, proof.pC, publicInputs),
             "Invalid proof"
         );
     }
 
-    function checkProofLocked(
+    function verifyProofLocked(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         uint256 root,
         Commonlib.Proof calldata proof
     ) internal view {
         // construct the public inputs
-        uint256[4] memory publicInputs;
+        uint256[] memory publicInputs = new uint256[](4);
         publicInputs[0] = nullifiers[0];
         publicInputs[1] = uint256(uint160(msg.sender));
         publicInputs[2] = root;
@@ -179,12 +164,7 @@ contract Zeto_NfAnonNullifier is
 
         // Check the proof
         require(
-            _lockVerifier.verifyProof(
-                proof.pA,
-                proof.pB,
-                proof.pC,
-                publicInputs
-            ),
+            _lockVerifier.verify(proof.pA, proof.pB, proof.pC, publicInputs),
             "Invalid proof"
         );
     }

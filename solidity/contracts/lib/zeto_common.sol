@@ -17,6 +17,8 @@ pragma solidity ^0.8.27;
 
 import {Commonlib} from "./common.sol";
 import {IZeto, MAX_BATCH} from "./interfaces/izeto.sol";
+import {IGroth16Verifier} from "./interfaces/izeto_verifier.sol";
+import {IZetoInitializable} from "./interfaces/izeto_initializable.sol";
 import {Arrays} from "@openzeppelin/contracts/utils/Arrays.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
@@ -27,15 +29,26 @@ abstract contract ZetoCommon is IZeto, OwnableUpgradeable {
     string private _name;
     string private _symbol;
 
+    IGroth16Verifier internal _verifier;
+    IGroth16Verifier internal _batchVerifier;
+    IGroth16Verifier internal _lockVerifier;
+    IGroth16Verifier internal _batchLockVerifier;
+
     function __ZetoCommon_init(
         string memory name_,
         string memory symbol_,
-        address initialOwner
+        address initialOwner,
+        IZetoInitializable.VerifiersInfo calldata verifiers
     ) internal onlyInitializing {
         __Ownable_init(initialOwner);
         _name = name_;
         _symbol = symbol_;
+        _verifier = (IGroth16Verifier)(verifiers.verifier);
+        _lockVerifier = (IGroth16Verifier)(verifiers.lockVerifier);
+        _batchVerifier = (IGroth16Verifier)(verifiers.batchVerifier);
+        _batchLockVerifier = (IGroth16Verifier)(verifiers.batchLockVerifier);
     }
+
     /**
      * @dev Returns the name of the token.
      */
@@ -95,6 +108,7 @@ abstract contract ZetoCommon is IZeto, OwnableUpgradeable {
 
         return commitments;
     }
+
     function sortCommitments(
         uint256[] memory utxos
     ) internal pure returns (uint256[] memory) {
@@ -104,5 +118,21 @@ abstract contract ZetoCommon is IZeto, OwnableUpgradeable {
         }
         sorted = Arrays.sort(sorted);
         return sorted;
+    }
+
+    function verifyProof(
+        Commonlib.Proof calldata proof,
+        uint256[] memory publicInputs,
+        bool isBatch,
+        bool isLocked
+    ) public view returns (bool) {
+        IGroth16Verifier verifier = isLocked
+            ? (isBatch ? _batchLockVerifier : _lockVerifier)
+            : (isBatch ? _batchVerifier : _verifier);
+        require(
+            verifier.verify(proof.pA, proof.pB, proof.pC, publicInputs),
+            "Invalid proof (batch)"
+        );
+        return true;
     }
 }

@@ -15,13 +15,10 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {Groth16Verifier_Burn} from "./verifiers/verifier_burn.sol";
-import {Groth16Verifier_BurnBatch} from "./verifiers/verifier_burn_batch.sol";
+import {IGroth16Verifier} from "./lib/interfaces/izeto_verifier.sol";
+import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {Zeto_Anon} from "./zeto_anon.sol";
 import {ZetoFungibleBurnable} from "./lib/zeto_fungible_burn.sol";
-
-uint256 constant INPUT_SIZE = 4;
-uint256 constant BATCH_INPUT_SIZE = 20;
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and no encryption
 /// @author Kaleido, Inc.
@@ -35,12 +32,12 @@ contract Zeto_AnonBurnable is Zeto_Anon, ZetoFungibleBurnable {
         string memory name,
         string memory symbol,
         address initialOwner,
-        VerifiersInfo calldata verifiers
+        IZetoInitializable.VerifiersInfo calldata verifiers
     ) public override initializer {
         __ZetoAnon_init(name, symbol, initialOwner, verifiers);
         __ZetoFungibleBurnable_init(
-            (Groth16Verifier_Burn)(verifiers.burnVerifier),
-            (Groth16Verifier_BurnBatch)(verifiers.batchBurnVerifier)
+            (IGroth16Verifier)(verifiers.burnVerifier),
+            (IGroth16Verifier)(verifiers.batchBurnVerifier)
         );
     }
 }

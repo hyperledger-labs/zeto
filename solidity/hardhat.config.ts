@@ -41,14 +41,20 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 1000,
+        runs: 25,
       },
+      viaIR: true,
     },
   },
   paths: {
     sources: "contracts"
   },
   networks: {
+    hardhat: {
+      // a small number of verifiers are bigger than the default 24576 bytes
+      // so we need to allow unlimited contract size to avoid test errors
+      allowUnlimitedContractSize: true,
+    },
     besu: {
       url: "http://localhost:8545",
       accounts: keys,

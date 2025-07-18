@@ -161,7 +161,12 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
     await expect(
       factory
         .connect(deployer)
-        .deployZetoFungibleToken("name", "symbol", "test", await deployer.getAddress()),
+        .deployZetoFungibleToken(
+          "name",
+          "symbol",
+          "test",
+          await deployer.getAddress(),
+        ),
     ).rejectedWith("Factory: depositVerifier address is required");
   });
   it("attempting to deploy a fungible token but with a registered implementation that misses required depositVerifier should fail", async function () {
@@ -193,7 +198,12 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
     await expect(
       factory
         .connect(deployer)
-        .deployZetoFungibleToken("name", "symbol", "test", await deployer.getAddress()),
+        .deployZetoFungibleToken(
+          "name",
+          "symbol",
+          "test",
+          await deployer.getAddress(),
+        ),
     ).rejectedWith("Factory: depositVerifier address is required");
   });
 
@@ -226,7 +236,12 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
     await expect(
       factory
         .connect(deployer)
-        .deployZetoFungibleToken("name", "symbol", "test", await deployer.getAddress()),
+        .deployZetoFungibleToken(
+          "name",
+          "symbol",
+          "test",
+          await deployer.getAddress(),
+        ),
     ).rejectedWith("Factory: withdrawVerifier address is required");
   });
 
@@ -259,7 +274,12 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
     await expect(
       factory
         .connect(deployer)
-        .deployZetoFungibleToken("name", "symbol", "test", await deployer.getAddress()),
+        .deployZetoFungibleToken(
+          "name",
+          "symbol",
+          "test",
+          await deployer.getAddress(),
+        ),
     ).rejectedWith("Factory: batchWithdrawVerifier address is required");
   });
 
@@ -350,7 +370,12 @@ describe("(factory) Zeto based fungible token with anonymity without encryption 
     await expect(
       factory
         .connect(deployer)
-        .deployZetoFungibleToken("name", "symbol", "test", await deployer.getAddress()),
+        .deployZetoFungibleToken(
+          "name",
+          "symbol",
+          "test",
+          await deployer.getAddress(),
+        ),
     ).fulfilled;
   });
 });

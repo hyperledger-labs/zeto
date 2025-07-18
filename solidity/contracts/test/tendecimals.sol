@@ -17,6 +17,7 @@ pragma solidity ^0.8.27;
 
 import {Zeto_Anon} from "../zeto_anon.sol";
 import {IZeto} from "../lib/interfaces/izeto.sol";
+import {IZetoInitializable} from "../lib/interfaces/izeto_initializable.sol";
 import {ZetoCommon} from "../lib/zeto_common.sol";
 
 contract TenDecimals is Zeto_Anon {
@@ -33,7 +34,7 @@ contract TenDecimals is Zeto_Anon {
         string memory name,
         string memory symbol,
         address initialOwner,
-        VerifiersInfo calldata verifiersInfo
+        IZetoInitializable.VerifiersInfo calldata verifiersInfo
     ) public override initializer {
         Zeto_Anon.initialize(name, symbol, initialOwner, verifiersInfo);
     }
