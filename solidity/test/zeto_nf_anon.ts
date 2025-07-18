@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import { ethers, network } from "hardhat";
-import { Signer, BigNumberish, AddressLike } from "ethers";
+import { Signer, BigNumberish, AddressLike, AbiCoder } from "ethers";
 import { expect } from "chai";
 import { loadCircuit, tokenUriHash, encodeProof } from "zeto-js";
 import { groth16 } from "snarkjs";
@@ -149,7 +149,7 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
           zeto.connect(Charlie.signer).lock(
             inputCommitment,
             outputCommitment,
-            encodedProof,
+            encodeToBytes(encodedProof),
             Alice.ethAddress, // make Alice the delegate who can spend the state (if she has the right proof)
             "0x",
           ),
@@ -182,7 +182,7 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
             .lock(
               inputCommitment,
               outputCommitment,
-              encodedProof,
+              encodeToBytes(encodedProof),
               Bob.ethAddress,
               "0x",
             ),
@@ -254,7 +254,7 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
             .lock(
               inputCommitment,
               outputCommitment,
-              encodedProof,
+              encodeToBytes(encodedProof),
               Bob.ethAddress,
               "0x",
             ),
@@ -277,7 +277,7 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
         await expect(
           zeto
             .connect(Bob.signer)
-            .unlock(inputCommitment, outputCommitment, encodedProof, "0x"),
+            .unlock(inputCommitment, outputCommitment, encodeToBytes(encodedProof), "0x"),
         ).to.be.fulfilled;
       });
 
@@ -317,14 +317,15 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
     isLocked = false,
   ) {
     let tx;
+    const proof = encodeToBytes(encodedProof);
     if (isLocked) {
       tx = await zeto
         .connect(signer.signer)
-        .transferLocked(inputCommitment, outputCommitment, encodedProof, "0x");
+        .transferLocked(inputCommitment, outputCommitment, proof, "0x");
     } else {
       tx = await zeto
         .connect(signer.signer)
-        .transfer(inputCommitment, outputCommitment, encodedProof, "0x");
+        .transfer(inputCommitment, outputCommitment, proof, "0x");
     }
     const results = await tx.wait();
     console.log(`Method transfer() complete. Gas used: ${results?.gasUsed}`);
@@ -383,6 +384,10 @@ async function prepareProof(
     outputCommitment,
     encodedProof,
   };
+}
+
+function encodeToBytes(proof: any) {
+  return new AbiCoder().encode(["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [proof]);
 }
 
 module.exports = {

@@ -52,9 +52,10 @@ contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
     function transfer(
         uint256 input,
         uint256 output,
-        Commonlib.Proof calldata proof,
+        bytes calldata proof,
         bytes calldata data
     ) public returns (bool) {
+        Commonlib.Proof memory proofStruct = abi.decode(proof, (Commonlib.Proof));
         uint256[] memory inputs = new uint256[](1);
         inputs[0] = input;
         uint256[] memory outputs = new uint256[](1);
@@ -69,7 +70,7 @@ contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
 
         // Check the proof
         require(
-            _verifier.verify(proof.pA, proof.pB, proof.pC, publicInputs),
+            _verifier.verify(proofStruct.pA, proofStruct.pB, proofStruct.pC, publicInputs),
             "Invalid proof"
         );
 
@@ -92,9 +93,10 @@ contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
     function transferLocked(
         uint256 input,
         uint256 output,
-        Commonlib.Proof calldata proof,
+        bytes calldata proof,
         bytes calldata data
     ) public returns (bool) {
+        Commonlib.Proof memory proofStruct = abi.decode(proof, (Commonlib.Proof));
         uint256[] memory inputs = new uint256[](1);
         inputs[0] = input;
         uint256[] memory outputs = new uint256[](1);
@@ -109,7 +111,7 @@ contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
 
         // Check the proof
         require(
-            _verifier.verify(proof.pA, proof.pB, proof.pC, publicInputs),
+            _verifier.verify(proofStruct.pA, proofStruct.pB, proofStruct.pC, publicInputs),
             "Invalid proof"
         );
 
@@ -126,10 +128,11 @@ contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
     function lock(
         uint256 input,
         uint256 lockedOutput,
-        Commonlib.Proof calldata proof,
+        bytes calldata proof,
         address delegate,
         bytes calldata data
     ) public {
+        Commonlib.Proof memory proofStruct = abi.decode(proof, (Commonlib.Proof));
         uint256[] memory inputs = new uint256[](1);
         inputs[0] = input;
         uint256[] memory outputs;
@@ -144,7 +147,7 @@ contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
 
         // Check the proof
         require(
-            _verifier.verify(proof.pA, proof.pB, proof.pC, publicInputs),
+            _verifier.verify(proofStruct.pA, proofStruct.pB, proofStruct.pC, publicInputs),
             "Invalid proof"
         );
 
@@ -157,7 +160,7 @@ contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
     function unlock(
         uint256 input,
         uint256 output,
-        Commonlib.Proof calldata proof,
+        bytes calldata proof,
         bytes calldata data
     ) public {
         transferLocked(input, output, proof, data);
