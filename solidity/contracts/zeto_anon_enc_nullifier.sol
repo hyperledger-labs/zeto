@@ -38,9 +38,6 @@ contract Zeto_AnonEncNullifier is
     ZetoFungibleWithdrawWithNullifiers,
     UUPSUpgradeable
 {
-    uint256 internal INPUT_SIZE;
-    uint256 internal BATCH_INPUT_SIZE;
-
     function initialize(
         string memory name,
         string memory symbol,
@@ -62,8 +59,6 @@ contract Zeto_AnonEncNullifier is
             (IGroth16Verifier)(verifiers.withdrawVerifier),
             (IGroth16Verifier)(verifiers.batchWithdrawVerifier)
         );
-        INPUT_SIZE = 18;
-        BATCH_INPUT_SIZE = 74;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -76,9 +71,14 @@ contract Zeto_AnonEncNullifier is
         uint256[2] memory ecdhPublicKey,
         uint256[] memory encryptedValues
     ) internal view returns (uint256[] memory publicInputs) {
-        uint256 size = (nullifiers.length > 2 || outputs.length > 2)
-            ? BATCH_INPUT_SIZE
-            : INPUT_SIZE;
+        uint256[] memory extra = extraInputs();
+        uint256 size = (nullifiers.length * 2) + // nullifiers and enabled flags
+            2 + // root and encryption nonce
+            ecdhPublicKey.length + // ecdh public key
+            encryptedValues.length + // encrypted values
+            extra.length + // extra inputs
+            outputs.length; // outputs
+
         publicInputs = new uint256[](size);
         uint256 piIndex = 0;
         // copy the ecdh public key
@@ -103,7 +103,6 @@ contract Zeto_AnonEncNullifier is
         }
 
         // insert extra inputs if any
-        uint256[] memory extra = extraInputs();
         for (uint256 i = 0; i < extra.length; i++) {
             publicInputs[piIndex++] = extra[i];
         }

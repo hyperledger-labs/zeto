@@ -42,11 +42,16 @@ contract Zeto_AnonEncNullifierKyc is Zeto_AnonEncNullifier, Registry {
     ) public override initializer {
         __Registry_init();
         __Zeto_AnonEncNullifier_init(name, symbol, initialOwner, verifiers);
-        INPUT_SIZE = 19;
-        BATCH_INPUT_SIZE = 75;
     }
 
     function extraInputs() internal view override returns (uint256[] memory) {
+        uint256[] memory extras = new uint256[](1);
+
+        extras[0] = getIdentitiesRoot();
+        return extras;
+    }
+
+    function extraInputsForDeposit() public view override returns (uint256[] memory) {
         uint256[] memory extras = new uint256[](1);
 
         extras[0] = getIdentitiesRoot();

@@ -47,4 +47,11 @@ contract Zeto_AnonNullifierKyc is Zeto_AnonNullifier, Registry {
         extras[0] = getIdentitiesRoot();
         return extras;
     }
+
+    function extraInputsForDeposit() public view override returns (uint256[] memory) {
+        uint256[] memory extras = new uint256[](1);
+
+        extras[0] = getIdentitiesRoot();
+        return extras;
+    }
 }

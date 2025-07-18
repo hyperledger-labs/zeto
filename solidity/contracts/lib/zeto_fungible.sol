@@ -19,6 +19,7 @@ import {IGroth16Verifier} from "./interfaces/izeto_verifier.sol";
 import {Commonlib} from "./common.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "hardhat/console.sol";
 
 /// @title A sample implementation of a base Zeto fungible token contract
 /// @author Kaleido, Inc.
@@ -44,9 +45,20 @@ abstract contract ZetoFungible is OwnableUpgradeable {
     function _deposit(
         uint256 amount,
         uint256[] memory outputs,
-        Commonlib.Proof calldata proof,
-        uint256[] memory publicInputs
+        Commonlib.Proof calldata proof
     ) public virtual {
+        // verifies that the output UTXOs match the claimed value
+        // to be deposited
+        // construct the public inputs
+        uint256[] memory extra = extraInputsForDeposit();
+        uint256[] memory publicInputs = new uint256[](3 + extra.length);
+        publicInputs[0] = amount;
+        publicInputs[1] = outputs[0];
+        publicInputs[2] = outputs[1];
+        for (uint256 i = 0; i < extra.length; i++) {
+            publicInputs[3 + i] = extra[i];
+        }
+
         // Check the proof
         require(
             _depositVerifier.verify(proof.pA, proof.pB, proof.pC, publicInputs),
@@ -57,5 +69,9 @@ abstract contract ZetoFungible is OwnableUpgradeable {
             _erc20.transferFrom(msg.sender, address(this), amount),
             "Failed to transfer ERC20 tokens"
         );
+    }
+
+    function extraInputsForDeposit() public view virtual returns (uint256[] memory) {
+        return new uint256[](0);
     }
 }

@@ -46,7 +46,7 @@ import {
 } from "./lib/utils";
 import {
   loadProvingKeys,
-  prepareDepositProof,
+  prepareDepositKycProof,
   prepareNullifierWithdrawProof,
 } from "./utils";
 import { deployZeto } from "./lib/deploy";
@@ -345,9 +345,20 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
 
     utxo100 = newUTXO(100, Alice);
     utxo0 = newUTXO(0, Alice);
-    const { outputCommitments, encodedProof } = await prepareDepositProof(
+    const identitiesRoot = await smtKyc.root();
+    const proof3 = await smtKyc.generateCircomVerifierProof(
+      kycHash(Alice.babyJubPublicKey),
+      identitiesRoot,
+    );
+    const identitiesMerkleProofs = [
+      proof3.siblings.map((s) => s.bigInt()),
+      proof3.siblings.map((s) => s.bigInt()),
+    ];
+    const { outputCommitments, encodedProof } = await prepareDepositKycProof(
       Alice,
       [utxo100, utxo0],
+      identitiesRoot.bigInt(),
+      identitiesMerkleProofs,
     );
     const tx2 = await zeto
       .connect(Alice.signer)
@@ -589,8 +600,30 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
   describe("unregistered user cases", function () {
     let unregisteredUtxo100: UTXO;
     let unregisteredUtxo0: UTXO;
+    let smtKycUnregistered: Merkletree;
 
-    it("deposit by an unregistered user should succeed", async function () {
+    before(async function () {
+      const storage5 = new InMemoryDB(str2Bytes("unregisteredKyc"));
+      smtKycUnregistered = new Merkletree(storage5, true, 10);
+
+      // add the unregistered user to the local KYC SMT, but not to the onchain SMT
+      await smtKycUnregistered.add(
+        kycHash(unregistered.babyJubPublicKey),
+        kycHash(unregistered.babyJubPublicKey),
+      );
+    });
+
+    it("deposit by an unregistered user should fail", async function () {
+      const identitiesRoot = await smtKycUnregistered.root();
+      const proof3 = await smtKycUnregistered.generateCircomVerifierProof(
+        kycHash(unregistered.babyJubPublicKey),
+        identitiesRoot,
+      );
+      const identitiesMerkleProofs = [
+        proof3.siblings.map((s) => s.bigInt()),
+        proof3.siblings.map((s) => s.bigInt()),
+      ];
+
       const tx = await erc20
         .connect(deployer)
         .mint(unregistered.ethAddress, 100);
@@ -602,150 +635,17 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
 
       unregisteredUtxo100 = newUTXO(100, unregistered);
       unregisteredUtxo0 = newUTXO(0, unregistered);
-      const { outputCommitments, encodedProof } = await prepareDepositProof(
+      const { outputCommitments, encodedProof } = await prepareDepositKycProof(
         unregistered,
         [unregisteredUtxo100, unregisteredUtxo0],
+        identitiesRoot.bigInt(),
+        identitiesMerkleProofs,
       );
-      const tx2 = await zeto
-        .connect(unregistered.signer)
-        .deposit(100, outputCommitments, encodedProof, "0x");
-      await tx2.wait();
-
-      // Alice tracks the UTXO inside the SMT
-      await smtAlice.add(unregisteredUtxo100.hash, unregisteredUtxo100.hash);
-      await smtAlice.add(unregisteredUtxo0.hash, unregisteredUtxo0.hash);
-      // Bob also locally tracks the UTXOs inside the SMT
-      await smtBob.add(unregisteredUtxo100.hash, unregisteredUtxo100.hash);
-      await smtBob.add(unregisteredUtxo0.hash, unregisteredUtxo0.hash);
-    });
-
-    it("transfer from an unregistered user should fail", async function () {
-      // catch up the local SMT for the unregistered user
-      await smtUnregistered.add(utxo100.hash, utxo100.hash);
-      await smtUnregistered.add(utxo0.hash, utxo0.hash);
-      await smtUnregistered.add(utxo1.hash, utxo1.hash);
-      await smtUnregistered.add(utxo2.hash, utxo2.hash);
-      await smtUnregistered.add(_utxo3.hash, _utxo3.hash);
-      await smtUnregistered.add(utxo4.hash, utxo4.hash);
-      await smtUnregistered.add(utxo6.hash, utxo6.hash);
-      await smtUnregistered.add(utxo7.hash, utxo7.hash);
-      await smtUnregistered.add(
-        withdrawChangeUTXO.hash,
-        withdrawChangeUTXO.hash,
-      );
-      await smtUnregistered.add(
-        unregisteredUtxo100.hash,
-        unregisteredUtxo100.hash,
-      );
-      await smtUnregistered.add(unregisteredUtxo0.hash, unregisteredUtxo0.hash);
-      const utxosRoot = await smtUnregistered.root();
-
-      const nullifier = newNullifier(unregisteredUtxo100, unregistered);
-      const output1 = newUTXO(100, Bob);
-      const output2 = newUTXO(0, unregistered);
-      const proof = await smtUnregistered.generateCircomVerifierProof(
-        unregisteredUtxo100.hash,
-        utxosRoot,
-      );
-      const merkleProofs = [
-        proof.siblings.map((s) => s.bigInt()),
-        proof.siblings.map((s) => s.bigInt()),
-      ];
-
-      // add the unregistered user to the local KYC SMT, but not to the onchain SMT
-      await smtKyc.add(
-        kycHash(unregistered.babyJubPublicKey),
-        kycHash(unregistered.babyJubPublicKey),
-      );
-      const identitiesRoot = await smtKyc.root();
-      const proof3 = await smtKyc.generateCircomVerifierProof(
-        kycHash(unregistered.babyJubPublicKey),
-        identitiesRoot,
-      );
-      const proof4 = await smtKyc.generateCircomVerifierProof(
-        kycHash(Bob.babyJubPublicKey),
-        identitiesRoot,
-      );
-      const identitiesMerkleProofs = [
-        proof3.siblings.map((s) => s.bigInt()), // identity proof for the sender (unregistered)
-        proof4.siblings.map((s) => s.bigInt()), // identity proof for the 1st owner of the output UTXO (Bob)
-        proof3.siblings.map((s) => s.bigInt()), // identity proof for the 2nd owner of the output UTXO (unregistered)
-      ];
       await expect(
-        doTransfer(
-          unregistered,
-          [unregisteredUtxo100, ZERO_UTXO],
-          [nullifier, ZERO_UTXO],
-          [output1, output2],
-          utxosRoot.bigInt(),
-          merkleProofs,
-          identitiesRoot.bigInt(),
-          identitiesMerkleProofs,
-          [Bob, unregistered],
-        ),
-      ).rejectedWith("Invalid proof");
-    });
-
-    it("the unregistered user can still withdraw their UTXOs to ERC20 tokens", async function () {
-      const startingBalance = await erc20.balanceOf(unregistered.ethAddress);
-      // unregistered user generates the nullifiers for the UTXOs to be spent
-      const nullifier1 = newNullifier(unregisteredUtxo100, unregistered);
-
-      // unregistered user generates inclusion proofs for the UTXOs to be spent
-      let root = await smtUnregistered.root();
-      const proof1 = await smtUnregistered.generateCircomVerifierProof(
-        unregisteredUtxo100.hash,
-        root,
-      );
-      const proof2 = await smtUnregistered.generateCircomVerifierProof(
-        0n,
-        root,
-      );
-      const merkleProofs = [
-        proof1.siblings.map((s) => s.bigInt()),
-        proof2.siblings.map((s) => s.bigInt()),
-      ];
-
-      // unregistered user proposes the output ERC20 tokens
-      const unregisteredWithdrawChangeUTXO = newUTXO(0, unregistered);
-
-      const { nullifiers, outputCommitments, encodedProof } =
-        await prepareNullifierWithdrawProof(
-          unregistered,
-          [unregisteredUtxo100, ZERO_UTXO],
-          [nullifier1, ZERO_UTXO],
-          unregisteredWithdrawChangeUTXO,
-          root.bigInt(),
-          merkleProofs,
-        );
-
-      // unregistered user withdraws her UTXOs to ERC20 tokens
-      const tx = await zeto
-        .connect(unregistered.signer)
-        .withdraw(
-          100,
-          nullifiers,
-          outputCommitments[0],
-          root.bigInt(),
-          encodedProof,
-          "0x",
-        );
-      await tx.wait();
-
-      // Alice tracks the UTXO inside the SMT
-      await smtAlice.add(
-        unregisteredWithdrawChangeUTXO.hash,
-        unregisteredWithdrawChangeUTXO.hash,
-      );
-      // Bob also locally tracks the UTXOs inside the SMT
-      await smtBob.add(
-        unregisteredWithdrawChangeUTXO.hash,
-        unregisteredWithdrawChangeUTXO.hash,
-      );
-
-      // unregistered user checks her ERC20 balance
-      const endingBalance = await erc20.balanceOf(unregistered.ethAddress);
-      expect(endingBalance - startingBalance).to.be.equal(100);
+        zeto
+          .connect(unregistered.signer)
+          .deposit(100, outputCommitments, encodedProof, "0x")
+      ).to.be.rejectedWith("Invalid proof");
     });
   });
 
