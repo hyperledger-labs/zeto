@@ -15,7 +15,6 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {IGroth16Verifier} from "./lib/interfaces/izeto_verifier.sol";
 import {Zeto_AnonNullifier} from "./zeto_anon_nullifier.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common.sol";

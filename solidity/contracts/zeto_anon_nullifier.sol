@@ -17,7 +17,6 @@ pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
 import {MAX_BATCH} from "./lib/interfaces/izeto.sol";
-import {IGroth16Verifier} from "./lib/interfaces/izeto_verifier.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
 import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Commonlib} from "./lib/common.sol";
@@ -56,9 +55,9 @@ contract Zeto_AnonNullifier is
     ) internal onlyInitializing {
         __ZetoNullifier_init(name_, symbol_, initialOwner, verifiers);
         __ZetoFungibleWithdrawWithNullifiers_init(
-            (IGroth16Verifier)(verifiers.depositVerifier),
-            (IGroth16Verifier)(verifiers.withdrawVerifier),
-            (IGroth16Verifier)(verifiers.batchWithdrawVerifier)
+            verifiers.depositVerifier,
+            verifiers.withdrawVerifier,
+            verifiers.batchWithdrawVerifier
         );
     }
 

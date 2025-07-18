@@ -15,7 +15,6 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {IGroth16Verifier} from "./lib/interfaces/izeto_verifier.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {Zeto_Anon} from "./zeto_anon.sol";
 import {ZetoFungibleBurnable} from "./lib/zeto_fungible_burn.sol";
@@ -36,8 +35,8 @@ contract Zeto_AnonBurnable is Zeto_Anon, ZetoFungibleBurnable {
     ) public override initializer {
         __ZetoAnon_init(name, symbol, initialOwner, verifiers);
         __ZetoFungibleBurnable_init(
-            (IGroth16Verifier)(verifiers.burnVerifier),
-            (IGroth16Verifier)(verifiers.batchBurnVerifier)
+            verifiers.burnVerifier,
+            verifiers.batchBurnVerifier
         );
     }
 }

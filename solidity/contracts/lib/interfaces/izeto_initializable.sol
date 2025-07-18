@@ -15,17 +15,19 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
+import {IGroth16Verifier} from "./izeto_verifier.sol";
+
 interface IZetoInitializable {
     struct VerifiersInfo {
-        address verifier;
-        address depositVerifier;
-        address withdrawVerifier;
-        address lockVerifier;
-        address burnVerifier;
-        address batchVerifier;
-        address batchWithdrawVerifier;
-        address batchLockVerifier;
-        address batchBurnVerifier;
+        IGroth16Verifier verifier;
+        IGroth16Verifier depositVerifier;
+        IGroth16Verifier withdrawVerifier;
+        IGroth16Verifier lockVerifier;
+        IGroth16Verifier burnVerifier;
+        IGroth16Verifier batchVerifier;
+        IGroth16Verifier batchWithdrawVerifier;
+        IGroth16Verifier batchLockVerifier;
+        IGroth16Verifier batchBurnVerifier;
     }
 
     function initialize(

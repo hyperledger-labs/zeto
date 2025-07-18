@@ -43,10 +43,10 @@ abstract contract ZetoCommon is IZeto, OwnableUpgradeable {
         __Ownable_init(initialOwner);
         _name = name_;
         _symbol = symbol_;
-        _verifier = (IGroth16Verifier)(verifiers.verifier);
-        _lockVerifier = (IGroth16Verifier)(verifiers.lockVerifier);
-        _batchVerifier = (IGroth16Verifier)(verifiers.batchVerifier);
-        _batchLockVerifier = (IGroth16Verifier)(verifiers.batchLockVerifier);
+        _verifier = verifiers.verifier;
+        _lockVerifier = verifiers.lockVerifier;
+        _batchVerifier = verifiers.batchVerifier;
+        _batchLockVerifier = verifiers.batchLockVerifier;
     }
 
     /**
@@ -121,7 +121,7 @@ abstract contract ZetoCommon is IZeto, OwnableUpgradeable {
     }
 
     function verifyProof(
-        Commonlib.Proof calldata proof,
+        Commonlib.Proof memory proof,
         uint256[] memory publicInputs,
         bool isBatch,
         bool isLocked
