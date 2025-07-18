@@ -46,7 +46,6 @@ contract Zeto_NfAnonNullifier is IZeto, ZetoNullifier, UUPSUpgradeable {
      *
      * @param nullifier A nullifier that are secretly bound to the UTXO to be spent by the transaction.
      * @param output new UTXO to generate, for future transactions to spend.
-     * @param root The root hash of the Sparse Merkle Tree that contains the nullifier.
      * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
      *      that the outputs are valid in terms of obeying mass conservation rules.
      *
@@ -55,16 +54,16 @@ contract Zeto_NfAnonNullifier is IZeto, ZetoNullifier, UUPSUpgradeable {
     function transfer(
         uint256 nullifier,
         uint256 output,
-        uint256 root,
-        Commonlib.Proof calldata proof,
+        bytes calldata proof,
         bytes calldata data
     ) public returns (bool) {
+        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, Commonlib.Proof));
         uint256[] memory nullifiers = new uint256[](1);
         nullifiers[0] = nullifier;
         uint256[] memory outputs = new uint256[](1);
         outputs[0] = output;
         validateTransactionProposal(nullifiers, outputs, root, false);
-        verifyProof(nullifiers, outputs, root, proof);
+        verifyProof(nullifiers, outputs, root, proofStruct);
         uint256[] memory empty;
         processInputsAndOutputs(nullifiers, outputs, empty, address(0));
 
@@ -77,7 +76,6 @@ contract Zeto_NfAnonNullifier is IZeto, ZetoNullifier, UUPSUpgradeable {
      *
      * @param nullifier A nullifier that are secretly bound to the UTXO to be spent by the transaction.
      * @param output new UTXO to generate, for future transactions to spend.
-     * @param root The root hash of the Sparse Merkle Tree that contains the nullifier.
      * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
      *      that the outputs are valid in terms of obeying mass conservation rules.
      *
@@ -86,16 +84,16 @@ contract Zeto_NfAnonNullifier is IZeto, ZetoNullifier, UUPSUpgradeable {
     function transferLocked(
         uint256 nullifier,
         uint256 output,
-        uint256 root,
-        Commonlib.Proof calldata proof,
+        bytes calldata proof,
         bytes calldata data
     ) public returns (bool) {
+        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, Commonlib.Proof));
         uint256[] memory nullifiers = new uint256[](1);
         nullifiers[0] = nullifier;
         uint256[] memory outputs = new uint256[](1);
         outputs[0] = output;
         validateTransactionProposal(nullifiers, outputs, root, true);
-        verifyProofLocked(nullifiers, outputs, root, proof);
+        verifyProofLocked(nullifiers, outputs, root, proofStruct);
         uint256[] memory empty;
         processInputsAndOutputs(nullifiers, outputs, empty, address(0));
 
@@ -110,17 +108,17 @@ contract Zeto_NfAnonNullifier is IZeto, ZetoNullifier, UUPSUpgradeable {
     function lock(
         uint256 nullifier,
         uint256 lockedOutput,
-        uint256 root,
-        Commonlib.Proof calldata proof,
+        bytes calldata proof,
         address delegate,
         bytes calldata data
     ) public {
+        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, Commonlib.Proof));
         uint256[] memory nullifiers = new uint256[](1);
         nullifiers[0] = nullifier;
         uint256[] memory lockedOutputs = new uint256[](1);
         lockedOutputs[0] = lockedOutput;
         validateTransactionProposal(nullifiers, lockedOutputs, root, false);
-        verifyProof(nullifiers, lockedOutputs, root, proof);
+        verifyProof(nullifiers, lockedOutputs, root, proofStruct);
 
         processNullifiers(nullifiers);
 
@@ -133,7 +131,7 @@ contract Zeto_NfAnonNullifier is IZeto, ZetoNullifier, UUPSUpgradeable {
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         uint256 root,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof memory proof
     ) internal view {
         // construct the public inputs
         uint256[] memory publicInputs = new uint256[](3);
@@ -152,7 +150,7 @@ contract Zeto_NfAnonNullifier is IZeto, ZetoNullifier, UUPSUpgradeable {
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         uint256 root,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof memory proof
     ) internal view {
         // construct the public inputs
         uint256[] memory publicInputs = new uint256[](4);
