@@ -39,17 +39,26 @@ const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.27",
     settings: {
-      viaIR: true,
       optimizer: {
         enabled: true,
+<<<<<<< Updated upstream
         runs: 200,
+=======
+        runs: 25,
+>>>>>>> Stashed changes
       },
+      viaIR: true,
     },
   },
   paths: {
     sources: "contracts"
   },
   networks: {
+    hardhat: {
+      // a small number of verifiers are bigger than the default 24576 bytes
+      // so we need to allow unlimited contract size to avoid test errors
+      allowUnlimitedContractSize: true,
+    },
     besu: {
       url: "http://localhost:8545",
       accounts: keys,
