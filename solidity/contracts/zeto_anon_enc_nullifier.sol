@@ -130,7 +130,6 @@ contract Zeto_AnonEncNullifier is
      *
      * @param nullifiers Array of nullifiers that are secretly bound to UTXOs to be spent by the transaction.
      * @param outputs Array of new UTXOs to generate, for future transactions to spend.
-     * @param root The root hash of the Sparse Merkle Tree that contains the nullifiers.
      * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
      *      that the outputs are valid in terms of obeying mass conservation rules.
      *
@@ -139,13 +138,10 @@ contract Zeto_AnonEncNullifier is
     function transfer(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
-        uint256 root,
-        uint256 encryptionNonce,
-        uint256[2] memory ecdhPublicKey,
-        uint256[] memory encryptedValues,
-        Commonlib.Proof calldata proof,
+        bytes calldata proof,
         bytes calldata data
     ) public returns (bool) {
+        (uint256 root, uint256 encryptionNonce, uint256[2] memory ecdhPublicKey, uint256[] memory encryptedValues, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, uint256, uint256[2], uint256[], Commonlib.Proof));
         // Check and pad commitments
         nullifiers = checkAndPadCommitments(nullifiers);
         outputs = checkAndPadCommitments(outputs);
@@ -161,7 +157,7 @@ contract Zeto_AnonEncNullifier is
             encryptedValues
         );
         bool isBatch = (nullifiers.length > 2 || outputs.length > 2);
-        verifyProof(proof, publicInputs, isBatch, false);
+        verifyProof(proofStruct, publicInputs, isBatch, false);
 
         // accept the transaction to consume the input UTXOs and produce new UTXOs
         uint256[] memory empty;
