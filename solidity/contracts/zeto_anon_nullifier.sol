@@ -39,21 +39,12 @@ contract Zeto_AnonNullifier is
     ZetoFungibleWithdrawWithNullifiers,
     UUPSUpgradeable
 {
-    uint256 internal INPUT_SIZE;
-    uint256 internal INPUT_SIZE_LOCKED;
-    uint256 internal BATCH_INPUT_SIZE;
-    uint256 internal BATCH_INPUT_SIZE_LOCKED;
-
     function initialize(
         string memory name,
         string memory symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public virtual initializer {
-        INPUT_SIZE = 7;
-        INPUT_SIZE_LOCKED = 8;
-        BATCH_INPUT_SIZE = 31;
-        BATCH_INPUT_SIZE_LOCKED = 32;
         __ZetoAnonNullifier_init(name, symbol, initialOwner, verifiers);
     }
 
@@ -79,9 +70,12 @@ contract Zeto_AnonNullifier is
         uint256 root,
         bool locked
     ) internal view returns (uint256[] memory publicInputs) {
-        uint256 size = (nullifiers.length > 2 || outputs.length > 2)
-            ? (locked ? BATCH_INPUT_SIZE_LOCKED : BATCH_INPUT_SIZE)
-            : (locked ? INPUT_SIZE_LOCKED : INPUT_SIZE);
+        uint256[] memory extra = extraInputs();
+        uint256 size = (nullifiers.length * 2) + // nullifiers and enabled flags
+            (locked ? 1 : 0) +
+            1 + // root
+            extra.length +
+            outputs.length;
         publicInputs = new uint256[](size);
         uint256 piIndex = 0;
         // copy input commitments
@@ -102,7 +96,6 @@ contract Zeto_AnonNullifier is
         }
 
         // insert extra inputs if any
-        uint256[] memory extra = extraInputs();
         for (uint256 i = 0; i < extra.length; i++) {
             publicInputs[piIndex++] = extra[i];
         }
