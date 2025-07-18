@@ -86,7 +86,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is
         uint256 size = ecdhPublicKey.length +
             encryptedValuesForReceiver.length +
             encryptedValuesForAuthority.length +
-            nullifiers.length +
+            (nullifiers.length * 2) + // nullifiers and enabled flags
             outputs.length +
             2 + // root and encryptionNonce
             2; // arbiter public key
