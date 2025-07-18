@@ -16,12 +16,12 @@
 pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
-import {IGroth16Verifier} from "./lib/interfaces/izeto_verifier.sol";
 import {Commonlib} from "./lib/common.sol";
 import {ZetoBase} from "./lib/zeto_base.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "hardhat/console.sol";
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and no encryption
 /// @author Kaleido, Inc.
@@ -48,9 +48,9 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
     ) internal onlyInitializing {
         __ZetoBase_init(name_, symbol_, initialOwner, verifiers);
         __ZetoFungibleWithdraw_init(
-            (IGroth16Verifier)(verifiers.depositVerifier),
-            (IGroth16Verifier)(verifiers.withdrawVerifier),
-            (IGroth16Verifier)(verifiers.batchWithdrawVerifier)
+            verifiers.depositVerifier,
+            verifiers.withdrawVerifier,
+            verifiers.batchWithdrawVerifier
         );
     }
 
@@ -71,16 +71,18 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
     function transfer(
         uint256[] memory inputs,
         uint256[] memory outputs,
-        Commonlib.Proof calldata proof,
+        bytes calldata proof,
         bytes calldata data
     ) public returns (bool) {
+        Commonlib.Proof memory proofStruct = abi.decode(proof, (Commonlib.Proof));
+
         // Check and pad inputs and outputs based on the max size
         inputs = checkAndPadCommitments(inputs);
         outputs = checkAndPadCommitments(outputs);
 
         uint256[] memory lockedOutputs;
         validateTransactionProposal(inputs, outputs, lockedOutputs, false);
-        constructPublicSignalsAndVerifyProof(inputs, outputs, proof);
+        constructPublicSignalsAndVerifyProof(inputs, outputs, proofStruct);
 
         processInputsAndOutputs(inputs, outputs, lockedOutputs, false);
         emit UTXOTransfer(inputs, outputs, msg.sender, data);
@@ -102,9 +104,11 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
     function transferLocked(
         uint256[] memory inputs,
         uint256[] memory outputs,
-        Commonlib.Proof calldata proof,
+        bytes calldata proof,
         bytes calldata data
     ) public returns (bool) {
+        Commonlib.Proof memory proofStruct = abi.decode(proof, (Commonlib.Proof));
+
         // Check and pad inputs and outputs based on the max size
         inputs = checkAndPadCommitments(inputs);
         outputs = checkAndPadCommitments(outputs);
@@ -113,7 +117,7 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         validateTransactionProposal(inputs, outputs, lockedOutputs, true);
 
         // Check the proof
-        constructPublicSignalsAndVerifyProof(inputs, outputs, proof);
+        constructPublicSignalsAndVerifyProof(inputs, outputs, proofStruct);
 
         processInputsAndOutputs(inputs, outputs, lockedOutputs, false);
         emit UTXOTransfer(inputs, outputs, msg.sender, data);
@@ -162,7 +166,7 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         uint256[] memory inputs,
         uint256[] memory outputs,
         uint256[] memory lockedOutputs,
-        Commonlib.Proof calldata proof,
+        bytes calldata proof,
         address delegate,
         bytes calldata data
     ) public {
@@ -179,7 +183,8 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
         for (uint256 i = 0; i < lockedOutputs.length; i++) {
             allOutputs[outputs.length + i] = lockedOutputs[i];
         }
-        constructPublicSignalsAndVerifyProof(inputs, allOutputs, proof);
+        Commonlib.Proof memory proofStruct = abi.decode(proof, (Commonlib.Proof));
+        constructPublicSignalsAndVerifyProof(inputs, allOutputs, proofStruct);
 
         processInputsAndOutputs(inputs, outputs, lockedOutputs, false);
 
@@ -190,7 +195,7 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
     function unlock(
         uint256[] memory inputs,
         uint256[] memory outputs,
-        Commonlib.Proof calldata proof,
+        bytes calldata proof,
         bytes calldata data
     ) public {
         transferLocked(inputs, outputs, proof, data);
@@ -199,7 +204,7 @@ contract Zeto_Anon is IZeto, ZetoBase, ZetoFungibleWithdraw, UUPSUpgradeable {
     function constructPublicSignalsAndVerifyProof(
         uint256[] memory inputs,
         uint256[] memory outputs,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof memory proof
     ) public view returns (bool) {
         uint256[] memory publicInputs = constructPublicInputs(inputs, outputs);
         bool isBatch = inputs.length > 2 || outputs.length > 2;

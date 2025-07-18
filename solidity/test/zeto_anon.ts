@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import { ethers, network } from "hardhat";
-import { Signer, BigNumberish, AddressLike, ZeroAddress } from "ethers";
+import { Signer, BigNumberish, AddressLike, ZeroAddress, AbiCoder } from "ethers";
 import { expect } from "chai";
 import { loadCircuit, encodeProof, Poseidon } from "zeto-js";
 import { groth16 } from "snarkjs";
@@ -450,7 +450,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
           result.inputCommitments,
           [result.outputCommitments[0]], // unlocked output
           result.outputCommitments, // locked output
-          result.encodedProof,
+          encodeToBytes(result.encodedProof),
           Alice.ethAddress, // make Alice the delegate who can spend the state (if she has the right proof)
           "0x",
         ),
@@ -472,7 +472,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
         result.inputCommitments,
         [], // unlocked output
         result.outputCommitments, // locked output
-        result.encodedProof,
+        encodeToBytes(result.encodedProof),
         Alice.ethAddress, // make Alice the delegate who can spend the state (if she has the right proof)
         "0x",
       );
@@ -523,7 +523,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
             result.inputCommitments,
             [],
             result.outputCommitments,
-            result.encodedProof,
+            encodeToBytes(result.encodedProof),
             Bob.ethAddress,
             "0x",
           ),
@@ -694,7 +694,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
       await expect(
         zeto
           .connect(Alice.signer)
-          .unlock(inputCommitments, outputCommitments, encodedProof, "0x"),
+          .unlock(inputCommitments, outputCommitments, encodeToBytes(encodedProof), "0x"),
       ).to.be.fulfilled;
 
       // now Bob as the owner can spend the UTXO as usual
@@ -752,17 +752,18 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     isLocked = false,
   ) {
     let tx;
+    const proof = encodeToBytes(encodedProof);
     if (isLocked) {
       tx = await zeto.connect(signer.signer).transferLocked(
         inputCommitments.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
         outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
-        encodedProof,
+        proof,
         "0x",
       );
     } else {
       tx = await zeto
         .connect(signer.signer)
-        .transfer(inputCommitments, outputCommitments, encodedProof, "0x");
+        .transfer(inputCommitments, outputCommitments, proof, "0x");
     }
     const results = await tx.wait();
     console.log(`Method transfer() complete. Gas used: ${results?.gasUsed}`);
@@ -841,6 +842,10 @@ async function prepareProof(
     outputCommitments,
     encodedProof,
   };
+}
+
+function encodeToBytes(proof: any) {
+  return new AbiCoder().encode(["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [proof]);
 }
 
 module.exports = {
