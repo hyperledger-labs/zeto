@@ -118,7 +118,6 @@ contract Zeto_AnonNullifier is
      *
      * @param nullifiers Array of nullifiers that are secretly bound to UTXOs to be spent by the transaction.
      * @param outputs Array of new UTXOs to generate, for future transactions to spend.
-     * @param root The root hash of the Sparse Merkle Tree that contains the nullifiers.
      * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
      *      that the outputs are valid in terms of obeying mass conservation rules.
      *
@@ -127,14 +126,14 @@ contract Zeto_AnonNullifier is
     function transfer(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
-        uint256 root,
-        Commonlib.Proof calldata proof,
+        bytes calldata proof,
         bytes calldata data
     ) public returns (bool) {
+        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, Commonlib.Proof));
         nullifiers = checkAndPadCommitments(nullifiers);
         outputs = checkAndPadCommitments(outputs);
         validateTransactionProposal(nullifiers, outputs, root, false);
-        constructPublicSignalsAndVerifyProof(nullifiers, outputs, root, proof);
+        constructPublicSignalsAndVerifyProof(nullifiers, outputs, root, proofStruct);
         uint256[] memory empty;
         processInputsAndOutputs(nullifiers, outputs, empty, address(0));
 
@@ -151,14 +150,14 @@ contract Zeto_AnonNullifier is
     function transferLocked(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
-        uint256 root,
-        Commonlib.Proof calldata proof,
+        bytes calldata proof,
         bytes calldata data
     ) public returns (bool) {
+        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, Commonlib.Proof));
         nullifiers = checkAndPadCommitments(nullifiers);
         outputs = checkAndPadCommitments(outputs);
         validateTransactionProposal(nullifiers, outputs, root, true);
-        verifyProofLocked(nullifiers, outputs, root, proof);
+        verifyProofLocked(nullifiers, outputs, root, proofStruct);
         uint256[] memory empty;
         processInputsAndOutputs(nullifiers, outputs, empty, address(0));
 
@@ -218,11 +217,11 @@ contract Zeto_AnonNullifier is
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         uint256[] memory lockedOutputs,
-        uint256 root,
-        Commonlib.Proof calldata proof,
+        bytes calldata proof,
         address delegate,
         bytes calldata data
     ) public {
+        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, Commonlib.Proof));
         // merge the outputs and lockedOutputs and do a regular transfer
         uint256[] memory allOutputs = new uint256[](
             outputs.length + lockedOutputs.length
@@ -236,7 +235,7 @@ contract Zeto_AnonNullifier is
         nullifiers = checkAndPadCommitments(nullifiers);
         allOutputs = checkAndPadCommitments(allOutputs);
         validateTransactionProposal(nullifiers, allOutputs, root, false);
-        constructPublicSignalsAndVerifyProof(nullifiers, allOutputs, root, proof);
+        constructPublicSignalsAndVerifyProof(nullifiers, allOutputs, root, proofStruct);
 
         processNullifiers(nullifiers);
 
@@ -247,18 +246,17 @@ contract Zeto_AnonNullifier is
     function unlock(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
-        uint256 root,
-        Commonlib.Proof calldata proof,
+        bytes calldata proof,
         bytes calldata data
     ) public {
-        transferLocked(nullifiers, outputs, root, proof, data);
+        transferLocked(nullifiers, outputs, proof, data);
     }
 
     function constructPublicSignalsAndVerifyProof(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         uint256 root,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof memory proof
     ) public view returns (bool) {
         uint256[] memory publicInputs = constructPublicInputs(
             nullifiers,
@@ -275,7 +273,7 @@ contract Zeto_AnonNullifier is
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         uint256 root,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof memory proof
     ) public view returns (bool) {
         uint256[] memory publicInputs = constructPublicInputs(
             nullifiers,

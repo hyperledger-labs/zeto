@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import { ethers, network } from "hardhat";
-import { ContractTransactionReceipt, Signer, BigNumberish, lock } from "ethers";
+import { ContractTransactionReceipt, Signer, BigNumberish, lock, AbiCoder } from "ethers";
 import { expect } from "chai";
 import { loadCircuit, Poseidon, encodeProof } from "zeto-js";
 import { groth16 } from "snarkjs";
@@ -601,8 +601,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
           [nullifier1.hash],
           [],
           outputCommitments,
-          root.bigInt(),
-          encodedProof,
+          encodeToBytes(root.bigInt(), encodedProof), // encode the root and proof together
           Alice.ethAddress, // make Alice the delegate who can spend the state (if she has the right proof)
           "0x",
         );
@@ -666,8 +665,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
               [nullifier1.hash],
               [],
               outputCommitments,
-              root.bigInt(),
-              encodedProof,
+              encodeToBytes(root.bigInt(), encodedProof), // encode the root and proof together
               Charlie.ethAddress,
               "0x",
             ),
@@ -934,8 +932,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
           [nullifier1.hash],
           [],
           outputCommitments,
-          root.bigInt(),
-          encodedProof,
+          encodeToBytes(root.bigInt(), encodedProof), // encode the root and proof together
           Alice.ethAddress, // make Alice the delegate who can spend the state (if she has the right proof)
           "0x",
         );
@@ -1304,16 +1301,14 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
       tx = await zeto.connect(signer.signer).transfer(
         nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
         outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
-        root,
-        encodedProof,
+        encodeToBytes(root, encodedProof),
         "0x",
       );
     } else {
       tx = await zeto.connect(signer.signer).transferLocked(
         nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
         outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
-        root,
-        encodedProof,
+        encodeToBytes(root, encodedProof), // encode the root and proof together
         "0x",
       );
     }
@@ -1393,6 +1388,10 @@ async function prepareProof(
     outputCommitments,
     encodedProof,
   };
+}
+
+function encodeToBytes(root: any, proof: any) {
+  return new AbiCoder().encode(["uint256 root", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [root, proof]);
 }
 
 module.exports = {

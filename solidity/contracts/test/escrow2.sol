@@ -35,7 +35,7 @@ contract zkEscrow2 {
         uint256[] nullifiers;
         uint256[] outputs;
         uint256 root;
-        Commonlib.Proof proof;
+        bytes proof;
         PaymentStatus status;
     }
 
@@ -63,7 +63,7 @@ contract zkEscrow2 {
         bytes calldata data
     ) public {
         inflightCount++;
-        Commonlib.Proof memory emptyProof;
+        bytes memory emptyProof;
         payments[inflightCount] = Payment(
             nullifiers,
             outputs,
@@ -76,8 +76,7 @@ contract zkEscrow2 {
 
     function approvePayment(
         uint256 paymentId,
-        uint256 root,
-        Commonlib.Proof memory proof,
+        bytes calldata proof,
         bytes calldata data
     ) public {
         Payment storage payment = payments[paymentId];
@@ -89,8 +88,9 @@ contract zkEscrow2 {
             payment.nullifiers
         );
         uint256[] memory outputs = zeto.checkAndPadCommitments(payment.outputs);
+        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, Commonlib.Proof));
         require(
-            zeto.verifyProofLocked(nullifiers, outputs, root, proof),
+            zeto.verifyProofLocked(nullifiers, outputs, root, proofStruct),
             "Invalid proof"
         );
         payment.proof = proof;
@@ -108,7 +108,6 @@ contract zkEscrow2 {
         zeto.transferLocked(
             payment.nullifiers,
             payment.outputs,
-            payment.root,
             payment.proof,
             "0x"
         );
