@@ -97,7 +97,7 @@ contract zkEscrow1 {
         );
         payment.outputs = zeto.checkAndPadCommitments(payment.outputs);
         require(
-            zeto.verifyProof(payment.lockedInputs, payment.outputs, proof),
+            zeto.constructPublicSignalsAndVerifyProof(payment.lockedInputs, payment.outputs, proof),
             "Invalid proof"
         );
         payment.proof = proof;

@@ -135,7 +135,7 @@ contract Zeto_AnonNullifier is
         nullifiers = checkAndPadCommitments(nullifiers);
         outputs = checkAndPadCommitments(outputs);
         validateTransactionProposal(nullifiers, outputs, root, false);
-        verifyProof(nullifiers, outputs, root, proof);
+        constructPublicSignalsAndVerifyProof(nullifiers, outputs, root, proof);
         uint256[] memory empty;
         processInputsAndOutputs(nullifiers, outputs, empty, address(0));
 
@@ -237,7 +237,7 @@ contract Zeto_AnonNullifier is
         nullifiers = checkAndPadCommitments(nullifiers);
         allOutputs = checkAndPadCommitments(allOutputs);
         validateTransactionProposal(nullifiers, allOutputs, root, false);
-        verifyProof(nullifiers, allOutputs, root, proof);
+        constructPublicSignalsAndVerifyProof(nullifiers, allOutputs, root, proof);
 
         processNullifiers(nullifiers);
 
@@ -255,7 +255,7 @@ contract Zeto_AnonNullifier is
         transferLocked(nullifiers, outputs, root, proof, data);
     }
 
-    function verifyProof(
+    function constructPublicSignalsAndVerifyProof(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         uint256 root,
