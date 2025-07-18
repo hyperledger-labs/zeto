@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import { ethers, network } from "hardhat";
-import { ContractTransactionReceipt, Signer, BigNumberish } from "ethers";
+import { ContractTransactionReceipt, Signer, BigNumberish, AbiCoder } from "ethers";
 import crypto from "crypto";
 import { expect } from "chai";
 import { MlKem512 } from "mlkem";
@@ -664,23 +664,19 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
   ) {
     const startTx = Date.now();
     let tx: any;
+    const proof = encodeToBytes(root, encryptionNonce, outputsCiphertext, encapsulatedSharedSecret, encodedProof);
     if (!isLocked) {
       tx = await zeto.connect(signer.signer).transfer(
         nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
         outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
-        root,
-        encryptionNonce,
-        outputsCiphertext,
-        encapsulatedSharedSecret,
-        encodedProof,
+        proof,
         "0x",
       );
     } else {
       tx = await zeto.connect(signer.signer).transferLocked(
         nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
         outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
-        root,
-        encodedProof,
+        proof,
         "0x",
       );
     }
@@ -772,6 +768,10 @@ async function prepareProof(
     outputsCiphertext,
     encapsulatedSharedSecret,
   };
+}
+
+function encodeToBytes(root: any, encryptionNonce: any, encryptedValues: any, encapsulatedSharedSecret: any, proof: any) {
+  return new AbiCoder().encode(["uint256 root", "uint256 encryptionNonce", "uint256[] encryptedValues", "uint256[25] encapsulatedSharedSecret", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [root, encryptionNonce, encryptedValues, encapsulatedSharedSecret, proof]);
 }
 
 module.exports = {

@@ -115,10 +115,6 @@ contract Zeto_AnonNullifierQurrency is
      *
      * @param nullifiers Array of nullifiers that are secretly bound to UTXOs to be spent by the transaction.
      * @param outputs Array of new UTXOs to generate, for future transactions to spend.
-     * @param root The root hash of the Sparse Merkle Tree that contains the nullifiers.
-     * @param encryptionNonce A nonce used to encrypt the outputs.
-     * @param encryptedValues An array of encrypted values corresponding to the outputs (7 elements per output).
-     * @param encapsulatedSharedSecret The ciphertext for ML-KEM decapsulation to recover the shared secret.
      * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
      *      that the outputs are valid in terms of obeying mass conservation rules.
      *
@@ -127,13 +123,10 @@ contract Zeto_AnonNullifierQurrency is
     function transfer(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
-        uint256 root,
-        uint256 encryptionNonce,
-        uint256[] memory encryptedValues,
-        uint256[25] memory encapsulatedSharedSecret,
-        Commonlib.Proof calldata proof,
+        bytes calldata proof,
         bytes calldata data
     ) public returns (bool) {
+        (uint256 root, uint256 encryptionNonce, uint256[] memory encryptedValues, uint256[25] memory encapsulatedSharedSecret, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, uint256, uint256[], uint256[25], Commonlib.Proof));
         nullifiers = checkAndPadCommitments(nullifiers);
         outputs = checkAndPadCommitments(outputs);
         validateTransactionProposal(nullifiers, outputs, root, false);
@@ -143,7 +136,7 @@ contract Zeto_AnonNullifierQurrency is
             root,
             encryptedValues,
             encapsulatedSharedSecret,
-            proof
+            proofStruct
         );
         uint256[] memory empty;
         processInputsAndOutputs(nullifiers, outputs, empty, address(0));
@@ -273,7 +266,7 @@ contract Zeto_AnonNullifierQurrency is
         uint256 root,
         uint256[] memory encryptedValues,
         uint256[25] memory encapsulatedSharedSecret,
-        Commonlib.Proof calldata proof
+        Commonlib.Proof memory proof
     ) public view returns (bool) {
         uint256[] memory publicInputs = constructPublicInputs(
             nullifiers,
