@@ -57,29 +57,46 @@ jobs:
           npm install
           npx hardhat compile
 
-      - name: Create prover archives
+      - name: Create prover archives (legacy)
         working-directory: ${{ runner.temp }}/zeto-artifacts
         run: |
+          # This is the legacy prover archive as the artifacts include the version in the name
+          # Users should download the new naming format that does not include the version in the name
           tar -czvf zeto-wasm-$ZETO_VER.tar.gz **/*.wasm
           tar --exclude='*qurrency*' -czvf zeto-test-proving-keys-$ZETO_VER.tar.gz *.zkey *-vkey.json
           tar -czvf zeto-qurrency-test-proving-keys-$ZETO_VER.tar.gz *qurrency*.zkey *qurrency*-vkey.json
+      
+      - name: Create prover archives
+        working-directory: ${{ runner.temp }}/zeto-artifacts
+        run: |
+          tar -czvf zeto-wasm.tar.gz **/*.wasm
+          tar --exclude='*qurrency*' -czvf zeto-test-proving-keys.tar.gz *.zkey *-vkey.json
+          tar -czvf zeto-qurrency-test-proving-keys.tar.gz *qurrency*.zkey *qurrency*-vkey.json
 
-      - name: Create contract archives
+      - name: Create contract archives (legacy)
         working-directory: solidity
         env:
           ARTIFACTS_ROOT: ${{ runner.temp }}/zeto-artifacts
         run: |
           tar -czvf $ARTIFACTS_ROOT/zeto-contracts-$ZETO_VER.tar.gz artifacts/contracts artifacts/@iden3
-
+      
+      - name: Create contract archives
+        working-directory: solidity
+        env:
+          ARTIFACTS_ROOT: ${{ runner.temp }}/zeto-artifacts
+        run: |
+          tar -czvf $ARTIFACTS_ROOT/zeto-contracts.tar.gz artifacts/contracts artifacts/@iden3
+  
       - name: Publish Release Artifact
         uses: actions/upload-artifact@v4
         with:
           name: zeto-wasm-and-proving-keys
           path: |
-            ${{ runner.temp }}/zeto-artifacts/zeto-wasm-*.tar.gz
-            ${{ runner.temp }}/zeto-artifacts/zeto-test-proving-keys-*.tar.gz
-            ${{ runner.temp }}/zeto-artifacts/zeto-qurrency-test-proving-keys-*.tar.gz
-            ${{ runner.temp }}/zeto-artifacts/zeto-contracts-*.tar.gz
+            ${{ runner.temp }}/zeto-artifacts/zeto-wasm*.tar.gz
+            ${{ runner.temp }}/zeto-artifacts/zeto-test-proving-keys*.tar.gz
+            ${{ runner.temp }}/zeto-artifacts/zeto-qurrency-test-proving-keys*.tar.gz
+            ${{ runner.temp }}/zeto-artifacts/zeto-contracts*.tar.gz
+
 
   create-release:
     name: Create GitHub Release
