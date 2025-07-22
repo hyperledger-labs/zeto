@@ -18,6 +18,8 @@ pragma solidity ^0.8.27;
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {Zeto_Anon} from "./zeto_anon.sol";
 import {ZetoFungibleBurnable} from "./lib/zeto_fungible_burn.sol";
+import {Commonlib} from "./lib/common.sol";
+import {ZetoCommon} from "./lib/zeto_common.sol";
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and no encryption
 /// @author Kaleido, Inc.
@@ -38,5 +40,23 @@ contract Zeto_AnonBurnable is Zeto_Anon, ZetoFungibleBurnable {
             verifiers.burnVerifier,
             verifiers.batchBurnVerifier
         );
+    }
+
+    function constructPublicInputs(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        bytes memory proof,
+        bool isLocked
+    ) internal override(Zeto_Anon, ZetoCommon) pure returns (uint256[] memory, Commonlib.Proof memory) {
+        return Zeto_Anon.constructPublicInputs(inputs, outputs, proof, isLocked);
+    }
+
+    function constructPublicInputsForLock(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        uint256[] memory lockedOutputs,
+        bytes memory proof
+    ) internal override(Zeto_Anon, ZetoCommon) pure returns (uint256[] memory, Commonlib.Proof memory) {
+        return Zeto_Anon.constructPublicInputsForLock(inputs, outputs, lockedOutputs, proof);
     }
 }

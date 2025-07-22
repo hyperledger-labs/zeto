@@ -18,7 +18,6 @@ pragma solidity ^0.8.27;
 import {IZeto} from "./lib/interfaces/izeto.sol";
 import {MAX_BATCH} from "./lib/interfaces/izeto.sol";
 import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
-import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Commonlib} from "./lib/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -32,12 +31,7 @@ import {console} from "hardhat/console.sol";
 ///        - the hashes in the input and output match the hash(value, salt, owner public key) formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
-contract Zeto_AnonNullifier is
-    IZeto,
-    ZetoNullifier,
-    ZetoFungibleWithdrawWithNullifiers,
-    UUPSUpgradeable
-{
+contract Zeto_AnonNullifier is ZetoNullifier, UUPSUpgradeable {
     function initialize(
         string memory name,
         string memory symbol,
@@ -54,11 +48,6 @@ contract Zeto_AnonNullifier is
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) internal onlyInitializing {
         __ZetoNullifier_init(name_, symbol_, initialOwner, verifiers);
-        __ZetoFungibleWithdrawWithNullifiers_init(
-            verifiers.depositVerifier,
-            verifiers.withdrawVerifier,
-            verifiers.batchWithdrawVerifier
-        );
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -66,16 +55,17 @@ contract Zeto_AnonNullifier is
     function constructPublicInputs(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
-        uint256 root,
-        bool locked
-    ) internal view returns (uint256[] memory publicInputs) {
+        bytes memory proof,
+        bool inputsLocked
+    ) internal virtual override view returns (uint256[] memory, Commonlib.Proof memory) {
+        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, Commonlib.Proof));
         uint256[] memory extra = extraInputs();
         uint256 size = (nullifiers.length * 2) + // nullifiers and enabled flags
-            (locked ? 1 : 0) +
+            (inputsLocked ? 1 : 0) +
             1 + // root
             extra.length +
             outputs.length;
-        publicInputs = new uint256[](size);
+        uint256[] memory publicInputs = new uint256[](size);
         uint256 piIndex = 0;
         // copy input commitments
         for (uint256 i = 0; i < nullifiers.length; i++) {
@@ -83,7 +73,7 @@ contract Zeto_AnonNullifier is
         }
         // when verifying locked transfers, additional public input
         // for the lock delegate
-        if (locked) {
+        if (inputsLocked) {
             publicInputs[piIndex++] = uint256(uint160(msg.sender));
         }
         // copy root
@@ -104,7 +94,7 @@ contract Zeto_AnonNullifier is
             publicInputs[piIndex++] = outputs[i];
         }
 
-        return publicInputs;
+        return (publicInputs, proofStruct);
     }
 
     function extraInputs() internal view virtual returns (uint256[] memory) {
@@ -113,116 +103,12 @@ contract Zeto_AnonNullifier is
         return empty;
     }
 
-    /**
-     * @dev the main function of the contract.
-     *
-     * @param nullifiers Array of nullifiers that are secretly bound to UTXOs to be spent by the transaction.
-     * @param outputs Array of new UTXOs to generate, for future transactions to spend.
-     * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
-     *      that the outputs are valid in terms of obeying mass conservation rules.
-     *
-     * Emits a {UTXOTransfer} event.
-     */
-    function transfer(
-        uint256[] memory nullifiers,
-        uint256[] memory outputs,
-        bytes calldata proof,
-        bytes calldata data
-    ) public returns (bool) {
-        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, Commonlib.Proof));
-        nullifiers = checkAndPadCommitments(nullifiers);
-        outputs = checkAndPadCommitments(outputs);
-        validateTransactionProposal(nullifiers, outputs, root, false);
-        constructPublicSignalsAndVerifyProof(nullifiers, outputs, root, proofStruct);
-        uint256[] memory empty;
-        processInputsAndOutputs(nullifiers, outputs, empty, address(0));
-
-        uint256[] memory nullifierArray = new uint256[](nullifiers.length);
-        uint256[] memory outputArray = new uint256[](outputs.length);
-        for (uint256 i = 0; i < nullifiers.length; ++i) {
-            nullifierArray[i] = nullifiers[i];
-            outputArray[i] = outputs[i];
-        }
-        emit UTXOTransfer(nullifierArray, outputArray, msg.sender, data);
-        return true;
-    }
-
-    function transferLocked(
-        uint256[] memory nullifiers,
-        uint256[] memory outputs,
-        bytes calldata proof,
-        bytes calldata data
-    ) public returns (bool) {
-        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, Commonlib.Proof));
-        nullifiers = checkAndPadCommitments(nullifiers);
-        outputs = checkAndPadCommitments(outputs);
-        validateTransactionProposal(nullifiers, outputs, root, true);
-        verifyProofLocked(nullifiers, outputs, root, proofStruct);
-        uint256[] memory empty;
-        processInputsAndOutputs(nullifiers, outputs, empty, address(0));
-
-        uint256[] memory nullifierArray = new uint256[](nullifiers.length);
-        uint256[] memory outputArray = new uint256[](outputs.length);
-        for (uint256 i = 0; i < nullifiers.length; ++i) {
-            nullifierArray[i] = nullifiers[i];
-            outputArray[i] = outputs[i];
-        }
-        emit UTXOTransfer(nullifierArray, outputArray, msg.sender, data);
-        return true;
-    }
-
-    function deposit(
-        uint256 amount,
-        uint256[] memory outputs,
-        Commonlib.Proof calldata proof,
-        bytes calldata data
-    ) public {
-                uint256[] memory publicInputs = new uint256[](3);
-        publicInputs[0] = amount;
-        publicInputs[1] = outputs[0];
-        publicInputs[2] = outputs[1];
-
-        _deposit(amount, outputs, proof);
-        _mint(outputs, data);
-    }
-
-    function withdraw(
-        uint256 amount,
-        uint256[] memory nullifiers,
-        uint256 output,
-        uint256 root,
-        Commonlib.Proof calldata proof,
-        bytes calldata data
-    ) public {
-        uint256[] memory outputs = new uint256[](nullifiers.length);
-        outputs[0] = output;
-        // Check and pad inputs and outputs based on the max size
-        nullifiers = checkAndPadCommitments(nullifiers);
-        outputs = checkAndPadCommitments(outputs);
-        validateTransactionProposal(nullifiers, outputs, root, false);
-        _withdrawWithNullifiers(amount, nullifiers, output, root, proof);
-        uint256[] memory empty;
-        processInputsAndOutputs(nullifiers, outputs, empty, address(0));
-        emit UTXOWithdraw(amount, nullifiers, output, msg.sender, data);
-    }
-
-    function mint(
-        uint256[] memory utxos,
-        bytes calldata data
-    ) public onlyOwner {
-        _mint(utxos, data);
-    }
-
-    function lock(
-        uint256[] memory nullifiers,
+    function constructPublicInputsForLock(
+        uint256[] memory inputs,
         uint256[] memory outputs,
         uint256[] memory lockedOutputs,
-        bytes calldata proof,
-        address delegate,
-        bytes calldata data
-    ) public {
-        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, Commonlib.Proof));
-        // merge the outputs and lockedOutputs and do a regular transfer
+        bytes memory proof
+    ) internal virtual override view returns (uint256[] memory, Commonlib.Proof memory) {
         uint256[] memory allOutputs = new uint256[](
             outputs.length + lockedOutputs.length
         );
@@ -232,57 +118,19 @@ contract Zeto_AnonNullifier is
         for (uint256 i = 0; i < lockedOutputs.length; i++) {
             allOutputs[outputs.length + i] = lockedOutputs[i];
         }
-        nullifiers = checkAndPadCommitments(nullifiers);
-        allOutputs = checkAndPadCommitments(allOutputs);
-        validateTransactionProposal(nullifiers, allOutputs, root, false);
-        constructPublicSignalsAndVerifyProof(nullifiers, allOutputs, root, proofStruct);
 
-        processNullifiers(nullifiers);
-
-        // lock the intended outputs
-        _lock(nullifiers, outputs, lockedOutputs, delegate, data);
+        return constructPublicInputs(inputs, allOutputs, proof, false);
     }
 
-    function unlock(
-        uint256[] memory nullifiers,
+    function validateTransactionProposal(
+        uint256[] memory inputs,
         uint256[] memory outputs,
-        bytes calldata proof,
-        bytes calldata data
-    ) public {
-        transferLocked(nullifiers, outputs, proof, data);
-    }
-
-    function constructPublicSignalsAndVerifyProof(
-        uint256[] memory nullifiers,
-        uint256[] memory outputs,
-        uint256 root,
-        Commonlib.Proof memory proof
-    ) public view returns (bool) {
-        uint256[] memory publicInputs = constructPublicInputs(
-            nullifiers,
-            outputs,
-            root,
-            false
-        );
-        bool isBatch = (nullifiers.length > 2 || outputs.length > 2);
-        verifyProof(proof, publicInputs, isBatch, false);
-        return true;
-    }
-
-    function verifyProofLocked(
-        uint256[] memory nullifiers,
-        uint256[] memory outputs,
-        uint256 root,
-        Commonlib.Proof memory proof
-    ) public view returns (bool) {
-        uint256[] memory publicInputs = constructPublicInputs(
-            nullifiers,
-            outputs,
-            root,
-            true
-        );
-        bool isBatch = (nullifiers.length > 2 || outputs.length > 2);
-        verifyProof(proof, publicInputs, isBatch, true);
-        return true;
+        uint256[] memory lockedOutputs,
+        bytes memory proof,
+        bool inputsLocked
+    ) internal virtual view override {
+        super.validateTransactionProposal(inputs, outputs, lockedOutputs, proof, inputsLocked);
+        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, Commonlib.Proof));
+        validateRoot(root, inputsLocked);
     }
 }

@@ -20,12 +20,13 @@ import {IZetoLockable} from "./interfaces/izeto_lockable.sol";
 import {IZetoInitializable} from "./interfaces/izeto_initializable.sol";
 import {Commonlib} from "./common.sol";
 import {ZetoCommon} from "./zeto_common.sol";
+import {ZetoFungible} from "./zeto_fungible.sol";
 
 /// @title A sample base implementation of a Zeto based token contract
 ///        without using nullifiers. Each UTXO's spending status is explicitly tracked.
 /// @author Kaleido, Inc.
 /// @dev Implements common functionalities of Zeto based tokens without nullifiers
-abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
+abstract contract ZetoBase is ZetoFungible {
     enum UTXOStatus {
         UNKNOWN, // default value for the empty UTXO slots
         UNSPENT,
@@ -48,7 +49,7 @@ abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) internal onlyInitializing {
-        __ZetoCommon_init(name_, symbol_, initialOwner, verifiers);
+        __ZetoFungible_init(name_, symbol_, initialOwner, verifiers);
     }
 
     /// @dev query whether a UTXO is currently spent
@@ -59,31 +60,10 @@ abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
             _lockedUtxos[txo] == UTXOStatus.SPENT;
     }
 
-    function validateTransactionProposal(
-        uint256[] memory inputs,
-        uint256[] memory outputs,
-        uint256[] memory lockedOutputs,
-        bool inputsLocked
-    ) internal view returns (bool) {
-        uint256[] memory allOutputs = new uint256[](
-            outputs.length + lockedOutputs.length
-        );
-        for (uint256 i = 0; i < outputs.length; i++) {
-            allOutputs[i] = outputs[i];
-        }
-        for (uint256 i = 0; i < lockedOutputs.length; i++) {
-            allOutputs[outputs.length + i] = lockedOutputs[i];
-        }
-        validateInputs(inputs, inputsLocked);
-        validateOutputs(allOutputs);
-
-        return true;
-    }
-
     function validateInputs(
         uint256[] memory inputs,
         bool inputsLocked
-    ) internal view {
+    ) internal override view {
         // sort the inputs to detect duplicates
         uint256[] memory sortedInputs = sortCommitments(inputs);
         // Check the inputs are all unspent
@@ -125,9 +105,10 @@ abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
                 );
             }
         }
+
     }
 
-    function validateOutputs(uint256[] memory outputs) internal view {
+    function validateOutputs(uint256[] memory outputs) internal override view {
         // sort the outputs to detect duplicates
         uint256[] memory sortedOutputs = sortCommitments(outputs);
 
@@ -156,23 +137,13 @@ abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
                 revert UTXOAlreadyOwned(outputs[i]);
             }
         }
-    }
 
-    function processInputsAndOutputs(
-        uint256[] memory inputs,
-        uint256[] memory outputs,
-        uint256[] memory lockedOutputs,
-        bool inputsLocked
-    ) internal {
-        processInputs(inputs, inputsLocked);
-        processOutputs(outputs);
-        processLockedOutputs(lockedOutputs);
     }
 
     function processInputs(
         uint256[] memory inputs,
         bool inputsLocked
-    ) internal {
+    ) internal override {
         mapping(uint256 => UTXOStatus) storage utxos = inputsLocked
             ? _lockedUtxos
             : _utxos;
@@ -184,7 +155,7 @@ abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
         }
     }
 
-    function processOutputs(uint256[] memory outputs) internal {
+    function processOutputs(uint256[] memory outputs) internal override {
         for (uint256 i = 0; i < outputs.length; ++i) {
             if (outputs[i] != 0) {
                 _utxos[outputs[i]] = UTXOStatus.UNSPENT;
@@ -192,51 +163,14 @@ abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
         }
     }
 
-    function processLockedOutputs(uint256[] memory lockedOutputs) internal {
+    function processLockedOutputs(uint256[] memory lockedOutputs, address delegate) internal override {
+        // put the locked UTXOs into the locked UTXO tree as UNSPENT
         for (uint256 i = 0; i < lockedOutputs.length; ++i) {
             if (lockedOutputs[i] != 0) {
                 _lockedUtxos[lockedOutputs[i]] = UTXOStatus.UNSPENT;
             }
         }
-    }
-
-    // This function is used to mint new UTXOs, as an example implementation,
-    // which is only callable by the owner.
-    function _mint(
-        uint256[] memory utxos,
-        bytes calldata data
-    ) internal virtual {
-        validateOutputs(utxos);
-        processOutputs(utxos);
-        emit UTXOMint(utxos, msg.sender, data);
-    }
-
-    // The caller function must perform the proof verification
-    function _burn(
-        uint256[] memory inputs,
-        uint256 output,
-        bytes calldata data
-    ) internal virtual {
-        validateInputs(inputs, false);
-        uint256[] memory outputStates = new uint256[](1);
-        outputStates[0] = output;
-        validateOutputs(outputStates);
-        processInputs(inputs, false);
-        processOutputs(outputStates);
-        emit UTXOBurn(inputs, output, msg.sender, data);
-    }
-
-    // Locks the UTXOs so that they can only be spent by submitting the appropriate
-    // proof from the Eth account designated as the "delegate". This function
-    // should be called by a participant, to designate an escrow contract as the delegate,
-    // which can use uploaded proofs to execute transactions.
-    function _lock(
-        uint256[] memory inputs,
-        uint256[] memory outputs,
-        uint256[] memory lockedOutputs,
-        address delegate,
-        bytes calldata data
-    ) internal {
+        // set the delegate of the locked UTXOs
         for (uint256 i = 0; i < lockedOutputs.length; ++i) {
             if (lockedOutputs[i] == 0) {
                 continue;
@@ -253,15 +187,21 @@ abstract contract ZetoBase is IZeto, IZetoLockable, ZetoCommon {
             }
             delegates[lockedOutputs[i]] = delegate;
         }
+    }
 
-        emit UTXOsLocked(
-            inputs,
-            outputs,
-            lockedOutputs,
-            delegate,
-            msg.sender,
-            data
-        );
+    // The caller function must perform the proof verification
+    function _burn(
+        uint256[] memory inputs,
+        uint256 output,
+        bytes calldata data
+    ) internal virtual {
+        validateInputs(inputs, false);
+        uint256[] memory outputStates = new uint256[](1);
+        outputStates[0] = output;
+        validateOutputs(outputStates);
+        processInputs(inputs, false);
+        processOutputs(outputStates);
+        emit UTXOBurn(inputs, output, msg.sender, data);
     }
 
     // move the ability to spend the locked UTXOs to the delegate account.

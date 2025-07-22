@@ -159,7 +159,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     // Alice withdraws her UTXOs to ERC20 tokens
     const tx = await zeto
       .connect(Alice.signer)
-      .withdraw(3, inputCommitments, outputCommitments[0], encodedProof, "0x");
+      .withdraw(3, inputCommitments, outputCommitments[0], encodeToBytes(encodedProof), "0x");
     await tx.wait();
 
     // Alice checks her ERC20 balance
@@ -185,7 +185,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     );
     const tx2 = await zeto
       .connect(Alice.signer)
-      .deposit(100, outputCommitments, encodedProof, "0x");
+      .deposit(100, outputCommitments, encodeToBytes(encodedProof), "0x");
     const result = await tx2.wait();
     console.log(`Method deposit() complete. Gas used: ${result?.gasUsed}`);
   });
@@ -271,7 +271,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     // Alice withdraws her UTXOs to ERC20 tokens
     const tx = await zeto
       .connect(Alice.signer)
-      .withdraw(80, inputCommitments, outputCommitments[0], encodedProof, "0x");
+      .withdraw(80, inputCommitments, outputCommitments[0], encodeToBytes(encodedProof), "0x");
     const result = await tx.wait();
     console.log(`Method withdraw() complete. Gas used: ${result?.gasUsed}`);
 
@@ -372,7 +372,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
             10,
             inputCommitments,
             outputCommitments[0],
-            encodedProof,
+            encodeToBytes(encodedProof),
             "0x",
           ),
       ).rejectedWith("UTXOAlreadySpent");
@@ -560,7 +560,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
             10,
             inputCommitments,
             outputCommitments[0],
-            encodedProof,
+            encodeToBytes(encodedProof),
             "0x",
           ),
       ).to.be.rejectedWith("UTXOAlreadyLocked");

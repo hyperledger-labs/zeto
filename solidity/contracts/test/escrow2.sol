@@ -90,7 +90,7 @@ contract zkEscrow2 {
         uint256[] memory outputs = zeto.checkAndPadCommitments(payment.outputs);
         (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, Commonlib.Proof));
         require(
-            zeto.verifyProofLocked(nullifiers, outputs, root, proofStruct),
+            zeto.constructPublicSignalsAndVerifyProof(nullifiers, outputs, proof, true),
             "Invalid proof"
         );
         payment.proof = proof;

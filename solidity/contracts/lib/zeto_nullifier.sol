@@ -20,7 +20,7 @@ import {IZeto} from "./interfaces/izeto.sol";
 import {MAX_SMT_DEPTH} from "./interfaces/izeto.sol";
 import {IZetoLockable} from "./interfaces/izeto_lockable.sol";
 import {IZetoInitializable} from "./interfaces/izeto_initializable.sol";
-import {ZetoCommon} from "./zeto_common.sol";
+import {ZetoFungible} from "./zeto_fungible.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
 import {console} from "hardhat/console.sol";
@@ -28,7 +28,7 @@ import {console} from "hardhat/console.sol";
 /// @title A sample base implementation of a Zeto based token contract with nullifiers
 /// @author Kaleido, Inc.
 /// @dev Implements common functionalities of Zeto based tokens using nullifiers
-abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
+abstract contract ZetoNullifier is ZetoFungible {
     // used for tracking regular (unlocked) UTXOs
     SmtLib.Data internal _commitmentsTree;
     // used for locked UTXOs tracking. multi-step transaction flows that require counterparties
@@ -48,29 +48,17 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) internal onlyInitializing {
-        __ZetoCommon_init(name_, symbol_, initialOwner, verifiers);
+        __ZetoFungible_init(name_, symbol_, initialOwner, verifiers);
         _commitmentsTree.initialize(MAX_SMT_DEPTH);
         _lockedCommitmentsTree.initialize(MAX_SMT_DEPTH);
     }
 
-    function validateTransactionProposal(
-        uint256[] memory nullifiers,
-        uint256[] memory outputs,
-        uint256 root,
-        bool isLocked
-    ) internal view returns (bool) {
-        validateNullifiers(nullifiers);
-        validateOutputs(outputs);
-        validateRoot(root, isLocked);
-
-        return true;
-    }
-
-    function validateNullifiers(
-        uint256[] memory nullifiers
-    ) internal view returns (bool) {
+    function validateInputs(
+        uint256[] memory inputs,
+        bool inputsLocked
+    ) internal view override {
         // sort the nullifiers to detect duplicates
-        uint256[] memory sortedInputs = sortCommitments(nullifiers);
+        uint256[] memory sortedInputs = sortCommitments(inputs);
 
         // Check the inputs are all unspent
         for (uint256 i = 0; i < sortedInputs.length; ++i) {
@@ -89,7 +77,7 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
 
     function validateOutputs(
         uint256[] memory outputs
-    ) internal view returns (bool) {
+    ) internal view override {
         // sort the outputs to detect duplicates
         uint256[] memory sortedOutputs = sortCommitments(outputs);
 
@@ -126,18 +114,41 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
         return true;
     }
 
-    function processInputsAndOutputs(
+    function constructPublicInputsForWithdraw(
+        uint256 amount,
         uint256[] memory nullifiers,
-        uint256[] memory outputs,
-        uint256[] memory lockedOutputs,
-        address delegate
-    ) internal {
-        processNullifiers(nullifiers);
-        processOutputs(outputs);
-        processLockedOutputs(lockedOutputs, delegate);
+        uint256 output,
+        bytes memory proof
+    ) internal override pure returns (uint256[] memory, Commonlib.Proof memory) {
+        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, Commonlib.Proof));
+        uint256 size = (nullifiers.length * 2) + 3; // nullifiers and the enabled flags, amount, root, output
+        // construct the public inputs for verifier
+        uint256[] memory publicInputs = new uint256[](size);
+        uint256 piIndex = 0;
+
+        // copy output amount
+        publicInputs[piIndex++] = amount;
+
+        // copy input commitments
+        for (uint256 i = 0; i < nullifiers.length; i++) {
+            publicInputs[piIndex++] = nullifiers[i];
+        }
+
+        // copy root
+        publicInputs[piIndex++] = root;
+
+        // populate enables
+        for (uint256 i = 0; i < nullifiers.length; i++) {
+            publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
+        }
+
+        // copy output commitment
+        publicInputs[piIndex++] = output;
+
+        return (publicInputs, proofStruct);
     }
 
-    function processNullifiers(uint256[] memory nullifiers) internal {
+    function processInputs(uint256[] memory nullifiers, bool inputsLocked) internal override {
         for (uint256 i = 0; i < nullifiers.length; ++i) {
             if (nullifiers[i] != 0) {
                 _nullifiers[nullifiers[i]] = true;
@@ -145,7 +156,7 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
         }
     }
 
-    function processOutputs(uint256[] memory outputs) internal {
+    function processOutputs(uint256[] memory outputs) internal override {
         for (uint256 i = 0; i < outputs.length; ++i) {
             if (outputs[i] != 0) {
                 _commitmentsTree.addLeaf(outputs[i], outputs[i]);
@@ -156,7 +167,7 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
     function processLockedOutputs(
         uint256[] memory lockedOutputs,
         address delegate
-    ) internal {
+    ) internal override {
         for (uint256 i = 0; i < lockedOutputs.length; ++i) {
             if (lockedOutputs[i] != 0) {
                 _lockedCommitmentsTree.addLeaf(
@@ -167,17 +178,6 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
         }
     }
 
-    // This function is used to mint new UTXOs, as an example implementation,
-    // which is only callable by the owner.
-    function _mint(
-        uint256[] memory utxos,
-        bytes calldata data
-    ) internal virtual {
-        validateOutputs(utxos);
-        processOutputs(utxos);
-        emit UTXOMint(utxos, msg.sender, data);
-    }
-
     // This function is used to burn the owner's UTXOs
     function _burn(
         uint256[] memory nullifiers,
@@ -185,7 +185,7 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
         uint256 root,
         bytes calldata data
     ) internal virtual {
-        validateNullifiers(nullifiers);
+        validateInputs(nullifiers, false);
         uint256[] memory outputStates = new uint256[](1);
         outputStates[0] = output;
         validateOutputs(outputStates);
@@ -200,32 +200,6 @@ abstract contract ZetoNullifier is IZeto, IZetoLockable, ZetoCommon {
 
     function getRootForLocked() public view returns (uint256) {
         return _lockedCommitmentsTree.getRoot();
-    }
-
-    // Locks the UTXOs so that they can only be spent by submitting the appropriate
-    // proof from the Eth account designated as the "delegate". This function
-    // should be called by escrow contracts that will use uploaded proofs
-    // to execute transactions, in order to prevent the proof from being used
-    // by parties other than the escrow contract.
-    // Assumes that the outputs and locked outputs are already validated to be new UTXOs.
-    function _lock(
-        uint256[] memory nullifiers,
-        uint256[] memory outputs,
-        uint256[] memory lockedOutputs,
-        address delegate,
-        bytes calldata data
-    ) internal {
-        processOutputs(outputs);
-        processLockedOutputs(lockedOutputs, delegate);
-
-        emit UTXOsLocked(
-            nullifiers,
-            outputs,
-            lockedOutputs,
-            delegate,
-            msg.sender,
-            data
-        );
     }
 
     // move the ability to spend the locked UTXOs to the delegate account.
