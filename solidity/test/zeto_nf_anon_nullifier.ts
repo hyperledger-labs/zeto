@@ -308,7 +308,7 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
     it("the current delegate can move the lock to a new delegate", async function () {
       const tx = await zeto
         .connect(Bob.signer)
-        .delegateLock([lockedUtxo.hash], Charlie.ethAddress, "0x");
+        .delegateLock(lockedUtxo.hash, Charlie.ethAddress, "0x");
       const result = await tx.wait();
       const events = parseUTXOEvents(zeto, result);
       // this should update the existing leaf node value from address of Alice to Charlie
@@ -556,8 +556,7 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
       .transfer(nullifier, outputCommitment, encodeToBytes(root, encodedProof), "0x");
     const results: ContractTransactionReceipt | null = await tx.wait();
     console.log(
-      `Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${
-        results?.gasUsed
+      `Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${results?.gasUsed
       }`,
     );
     return results;

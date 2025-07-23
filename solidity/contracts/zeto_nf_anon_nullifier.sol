@@ -16,10 +16,11 @@
 pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
-import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
-import {Commonlib} from "./lib/common.sol";
+import {ZetoNonFungibleNullifier} from "./lib/zeto_non_fungible_nullifier.sol";
+import {Commonlib} from "./lib/common/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "hardhat/console.sol";
 
 /// @title A sample implementation of a Zeto based non-fungible token with anonymity and history masking
 /// @author Kaleido, Inc.
@@ -29,140 +30,92 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 ///        - the hashes in the input and output match the hash(value, salt, owner public key) formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
-contract Zeto_NfAnonNullifier is IZeto, ZetoNullifier, UUPSUpgradeable {
+contract Zeto_NfAnonNullifier is
+    IZeto,
+    ZetoNonFungibleNullifier,
+    UUPSUpgradeable
+{
     function initialize(
         string memory name,
         string memory symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
-        __ZetoNullifier_init(name, symbol, initialOwner, verifiers);
+        __ZetoNonFungibleNullifier_init(name, symbol, initialOwner, verifiers);
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
-    /**
-     * @dev the main function of the contract.
-     *
-     * @param nullifier A nullifier that are secretly bound to the UTXO to be spent by the transaction.
-     * @param output new UTXO to generate, for future transactions to spend.
-     * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
-     *      that the outputs are valid in terms of obeying mass conservation rules.
-     *
-     * Emits a {UTXOTransfer} event.
-     */
-    function transfer(
-        uint256 nullifier,
-        uint256 output,
-        bytes calldata proof,
-        bytes calldata data
-    ) public returns (bool) {
-        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, Commonlib.Proof));
-        uint256[] memory nullifiers = new uint256[](1);
-        nullifiers[0] = nullifier;
-        uint256[] memory outputs = new uint256[](1);
-        outputs[0] = output;
-        validateTransactionProposal(nullifiers, outputs, root, false);
-        verifyProof(nullifiers, outputs, root, proofStruct);
-        uint256[] memory empty;
-        processInputsAndOutputs(nullifiers, outputs, empty, address(0));
-
-        emit UTXOTransfer(nullifiers, outputs, msg.sender, data);
-        return true;
-    }
-
-    /**
-     * @dev the main function of the contract.
-     *
-     * @param nullifier A nullifier that are secretly bound to the UTXO to be spent by the transaction.
-     * @param output new UTXO to generate, for future transactions to spend.
-     * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
-     *      that the outputs are valid in terms of obeying mass conservation rules.
-     *
-     * Emits a {UTXOTransfer} event.
-     */
-    function transferLocked(
-        uint256 nullifier,
-        uint256 output,
-        bytes calldata proof,
-        bytes calldata data
-    ) public returns (bool) {
-        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, Commonlib.Proof));
-        uint256[] memory nullifiers = new uint256[](1);
-        nullifiers[0] = nullifier;
-        uint256[] memory outputs = new uint256[](1);
-        outputs[0] = output;
-        validateTransactionProposal(nullifiers, outputs, root, true);
-        verifyProofLocked(nullifiers, outputs, root, proofStruct);
-        uint256[] memory empty;
-        processInputsAndOutputs(nullifiers, outputs, empty, address(0));
-
-        emit UTXOTransfer(nullifiers, outputs, msg.sender, data);
-        return true;
-    }
-
-    function mint(uint256[] memory utxos, bytes calldata data) public {
-        _mint(utxos, data);
-    }
-
-    function lock(
-        uint256 nullifier,
-        uint256 lockedOutput,
-        bytes calldata proof,
-        address delegate,
-        bytes calldata data
-    ) public {
-        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, Commonlib.Proof));
-        uint256[] memory nullifiers = new uint256[](1);
-        nullifiers[0] = nullifier;
-        uint256[] memory lockedOutputs = new uint256[](1);
-        lockedOutputs[0] = lockedOutput;
-        validateTransactionProposal(nullifiers, lockedOutputs, root, false);
-        verifyProof(nullifiers, lockedOutputs, root, proofStruct);
-
-        processNullifiers(nullifiers);
-
-        // lock the intended outputs
-        uint256[] memory outputs;
-        _lock(nullifiers, outputs, lockedOutputs, delegate, data);
-    }
-
-    function verifyProof(
+    function constructPublicInputs(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
-        uint256 root,
-        Commonlib.Proof memory proof
-    ) internal view {
+        bytes memory proof,
+        bool inputsLocked
+    )
+        internal
+        view
+        override
+        returns (uint256[] memory, Commonlib.Proof memory)
+    {
+        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(
+            proof,
+            (uint256, Commonlib.Proof)
+        );
+        // construct the public inputs
+        uint size = inputsLocked ? 4 : 3;
+        uint256[] memory publicInputs = new uint256[](size);
+        uint idx = 0;
+        publicInputs[idx++] = nullifiers[0];
+        if (inputsLocked) {
+            publicInputs[idx++] = uint256(uint160(msg.sender));
+        }
+        publicInputs[idx++] = root;
+        publicInputs[idx++] = outputs[0];
+        return (publicInputs, proofStruct);
+    }
+
+    function constructPublicInputsForLock(
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
+        uint256[] memory lockedOutputs,
+        bytes memory proof
+    )
+        internal
+        view
+        virtual
+        override
+        returns (uint256[] memory, Commonlib.Proof memory)
+    {
+        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(
+            proof,
+            (uint256, Commonlib.Proof)
+        );
         // construct the public inputs
         uint256[] memory publicInputs = new uint256[](3);
         publicInputs[0] = nullifiers[0];
         publicInputs[1] = root;
-        publicInputs[2] = outputs[0];
-
-        // Check the proof
-        require(
-            _verifier.verify(proof.pA, proof.pB, proof.pC, publicInputs),
-            "Invalid proof"
-        );
+        publicInputs[2] = lockedOutputs[0];
+        return (publicInputs, proofStruct);
     }
 
-    function verifyProofLocked(
-        uint256[] memory nullifiers,
+    function validateTransactionProposal(
+        uint256[] memory inputs,
         uint256[] memory outputs,
-        uint256 root,
-        Commonlib.Proof memory proof
-    ) internal view {
-        // construct the public inputs
-        uint256[] memory publicInputs = new uint256[](4);
-        publicInputs[0] = nullifiers[0];
-        publicInputs[1] = uint256(uint160(msg.sender));
-        publicInputs[2] = root;
-        publicInputs[3] = outputs[0];
-
-        // Check the proof
-        require(
-            _lockVerifier.verify(proof.pA, proof.pB, proof.pC, publicInputs),
-            "Invalid proof"
+        uint256[] memory lockedOutputs,
+        bytes memory proof,
+        bool inputsLocked
+    ) internal view virtual override {
+        super.validateTransactionProposal(
+            inputs,
+            outputs,
+            lockedOutputs,
+            proof,
+            inputsLocked
         );
+        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(
+            proof,
+            (uint256, Commonlib.Proof)
+        );
+        validateRoot(root, inputsLocked);
     }
 }
