@@ -15,12 +15,16 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {Commonlib} from "../common.sol";
+import {Commonlib} from "../common/common.sol";
 
 interface IZetoLockable {
     error UTXOAlreadyLocked(uint256 utxo);
     error UTXONotLocked(uint256 utxo);
-    error NotLockDelegate(uint256 utxo, address delegate, address sender);
+    error NotLockDelegate(
+        uint256 utxo,
+        address currentDelegate,
+        address sender
+    );
     event UTXOsLocked(
         uint256[] inputs,
         uint256[] outputs,

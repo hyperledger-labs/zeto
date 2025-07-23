@@ -17,8 +17,8 @@ pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
 import {MAX_BATCH} from "./lib/interfaces/izeto.sol";
-import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
-import {Commonlib} from "./lib/common.sol";
+import {ZetoFungibleNullifier} from "./lib/zeto_fungible_nullifier.sol";
+import {Commonlib} from "./lib/common/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {console} from "hardhat/console.sol";
@@ -31,7 +31,7 @@ import {console} from "hardhat/console.sol";
 ///        - the hashes in the input and output match the hash(value, salt, owner public key) formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
-contract Zeto_AnonNullifier is ZetoNullifier, UUPSUpgradeable {
+contract Zeto_AnonNullifier is ZetoFungibleNullifier, UUPSUpgradeable {
     function initialize(
         string memory name,
         string memory symbol,
@@ -47,7 +47,7 @@ contract Zeto_AnonNullifier is ZetoNullifier, UUPSUpgradeable {
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) internal onlyInitializing {
-        __ZetoNullifier_init(name_, symbol_, initialOwner, verifiers);
+        __ZetoFungibleNullifier_init(name_, symbol_, initialOwner, verifiers);
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -57,8 +57,17 @@ contract Zeto_AnonNullifier is ZetoNullifier, UUPSUpgradeable {
         uint256[] memory outputs,
         bytes memory proof,
         bool inputsLocked
-    ) internal virtual override view returns (uint256[] memory, Commonlib.Proof memory) {
-        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, Commonlib.Proof));
+    )
+        internal
+        view
+        virtual
+        override
+        returns (uint256[] memory, Commonlib.Proof memory)
+    {
+        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(
+            proof,
+            (uint256, Commonlib.Proof)
+        );
         uint256[] memory extra = extraInputs();
         uint256 size = (nullifiers.length * 2) + // nullifiers and enabled flags
             (inputsLocked ? 1 : 0) +
@@ -108,7 +117,13 @@ contract Zeto_AnonNullifier is ZetoNullifier, UUPSUpgradeable {
         uint256[] memory outputs,
         uint256[] memory lockedOutputs,
         bytes memory proof
-    ) internal virtual override view returns (uint256[] memory, Commonlib.Proof memory) {
+    )
+        internal
+        view
+        virtual
+        override
+        returns (uint256[] memory, Commonlib.Proof memory)
+    {
         uint256[] memory allOutputs = new uint256[](
             outputs.length + lockedOutputs.length
         );
@@ -128,9 +143,18 @@ contract Zeto_AnonNullifier is ZetoNullifier, UUPSUpgradeable {
         uint256[] memory lockedOutputs,
         bytes memory proof,
         bool inputsLocked
-    ) internal virtual view override {
-        super.validateTransactionProposal(inputs, outputs, lockedOutputs, proof, inputsLocked);
-        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, Commonlib.Proof));
+    ) internal view virtual override {
+        super.validateTransactionProposal(
+            inputs,
+            outputs,
+            lockedOutputs,
+            proof,
+            inputsLocked
+        );
+        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(
+            proof,
+            (uint256, Commonlib.Proof)
+        );
         validateRoot(root, inputsLocked);
     }
 }

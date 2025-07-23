@@ -17,9 +17,10 @@ pragma solidity ^0.8.27;
 
 import {IGroth16Verifier} from "./interfaces/izeto_verifier.sol";
 import {IZetoInitializable} from "./interfaces/izeto_initializable.sol";
-import {Commonlib} from "./common.sol";
+import {Commonlib} from "./common/common.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ZetoCommon} from "./zeto_common.sol";
+import {IZetoStorage} from "./interfaces/izeto_storage.sol";
 
 /// @title A sample implementation of a base Zeto fungible token contract
 /// @author Kaleido, Inc.
@@ -41,9 +42,10 @@ abstract contract ZetoFungible is ZetoCommon {
         string memory name_,
         string memory symbol_,
         address initialOwner,
-        IZetoInitializable.VerifiersInfo calldata verifiers
+        IZetoInitializable.VerifiersInfo calldata verifiers,
+        IZetoStorage storage_
     ) public onlyInitializing {
-        __ZetoCommon_init(name_, symbol_, initialOwner, verifiers);
+        __ZetoCommon_init(name_, symbol_, initialOwner, verifiers, storage_);
         _depositVerifier = verifiers.depositVerifier;
         _withdrawVerifier = verifiers.withdrawVerifier;
         _batchWithdrawVerifier = verifiers.batchWithdrawVerifier;
@@ -56,6 +58,190 @@ abstract contract ZetoFungible is ZetoCommon {
      */
     function setERC20(IERC20 erc20) public onlyOwner {
         _erc20 = erc20;
+    }
+
+    /**
+     * @dev the main function of the contract, which transfers values from one account (represented by Babyjubjub public keys)
+     *      to one or more receiver accounts (also represented by Babyjubjub public keys). One of the two nullifiers may be zero
+     *      if the transaction only needs one UTXO to be spent. Equally one of the two outputs may be zero if the transaction
+     *      only needs to create one new UTXO.
+     *
+     * @param inputs Array of nullifiers that are secretly bound to UTXOs to be spent by the transaction.
+     * @param outputs Array of new UTXOs to generate, for future transactions to spend.
+     * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
+     *      that the outputs are valid in terms of obeying mass conservation rules.
+     *
+     * Emits a {UTXOTransferNonRepudiation} event.
+     */
+    function transfer(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        bytes calldata proof,
+        bytes calldata data
+    ) public {
+        // Check and pad commitments
+        inputs = checkAndPadCommitments(inputs);
+        outputs = checkAndPadCommitments(outputs);
+        // construct the public inputs for the proof verification
+        (
+            uint256[] memory publicInputs,
+            Commonlib.Proof memory proofStruct
+        ) = constructPublicInputs(inputs, outputs, proof, false);
+        uint256[] memory lockedOutputs;
+        validateTransactionProposal(
+            inputs,
+            outputs,
+            lockedOutputs,
+            proof,
+            false
+        );
+        bool isBatch = (inputs.length > 2 || outputs.length > 2);
+        verifyProof(proofStruct, publicInputs, isBatch, false);
+        processInputsAndOutputs(inputs, outputs, false);
+        emit UTXOTransfer(inputs, outputs, msg.sender, data);
+    }
+
+    /**
+     * @dev transfer funds that have been previously locked by the sender. The submitted must
+     * be the current delegate of the locked UTXOs.
+     *
+     * @param inputs Array of UTXOs to be spent by the transaction, they must be locked.
+     * @param outputs Array of new UTXOs to generate, for future transactions to spend. They are unlocked.
+     * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
+     *      that the outputs are valid in terms of obeying mass conservation rules.
+     *
+     * Emits a {UTXOTransfer} event.
+     */
+    function transferLocked(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        bytes calldata proof,
+        bytes calldata data
+    ) public {
+        // Check and pad inputs and outputs based on the max size
+        inputs = checkAndPadCommitments(inputs);
+        outputs = checkAndPadCommitments(outputs);
+        // construct the public inputs for the proof verification
+        (
+            uint256[] memory publicInputs,
+            Commonlib.Proof memory proofStruct
+        ) = constructPublicInputs(inputs, outputs, proof, true);
+
+        uint256[] memory lockedOutputs;
+        validateTransactionProposal(
+            inputs,
+            outputs,
+            lockedOutputs,
+            proof,
+            true
+        );
+
+        bool isBatch = (inputs.length > 2 || outputs.length > 2);
+        verifyProof(proofStruct, publicInputs, isBatch, true);
+        processInputsAndOutputs(inputs, outputs, true);
+        emit UTXOTransfer(inputs, outputs, msg.sender, data);
+    }
+
+    /**
+     * @dev lock funds that have been previously unlocked by the sender. The submitted must
+     * be the current delegate of the locked UTXOs.
+     *
+     * @param inputs Array of UTXOs to be spent by the transaction, they must be unlocked.
+     * @param outputs Array of new UTXOs to generate, for future transactions to spend. They are locked.
+     * @param lockedOutputs Array of UTXOs to be locked by the transaction.
+     * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
+     *      that the outputs are valid in terms of obeying mass conservation rules.
+     * @param delegate The delegate of the locked UTXOs.
+     * @param data Additional data to be passed to the lock function.
+     *
+     * Emits a {UTXOTransfer} event.
+     */
+    function lock(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        uint256[] memory lockedOutputs,
+        bytes calldata proof,
+        address delegate,
+        bytes calldata data
+    ) public {
+        // Check and pad inputs and outputs based on the max size
+        inputs = checkAndPadCommitments(inputs);
+        // construct the public inputs for the proof verification
+        (
+            uint256[] memory publicInputs,
+            Commonlib.Proof memory proofStruct
+        ) = constructPublicInputsForLock(inputs, outputs, lockedOutputs, proof);
+
+        validateTransactionProposal(
+            inputs,
+            outputs,
+            lockedOutputs,
+            proof,
+            false
+        );
+        bool isBatch = (inputs.length > 2 ||
+            outputs.length > 2 ||
+            lockedOutputs.length > 2);
+        verifyProof(proofStruct, publicInputs, isBatch, false);
+
+        processInputsAndOutputs(inputs, outputs, false);
+        processLockedOutputs(lockedOutputs, delegate);
+
+        emit UTXOsLocked(
+            inputs,
+            outputs,
+            lockedOutputs,
+            delegate,
+            msg.sender,
+            data
+        );
+    }
+
+    /**
+     * @dev unlock funds that have been previously locked by the sender. The submitted must
+     * be the current delegate of the locked UTXOs.
+     *
+     * @param nullifiers Array of nullifiers that are secretly bound to UTXOs to be spent by the transaction.
+     * @param outputs Array of new UTXOs to generate, for future transactions to spend. They are unlocked.
+     * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
+     *      that the outputs are valid in terms of obeying mass conservation rules.
+     * @param data Additional data to be passed to the unlock function.
+     *
+     * Emits a {UTXOTransfer} event.
+     */
+    function unlock(
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
+        bytes calldata proof,
+        bytes calldata data
+    ) public {
+        transferLocked(nullifiers, outputs, proof, data);
+    }
+
+    /**
+     * @dev move the ability to spend the locked UTXOs to the delegate account.
+     *      The sender must be the current delegate.
+     *
+     * @param utxos The locked UTXO to update the delegate of.
+     * @param delegate The new delegate.
+     * @param data Additional data to be passed to the delegateLock function.
+     */
+    function delegateLock(
+        uint256[] memory utxos,
+        address delegate,
+        bytes calldata data
+    ) public {
+        for (uint256 i = 0; i < utxos.length; i++) {
+            (bool isLocked, address currentDelegate) = locked(utxos[i]);
+            if (!isLocked) {
+                revert UTXONotLocked(utxos[i]);
+            }
+            if (currentDelegate != msg.sender) {
+                revert NotLockDelegate(utxos[i], currentDelegate, msg.sender);
+            }
+        }
+        _storage.delegateLock(utxos, delegate, data);
+        emit LockDelegateChanged(utxos, msg.sender, delegate, data);
     }
 
     /**
@@ -74,10 +260,18 @@ abstract contract ZetoFungible is ZetoCommon {
     ) public {
         // verifies that the output UTXOs match the claimed value
         // to be deposited
-        (uint256[] memory publicInputs, Commonlib.Proof memory proofStruct) = constructPublicInputsForDeposit(amount, outputs, proof);
+        (
+            uint256[] memory publicInputs,
+            Commonlib.Proof memory proofStruct
+        ) = constructPublicInputsForDeposit(amount, outputs, proof);
         // Check the proof
         require(
-            _depositVerifier.verify(proofStruct.pA, proofStruct.pB, proofStruct.pC, publicInputs),
+            _depositVerifier.verify(
+                proofStruct.pA,
+                proofStruct.pB,
+                proofStruct.pC,
+                publicInputs
+            ),
             "Invalid proof"
         );
 
@@ -110,7 +304,13 @@ abstract contract ZetoFungible is ZetoCommon {
         inputs = checkAndPadCommitments(inputs);
         outputs = checkAndPadCommitments(outputs);
         uint256[] memory lockedOutputs;
-        validateTransactionProposal(inputs, outputs, lockedOutputs, proof, false);
+        validateTransactionProposal(
+            inputs,
+            outputs,
+            lockedOutputs,
+            proof,
+            false
+        );
 
         _withdraw(amount, inputs, output, proof);
         processInputsAndOutputs(inputs, outputs, false);
@@ -122,7 +322,10 @@ abstract contract ZetoFungible is ZetoCommon {
         uint256[] memory outputs,
         bytes memory proof
     ) public view virtual returns (uint256[] memory, Commonlib.Proof memory) {
-        (Commonlib.Proof memory proofStruct) = abi.decode(proof, (Commonlib.Proof));
+        Commonlib.Proof memory proofStruct = abi.decode(
+            proof,
+            (Commonlib.Proof)
+        );
         // construct the public inputs
         uint256[] memory extra = extraInputsForDeposit();
         uint256[] memory publicInputs = new uint256[](3 + extra.length);
@@ -136,7 +339,12 @@ abstract contract ZetoFungible is ZetoCommon {
         return (publicInputs, proofStruct);
     }
 
-    function extraInputsForDeposit() public view virtual returns (uint256[] memory) {
+    function extraInputsForDeposit()
+        public
+        view
+        virtual
+        returns (uint256[] memory)
+    {
         return new uint256[](0);
     }
 
@@ -145,8 +353,11 @@ abstract contract ZetoFungible is ZetoCommon {
         uint256[] memory inputs,
         uint256 output,
         bytes memory proof
-    ) internal virtual pure returns (uint256[] memory, Commonlib.Proof memory) {
-        (Commonlib.Proof memory proofStruct) = abi.decode(proof, (Commonlib.Proof));
+    ) internal pure virtual returns (uint256[] memory, Commonlib.Proof memory) {
+        Commonlib.Proof memory proofStruct = abi.decode(
+            proof,
+            (Commonlib.Proof)
+        );
         uint256 size = (inputs.length + 1 + 1); // inputs, output, and amount
 
         uint256[] memory publicInputs = new uint256[](size);
@@ -172,18 +383,21 @@ abstract contract ZetoFungible is ZetoCommon {
         uint256 output,
         bytes memory proof
     ) public virtual {
-        (uint256[] memory publicInputs, Commonlib.Proof memory proofStruct) = constructPublicInputsForWithdraw(
-            amount,
-            inputs,
-            output,
-            proof
-        );
+        (
+            uint256[] memory publicInputs,
+            Commonlib.Proof memory proofStruct
+        ) = constructPublicInputsForWithdraw(amount, inputs, output, proof);
         // Check the proof
         IGroth16Verifier verifier = (inputs.length > 2)
             ? _batchWithdrawVerifier
             : _withdrawVerifier;
         require(
-            verifier.verify(proofStruct.pA, proofStruct.pB, proofStruct.pC, publicInputs),
+            verifier.verify(
+                proofStruct.pA,
+                proofStruct.pB,
+                proofStruct.pC,
+                publicInputs
+            ),
             "Invalid proof"
         );
 

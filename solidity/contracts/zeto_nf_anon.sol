@@ -16,8 +16,8 @@
 pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
-import {ZetoBase} from "./lib/zeto_base.sol";
-import {Commonlib} from "./lib/common.sol";
+import {ZetoNonFungibleBase} from "./lib/zeto_non_fungible_base.sol";
+import {Commonlib} from "./lib/common/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
@@ -27,142 +27,61 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 ///        - The sender owns the private key whose public key is part of the pre-image of the input UTXOs commitments
 ///          (aka the sender is authorized to spend the input UTXOs)
 ///        - The input UTXOs and output UTXOs are valid in terms of obeying mass conservation rules
-contract Zeto_NfAnon is IZeto, ZetoBase, UUPSUpgradeable {
+contract Zeto_NfAnon is ZetoNonFungibleBase, UUPSUpgradeable {
     function initialize(
         string memory name,
         string memory symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
-        __ZetoBase_init(name, symbol, initialOwner, verifiers);
+        __ZetoNonFungibleBase_init(name, symbol, initialOwner, verifiers);
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
-    /**
-     * @dev the main function of the contract.
-     *
-     * @param input The UTXO to be spent by the transaction.
-     * @param output The new UTXO to generate, for future transactions to spend.
-     * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
-     *      that the outputs are valid in terms of obeying mass conservation rules.
-     *
-     * Emits a {UTXOTransfer} event.
-     */
-    function transfer(
-        uint256 input,
-        uint256 output,
-        bytes calldata proof,
-        bytes calldata data
-    ) public returns (bool) {
-        Commonlib.Proof memory proofStruct = abi.decode(proof, (Commonlib.Proof));
-        uint256[] memory inputs = new uint256[](1);
-        inputs[0] = input;
-        uint256[] memory outputs = new uint256[](1);
-        outputs[0] = output;
-        uint256[] memory lockedOutputs;
-        validateTransactionProposal(inputs, outputs, lockedOutputs, false);
-
+    function constructPublicInputs(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        bytes memory proof,
+        bool inputsLocked
+    )
+        internal
+        view
+        override
+        returns (uint256[] memory, Commonlib.Proof memory)
+    {
         // construct the public inputs
-        uint256[] memory publicInputs = new uint256[](2);
-        publicInputs[0] = input;
-        publicInputs[1] = output;
-
-        // Check the proof
-        require(
-            _verifier.verify(proofStruct.pA, proofStruct.pB, proofStruct.pC, publicInputs),
-            "Invalid proof"
+        Commonlib.Proof memory proofStruct = abi.decode(
+            proof,
+            (Commonlib.Proof)
         );
+        uint256[] memory publicInputs = new uint256[](2);
+        publicInputs[0] = inputs[0];
+        publicInputs[1] = outputs[0];
 
-        processInputsAndOutputs(inputs, outputs, lockedOutputs, false);
-
-        emit UTXOTransfer(inputs, outputs, msg.sender, data);
-        return true;
+        return (publicInputs, proofStruct);
     }
 
-    /**
-     * @dev the main function of the contract.
-     *
-     * @param input The UTXO to be spent by the transaction.
-     * @param output The new UTXO to generate, for future transactions to spend.
-     * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
-     *      that the outputs are valid in terms of obeying mass conservation rules.
-     *
-     * Emits a {UTXOTransfer} event.
-     */
-    function transferLocked(
-        uint256 input,
-        uint256 output,
-        bytes calldata proof,
-        bytes calldata data
-    ) public returns (bool) {
-        Commonlib.Proof memory proofStruct = abi.decode(proof, (Commonlib.Proof));
-        uint256[] memory inputs = new uint256[](1);
-        inputs[0] = input;
-        uint256[] memory outputs = new uint256[](1);
-        outputs[0] = output;
-        uint256[] memory lockedOutputs;
-        validateTransactionProposal(inputs, outputs, lockedOutputs, true);
-
+    function constructPublicInputsForLock(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        uint256[] memory lockedOutputs,
+        bytes memory proof
+    )
+        internal
+        view
+        override
+        returns (uint256[] memory, Commonlib.Proof memory)
+    {
         // construct the public inputs
-        uint256[] memory publicInputs = new uint256[](2);
-        publicInputs[0] = input;
-        publicInputs[1] = output;
-
-        // Check the proof
-        require(
-            _verifier.verify(proofStruct.pA, proofStruct.pB, proofStruct.pC, publicInputs),
-            "Invalid proof"
+        Commonlib.Proof memory proofStruct = abi.decode(
+            proof,
+            (Commonlib.Proof)
         );
-
-        processInputsAndOutputs(inputs, outputs, lockedOutputs, true);
-
-        emit UTXOTransfer(inputs, outputs, msg.sender, data);
-        return true;
-    }
-
-    function mint(uint256[] memory utxos, bytes calldata data) public {
-        _mint(utxos, data);
-    }
-
-    function lock(
-        uint256 input,
-        uint256 lockedOutput,
-        bytes calldata proof,
-        address delegate,
-        bytes calldata data
-    ) public {
-        Commonlib.Proof memory proofStruct = abi.decode(proof, (Commonlib.Proof));
-        uint256[] memory inputs = new uint256[](1);
-        inputs[0] = input;
-        uint256[] memory outputs;
-        uint256[] memory lockedOutputs = new uint256[](1);
-        lockedOutputs[0] = lockedOutput;
-        validateTransactionProposal(inputs, outputs, lockedOutputs, false);
-
-        // construct the public inputs
         uint256[] memory publicInputs = new uint256[](2);
-        publicInputs[0] = input;
-        publicInputs[1] = lockedOutput;
+        publicInputs[0] = inputs[0];
+        publicInputs[1] = lockedOutputs[0];
 
-        // Check the proof
-        require(
-            _verifier.verify(proofStruct.pA, proofStruct.pB, proofStruct.pC, publicInputs),
-            "Invalid proof"
-        );
-
-        processInputsAndOutputs(inputs, outputs, lockedOutputs, false);
-
-        // lock the intended outputs
-        _lock(inputs, outputs, lockedOutputs, delegate, data);
-    }
-
-    function unlock(
-        uint256 input,
-        uint256 output,
-        bytes calldata proof,
-        bytes calldata data
-    ) public {
-        transferLocked(input, output, proof, data);
+        return (publicInputs, proofStruct);
     }
 }

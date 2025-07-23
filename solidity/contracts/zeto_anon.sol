@@ -16,9 +16,9 @@
 pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
-import {Commonlib} from "./lib/common.sol";
+import {Commonlib} from "./lib/common/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
-import {ZetoBase} from "./lib/zeto_base.sol";
+import {ZetoFungibleBase} from "./lib/zeto_fungible_base.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "hardhat/console.sol";
 
@@ -29,7 +29,7 @@ import "hardhat/console.sol";
 ///        - the sum of the input values match the sum of output values
 ///        - the hashes in the input and output match the `hash(value, salt, owner public key)` formula
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
-contract Zeto_Anon is ZetoBase, UUPSUpgradeable {
+contract Zeto_Anon is ZetoFungibleBase, UUPSUpgradeable {
     function initialize(
         string memory name,
         string memory symbol,
@@ -45,7 +45,7 @@ contract Zeto_Anon is ZetoBase, UUPSUpgradeable {
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) internal onlyInitializing {
-        __ZetoFungible_init(name_, symbol_, initialOwner, verifiers);
+        __ZetoFungibleBase_init(name_, symbol_, initialOwner, verifiers);
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -55,8 +55,17 @@ contract Zeto_Anon is ZetoBase, UUPSUpgradeable {
         uint256[] memory outputs,
         bytes memory proof,
         bool isLocked
-    ) internal virtual override pure returns (uint256[] memory, Commonlib.Proof memory) {
-        Commonlib.Proof memory proofStruct = abi.decode(proof, (Commonlib.Proof));
+    )
+        internal
+        pure
+        virtual
+        override
+        returns (uint256[] memory, Commonlib.Proof memory)
+    {
+        Commonlib.Proof memory proofStruct = abi.decode(
+            proof,
+            (Commonlib.Proof)
+        );
         uint256 size = inputs.length + outputs.length;
         uint256[] memory publicInputs = new uint256[](size);
         uint256 piIndex = 0;
@@ -78,8 +87,17 @@ contract Zeto_Anon is ZetoBase, UUPSUpgradeable {
         uint256[] memory outputs,
         uint256[] memory lockedOutputs,
         bytes memory proof
-    ) internal virtual override pure returns (uint256[] memory, Commonlib.Proof memory) {
-        Commonlib.Proof memory proofStruct = abi.decode(proof, (Commonlib.Proof));
+    )
+        internal
+        pure
+        virtual
+        override
+        returns (uint256[] memory, Commonlib.Proof memory)
+    {
+        Commonlib.Proof memory proofStruct = abi.decode(
+            proof,
+            (Commonlib.Proof)
+        );
         uint256 size = inputs.length + outputs.length + lockedOutputs.length;
         uint256[] memory publicInputs = new uint256[](size);
         uint256 piIndex = 0;

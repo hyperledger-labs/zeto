@@ -15,8 +15,9 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {Commonlib} from "../lib/common.sol";
+import {Commonlib} from "../lib/common/common.sol";
 import {Zeto_AnonNullifier} from "../zeto_anon_nullifier.sol";
+
 // import {console} from "hardhat/console.sol";
 
 /// @title A sample on-chain implementation of an escrow contract using Zeto tokens
@@ -88,9 +89,17 @@ contract zkEscrow2 {
             payment.nullifiers
         );
         uint256[] memory outputs = zeto.checkAndPadCommitments(payment.outputs);
-        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, Commonlib.Proof));
+        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(
+            proof,
+            (uint256, Commonlib.Proof)
+        );
         require(
-            zeto.constructPublicSignalsAndVerifyProof(nullifiers, outputs, proof, true),
+            zeto.constructPublicSignalsAndVerifyProof(
+                nullifiers,
+                outputs,
+                proof,
+                true
+            ),
             "Invalid proof"
         );
         payment.proof = proof;

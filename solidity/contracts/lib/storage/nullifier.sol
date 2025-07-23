@@ -1,4 +1,4 @@
-// Copyright © 2024 Kaleido, Inc.
+// Copyright © 2025 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -15,20 +15,16 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {Commonlib} from "./common.sol";
-import {IZeto} from "./interfaces/izeto.sol";
-import {MAX_SMT_DEPTH} from "./interfaces/izeto.sol";
-import {IZetoLockable} from "./interfaces/izeto_lockable.sol";
-import {IZetoInitializable} from "./interfaces/izeto_initializable.sol";
-import {ZetoFungible} from "./zeto_fungible.sol";
+import {IZetoConstants, MAX_SMT_DEPTH} from "../interfaces/izeto.sol";
+import {IZetoLockable} from "../interfaces/izeto_lockable.sol";
+import {IZetoStorage} from "../interfaces/izeto_storage.sol";
+import {Commonlib} from "../common/common.sol";
+import {Util} from "../common/util.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
 import {console} from "hardhat/console.sol";
 
-/// @title A sample base implementation of a Zeto based token contract with nullifiers
-/// @author Kaleido, Inc.
-/// @dev Implements common functionalities of Zeto based tokens using nullifiers
-abstract contract ZetoNullifier is ZetoFungible {
+contract NullifierStorage is IZetoStorage, IZetoConstants, IZetoLockable {
     // used for tracking regular (unlocked) UTXOs
     SmtLib.Data internal _commitmentsTree;
     // used for locked UTXOs tracking. multi-step transaction flows that require counterparties
@@ -42,13 +38,7 @@ abstract contract ZetoNullifier is ZetoFungible {
 
     error UTXORootNotFound(uint256 root);
 
-    function __ZetoNullifier_init(
-        string memory name_,
-        string memory symbol_,
-        address initialOwner,
-        IZetoInitializable.VerifiersInfo calldata verifiers
-    ) internal onlyInitializing {
-        __ZetoFungible_init(name_, symbol_, initialOwner, verifiers);
+    constructor() {
         _commitmentsTree.initialize(MAX_SMT_DEPTH);
         _lockedCommitmentsTree.initialize(MAX_SMT_DEPTH);
     }
@@ -56,9 +46,9 @@ abstract contract ZetoNullifier is ZetoFungible {
     function validateInputs(
         uint256[] memory inputs,
         bool inputsLocked
-    ) internal view override {
+    ) external view {
         // sort the nullifiers to detect duplicates
-        uint256[] memory sortedInputs = sortCommitments(inputs);
+        uint256[] memory sortedInputs = Util.sortCommitments(inputs);
 
         // Check the inputs are all unspent
         for (uint256 i = 0; i < sortedInputs.length; ++i) {
@@ -75,11 +65,9 @@ abstract contract ZetoNullifier is ZetoFungible {
         }
     }
 
-    function validateOutputs(
-        uint256[] memory outputs
-    ) internal view override {
+    function validateOutputs(uint256[] memory outputs) external view {
         // sort the outputs to detect duplicates
-        uint256[] memory sortedOutputs = sortCommitments(outputs);
+        uint256[] memory sortedOutputs = Util.sortCommitments(outputs);
 
         // Check the outputs are all new UTXOs
         for (uint256 i = 0; i < sortedOutputs.length; ++i) {
@@ -101,7 +89,7 @@ abstract contract ZetoNullifier is ZetoFungible {
     function validateRoot(
         uint256 root,
         bool isLocked
-    ) internal view returns (bool) {
+    ) external view returns (bool) {
         // Check if the root has existed before. It does not need to be the latest root.
         // Our SMT is append-only, so if the root has existed before, and the merklet proof
         // is valid, then the leaves still exist in the tree.
@@ -114,41 +102,18 @@ abstract contract ZetoNullifier is ZetoFungible {
         return true;
     }
 
-    function constructPublicInputsForWithdraw(
-        uint256 amount,
-        uint256[] memory nullifiers,
-        uint256 output,
-        bytes memory proof
-    ) internal override pure returns (uint256[] memory, Commonlib.Proof memory) {
-        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, Commonlib.Proof));
-        uint256 size = (nullifiers.length * 2) + 3; // nullifiers and the enabled flags, amount, root, output
-        // construct the public inputs for verifier
-        uint256[] memory publicInputs = new uint256[](size);
-        uint256 piIndex = 0;
-
-        // copy output amount
-        publicInputs[piIndex++] = amount;
-
-        // copy input commitments
-        for (uint256 i = 0; i < nullifiers.length; i++) {
-            publicInputs[piIndex++] = nullifiers[i];
-        }
-
-        // copy root
-        publicInputs[piIndex++] = root;
-
-        // populate enables
-        for (uint256 i = 0; i < nullifiers.length; i++) {
-            publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
-        }
-
-        // copy output commitment
-        publicInputs[piIndex++] = output;
-
-        return (publicInputs, proofStruct);
+    function getRoot() external view returns (uint256) {
+        return _commitmentsTree.getRoot();
     }
 
-    function processInputs(uint256[] memory nullifiers, bool inputsLocked) internal override {
+    function getRootForLocked() external view returns (uint256) {
+        return _lockedCommitmentsTree.getRoot();
+    }
+
+    function processInputs(
+        uint256[] memory nullifiers,
+        bool inputsLocked
+    ) external {
         for (uint256 i = 0; i < nullifiers.length; ++i) {
             if (nullifiers[i] != 0) {
                 _nullifiers[nullifiers[i]] = true;
@@ -156,7 +121,7 @@ abstract contract ZetoNullifier is ZetoFungible {
         }
     }
 
-    function processOutputs(uint256[] memory outputs) internal override {
+    function processOutputs(uint256[] memory outputs) external {
         for (uint256 i = 0; i < outputs.length; ++i) {
             if (outputs[i] != 0) {
                 _commitmentsTree.addLeaf(outputs[i], outputs[i]);
@@ -167,7 +132,7 @@ abstract contract ZetoNullifier is ZetoFungible {
     function processLockedOutputs(
         uint256[] memory lockedOutputs,
         address delegate
-    ) internal override {
+    ) external {
         for (uint256 i = 0; i < lockedOutputs.length; ++i) {
             if (lockedOutputs[i] != 0) {
                 _lockedCommitmentsTree.addLeaf(
@@ -178,84 +143,41 @@ abstract contract ZetoNullifier is ZetoFungible {
         }
     }
 
-    // This function is used to burn the owner's UTXOs
-    function _burn(
-        uint256[] memory nullifiers,
-        uint256 output,
-        uint256 root,
-        bytes calldata data
-    ) internal virtual {
-        validateInputs(nullifiers, false);
-        uint256[] memory outputStates = new uint256[](1);
-        outputStates[0] = output;
-        validateOutputs(outputStates);
-        validateRoot(root, false);
-
-        emit UTXOBurn(nullifiers, output, msg.sender, data);
-    }
-
-    function getRoot() public view returns (uint256) {
-        return _commitmentsTree.getRoot();
-    }
-
-    function getRootForLocked() public view returns (uint256) {
-        return _lockedCommitmentsTree.getRoot();
-    }
-
-    // move the ability to spend the locked UTXOs to the delegate account.
-    // The sender must be the current delegate.
     function delegateLock(
         uint256[] memory utxos,
         address delegate,
         bytes calldata data
-    ) public {
+    ) external {
         for (uint256 i = 0; i < utxos.length; ++i) {
             if (utxos[i] == 0) {
                 continue;
-            }
-            bool existsInTree;
-            address currentDelegate;
-            (existsInTree, currentDelegate) = existsAsLocked(
-                utxos[i],
-                msg.sender
-            );
-            if (!existsInTree) {
-                revert UTXONotLocked(utxos[i]);
-            }
-            if (currentDelegate != msg.sender) {
-                revert NotLockDelegate(utxos[i], delegate, msg.sender);
             }
             _lockedCommitmentsTree.addLeaf(
                 utxos[i],
                 uint256(uint160(delegate))
             );
         }
-
-        emit LockDelegateChanged(utxos, msg.sender, delegate, data);
     }
 
-    function locked(
-        uint256 utxo,
-        address delegate
-    ) public view returns (bool, address) {
-        return existsAsLocked(utxo, delegate);
+    function locked(uint256 utxo) external view returns (bool, address) {
+        return existsAsLocked(utxo);
     }
 
-    function getLeafNodeHash(
-        uint256 index,
-        uint256 value
-    ) internal pure returns (uint256) {
-        uint256[3] memory params = [index, value, uint256(1)];
-        return PoseidonUnit3L.poseidon(params);
+    function spent(uint256 utxo) external view returns (UTXOStatus) {
+        // by design, the contract does not know this
+        return UTXOStatus.UNKNOWN;
     }
 
     // check the existence of a UTXO in either the unlocked or locked commitments tree
     function exists(uint256 utxo) internal view returns (bool) {
         bool existsInTree = everExistedAsUnlocked(utxo);
         if (!existsInTree) {
-            return everExistedAsLocked(utxo);
+            (bool existsInLockedTree, address currentDelegate) = existsAsLocked(
+                utxo
+            );
+            return existsInLockedTree;
         }
-        return existsInTree;
+        return true;
     }
 
     // check the existence of a UTXO in the commitments tree. we take a shortcut
@@ -263,31 +185,19 @@ abstract contract ZetoNullifier is ZetoFungible {
     // tree is append-only, no updates or deletions are allowed. As a result, all
     // nodes in the list are valid leaf nodes, aka there are no orphaned nodes.
     function everExistedAsUnlocked(uint256 utxo) internal view returns (bool) {
-        uint256 nodeHash = getLeafNodeHash(utxo, utxo);
+        uint256 nodeHash = Util.getLeafNodeHash(utxo, utxo);
         SmtLib.Node memory node = _commitmentsTree.getNode(nodeHash);
         return node.nodeType != SmtLib.NodeType.EMPTY;
     }
 
-    // check if an UTXO has ever existed in the locked commitments tree. Because
-    // this tree allows updates to an existing leaf node, we check the node by its
-    // merkle proof
-    function everExistedAsLocked(uint256 utxo) internal view returns (bool) {
-        SmtLib.Proof memory proof = _lockedCommitmentsTree.getProof(utxo);
-        return proof.existence;
-    }
-
     // check the existence of a locked UTXO in the locked commitments tree. Because
     // this tree allows updates to an existing leaf node, we need to check the node
-    // by its merkle proof, which is built from the current tree and disregards the
-    // orphaned nodes after updates.
+    // by its index (the utxo hash), rather than the node hash, using the getProof()
+    // function.
     function existsAsLocked(
-        uint256 utxo,
-        address delegate
+        uint256 utxo
     ) internal view returns (bool, address) {
         SmtLib.Proof memory proof = _lockedCommitmentsTree.getProof(utxo);
-        return (
-            proof.existence && proof.value == uint256(uint160(delegate)),
-            address(uint160(proof.value))
-        );
+        return (proof.existence, address(uint160(proof.value)));
     }
 }

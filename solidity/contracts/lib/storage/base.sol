@@ -1,4 +1,4 @@
-// Copyright © 2024 Kaleido, Inc.
+// Copyright © 2025 Kaleido, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -15,24 +15,13 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {IZeto} from "./interfaces/izeto.sol";
-import {IZetoLockable} from "./interfaces/izeto_lockable.sol";
-import {IZetoInitializable} from "./interfaces/izeto_initializable.sol";
-import {Commonlib} from "./common.sol";
-import {ZetoCommon} from "./zeto_common.sol";
-import {ZetoFungible} from "./zeto_fungible.sol";
+import {IZetoConstants} from "../interfaces/izeto.sol";
+import {IZetoLockable} from "../interfaces/izeto_lockable.sol";
+import {IZetoStorage} from "../interfaces/izeto_storage.sol";
+import {Commonlib} from "../common/common.sol";
+import {Util} from "../common/util.sol";
 
-/// @title A sample base implementation of a Zeto based token contract
-///        without using nullifiers. Each UTXO's spending status is explicitly tracked.
-/// @author Kaleido, Inc.
-/// @dev Implements common functionalities of Zeto based tokens without nullifiers
-abstract contract ZetoBase is ZetoFungible {
-    enum UTXOStatus {
-        UNKNOWN, // default value for the empty UTXO slots
-        UNSPENT,
-        SPENT
-    }
-
+contract BaseStorage is IZetoStorage, IZetoConstants, IZetoLockable {
     // tracks all the regular (unlocked) UTXOs
     mapping(uint256 => UTXOStatus) internal _utxos;
     // used for tracking locked UTXOs. multi-step transaction flows that require counterparties
@@ -43,29 +32,12 @@ abstract contract ZetoBase is ZetoFungible {
     mapping(uint256 => UTXOStatus) internal _lockedUtxos;
     mapping(uint256 => address) internal delegates;
 
-    function __ZetoBase_init(
-        string memory name_,
-        string memory symbol_,
-        address initialOwner,
-        IZetoInitializable.VerifiersInfo calldata verifiers
-    ) internal onlyInitializing {
-        __ZetoFungible_init(name_, symbol_, initialOwner, verifiers);
-    }
-
-    /// @dev query whether a UTXO is currently spent
-    /// @return bool whether the UTXO is spent
-    function spent(uint256 txo) public view returns (bool) {
-        return
-            _utxos[txo] == UTXOStatus.SPENT ||
-            _lockedUtxos[txo] == UTXOStatus.SPENT;
-    }
-
     function validateInputs(
         uint256[] memory inputs,
         bool inputsLocked
-    ) internal override view {
+    ) external view {
         // sort the inputs to detect duplicates
-        uint256[] memory sortedInputs = sortCommitments(inputs);
+        uint256[] memory sortedInputs = Util.sortCommitments(inputs);
         // Check the inputs are all unspent
         for (uint256 i = 0; i < sortedInputs.length; ++i) {
             if (sortedInputs[i] == 0) {
@@ -93,24 +65,12 @@ abstract contract ZetoBase is ZetoFungible {
             ) {
                 revert UTXOAlreadyLocked(sortedInputs[i]);
             }
-            if (
-                inputsLocked &&
-                delegates[sortedInputs[i]] != msg.sender &&
-                delegates[sortedInputs[i]] != address(0)
-            ) {
-                revert NotLockDelegate(
-                    sortedInputs[i],
-                    delegates[sortedInputs[i]],
-                    msg.sender
-                );
-            }
         }
-
     }
 
-    function validateOutputs(uint256[] memory outputs) internal override view {
+    function validateOutputs(uint256[] memory outputs) external view {
         // sort the outputs to detect duplicates
-        uint256[] memory sortedOutputs = sortCommitments(outputs);
+        uint256[] memory sortedOutputs = Util.sortCommitments(outputs);
 
         // Check for duplicate outputs
         for (uint256 i = 0; i < sortedOutputs.length; ++i) {
@@ -137,13 +97,27 @@ abstract contract ZetoBase is ZetoFungible {
                 revert UTXOAlreadyOwned(outputs[i]);
             }
         }
+    }
 
+    function validateRoot(
+        uint256 root,
+        bool isLocked
+    ) external view returns (bool) {
+        return true;
+    }
+
+    function getRoot() external view returns (uint256) {
+        return 0;
+    }
+
+    function getRootForLocked() external view returns (uint256) {
+        return 0;
     }
 
     function processInputs(
         uint256[] memory inputs,
         bool inputsLocked
-    ) internal override {
+    ) external {
         mapping(uint256 => UTXOStatus) storage utxos = inputsLocked
             ? _lockedUtxos
             : _utxos;
@@ -155,7 +129,7 @@ abstract contract ZetoBase is ZetoFungible {
         }
     }
 
-    function processOutputs(uint256[] memory outputs) internal override {
+    function processOutputs(uint256[] memory outputs) external {
         for (uint256 i = 0; i < outputs.length; ++i) {
             if (outputs[i] != 0) {
                 _utxos[outputs[i]] = UTXOStatus.UNSPENT;
@@ -163,7 +137,10 @@ abstract contract ZetoBase is ZetoFungible {
         }
     }
 
-    function processLockedOutputs(uint256[] memory lockedOutputs, address delegate) internal override {
+    function processLockedOutputs(
+        uint256[] memory lockedOutputs,
+        address delegate
+    ) external {
         // put the locked UTXOs into the locked UTXO tree as UNSPENT
         for (uint256 i = 0; i < lockedOutputs.length; ++i) {
             if (lockedOutputs[i] != 0) {
@@ -175,61 +152,42 @@ abstract contract ZetoBase is ZetoFungible {
             if (lockedOutputs[i] == 0) {
                 continue;
             }
-            if (
-                delegates[lockedOutputs[i]] != address(0) &&
-                delegates[lockedOutputs[i]] != msg.sender
-            ) {
-                revert NotLockDelegate(
-                    lockedOutputs[i],
-                    delegates[lockedOutputs[i]],
-                    msg.sender
-                );
-            }
             delegates[lockedOutputs[i]] = delegate;
         }
     }
 
-    // The caller function must perform the proof verification
-    function _burn(
-        uint256[] memory inputs,
-        uint256 output,
-        bytes calldata data
-    ) internal virtual {
-        validateInputs(inputs, false);
-        uint256[] memory outputStates = new uint256[](1);
-        outputStates[0] = output;
-        validateOutputs(outputStates);
-        processInputs(inputs, false);
-        processOutputs(outputStates);
-        emit UTXOBurn(inputs, output, msg.sender, data);
-    }
-
-    // move the ability to spend the locked UTXOs to the delegate account.
-    // The sender must be the current delegate.
-    //
-    // Setting the delegate to address(0) will unlock the UTXOs.
     function delegateLock(
         uint256[] memory utxos,
-        address delegate,
+        address newDelegate,
         bytes calldata data
-    ) public {
+    ) external {
         for (uint256 i = 0; i < utxos.length; ++i) {
             if (utxos[i] == 0) {
                 continue;
             }
-            if (delegates[utxos[i]] != msg.sender) {
-                revert NotLockDelegate(utxos[i], delegate, msg.sender);
-            }
-            delegates[utxos[i]] = delegate;
+            delegates[utxos[i]] = newDelegate;
         }
-
-        emit LockDelegateChanged(utxos, msg.sender, delegate, data);
     }
 
-    function locked(uint256 utxo) public view returns (bool, address) {
+    function locked(uint256 utxo) external view returns (bool, address) {
         if (_lockedUtxos[utxo] == UTXOStatus.UNSPENT) {
             return (true, delegates[utxo]);
         }
         return (false, address(0));
+    }
+
+    function spent(uint256 utxo) external view returns (UTXOStatus) {
+        if (
+            _utxos[utxo] == UTXOStatus.SPENT ||
+            _lockedUtxos[utxo] == UTXOStatus.SPENT
+        ) {
+            return UTXOStatus.SPENT;
+        } else if (
+            _utxos[utxo] == UTXOStatus.UNSPENT ||
+            _lockedUtxos[utxo] == UTXOStatus.UNSPENT
+        ) {
+            return UTXOStatus.UNSPENT;
+        }
+        return UTXOStatus.UNKNOWN;
     }
 }

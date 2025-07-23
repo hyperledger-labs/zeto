@@ -17,9 +17,9 @@ pragma solidity ^0.8.27;
 
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {Zeto_AnonNullifier} from "./zeto_anon_nullifier.sol";
-import {ZetoFungibleBurnableWithNullifiers} from "./lib/zeto_fungible_burn_nullifier.sol";
+import {ZetoFungibleBurnableNullifier} from "./lib/zeto_fungible_burn_nullifier.sol";
 import {ZetoCommon} from "./lib/zeto_common.sol";
-import {Commonlib} from "./lib/common.sol";
+import {Commonlib} from "./lib/common/common.sol";
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and no encryption
 /// @author Kaleido, Inc.
@@ -30,7 +30,7 @@ import {Commonlib} from "./lib/common.sol";
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
 contract Zeto_AnonNullifierBurnable is
     Zeto_AnonNullifier,
-    ZetoFungibleBurnableWithNullifiers
+    ZetoFungibleBurnableNullifier
 {
     function initialize(
         string memory name,
@@ -39,7 +39,7 @@ contract Zeto_AnonNullifierBurnable is
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public override initializer {
         __ZetoAnonNullifier_init(name, symbol, initialOwner, verifiers);
-        __ZetoFungibleBurnableWithNullifiers_init(
+        __ZetoFungibleBurnableNullifier_init(
             verifiers.burnVerifier,
             verifiers.batchBurnVerifier
         );
@@ -50,8 +50,19 @@ contract Zeto_AnonNullifierBurnable is
         uint256[] memory outputs,
         bytes memory proof,
         bool inputsLocked
-    ) internal override (Zeto_AnonNullifier, ZetoCommon) view returns (uint256[] memory, Commonlib.Proof memory) {
-        return Zeto_AnonNullifier.constructPublicInputs(inputs, outputs, proof, inputsLocked);
+    )
+        internal
+        view
+        override(Zeto_AnonNullifier, ZetoCommon)
+        returns (uint256[] memory, Commonlib.Proof memory)
+    {
+        return
+            Zeto_AnonNullifier.constructPublicInputs(
+                inputs,
+                outputs,
+                proof,
+                inputsLocked
+            );
     }
 
     function constructPublicInputsForLock(
@@ -59,8 +70,19 @@ contract Zeto_AnonNullifierBurnable is
         uint256[] memory outputs,
         uint256[] memory lockedOutputs,
         bytes memory proof
-    ) internal override (Zeto_AnonNullifier, ZetoCommon) view returns (uint256[] memory, Commonlib.Proof memory) {
-        return Zeto_AnonNullifier.constructPublicInputsForLock(inputs, outputs, lockedOutputs, proof);
+    )
+        internal
+        view
+        override(Zeto_AnonNullifier, ZetoCommon)
+        returns (uint256[] memory, Commonlib.Proof memory)
+    {
+        return
+            Zeto_AnonNullifier.constructPublicInputsForLock(
+                inputs,
+                outputs,
+                lockedOutputs,
+                proof
+            );
     }
 
     function validateTransactionProposal(
@@ -69,7 +91,13 @@ contract Zeto_AnonNullifierBurnable is
         uint256[] memory lockedOutputs,
         bytes memory proof,
         bool inputsLocked
-    ) internal override(Zeto_AnonNullifier, ZetoCommon) view {
-        Zeto_AnonNullifier.validateTransactionProposal(inputs, outputs, lockedOutputs, proof, inputsLocked);
+    ) internal view override(Zeto_AnonNullifier, ZetoCommon) {
+        Zeto_AnonNullifier.validateTransactionProposal(
+            inputs,
+            outputs,
+            lockedOutputs,
+            proof,
+            inputsLocked
+        );
     }
 }
