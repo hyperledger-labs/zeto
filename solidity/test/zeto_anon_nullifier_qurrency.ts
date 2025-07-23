@@ -248,8 +248,7 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
           3,
           _withdrawNullifiers,
           withdrawCommitments[0],
-          root.bigInt(),
-          withdrawEncodedProof,
+          encodeToBytesForWithdraw(root.bigInt(), withdrawEncodedProof),
           "0x",
         );
       await tx.wait();
@@ -283,7 +282,7 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
       );
       const tx2 = await zeto
         .connect(Alice.signer)
-        .deposit(100, outputCommitments, encodedProof, "0x");
+        .deposit(100, outputCommitments, encodeToBytesForDeposit(encodedProof), "0x");
       await tx2.wait();
 
       await smtAlice.add(utxo100.hash, utxo100.hash);
@@ -366,7 +365,7 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
       // Bob parses the UTXOs from the onchain event
       const signerAddress = await Alice.signer.getAddress();
       const events = parseUTXOEvents(zeto, result2.txResult!);
-      event = events[0];
+      event = events[1]; // skip the first event which is the UTXOTransfer event
       expect(event.submitter).to.equal(signerAddress);
       expect(event.inputs).to.deep.equal([nullifier1.hash, nullifier2.hash]);
       expect(event.outputs).to.deep.equal([_utxo3.hash, utxo4.hash]);
@@ -772,6 +771,14 @@ async function prepareProof(
 
 function encodeToBytes(root: any, encryptionNonce: any, encryptedValues: any, encapsulatedSharedSecret: any, proof: any) {
   return new AbiCoder().encode(["uint256 root", "uint256 encryptionNonce", "uint256[] encryptedValues", "uint256[25] encapsulatedSharedSecret", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [root, encryptionNonce, encryptedValues, encapsulatedSharedSecret, proof]);
+}
+
+function encodeToBytesForWithdraw(root: any, proof: any) {
+  return new AbiCoder().encode(["uint256 root", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [root, proof]);
+}
+
+function encodeToBytesForDeposit(proof: any) {
+  return new AbiCoder().encode(["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [proof]);
 }
 
 module.exports = {

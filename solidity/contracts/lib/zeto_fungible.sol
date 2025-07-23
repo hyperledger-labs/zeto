@@ -78,7 +78,7 @@ abstract contract ZetoFungible is ZetoCommon {
         uint256[] memory outputs,
         bytes calldata proof,
         bytes calldata data
-    ) public {
+    ) public virtual {
         // Check and pad commitments
         inputs = checkAndPadCommitments(inputs);
         outputs = checkAndPadCommitments(outputs);
@@ -117,7 +117,7 @@ abstract contract ZetoFungible is ZetoCommon {
         uint256[] memory outputs,
         bytes calldata proof,
         bytes calldata data
-    ) public {
+    ) public virtual {
         // Check and pad inputs and outputs based on the max size
         inputs = checkAndPadCommitments(inputs);
         outputs = checkAndPadCommitments(outputs);
