@@ -80,6 +80,13 @@ contract Zeto_AnonNullifierQurrency is Zeto_AnonNullifier {
         );
     }
 
+    struct _DecodedProof {
+        uint256 root;
+        uint256 encryptionNonce;
+        uint256[] encryptedValues;
+        uint256[25] encapsulatedSharedSecret;
+    }
+
     function constructPublicInputs(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
@@ -102,6 +109,12 @@ contract Zeto_AnonNullifierQurrency is Zeto_AnonNullifier {
                 proof,
                 (uint256, uint256, uint256[], uint256[25], Commonlib.Proof)
             );
+        _DecodedProof memory dp = _DecodedProof(
+            root,
+            encryptionNonce,
+            encryptedValues,
+            encapsulatedSharedSecret
+        );
         // the public inputs for the non-batch proof have the following structure:
         //  - 25 elements for the ML-KEM encapsulated shared secret
         //  - 16 or 64 elements for the encrypted values (3n+1 for 14 or 62 encyrpted elements)
@@ -109,22 +122,48 @@ contract Zeto_AnonNullifierQurrency is Zeto_AnonNullifier {
         //  - 1 element for the root hash
         //  - 2 or 10 elements for the "enabled" flags (1 for each nullifier)
         //  - 2 or 10 elements for the output commitments
-        uint256 size = encapsulatedSharedSecret.length +
-            encryptedValues.length +
+        uint256 size = _calculatePublicInputsSize(
+            nullifiers,
+            outputs,
+            inputsLocked,
+            dp
+        );
+
+        uint256[] memory publicInputs = new uint256[](size);
+        _fillPublicInputs(publicInputs, nullifiers, outputs, inputsLocked, dp);
+        return (publicInputs, proofStruct);
+    }
+
+    function _calculatePublicInputsSize(
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
+        bool inputsLocked,
+        _DecodedProof memory dp
+    ) internal pure returns (uint256) {
+        return
+            dp.encapsulatedSharedSecret.length +
+            dp.encryptedValues.length +
             (nullifiers.length * 2) + // nullifiers and the enabled flags
             outputs.length +
             2 + // root and encryptionNonce
             (inputsLocked ? 1 : 0); // lock delegate if locked
+    }
 
-        uint256[] memory publicInputs = new uint256[](size);
+    function _fillPublicInputs(
+        uint256[] memory publicInputs,
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
+        bool inputsLocked,
+        _DecodedProof memory dp
+    ) internal view {
         uint256 piIndex = 0;
         // copy the ML-KEM encapsulated shared secret
-        for (uint256 i = 0; i < encapsulatedSharedSecret.length; ++i) {
-            publicInputs[piIndex++] = encapsulatedSharedSecret[i];
+        for (uint256 i = 0; i < dp.encapsulatedSharedSecret.length; ++i) {
+            publicInputs[piIndex++] = dp.encapsulatedSharedSecret[i];
         }
         // copy the encrypted output values
-        for (uint256 i = 0; i < encryptedValues.length; ++i) {
-            publicInputs[piIndex++] = encryptedValues[i];
+        for (uint256 i = 0; i < dp.encryptedValues.length; ++i) {
+            publicInputs[piIndex++] = dp.encryptedValues[i];
         }
         // copy nullifiers
         for (uint256 i = 0; i < nullifiers.length; i++) {
@@ -136,7 +175,7 @@ contract Zeto_AnonNullifierQurrency is Zeto_AnonNullifier {
             publicInputs[piIndex++] = uint256(uint160(msg.sender));
         }
         // copy root
-        publicInputs[piIndex++] = root;
+        publicInputs[piIndex++] = dp.root;
         // populate enables
         for (uint256 i = 0; i < nullifiers.length; i++) {
             publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
@@ -145,7 +184,5 @@ contract Zeto_AnonNullifierQurrency is Zeto_AnonNullifier {
         for (uint256 i = 0; i < outputs.length; i++) {
             publicInputs[piIndex++] = outputs[i];
         }
-
-        return (publicInputs, proofStruct);
     }
 }

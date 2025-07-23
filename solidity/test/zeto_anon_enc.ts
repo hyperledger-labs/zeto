@@ -120,9 +120,10 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     );
 
     const events = parseUTXOEvents(zeto, result.txResult!);
-    expect(events[0].inputs).to.deep.equal(inputUtxos.map((i) => i.hash));
-    const incomingUTXOs: any = events[0].outputs;
-    const ecdhPublicKey = events[0].ecdhPublicKey;
+    const event = events[1]; // skip the first event which is the UTXOTransfer event
+    expect(event.inputs).to.deep.equal(inputUtxos.map((i) => i.hash));
+    const incomingUTXOs: any = event.outputs;
+    const ecdhPublicKey = event.ecdhPublicKey;
 
     // check the non-empty output hashes are correct
     for (let i = 0; i < outputUtxos.length; i++) {
@@ -132,9 +133,9 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
         ecdhPublicKey,
       );
       const plainText = poseidonDecrypt(
-        events[0].encryptedValues.slice(4 * i, 4 * i + 4),
+        event.encryptedValues.slice(4 * i, 4 * i + 4),
         sharedKey,
-        events[0].encryptionNonce,
+        event.encryptionNonce,
         2,
       );
       expect(plainText).to.deep.equal(
@@ -173,7 +174,7 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     // Alice withdraws her UTXOs to ERC20 tokens
     const tx = await zeto
       .connect(Alice.signer)
-      .withdraw(3, inputCommitments, outputCommitments[0], encodedProof, "0x");
+      .withdraw(3, inputCommitments, outputCommitments[0], encodeToBytesForWithdraw(encodedProof), "0x");
     await tx.wait();
 
     // Alice checks her ERC20 balance
@@ -199,7 +200,7 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     );
     const tx2 = await zeto
       .connect(Alice.signer)
-      .deposit(100, outputCommitments, encodedProof, "0x");
+      .deposit(100, outputCommitments, encodeToBytesForDeposit(encodedProof), "0x");
     await tx2.wait();
   }).timeout(60000);
 
@@ -233,18 +234,19 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     // Bob uses the information in the event to recover the incoming UTXO
     // first obtain the UTXO from the transaction event
     const events = parseUTXOEvents(zeto, result.txResult!);
-    expect(events[0].inputs).to.deep.equal([utxo1.hash, utxo2.hash]);
-    expect(events[0].outputs).to.deep.equal([_utxo1.hash, utxo4.hash]);
-    const incomingUTXOs: any = events[0].outputs;
+    const event = events[1]; // skip the first event which is the UTXOTransfer event
+    expect(event.inputs).to.deep.equal([utxo1.hash, utxo2.hash]);
+    expect(event.outputs).to.deep.equal([_utxo1.hash, utxo4.hash]);
+    const incomingUTXOs: any = event.outputs;
 
-    const ecdhPublicKey = events[0].ecdhPublicKey;
+    const ecdhPublicKey = event.ecdhPublicKey;
     // Bob reconstructs the shared key using his private key and ephemeral public key
 
     const sharedKey = genEcdhSharedKey(Bob.babyJubPrivateKey, ecdhPublicKey);
     const plainText = poseidonDecrypt(
-      events[0].encryptedValues.slice(0, 4),
+      event.encryptedValues.slice(0, 4),
       sharedKey,
-      events[0].encryptionNonce,
+      event.encryptionNonce,
       2,
     );
     expect(plainText).to.deep.equal(result.expectedPlainText.slice(0, 2));
@@ -284,7 +286,7 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     // Alice withdraws her UTXOs to ERC20 tokens
     const tx = await zeto
       .connect(Alice.signer)
-      .withdraw(80, inputCommitments, outputCommitments[0], encodedProof, "0x");
+      .withdraw(80, inputCommitments, outputCommitments[0], encodeToBytesForWithdraw(encodedProof), "0x");
     await tx.wait();
 
     // Alice checks her ERC20 balance
@@ -318,7 +320,7 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
             10,
             inputCommitments,
             outputCommitments[0],
-            encodedProof,
+            encodeToBytesForWithdraw(encodedProof),
             "0x",
           ),
       ).rejectedWith("UTXOAlreadySpent");
@@ -566,11 +568,11 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
 
     for (const input of inputCommitments) {
       if (input === 0n) continue;
-      expect(await zeto.spent(input)).to.equal(true);
+      expect(await zeto.spent(input)).to.equal(2n);
     }
     for (const output of outputCommitments) {
       if (output === 0n) continue;
-      expect(await zeto.spent(output)).to.equal(false);
+      expect(await zeto.spent(output)).to.equal(1n);
     }
     console.log(`Method transfer() complete. Gas used: ${results?.gasUsed}`);
 
@@ -580,4 +582,12 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
 
 function encodeToBytes(encryptionNonce: any, ecdhPublicKey: any, encryptedValues: any, proof: any) {
   return new AbiCoder().encode(["uint256 encryptionNonce", "uint256[2] ecdhPublicKey", "uint256[] encryptedValues", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [encryptionNonce, ecdhPublicKey, encryptedValues, proof]);
+}
+
+function encodeToBytesForDeposit(proof: any) {
+  return new AbiCoder().encode(["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [proof]);
+}
+
+function encodeToBytesForWithdraw(proof: any) {
+  return new AbiCoder().encode(["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [proof]);
 }
