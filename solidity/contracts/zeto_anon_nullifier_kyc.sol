@@ -17,7 +17,7 @@ pragma solidity ^0.8.27;
 
 import {Zeto_AnonNullifier} from "./zeto_anon_nullifier.sol";
 import {Registry} from "./lib/registry.sol";
-import {Commonlib} from "./lib/common.sol";
+import {Commonlib} from "./lib/common/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {console} from "hardhat/console.sol";
 
@@ -47,7 +47,12 @@ contract Zeto_AnonNullifierKyc is Zeto_AnonNullifier, Registry {
         return extras;
     }
 
-    function extraInputsForDeposit() public view override returns (uint256[] memory) {
+    function extraInputsForDeposit()
+        public
+        view
+        override
+        returns (uint256[] memory)
+    {
         uint256[] memory extras = new uint256[](1);
 
         extras[0] = getIdentitiesRoot();

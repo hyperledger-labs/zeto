@@ -302,8 +302,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
         3,
         _withdrawNullifiers,
         withdrawCommitments[0],
-        root.bigInt(),
-        withdrawEncodedProof,
+        encodeToBytes(root.bigInt(), withdrawEncodedProof),
         "0x",
       );
     await tx.wait();
@@ -334,7 +333,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
       proof3.siblings.map((s) => s.bigInt()),
       proof3.siblings.map((s) => s.bigInt()),
     ];
-    const { outputCommitments, encodedProof } = await prepareDepositKycProof( 
+    const { outputCommitments, encodedProof } = await prepareDepositKycProof(
       Alice,
       [utxo100, utxo0],
       identitiesRoot.bigInt(),
@@ -342,7 +341,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
     );
     const tx2 = await zeto
       .connect(Alice.signer)
-      .deposit(100, outputCommitments, encodedProof, "0x");
+      .deposit(100, outputCommitments, encodeToDepositBytes(encodedProof), "0x");
     await tx2.wait();
 
     await smtAlice.add(utxo100.hash, utxo100.hash);
@@ -560,8 +559,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
         80,
         nullifiers,
         outputCommitments[0],
-        root.bigInt(),
-        encodedProof,
+        encodeToBytes(root.bigInt(), encodedProof),
         "0x",
       );
     await tx.wait();
@@ -627,8 +625,8 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
       );
       await expect(
         zeto
-        .connect(unregistered.signer)
-        .deposit(100, outputCommitments, encodedProof, "0x")).to.be.rejectedWith("Invalid proof");
+          .connect(unregistered.signer)
+          .deposit(100, outputCommitments, encodeToDepositBytes(encodedProof), "0x")).to.be.rejectedWith("Invalid proof");
     });
   });
 
@@ -1285,7 +1283,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
             Charlie, // Charlie must sign this transaction as he is the delegate now
             nullifiers,
             result.outputCommitments,
-            root.bigInt(), 
+            root.bigInt(),
             result.encodedProof,
             true,
           ),
@@ -1343,8 +1341,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
             10,
             nullifiers,
             outputCommitments[0],
-            root.bigInt(),
-            encodedProof,
+            encodeToBytes(root.bigInt(), encodedProof),
             "0x",
           ),
       ).rejectedWith("UTXOAlreadySpent");
@@ -1743,8 +1740,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
     }
     const results: ContractTransactionReceipt | null = await tx.wait();
     console.log(
-      `Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${
-        results?.gasUsed
+      `Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${results?.gasUsed
       }`,
     );
     return results;
@@ -1753,4 +1749,8 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
 
 function encodeToBytes(root: any, proof: any) {
   return new AbiCoder().encode(["uint256 root", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [root, proof]);
+}
+
+function encodeToDepositBytes(proof: any) {
+  return new AbiCoder().encode(["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [proof]);
 }
