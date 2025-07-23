@@ -152,8 +152,8 @@ contract ZetoNonFungible is ZetoCommon {
             uint256[] memory publicInputs,
             Commonlib.Proof memory proofStruct
         ) = constructPublicInputsForLock(inputs, outputs, lockedOutputs, proof);
-        verifyProof(proofStruct, publicInputs, false, true);
-        processInputsAndOutputs(inputs, outputs, true);
+        verifyProof(proofStruct, publicInputs, false, false);
+        processInputsAndOutputs(inputs, outputs, false);
         processLockedOutputs(lockedOutputs, delegate);
 
         emit UTXOsLocked(

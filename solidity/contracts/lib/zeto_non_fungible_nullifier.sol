@@ -45,11 +45,4 @@ abstract contract ZetoNonFungibleNullifier is ZetoNonFungible {
             storage_
         );
     }
-
-    function validateRoot(
-        uint256 root,
-        bool inputsLocked
-    ) internal view virtual override {
-        _storage.validateRoot(root, inputsLocked);
-    }
 }

@@ -40,21 +40,6 @@ abstract contract ZetoFungibleNullifier is ZetoFungible {
         __ZetoFungible_init(name_, symbol_, initialOwner, verifiers, storage_);
     }
 
-    function validateRoot(
-        uint256 root,
-        bool inputsLocked
-    ) internal view virtual override {
-        _storage.validateRoot(root, inputsLocked);
-    }
-
-    function getRoot() public view virtual returns (uint256) {
-        return _storage.getRoot();
-    }
-
-    function getRootForLocked() public view virtual returns (uint256) {
-        return _storage.getRootForLocked();
-    }
-
     function constructPublicInputsForWithdraw(
         uint256 amount,
         uint256[] memory nullifiers,

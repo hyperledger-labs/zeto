@@ -223,6 +223,14 @@ abstract contract ZetoCommon is IZeto, IZetoLockable, OwnableUpgradeable {
         _storage.validateRoot(root, inputsLocked);
     }
 
+    function getRoot() public view virtual returns (uint256) {
+        return _storage.getRoot();
+    }
+
+    function getRootForLocked() public view virtual returns (uint256) {
+        return _storage.getRootForLocked();
+    }
+
     function processInputsAndOutputs(
         uint256[] memory inputs,
         uint256[] memory outputs,
