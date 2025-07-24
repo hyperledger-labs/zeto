@@ -16,9 +16,8 @@
 pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
-import {ZetoNullifier} from "./lib/zeto_nullifier.sol";
-import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
-import {Commonlib} from "./lib/common.sol";
+import {Zeto_AnonNullifier} from "./zeto_anon_nullifier.sol";
+import {Commonlib} from "./lib/common/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
@@ -31,62 +30,93 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes, which match the corresponding nullifiers
 ///        - the encrypted value in the input is derived from the receiver's UTXO value and encrypted with a shared secret using the ECDH protocol between the sender and receiver (this guarantees data availability for the receiver)
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
-contract Zeto_AnonEncNullifier is
-    IZeto,
-    ZetoNullifier,
-    ZetoFungibleWithdrawWithNullifiers,
-    UUPSUpgradeable
-{
+contract Zeto_AnonEncNullifier is Zeto_AnonNullifier {
     function initialize(
         string memory name,
         string memory symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
-    ) public virtual initializer {
-        __Zeto_AnonEncNullifier_init(name, symbol, initialOwner, verifiers);
+    ) public virtual override initializer {
+        super.initialize(name, symbol, initialOwner, verifiers);
     }
 
-    function __Zeto_AnonEncNullifier_init(
-        string memory name,
-        string memory symbol,
-        address initialOwner,
-        IZetoInitializable.VerifiersInfo calldata verifiers
-    ) internal onlyInitializing {
-        __ZetoNullifier_init(name, symbol, initialOwner, verifiers);
-        __ZetoFungibleWithdrawWithNullifiers_init(
-            verifiers.depositVerifier,
-            verifiers.withdrawVerifier,
-            verifiers.batchWithdrawVerifier
-        );
+    struct _DecodedProof {
+        uint256 root;
+        uint256 encryptionNonce;
+        uint256[2] ecdhPublicKey;
+        uint256[] encryptedValues;
     }
-
-    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     function constructPublicInputs(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
-        uint256 root,
-        uint256 encryptionNonce,
-        uint256[2] memory ecdhPublicKey,
-        uint256[] memory encryptedValues
-    ) internal view returns (uint256[] memory publicInputs) {
+        bytes memory proof,
+        bool inputsLocked
+    )
+        internal
+        view
+        override
+        returns (uint256[] memory, Commonlib.Proof memory)
+    {
+        (
+            uint256 root,
+            uint256 encryptionNonce,
+            uint256[2] memory ecdhPublicKey,
+            uint256[] memory encryptedValues,
+            Commonlib.Proof memory proofStruct
+        ) = abi.decode(
+                proof,
+                (uint256, uint256, uint256[2], uint256[], Commonlib.Proof)
+            );
+        _DecodedProof memory dp = _DecodedProof(
+            root,
+            encryptionNonce,
+            ecdhPublicKey,
+            encryptedValues
+        );
         uint256[] memory extra = extraInputs();
-        uint256 size = (nullifiers.length * 2) + // nullifiers and enabled flags
+        uint256 size = _calculatePublicInputsSize(
+            nullifiers,
+            outputs,
+            extra,
+            dp
+        );
+
+        uint256[] memory publicInputs = new uint256[](size);
+        _fillPublicInputs(publicInputs, nullifiers, outputs, extra, dp);
+        return (publicInputs, proofStruct);
+    }
+
+    function _calculatePublicInputsSize(
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
+        uint256[] memory extra,
+        _DecodedProof memory dp
+    ) internal pure returns (uint256) {
+        return
+            (nullifiers.length * 2) + // nullifiers and enabled flags
             2 + // root and encryption nonce
-            ecdhPublicKey.length + // ecdh public key
-            encryptedValues.length + // encrypted values
+            dp.ecdhPublicKey.length + // ecdh public key
+            dp.encryptedValues.length + // encrypted values
             extra.length + // extra inputs
             outputs.length; // outputs
+    }
 
-        publicInputs = new uint256[](size);
+    function _fillPublicInputs(
+        uint256[] memory publicInputs,
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
+        uint256[] memory extra,
+        _DecodedProof memory dp
+    ) internal pure {
         uint256 piIndex = 0;
         // copy the ecdh public key
-        for (uint256 i = 0; i < ecdhPublicKey.length; ++i) {
-            publicInputs[piIndex++] = ecdhPublicKey[i];
+        for (uint256 i = 0; i < dp.ecdhPublicKey.length; ++i) {
+            publicInputs[piIndex++] = dp.ecdhPublicKey[i];
         }
         // copy the encrypted value, salt and parity bit
-        for (uint256 i = 0; i < encryptedValues.length; ++i) {
-            publicInputs[piIndex++] = encryptedValues[i];
+        for (uint256 i = 0; i < dp.encryptedValues.length; ++i) {
+            publicInputs[piIndex++] = dp.encryptedValues[i];
         }
         // copy input commitments
         for (uint256 i = 0; i < nullifiers.length; i++) {
@@ -94,7 +124,7 @@ contract Zeto_AnonEncNullifier is
         }
 
         // copy root
-        publicInputs[piIndex++] = root;
+        publicInputs[piIndex++] = dp.root;
 
         // populate enables
         for (uint256 i = 0; i < nullifiers.length; i++) {
@@ -112,11 +142,16 @@ contract Zeto_AnonEncNullifier is
         }
 
         // copy encryption nonce
-        publicInputs[piIndex++] = encryptionNonce;
-        return publicInputs;
+        publicInputs[piIndex++] = dp.encryptionNonce;
     }
 
-    function extraInputs() internal view virtual returns (uint256[] memory) {
+    function extraInputs()
+        internal
+        view
+        virtual
+        override
+        returns (uint256[] memory)
+    {
         // no extra inputs for this contract
         uint256[] memory empty = new uint256[](0);
         return empty;
@@ -140,83 +175,29 @@ contract Zeto_AnonEncNullifier is
         uint256[] memory outputs,
         bytes calldata proof,
         bytes calldata data
-    ) public returns (bool) {
-        (uint256 root, uint256 encryptionNonce, uint256[2] memory ecdhPublicKey, uint256[] memory encryptedValues, Commonlib.Proof memory proofStruct) = abi.decode(proof, (uint256, uint256, uint256[2], uint256[], Commonlib.Proof));
-        // Check and pad commitments
+    ) public override {
+        super.transfer(nullifiers, outputs, proof, data);
+        (
+            uint256 root,
+            uint256 encryptionNonce,
+            uint256[2] memory ecdhPublicKey,
+            uint256[] memory encryptedValues,
+            Commonlib.Proof memory proofStruct
+        ) = abi.decode(
+                proof,
+                (uint256, uint256, uint256[2], uint256[], Commonlib.Proof)
+            );
+
         nullifiers = checkAndPadCommitments(nullifiers);
         outputs = checkAndPadCommitments(outputs);
-        validateTransactionProposal(nullifiers, outputs, root, false);
-
-        // Check the proof
-        uint256[] memory publicInputs = constructPublicInputs(
-            nullifiers,
-            outputs,
-            root,
-            encryptionNonce,
-            ecdhPublicKey,
-            encryptedValues
-        );
-        bool isBatch = (nullifiers.length > 2 || outputs.length > 2);
-        verifyProof(proofStruct, publicInputs, isBatch, false);
-
-        // accept the transaction to consume the input UTXOs and produce new UTXOs
-        uint256[] memory empty;
-        processInputsAndOutputs(nullifiers, outputs, empty, address(0));
-
-        uint256[] memory encryptedValuesArray = new uint256[](
-            encryptedValues.length
-        );
-        for (uint256 i = 0; i < encryptedValues.length; ++i) {
-            encryptedValuesArray[i] = encryptedValues[i];
-        }
-
         emit UTXOTransferWithEncryptedValues(
             nullifiers,
             outputs,
             encryptionNonce,
             ecdhPublicKey,
-            encryptedValuesArray,
+            encryptedValues,
             msg.sender,
             data
         );
-        return true;
-    }
-
-    function deposit(
-        uint256 amount,
-        uint256[] memory outputs,
-        Commonlib.Proof calldata proof,
-        bytes calldata data
-    ) public {
-        _deposit(amount, outputs, proof);
-        _mint(outputs, data);
-    }
-
-    function withdraw(
-        uint256 amount,
-        uint256[] memory nullifiers,
-        uint256 output,
-        uint256 root,
-        Commonlib.Proof calldata proof,
-        bytes calldata data
-    ) public {
-        uint256[] memory outputs = new uint256[](nullifiers.length);
-        outputs[0] = output;
-        // Check and pad commitments
-        nullifiers = checkAndPadCommitments(nullifiers);
-        outputs = checkAndPadCommitments(outputs);
-        validateTransactionProposal(nullifiers, outputs, root, false);
-
-        _withdrawWithNullifiers(amount, nullifiers, output, root, proof);
-        uint256[] memory empty;
-        processInputsAndOutputs(nullifiers, outputs, empty, address(0));
-        emit UTXOWithdraw(amount, nullifiers, output, msg.sender, data);
-    }
-
-    function mint(
-        uint256[] memory utxos,
-        bytes calldata data
-    ) public onlyOwner {
-        _mint(utxos, data);
     }
 }

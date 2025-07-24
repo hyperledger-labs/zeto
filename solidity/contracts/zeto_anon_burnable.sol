@@ -49,7 +49,7 @@ contract Zeto_AnonBurnable is Zeto_Anon, ZetoFungibleBurnable {
         bool isLocked
     )
         internal
-        pure
+        view
         override(Zeto_Anon, ZetoCommon)
         returns (uint256[] memory, Commonlib.Proof memory)
     {

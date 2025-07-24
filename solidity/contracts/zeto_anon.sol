@@ -57,7 +57,7 @@ contract Zeto_Anon is ZetoFungibleBase, UUPSUpgradeable {
         bool isLocked
     )
         internal
-        pure
+        view
         virtual
         override
         returns (uint256[] memory, Commonlib.Proof memory)

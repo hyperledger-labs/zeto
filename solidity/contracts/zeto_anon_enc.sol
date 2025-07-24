@@ -36,7 +36,7 @@ contract Zeto_AnonEnc is Zeto_Anon {
         string memory symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
-    ) public override initializer {
+    ) public virtual override initializer {
         __ZetoAnon_init(name, symbol, initialOwner, verifiers);
     }
 
@@ -53,7 +53,7 @@ contract Zeto_AnonEnc is Zeto_Anon {
         bool isLocked
     )
         internal
-        pure
+        view
         virtual
         override
         returns (uint256[] memory, Commonlib.Proof memory)
@@ -128,7 +128,7 @@ contract Zeto_AnonEnc is Zeto_Anon {
         uint256[] memory outputs,
         bytes calldata proof,
         bytes calldata data
-    ) public override {
+    ) public virtual override {
         super.transfer(inputs, outputs, proof, data);
         (
             uint256 encryptionNonce,
