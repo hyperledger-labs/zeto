@@ -67,7 +67,7 @@ contract zkEscrow1 {
                 lockedInputs[i]
             );
             require(isLocked, "Input not locked");
-            require(currentDelegate == msg.sender, "Not lock delegate");
+            require(currentDelegate == address(this), "Not lock delegate");
         }
         inflightCount++;
         bytes memory emptyProof;
