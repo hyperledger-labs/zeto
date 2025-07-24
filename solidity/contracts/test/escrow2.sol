@@ -35,7 +35,6 @@ contract zkEscrow2 {
     struct Payment {
         uint256[] nullifiers;
         uint256[] outputs;
-        uint256 root;
         bytes proof;
         PaymentStatus status;
     }
@@ -68,7 +67,6 @@ contract zkEscrow2 {
         payments[inflightCount] = Payment(
             nullifiers,
             outputs,
-            0,
             emptyProof,
             PaymentStatus.INITIATED
         );
@@ -89,10 +87,6 @@ contract zkEscrow2 {
             payment.nullifiers
         );
         uint256[] memory outputs = zeto.checkAndPadCommitments(payment.outputs);
-        (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(
-            proof,
-            (uint256, Commonlib.Proof)
-        );
         require(
             zeto.constructPublicSignalsAndVerifyProof(
                 nullifiers,
@@ -103,7 +97,6 @@ contract zkEscrow2 {
             "Invalid proof"
         );
         payment.proof = proof;
-        payment.root = root;
         payment.status = PaymentStatus.APPROVED;
         emit PaymentApproved(paymentId, data);
     }

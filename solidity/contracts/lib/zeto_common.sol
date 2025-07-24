@@ -124,7 +124,7 @@ abstract contract ZetoCommon is IZeto, IZetoLockable, OwnableUpgradeable {
             Commonlib.Proof memory proofStruct
         ) = constructPublicInputs(inputs, outputs, proof, inputsLocked);
         bool isBatch = inputs.length > 2 || outputs.length > 2;
-        verifyProof(proofStruct, publicInputs, isBatch, false);
+        verifyProof(proofStruct, publicInputs, isBatch, inputsLocked);
         return true;
     }
 
