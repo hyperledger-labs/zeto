@@ -178,5 +178,8 @@ describe("Escrow flow for payment with Zeto_Anon", function () {
 });
 
 function encodeToBytes(proof: any) {
-  return new AbiCoder().encode(["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [proof]);
+  return new AbiCoder().encode(
+    ["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"],
+    [proof],
+  );
 }

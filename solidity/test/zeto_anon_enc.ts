@@ -50,7 +50,6 @@ import {
   prepareDepositProof,
   prepareWithdrawProof,
   encodeToBytesForDeposit,
-  encodeToBytesForWithdraw,
 } from "./utils";
 import { deployZeto } from "./lib/deploy";
 
@@ -623,4 +622,8 @@ function encodeToBytes(
     ],
     [encryptionNonce, ecdhPublicKey, encryptedValues, proof],
   );
+}
+
+function encodeToBytesForWithdraw(proof: any) {
+  return new AbiCoder().encode(["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [proof]);
 }

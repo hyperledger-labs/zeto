@@ -208,7 +208,11 @@ describe("Escrow flow for payment with Zeto_AnonNullifier", function () {
     );
     const tx = await zkEscrow
       .connect(Alice.signer)
-      .approvePayment(paymentId, encodeToBytes(root.bigInt(), encodedProof), "0x");
+      .approvePayment(
+        paymentId,
+        encodeToBytes(root.bigInt(), encodedProof),
+        "0x",
+      );
     const result = await tx.wait();
     // simulate Bob listening to the escrow events and verifying the payment has been approved.
     // the escrow contract guaratees that the proof is valid
@@ -236,5 +240,8 @@ describe("Escrow flow for payment with Zeto_AnonNullifier", function () {
 });
 
 function encodeToBytes(root: any, proof: any) {
-  return new AbiCoder().encode(["uint256 root", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [root, proof]);
+  return new AbiCoder().encode(
+    ["uint256 root", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"],
+    [root, proof],
+  );
 }
