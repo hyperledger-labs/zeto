@@ -17,7 +17,7 @@
 import { readFileSync } from "fs";
 import * as path from "path";
 import crypto from "crypto";
-import { BigNumberish } from "ethers";
+import { AbiCoder, BigNumberish } from "ethers";
 import { groth16 } from "snarkjs";
 import { loadCircuit, encodeProof, tokenUriHash } from "zeto-js";
 import { User, UTXO } from "./lib/utils";
@@ -386,4 +386,12 @@ export async function prepareNullifierBurnProof(
     outputCommitment: output.hash,
     encodedProof,
   };
+}
+
+export function encodeToBytesForDeposit(proof: any) {
+  return new AbiCoder().encode(["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [proof]);
+}
+
+export function encodeToBytesForWithdraw(root: any, proof: any) {
+  return new AbiCoder().encode(["uint256 root", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [root, proof]);
 }

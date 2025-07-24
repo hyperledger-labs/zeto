@@ -55,6 +55,7 @@ contract Zeto_AnonEncNullifier is Zeto_AnonNullifier {
     )
         internal
         view
+        virtual
         override
         returns (uint256[] memory, Commonlib.Proof memory)
     {
@@ -175,7 +176,7 @@ contract Zeto_AnonEncNullifier is Zeto_AnonNullifier {
         uint256[] memory outputs,
         bytes calldata proof,
         bytes calldata data
-    ) public override {
+    ) public virtual override {
         super.transfer(nullifiers, outputs, proof, data);
         (
             uint256 root,

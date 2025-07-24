@@ -45,8 +45,9 @@ import {
 import {
   loadProvingKeys,
   prepareDepositProof,
-  prepareNullifiersLockProof,
   prepareNullifierWithdrawProof,
+  encodeToBytesForDeposit,
+  encodeToBytesForWithdraw,
 } from "./utils";
 import { deployZeto } from "./lib/deploy";
 const poseidonHash = Poseidon.poseidon4;
@@ -983,12 +984,4 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
 
 function encodeToBytes(root: any, encryptionNonce: any, ecdhPublicKey: any, encryptedValues: any, proof: any) {
   return new AbiCoder().encode(["uint256 root", "uint256 encryptionNonce", "uint256[2] ecdhPublicKey", "uint256[] encryptedValues", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [root, encryptionNonce, ecdhPublicKey, encryptedValues, proof]);
-}
-
-function encodeToBytesForDeposit(proof: any) {
-  return new AbiCoder().encode(["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [proof]);
-}
-
-function encodeToBytesForWithdraw(root: any, proof: any) {
-  return new AbiCoder().encode(["uint256 root", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [root, proof]);
 }

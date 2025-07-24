@@ -35,6 +35,8 @@ import {
   loadProvingKeys,
   prepareDepositKycProof,
   prepareNullifierWithdrawProof,
+  encodeToBytesForDeposit,
+  encodeToBytesForWithdraw,
 } from "./utils";
 import { deployZeto } from "./lib/deploy";
 import smt from "../ignition/modules/test/smt";
@@ -302,7 +304,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
         3,
         _withdrawNullifiers,
         withdrawCommitments[0],
-        encodeToBytes(root.bigInt(), withdrawEncodedProof),
+        encodeToBytesForWithdraw(root.bigInt(), withdrawEncodedProof),
         "0x",
       );
     await tx.wait();
@@ -341,7 +343,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
     );
     const tx2 = await zeto
       .connect(Alice.signer)
-      .deposit(100, outputCommitments, encodeToDepositBytes(encodedProof), "0x");
+      .deposit(100, outputCommitments, encodeToBytesForDeposit(encodedProof), "0x");
     await tx2.wait();
 
     await smtAlice.add(utxo100.hash, utxo100.hash);
@@ -559,7 +561,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
         80,
         nullifiers,
         outputCommitments[0],
-        encodeToBytes(root.bigInt(), encodedProof),
+        encodeToBytesForWithdraw(root.bigInt(), encodedProof),
         "0x",
       );
     await tx.wait();
@@ -626,7 +628,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
       await expect(
         zeto
           .connect(unregistered.signer)
-          .deposit(100, outputCommitments, encodeToDepositBytes(encodedProof), "0x")).to.be.rejectedWith("Invalid proof");
+          .deposit(100, outputCommitments, encodeToBytesForDeposit(encodedProof), "0x")).to.be.rejectedWith("Invalid proof");
     });
   });
 
@@ -1341,7 +1343,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
             10,
             nullifiers,
             outputCommitments[0],
-            encodeToBytes(root.bigInt(), encodedProof),
+            encodeToBytesForWithdraw(root.bigInt(), encodedProof),
             "0x",
           ),
       ).rejectedWith("UTXOAlreadySpent");
@@ -1749,8 +1751,4 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
 
 function encodeToBytes(root: any, proof: any) {
   return new AbiCoder().encode(["uint256 root", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [root, proof]);
-}
-
-function encodeToDepositBytes(proof: any) {
-  return new AbiCoder().encode(["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [proof]);
 }

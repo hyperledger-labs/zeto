@@ -46,6 +46,8 @@ import {
   loadProvingKeys,
   prepareDepositProof,
   prepareNullifierWithdrawProof,
+  encodeToBytesForDeposit,
+  encodeToBytesForWithdraw,
 } from "./utils";
 import { deployZeto } from "./lib/deploy";
 
@@ -771,14 +773,6 @@ async function prepareProof(
 
 function encodeToBytes(root: any, encryptionNonce: any, encryptedValues: any, encapsulatedSharedSecret: any, proof: any) {
   return new AbiCoder().encode(["uint256 root", "uint256 encryptionNonce", "uint256[] encryptedValues", "uint256[25] encapsulatedSharedSecret", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [root, encryptionNonce, encryptedValues, encapsulatedSharedSecret, proof]);
-}
-
-function encodeToBytesForWithdraw(root: any, proof: any) {
-  return new AbiCoder().encode(["uint256 root", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [root, proof]);
-}
-
-function encodeToBytesForDeposit(proof: any) {
-  return new AbiCoder().encode(["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [proof]);
 }
 
 module.exports = {

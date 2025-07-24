@@ -35,6 +35,8 @@ import {
   prepareDepositProof,
   prepareNullifierWithdrawProof,
   prepareNullifierBurnProof,
+  encodeToBytesForDeposit,
+  encodeToBytesForWithdraw,
 } from "./utils";
 import { deployZeto } from "./lib/deploy";
 import {
@@ -244,7 +246,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
         3,
         _withdrawNullifiers,
         withdrawCommitments[0],
-        encodeToBytes(root.bigInt(), withdrawEncodedProof),
+        encodeToBytesForWithdraw(root.bigInt(), withdrawEncodedProof),
         "0x",
       );
     const result1 = await tx.wait();
@@ -273,7 +275,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
     );
     const tx2 = await zeto
       .connect(Alice.signer)
-      .deposit(100, outputCommitments, encodeToDepositBytes(encodedProof), "0x");
+      .deposit(100, outputCommitments, encodeToBytesForDeposit(encodedProof), "0x");
     const result = await tx2.wait();
     console.log(`Method deposit() complete. Gas used: ${result?.gasUsed}`);
 
@@ -447,7 +449,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
         80,
         nullifiers,
         outputCommitments[0],
-        encodeToBytes(root.bigInt(), encodedProof),
+        encodeToBytesForWithdraw(root.bigInt(), encodedProof),
         "0x",
       );
     const result = await tx.wait();
@@ -1123,7 +1125,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
             10,
             nullifiers,
             outputCommitments[0],
-            encodeToBytes(root.bigInt(), encodedProof),
+            encodeToBytesForWithdraw(root.bigInt(), encodedProof),
             "0x",
           ),
       ).rejectedWith("UTXOAlreadySpent");
@@ -1448,10 +1450,6 @@ async function prepareProof(
 
 function encodeToBytes(root: any, proof: any) {
   return new AbiCoder().encode(["uint256 root", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [root, proof]);
-}
-
-function encodeToDepositBytes(proof: any) {
-  return new AbiCoder().encode(["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [proof]);
 }
 
 module.exports = {

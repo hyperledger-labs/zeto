@@ -43,8 +43,9 @@ import {
 import {
   loadProvingKeys,
   prepareDepositProof,
-  prepareLockProof,
   prepareWithdrawProof,
+  encodeToBytesForDeposit,
+  encodeToBytesForWithdraw,
 } from "./utils";
 import { deployZeto } from "./lib/deploy";
 
@@ -582,12 +583,4 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
 
 function encodeToBytes(encryptionNonce: any, ecdhPublicKey: any, encryptedValues: any, proof: any) {
   return new AbiCoder().encode(["uint256 encryptionNonce", "uint256[2] ecdhPublicKey", "uint256[] encryptedValues", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [encryptionNonce, ecdhPublicKey, encryptedValues, proof]);
-}
-
-function encodeToBytesForDeposit(proof: any) {
-  return new AbiCoder().encode(["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [proof]);
-}
-
-function encodeToBytesForWithdraw(proof: any) {
-  return new AbiCoder().encode(["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [proof]);
 }
