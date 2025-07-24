@@ -15,7 +15,12 @@
 // limitations under the License.
 
 import { ethers, network } from "hardhat";
-import { Signer, BigNumberish, ContractTransactionReceipt } from "ethers";
+import {
+  Signer,
+  BigNumberish,
+  ContractTransactionReceipt,
+  AbiCoder,
+} from "ethers";
 import { expect } from "chai";
 import { loadCircuit, encodeProof, Poseidon } from "zeto-js";
 import { groth16 } from "snarkjs";
@@ -34,9 +39,11 @@ import {
   loadProvingKeys,
   prepareDepositProof,
   prepareNullifierWithdrawProof,
+  encodeToBytesForDeposit,
+  encodeToBytesForWithdraw,
 } from "./utils";
 import { Zeto_AnonNullifier } from "../typechain-types";
-import { deployFungible as deployZeto } from "../scripts/deploy_upgradeable";
+import { deployZeto } from "./lib/deploy";
 
 const USDC_SEPOLIA_ADDRESS = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
 const TRANSFER_AMOUNT = 1000; // 0.001000 UDSC
@@ -66,12 +73,7 @@ describe("Shield USDC balances, transact in privacy, and withdraw back to USDC",
     Alice2 = await newUser(b);
     Bob = await newUser(c);
 
-    const usdcAddress =
-      network.name === "sepolia" ? USDC_SEPOLIA_ADDRESS : undefined;
-    ({ zeto, erc20: usdc } = await deployZeto(
-      "Zeto_AnonNullifier",
-      usdcAddress,
-    ));
+    ({ zeto, erc20: usdc } = await deployZeto("Zeto_AnonNullifier"));
 
     circuit = await loadCircuit("anon_nullifier_transfer");
     ({ provingKeyFile: provingKey } = loadProvingKeys(
@@ -101,7 +103,12 @@ describe("Shield USDC balances, transact in privacy, and withdraw back to USDC",
     );
     const tx2 = await zeto
       .connect(Alice.signer)
-      .deposit(TRANSFER_AMOUNT, outputCommitments, encodedProof, "0x");
+      .deposit(
+        TRANSFER_AMOUNT,
+        outputCommitments,
+        encodeToBytesForDeposit(encodedProof),
+        "0x",
+      );
     await tx2.wait();
 
     // Alice locally tracks the UTXOs inside the Sparse Merkle Tree
@@ -215,8 +222,7 @@ describe("Shield USDC balances, transact in privacy, and withdraw back to USDC",
       TRANSFER_AMOUNT / 2, // the amount to withdraw
       nullifiers,
       outputCommitments[0],
-      root.bigInt(),
-      encodedProof,
+      encodeToBytesForWithdraw(root.bigInt(), encodedProof),
       "0x",
     );
     await tx.wait();
@@ -285,8 +291,7 @@ describe("Shield USDC balances, transact in privacy, and withdraw back to USDC",
     tx = await zeto.connect(signer.signer).transfer(
       nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
       outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
-      root,
-      encodedProof,
+      encodeToBytes(root, encodedProof),
       "0x",
     );
     const results: ContractTransactionReceipt | null = await tx.wait();
@@ -360,3 +365,10 @@ describe("Shield USDC balances, transact in privacy, and withdraw back to USDC",
     };
   }
 });
+
+function encodeToBytes(root: any, proof: any) {
+  return new AbiCoder().encode(
+    ["uint256 root", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"],
+    [root, proof],
+  );
+}
