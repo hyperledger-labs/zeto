@@ -97,7 +97,12 @@ export async function prepareDepositProof(signer: User, outputs: [UTXO, UTXO]) {
   };
 }
 
-export async function prepareDepositKycProof(signer: User, outputs: [UTXO, UTXO], identitiesRoot: BigInt, identitiesMerkleProof: BigInt[][]) {
+export async function prepareDepositKycProof(
+  signer: User,
+  outputs: [UTXO, UTXO],
+  identitiesRoot: BigInt,
+  identitiesMerkleProof: BigInt[][],
+) {
   const outputCommitments: [BigNumberish, BigNumberish] = [
     outputs[0].hash,
     outputs[1].hash,
@@ -389,9 +394,15 @@ export async function prepareNullifierBurnProof(
 }
 
 export function encodeToBytesForDeposit(proof: any) {
-  return new AbiCoder().encode(["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [proof]);
+  return new AbiCoder().encode(
+    ["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"],
+    [proof],
+  );
 }
 
 export function encodeToBytesForWithdraw(root: any, proof: any) {
-  return new AbiCoder().encode(["uint256 root", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [root, proof]);
+  return new AbiCoder().encode(
+    ["uint256 root", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"],
+    [root, proof],
+  );
 }

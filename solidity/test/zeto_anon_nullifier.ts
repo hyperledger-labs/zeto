@@ -15,7 +15,13 @@
 // limitations under the License.
 
 import { ethers, network } from "hardhat";
-import { ContractTransactionReceipt, Signer, BigNumberish, lock, AbiCoder } from "ethers";
+import {
+  ContractTransactionReceipt,
+  Signer,
+  BigNumberish,
+  lock,
+  AbiCoder,
+} from "ethers";
 import { expect } from "chai";
 import { loadCircuit, Poseidon, encodeProof } from "zeto-js";
 import { groth16 } from "snarkjs";
@@ -275,7 +281,12 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
     );
     const tx2 = await zeto
       .connect(Alice.signer)
-      .deposit(100, outputCommitments, encodeToBytesForDeposit(encodedProof), "0x");
+      .deposit(
+        100,
+        outputCommitments,
+        encodeToBytesForDeposit(encodedProof),
+        "0x",
+      );
     const result = await tx2.wait();
     console.log(`Method deposit() complete. Gas used: ${result?.gasUsed}`);
 
@@ -670,16 +681,14 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
         );
 
         await expect(
-          zeto
-            .connect(Bob.signer)
-            .lock(
-              [nullifier1.hash],
-              [],
-              outputCommitments,
-              encodeToBytes(root.bigInt(), encodedProof), // encode the root and proof together
-              Charlie.ethAddress,
-              "0x",
-            ),
+          zeto.connect(Bob.signer).lock(
+            [nullifier1.hash],
+            [],
+            outputCommitments,
+            encodeToBytes(root.bigInt(), encodedProof), // encode the root and proof together
+            Charlie.ethAddress,
+            "0x",
+          ),
         ).to.be.rejectedWith("UTXORootNotFound");
       });
 
@@ -1449,7 +1458,10 @@ async function prepareProof(
 }
 
 function encodeToBytes(root: any, proof: any) {
-  return new AbiCoder().encode(["uint256 root", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [root, proof]);
+  return new AbiCoder().encode(
+    ["uint256 root", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"],
+    [root, proof],
+  );
 }
 
 module.exports = {

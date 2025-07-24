@@ -15,7 +15,12 @@
 // limitations under the License.
 
 import { ethers, network } from "hardhat";
-import { ContractTransactionReceipt, Signer, BigNumberish, AbiCoder } from "ethers";
+import {
+  ContractTransactionReceipt,
+  Signer,
+  BigNumberish,
+  AbiCoder,
+} from "ethers";
 import { expect } from "chai";
 import { loadCircuit, Poseidon, encodeProof, tokenUriHash } from "zeto-js";
 import { groth16 } from "snarkjs";
@@ -553,10 +558,16 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
     const startTx = Date.now();
     const tx = await zeto
       .connect(signer.signer)
-      .transfer(nullifier, outputCommitment, encodeToBytes(root, encodedProof), "0x");
+      .transfer(
+        nullifier,
+        outputCommitment,
+        encodeToBytes(root, encodedProof),
+        "0x",
+      );
     const results: ContractTransactionReceipt | null = await tx.wait();
     console.log(
-      `Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${results?.gasUsed
+      `Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${
+        results?.gasUsed
       }`,
     );
     return results;
@@ -564,5 +575,8 @@ describe("Zeto based non-fungible token with anonymity using nullifiers without 
 });
 
 function encodeToBytes(root: any, proof: any) {
-  return new AbiCoder().encode(["uint256 root", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [root, proof]);
+  return new AbiCoder().encode(
+    ["uint256 root", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"],
+    [root, proof],
+  );
 }

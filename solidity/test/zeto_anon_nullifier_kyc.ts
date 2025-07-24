@@ -15,7 +15,12 @@
 // limitations under the License.
 
 import { ethers, network } from "hardhat";
-import { ContractTransactionReceipt, Signer, BigNumberish, AbiCoder } from "ethers";
+import {
+  ContractTransactionReceipt,
+  Signer,
+  BigNumberish,
+  AbiCoder,
+} from "ethers";
 import { expect } from "chai";
 import { loadCircuit, Poseidon, encodeProof, kycHash } from "zeto-js";
 import { groth16 } from "snarkjs";
@@ -343,7 +348,12 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
     );
     const tx2 = await zeto
       .connect(Alice.signer)
-      .deposit(100, outputCommitments, encodeToBytesForDeposit(encodedProof), "0x");
+      .deposit(
+        100,
+        outputCommitments,
+        encodeToBytesForDeposit(encodedProof),
+        "0x",
+      );
     await tx2.wait();
 
     await smtAlice.add(utxo100.hash, utxo100.hash);
@@ -628,7 +638,13 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
       await expect(
         zeto
           .connect(unregistered.signer)
-          .deposit(100, outputCommitments, encodeToBytesForDeposit(encodedProof), "0x")).to.be.rejectedWith("Invalid proof");
+          .deposit(
+            100,
+            outputCommitments,
+            encodeToBytesForDeposit(encodedProof),
+            "0x",
+          ),
+      ).to.be.rejectedWith("Invalid proof");
     });
   });
 
@@ -1742,7 +1758,8 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
     }
     const results: ContractTransactionReceipt | null = await tx.wait();
     console.log(
-      `Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${results?.gasUsed
+      `Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${
+        results?.gasUsed
       }`,
     );
     return results;
@@ -1750,5 +1767,8 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
 });
 
 function encodeToBytes(root: any, proof: any) {
-  return new AbiCoder().encode(["uint256 root", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [root, proof]);
+  return new AbiCoder().encode(
+    ["uint256 root", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"],
+    [root, proof],
+  );
 }

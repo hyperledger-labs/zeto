@@ -15,7 +15,12 @@
 // limitations under the License.
 
 import { ethers, network } from "hardhat";
-import { ContractTransactionReceipt, Signer, BigNumberish, AbiCoder } from "ethers";
+import {
+  ContractTransactionReceipt,
+  Signer,
+  BigNumberish,
+  AbiCoder,
+} from "ethers";
 import { expect } from "chai";
 import {
   loadCircuit,
@@ -175,7 +180,13 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     // Alice withdraws her UTXOs to ERC20 tokens
     const tx = await zeto
       .connect(Alice.signer)
-      .withdraw(3, inputCommitments, outputCommitments[0], encodeToBytesForWithdraw(encodedProof), "0x");
+      .withdraw(
+        3,
+        inputCommitments,
+        outputCommitments[0],
+        encodeToBytesForWithdraw(encodedProof),
+        "0x",
+      );
     await tx.wait();
 
     // Alice checks her ERC20 balance
@@ -201,7 +212,12 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     );
     const tx2 = await zeto
       .connect(Alice.signer)
-      .deposit(100, outputCommitments, encodeToBytesForDeposit(encodedProof), "0x");
+      .deposit(
+        100,
+        outputCommitments,
+        encodeToBytesForDeposit(encodedProof),
+        "0x",
+      );
     await tx2.wait();
   }).timeout(60000);
 
@@ -287,7 +303,13 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     // Alice withdraws her UTXOs to ERC20 tokens
     const tx = await zeto
       .connect(Alice.signer)
-      .withdraw(80, inputCommitments, outputCommitments[0], encodeToBytesForWithdraw(encodedProof), "0x");
+      .withdraw(
+        80,
+        inputCommitments,
+        outputCommitments[0],
+        encodeToBytesForWithdraw(encodedProof),
+        "0x",
+      );
     await tx.wait();
 
     // Alice checks her ERC20 balance
@@ -562,7 +584,12 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
     const tx = await zeto.connect(signer.signer).transfer(
       inputCommitments.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
       outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
-      encodeToBytes(encryptionNonce, ecdhPublicKey, encryptedValues, encodedProof),
+      encodeToBytes(
+        encryptionNonce,
+        ecdhPublicKey,
+        encryptedValues,
+        encodedProof,
+      ),
       "0x",
     );
     const results: ContractTransactionReceipt | null = await tx.wait();
@@ -581,6 +608,19 @@ describe("Zeto based fungible token with anonymity and encryption", function () 
   }
 });
 
-function encodeToBytes(encryptionNonce: any, ecdhPublicKey: any, encryptedValues: any, proof: any) {
-  return new AbiCoder().encode(["uint256 encryptionNonce", "uint256[2] ecdhPublicKey", "uint256[] encryptedValues", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [encryptionNonce, ecdhPublicKey, encryptedValues, proof]);
+function encodeToBytes(
+  encryptionNonce: any,
+  ecdhPublicKey: any,
+  encryptedValues: any,
+  proof: any,
+) {
+  return new AbiCoder().encode(
+    [
+      "uint256 encryptionNonce",
+      "uint256[2] ecdhPublicKey",
+      "uint256[] encryptedValues",
+      "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)",
+    ],
+    [encryptionNonce, ecdhPublicKey, encryptedValues, proof],
+  );
 }

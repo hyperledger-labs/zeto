@@ -295,7 +295,12 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
         await expect(
           zeto
             .connect(Bob.signer)
-            .unlock(inputCommitment, outputCommitment, encodeToBytes(encodedProof), "0x"),
+            .unlock(
+              inputCommitment,
+              outputCommitment,
+              encodeToBytes(encodedProof),
+              "0x",
+            ),
         ).to.be.fulfilled;
       });
 
@@ -405,7 +410,10 @@ async function prepareProof(
 }
 
 function encodeToBytes(proof: any) {
-  return new AbiCoder().encode(["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [proof]);
+  return new AbiCoder().encode(
+    ["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"],
+    [proof],
+  );
 }
 
 module.exports = {

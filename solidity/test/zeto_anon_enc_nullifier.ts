@@ -15,7 +15,12 @@
 // limitations under the License.
 
 import { ethers, network } from "hardhat";
-import { ContractTransactionReceipt, Signer, BigNumberish, AbiCoder } from "ethers";
+import {
+  ContractTransactionReceipt,
+  Signer,
+  BigNumberish,
+  AbiCoder,
+} from "ethers";
 import { expect } from "chai";
 import {
   loadCircuit,
@@ -285,7 +290,12 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     );
     const tx2 = await zeto
       .connect(Alice.signer)
-      .deposit(100, outputCommitments, encodeToBytesForDeposit(encodedProof), "0x");
+      .deposit(
+        100,
+        outputCommitments,
+        encodeToBytesForDeposit(encodedProof),
+        "0x",
+      );
     await tx2.wait();
 
     await smtAlice.add(utxo100.hash, utxo100.hash);
@@ -971,7 +981,13 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     const tx = await zeto.connect(signer.signer).transfer(
       nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
       outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
-      encodeToBytes(root, encryptionNonce, ecdhPublicKey, encryptedValues, encodedProof),
+      encodeToBytes(
+        root,
+        encryptionNonce,
+        ecdhPublicKey,
+        encryptedValues,
+        encodedProof,
+      ),
       "0x",
     );
     const results: ContractTransactionReceipt | null = await tx.wait();
@@ -982,6 +998,21 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
   }
 });
 
-function encodeToBytes(root: any, encryptionNonce: any, ecdhPublicKey: any, encryptedValues: any, proof: any) {
-  return new AbiCoder().encode(["uint256 root", "uint256 encryptionNonce", "uint256[2] ecdhPublicKey", "uint256[] encryptedValues", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [root, encryptionNonce, ecdhPublicKey, encryptedValues, proof]);
+function encodeToBytes(
+  root: any,
+  encryptionNonce: any,
+  ecdhPublicKey: any,
+  encryptedValues: any,
+  proof: any,
+) {
+  return new AbiCoder().encode(
+    [
+      "uint256 root",
+      "uint256 encryptionNonce",
+      "uint256[2] ecdhPublicKey",
+      "uint256[] encryptedValues",
+      "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)",
+    ],
+    [root, encryptionNonce, ecdhPublicKey, encryptedValues, proof],
+  );
 }

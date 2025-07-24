@@ -15,7 +15,13 @@
 // limitations under the License.
 
 import { ethers, network } from "hardhat";
-import { Signer, BigNumberish, AddressLike, ZeroAddress, AbiCoder } from "ethers";
+import {
+  Signer,
+  BigNumberish,
+  AddressLike,
+  ZeroAddress,
+  AbiCoder,
+} from "ethers";
 import { expect } from "chai";
 import { loadCircuit, encodeProof, Poseidon } from "zeto-js";
 import { groth16 } from "snarkjs";
@@ -159,7 +165,13 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     // Alice withdraws her UTXOs to ERC20 tokens
     const tx = await zeto
       .connect(Alice.signer)
-      .withdraw(3, inputCommitments, outputCommitments[0], encodeToBytes(encodedProof), "0x");
+      .withdraw(
+        3,
+        inputCommitments,
+        outputCommitments[0],
+        encodeToBytes(encodedProof),
+        "0x",
+      );
     await tx.wait();
 
     // Alice checks her ERC20 balance
@@ -271,7 +283,13 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     // Alice withdraws her UTXOs to ERC20 tokens
     const tx = await zeto
       .connect(Alice.signer)
-      .withdraw(80, inputCommitments, outputCommitments[0], encodeToBytes(encodedProof), "0x");
+      .withdraw(
+        80,
+        inputCommitments,
+        outputCommitments[0],
+        encodeToBytes(encodedProof),
+        "0x",
+      );
     const result = await tx.wait();
     console.log(`Method withdraw() complete. Gas used: ${result?.gasUsed}`);
 
@@ -718,7 +736,12 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
       await expect(
         zeto
           .connect(Alice.signer)
-          .unlock(inputCommitments, outputCommitments, encodeToBytes(encodedProof), "0x"),
+          .unlock(
+            inputCommitments,
+            outputCommitments,
+            encodeToBytes(encodedProof),
+            "0x",
+          ),
       ).to.be.fulfilled;
 
       // now Bob as the owner can spend the UTXO as usual
@@ -870,7 +893,10 @@ async function prepareProof(
 }
 
 function encodeToBytes(proof: any) {
-  return new AbiCoder().encode(["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [proof]);
+  return new AbiCoder().encode(
+    ["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"],
+    [proof],
+  );
 }
 
 module.exports = {
