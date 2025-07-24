@@ -17,9 +17,8 @@ pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
 import {Zeto_AnonEncNullifier} from "./zeto_anon_enc_nullifier.sol";
-import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Registry} from "./lib/registry.sol";
-import {Commonlib} from "./lib/common.sol";
+import {Commonlib} from "./lib/common/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
@@ -40,17 +39,29 @@ contract Zeto_AnonEncNullifierKyc is Zeto_AnonEncNullifier, Registry {
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public override initializer {
         __Registry_init();
-        __Zeto_AnonEncNullifier_init(name, symbol, initialOwner, verifiers);
+        super.initialize(name, symbol, initialOwner, verifiers);
     }
 
-    function extraInputs() internal view override returns (uint256[] memory) {
+    function extraInputs()
+        internal
+        view
+        virtual
+        override
+        returns (uint256[] memory)
+    {
         uint256[] memory extras = new uint256[](1);
 
         extras[0] = getIdentitiesRoot();
         return extras;
     }
 
-    function extraInputsForDeposit() public view override returns (uint256[] memory) {
+    function extraInputsForDeposit()
+        internal
+        view
+        virtual
+        override
+        returns (uint256[] memory)
+    {
         uint256[] memory extras = new uint256[](1);
 
         extras[0] = getIdentitiesRoot();

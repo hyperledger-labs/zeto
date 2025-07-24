@@ -341,7 +341,7 @@ abstract contract ZetoFungible is ZetoCommon {
     }
 
     function extraInputsForDeposit()
-        public
+        internal
         view
         virtual
         returns (uint256[] memory)

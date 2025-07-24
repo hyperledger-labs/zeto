@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import { ethers, network } from "hardhat";
-import { ContractTransactionReceipt, Signer, BigNumberish } from "ethers";
+import { ContractTransactionReceipt, Signer, BigNumberish, AbiCoder } from "ethers";
 import { expect } from "chai";
 import {
   loadCircuit,
@@ -231,12 +231,13 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
 
     const signerAddress = await Alice.signer.getAddress();
     const events = parseUTXOEvents(zeto, result.txResult!);
-    expect(events[0].submitter).to.equal(signerAddress);
-    expect(events[0].inputs).to.deep.equal(nullifiers.map((n) => n.hash));
+    const event = events[1]; // skip the first event which is the UTXOTransfer event
+    expect(event.submitter).to.equal(signerAddress);
+    expect(event.inputs).to.deep.equal(nullifiers.map((n) => n.hash));
 
-    const incomingUTXOs: any = events[0].outputs;
+    const incomingUTXOs: any = event.outputs;
 
-    const ecdhPublicKey = events[0].ecdhPublicKey;
+    const ecdhPublicKey = event.ecdhPublicKey;
     // check the non-empty output hashes are correct
     for (let i = 0; i < outputUtxos.length; i++) {
       const utxoOwner = outputOwners[i];
@@ -245,9 +246,9 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
         ecdhPublicKey,
       );
       const plainText = poseidonDecrypt(
-        events[0].encryptedValues.slice(4 * i, 4 * i + 4),
+        event.encryptedValues.slice(4 * i, 4 * i + 4),
         sharedKey,
-        events[0].encryptionNonce,
+        event.encryptionNonce,
         2,
       );
       expect(plainText).to.deep.equal(
@@ -322,8 +323,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
         3,
         _withdrawNullifiers,
         withdrawCommitments[0],
-        root.bigInt(),
-        withdrawEncodedProof,
+        encodeToBytesForWithdraw(root.bigInt(), withdrawEncodedProof),
         "0x",
       );
     await tx.wait();
@@ -362,7 +362,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     );
     const tx2 = await zeto
       .connect(Alice.signer)
-      .deposit(100, outputCommitments, encodedProof, "0x");
+      .deposit(100, outputCommitments, encodeToBytesForDeposit(encodedProof), "0x");
     await tx2.wait();
 
     await smtAlice.add(utxo100.hash, utxo100.hash);
@@ -461,20 +461,21 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     // Bob parses the UTXOs from the onchain event
     const signerAddress = await Alice.signer.getAddress();
     const events = parseUTXOEvents(zeto, result2.txResult!);
-    expect(events[0].submitter).to.equal(signerAddress);
-    expect(events[0].inputs).to.deep.equal([nullifier1.hash, nullifier2.hash]);
-    expect(events[0].outputs).to.deep.equal([_utxo3.hash, utxo4.hash]);
-    await smtBob.add(events[0].outputs[0], events[0].outputs[0]);
-    await smtBob.add(events[0].outputs[1], events[0].outputs[1]);
+    const event = events[1]; // skip the first event which is the UTXOTransfer event
+    expect(event.submitter).to.equal(signerAddress);
+    expect(event.inputs).to.deep.equal([nullifier1.hash, nullifier2.hash]);
+    expect(event.outputs).to.deep.equal([_utxo3.hash, utxo4.hash]);
+    await smtBob.add(event.outputs[0], event.outputs[0]);
+    await smtBob.add(event.outputs[1], event.outputs[1]);
 
-    const ecdhPublicKey = events[0].ecdhPublicKey;
+    const ecdhPublicKey = event.ecdhPublicKey;
     // Bob reconstructs the shared key using his private key and ephemeral public key
 
     const sharedKey = genEcdhSharedKey(Bob.babyJubPrivateKey, ecdhPublicKey);
     const plainText = poseidonDecrypt(
-      events[0].encryptedValues.slice(0, 4),
+      event.encryptedValues.slice(0, 4),
       sharedKey,
-      events[0].encryptionNonce,
+      event.encryptionNonce,
       2,
     );
     expect(plainText).to.deep.equal(result2.expectedPlainText.slice(0, 2));
@@ -539,8 +540,9 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
 
     // Alice gets the new UTXOs from the onchain event and keeps the local SMT in sync
     const events = parseUTXOEvents(zeto, result.txResult!);
-    await smtAlice.add(events[0].outputs[0], events[0].outputs[0]);
-    await smtAlice.add(events[0].outputs[1], events[0].outputs[1]);
+    const event = events[1]; // skip the first event which is the UTXOTransfer event
+    await smtAlice.add(event.outputs[0], event.outputs[0]);
+    await smtAlice.add(event.outputs[1], event.outputs[1]);
   }).timeout(600000);
 
   it("Alice withdraws her UTXOs to ERC20 tokens should succeed", async function () {
@@ -581,8 +583,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
         80,
         nullifiers,
         outputCommitments[0],
-        root.bigInt(),
-        encodedProof,
+        encodeToBytesForWithdraw(root.bigInt(), encodedProof),
         "0x",
       );
     await tx.wait();
@@ -644,7 +645,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
       await expect(
         zeto
           .connect(unregistered.signer)
-          .deposit(100, outputCommitments, encodedProof, "0x")
+          .deposit(100, outputCommitments, encodeToBytesForDeposit(encodedProof), "0x")
       ).to.be.rejectedWith("Invalid proof");
     });
   });
@@ -694,8 +695,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
             10,
             nullifiers,
             outputCommitments[0],
-            root.bigInt(),
-            encodedProof,
+            encodeToBytesForWithdraw(root.bigInt(), encodedProof),
             "0x",
           ),
       ).rejectedWith("UTXOAlreadySpent");
@@ -1087,11 +1087,7 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     const tx = await zeto.connect(signer.signer).transfer(
       nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
       outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
-      root,
-      encryptionNonce,
-      ecdhPublicKey,
-      encryptedValues,
-      encodedProof,
+      encodeToBytes(root, encryptionNonce, ecdhPublicKey, encryptedValues, encodedProof),
       "0x",
     );
     const results: ContractTransactionReceipt | null = await tx.wait();
@@ -1101,3 +1097,15 @@ describe("Zeto based fungible token with anonymity using nullifiers and encrypti
     return results;
   }
 });
+
+function encodeToBytes(root: any, encryptionNonce: any, ecdhPublicKey: any, encryptedValues: any, proof: any) {
+  return new AbiCoder().encode(["uint256 root", "uint256 encryptionNonce", "uint256[2] ecdhPublicKey", "uint256[] encryptedValues", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [root, encryptionNonce, ecdhPublicKey, encryptedValues, proof]);
+}
+
+function encodeToBytesForDeposit(proof: any) {
+  return new AbiCoder().encode(["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [proof]);
+}
+
+function encodeToBytesForWithdraw(root: any, proof: any) {
+  return new AbiCoder().encode(["uint256 root", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"], [root, proof]);
+}

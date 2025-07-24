@@ -48,7 +48,7 @@ contract Zeto_AnonNullifierKyc is Zeto_AnonNullifier, Registry {
     }
 
     function extraInputsForDeposit()
-        public
+        internal
         view
         override
         returns (uint256[] memory)
