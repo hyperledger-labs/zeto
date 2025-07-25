@@ -40,6 +40,14 @@ export const DepositVerifierModule = buildModule(
   },
 );
 
+export const DepositKycVerifierModule = buildModule(
+  "Groth16Verifier_DepositKyc",
+  (m) => {
+    const verifier = m.contract("Groth16Verifier_DepositKyc", []);
+    return { verifier };
+  },
+);
+
 export const WithdrawNullifierVerifierModule = buildModule(
   "Groth16Verifier_WithdrawNullifier",
   (m) => {

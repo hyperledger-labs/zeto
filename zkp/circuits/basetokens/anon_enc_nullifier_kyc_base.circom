@@ -20,8 +20,10 @@ include "../lib/check-hashes.circom";
 include "../lib/check-sum.circom";
 include "../lib/check-nullifiers.circom";
 include "../lib/check-smt-proof.circom";
+include "../lib/kyc.circom";
 include "../lib/encrypt-outputs.circom";
 include "../node_modules/circomlib/circuits/babyjub.circom";
+include "../node_modules/circomlib/circuits/comparators.circom";
 
 // This version of the circuit performs the following operations:
 // - derive the sender's public key from the sender's private key
@@ -97,17 +99,15 @@ template Zeto(nInputs, nOutputs, nUTXOSMTLevels, nIdentitiesSMTLevels) {
   // Then, we need to check that the owner public keys
   // for the inputs and outputs are included in the identities
   // Sparse Merkle Tree with the root `identitiesRoot`.
-  var ownerPublicKeyHashes[nOutputs + 1];
-  ownerPublicKeyHashes[0] = Poseidon(2)(inputs <== [inputOwnerPubKeyAx, inputOwnerPubKeyAy]);
-
-  var identitiesMTPCheckEnabled[nOutputs + 1];
-  identitiesMTPCheckEnabled[0] = 1;
+  var ownerPublicKeys[nOutputs + 1][2];
+  ownerPublicKeys[0] = [inputOwnerPubKeyAx, inputOwnerPubKeyAy];
+  var isCommitmentZero[nOutputs];
   for (var i = 0; i < nOutputs; i++) {
-    ownerPublicKeyHashes[i+1] = Poseidon(2)(inputs <== outputOwnerPublicKeys[i]);
-    identitiesMTPCheckEnabled[i+1] = 1;
+    isCommitmentZero[i] = IsZero()(in <== outputCommitments[i]);
+    ownerPublicKeys[i+1][0] = (1 - isCommitmentZero[i]) * outputOwnerPublicKeys[i][0];
+    ownerPublicKeys[i+1][1] = (1 - isCommitmentZero[i]) * outputOwnerPublicKeys[i][1];
   }
-
-  CheckSMTProof(nOutputs + 1, nIdentitiesSMTLevels)(root <== identitiesRoot, merkleProof <== identitiesMerkleProof, enabled <== identitiesMTPCheckEnabled, leafNodeIndexes <== ownerPublicKeyHashes, leafNodeValues <== ownerPublicKeyHashes);
+  Kyc(nOutputs + 1, nIdentitiesSMTLevels)(publicKeys <== ownerPublicKeys, root <== identitiesRoot, merkleProof <== identitiesMerkleProof);
 
   (ecdhPublicKey, cipherTexts) <== EncryptOutputs(nOutputs)(ecdhPrivateKey <== ecdhPrivateKey, encryptionNonce <== encryptionNonce, commitmentInputs <== outAuxInputs);
 }

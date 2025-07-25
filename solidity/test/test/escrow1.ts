@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import { ethers, ignition, network } from "hardhat";
-import { Signer, encodeBytes32String, ZeroHash, lock } from "ethers";
+import { Signer, encodeBytes32String, ZeroHash, lock, AbiCoder } from "ethers";
 import { expect } from "chai";
 import { loadCircuit, getProofHash } from "zeto-js";
 import zkEscrowModule from "../../ignition/modules/test/escrow1";
@@ -109,7 +109,7 @@ describe("Escrow flow for payment with Zeto_Anon", function () {
         inputCommitments,
         [],
         outputCommitments,
-        encodedProof,
+        encodeToBytes(encodedProof),
         zkEscrow.target,
         "0x",
       );
@@ -150,7 +150,7 @@ describe("Escrow flow for payment with Zeto_Anon", function () {
     );
     const tx = await zkEscrow
       .connect(Alice.signer)
-      .approvePayment(paymentId, encodedProof, "0x");
+      .approvePayment(paymentId, encodeToBytes(encodedProof), "0x");
     const result = await tx.wait();
     // simulate Bob listening to the escrow events and verifying the payment has been approved.
     // the escrow contract guaratees that the proof is valid
@@ -176,3 +176,10 @@ describe("Escrow flow for payment with Zeto_Anon", function () {
     expect(completedPayment).to.equal(paymentId);
   });
 });
+
+function encodeToBytes(proof: any) {
+  return new AbiCoder().encode(
+    ["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"],
+    [proof],
+  );
+}

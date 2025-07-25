@@ -15,7 +15,13 @@
 // limitations under the License.
 
 import { ethers, network } from "hardhat";
-import { ContractTransactionReceipt, Signer, BigNumberish, lock } from "ethers";
+import {
+  ContractTransactionReceipt,
+  Signer,
+  BigNumberish,
+  lock,
+  AbiCoder,
+} from "ethers";
 import { expect } from "chai";
 import { loadCircuit, Poseidon, encodeProof } from "zeto-js";
 import { groth16 } from "snarkjs";
@@ -35,6 +41,8 @@ import {
   prepareDepositProof,
   prepareNullifierWithdrawProof,
   prepareNullifierBurnProof,
+  encodeToBytesForDeposit,
+  encodeToBytesForWithdraw,
 } from "./utils";
 import { deployZeto } from "./lib/deploy";
 import {
@@ -47,6 +55,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
   let Alice: User;
   let Bob: User;
   let Charlie: User;
+  let Eva: User;
   let erc20: any;
   let zeto: Zeto_AnonNullifier;
   let zetoBurnable: Zeto_AnonNullifierBurnable;
@@ -69,11 +78,12 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
       this.timeout(120000);
     }
 
-    let [d, a, b, c] = await ethers.getSigners();
+    let [d, a, b, c, e] = await ethers.getSigners();
     deployer = d;
     Alice = await newUser(a);
     Bob = await newUser(b);
     Charlie = await newUser(c);
+    Eva = await newUser(e);
 
     ({ deployer, zeto, erc20 } = await deployZeto("Zeto_AnonNullifier"));
     ({ zeto: zetoBurnable } = await deployZeto("Zeto_AnonNullifierBurnable"));
@@ -242,8 +252,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
         3,
         _withdrawNullifiers,
         withdrawCommitments[0],
-        root.bigInt(),
-        withdrawEncodedProof,
+        encodeToBytesForWithdraw(root.bigInt(), withdrawEncodedProof),
         "0x",
       );
     const result1 = await tx.wait();
@@ -272,7 +281,12 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
     );
     const tx2 = await zeto
       .connect(Alice.signer)
-      .deposit(100, outputCommitments, encodedProof, "0x");
+      .deposit(
+        100,
+        outputCommitments,
+        encodeToBytesForDeposit(encodedProof),
+        "0x",
+      );
     const result = await tx2.wait();
     console.log(`Method deposit() complete. Gas used: ${result?.gasUsed}`);
 
@@ -446,8 +460,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
         80,
         nullifiers,
         outputCommitments[0],
-        root.bigInt(),
-        encodedProof,
+        encodeToBytesForWithdraw(root.bigInt(), encodedProof),
         "0x",
       );
     const result = await tx.wait();
@@ -601,8 +614,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
           [nullifier1.hash],
           [],
           outputCommitments,
-          root.bigInt(),
-          encodedProof,
+          encodeToBytes(root.bigInt(), encodedProof), // encode the root and proof together
           Alice.ethAddress, // make Alice the delegate who can spend the state (if she has the right proof)
           "0x",
         );
@@ -622,6 +634,15 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
         const root = await smtBobForLocked.root();
         const onchainRoot = await zeto.getRootForLocked();
         expect(root.string()).to.equal(onchainRoot.toString());
+      });
+
+      it("locked() should return true for locked UTXOs, and false for unlocked or spent UTXOs", async function () {
+        expect(await zeto.locked(lockedUtxo1.hash)).to.deep.equal([
+          true,
+          Alice.ethAddress,
+        ]);
+        expect((await zeto.locked(utxo7.hash))[0]).to.be.false;
+        expect((await zeto.locked(utxo1.hash))[0]).to.be.false;
       });
 
       it("lock() should fail when trying to lock again by not as the current delegate", async function () {
@@ -660,17 +681,14 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
         );
 
         await expect(
-          zeto
-            .connect(Bob.signer)
-            .lock(
-              [nullifier1.hash],
-              [],
-              outputCommitments,
-              root.bigInt(),
-              encodedProof,
-              Charlie.ethAddress,
-              "0x",
-            ),
+          zeto.connect(Bob.signer).lock(
+            [nullifier1.hash],
+            [],
+            outputCommitments,
+            encodeToBytes(root.bigInt(), encodedProof), // encode the root and proof together
+            Charlie.ethAddress,
+            "0x",
+          ),
         ).to.be.rejectedWith("UTXORootNotFound");
       });
 
@@ -934,8 +952,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
           [nullifier1.hash],
           [],
           outputCommitments,
-          root.bigInt(),
-          encodedProof,
+          encodeToBytes(root.bigInt(), encodedProof), // encode the root and proof together
           Alice.ethAddress, // make Alice the delegate who can spend the state (if she has the right proof)
           "0x",
         );
@@ -967,6 +984,54 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
         const root = await smtBobForLocked.root();
         const onchainRoot = await zeto.getRootForLocked();
         expect(root.string()).to.equal(onchainRoot.toString());
+      });
+
+      it("an invalid delegate can NOT use the proper proof to spend the locked state", async function () {
+        // Bob generates inclusion proofs for the UTXOs to be spent, as private input to the proof generation
+        const nullifier1 = newNullifier(lockedUtxo2, Bob);
+        const root = await smtBobForLocked.root();
+        const proof1 = await smtBobForLocked.generateCircomVerifierProof(
+          lockedUtxo2.hash,
+          root,
+        );
+        const proof2 = await smtBobForLocked.generateCircomVerifierProof(
+          0n,
+          root,
+        );
+        const merkleProofs = [
+          proof1.siblings.map((s) => s.bigInt()),
+          proof2.siblings.map((s) => s.bigInt()),
+        ];
+        // Bob proposes the output UTXOs, attempting to transfer the locked UTXO to Alice
+        const utxo1 = newUTXO(1, Alice);
+        utxo11 = newUTXO(4, Bob);
+
+        const result = await prepareProof(
+          circuitForLocked,
+          provingKeyForLocked,
+          Bob,
+          [lockedUtxo2, ZERO_UTXO],
+          [nullifier1, ZERO_UTXO],
+          [utxo1, utxo11],
+          root.bigInt(),
+          merkleProofs,
+          [Alice, Bob],
+          Charlie.ethAddress, // current lock delegate
+        );
+        const nullifiers = [nullifier1.hash];
+
+        // Charlie NOT being the delegate can NOT spend the locked state
+        // using the proof generated by the trade counterparty (Bob in this case)
+        await expect(
+          sendTx(
+            Eva,
+            nullifiers,
+            result.outputCommitments,
+            root.bigInt(),
+            result.encodedProof,
+            true,
+          ),
+        ).to.be.rejectedWith("Invalid proof");
       });
 
       it("Charlie can use the proper proof to spend the locked state", async function () {
@@ -1069,8 +1134,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
             10,
             nullifiers,
             outputCommitments[0],
-            root.bigInt(),
-            encodedProof,
+            encodeToBytesForWithdraw(root.bigInt(), encodedProof),
             "0x",
           ),
       ).rejectedWith("UTXOAlreadySpent");
@@ -1304,16 +1368,14 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
       tx = await zeto.connect(signer.signer).transfer(
         nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
         outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
-        root,
-        encodedProof,
+        encodeToBytes(root, encodedProof),
         "0x",
       );
     } else {
       tx = await zeto.connect(signer.signer).transferLocked(
         nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
         outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
-        root,
-        encodedProof,
+        encodeToBytes(root, encodedProof), // encode the root and proof together
         "0x",
       );
     }
@@ -1393,6 +1455,13 @@ async function prepareProof(
     outputCommitments,
     encodedProof,
   };
+}
+
+function encodeToBytes(root: any, proof: any) {
+  return new AbiCoder().encode(
+    ["uint256 root", "tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"],
+    [root, proof],
+  );
 }
 
 module.exports = {

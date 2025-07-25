@@ -16,17 +16,17 @@
 pragma solidity ^0.8.27;
 
 import {IGroth16Verifier} from "./interfaces/izeto_verifier.sol";
-import {ZetoNullifier} from "./zeto_nullifier.sol";
-import {Commonlib} from "./common.sol";
+import {ZetoFungibleNullifier} from "./zeto_fungible_nullifier.sol";
+import {Commonlib} from "./common/common.sol";
 
 /// @title A feature implementation of a Zeto fungible token burn contract
 /// @author Kaleido, Inc.
 /// @dev Can be added to a Zeto fungible token contract to allow for burning of tokens.
-abstract contract ZetoFungibleBurnableWithNullifiers is ZetoNullifier {
+abstract contract ZetoFungibleBurnableNullifier is ZetoFungibleNullifier {
     IGroth16Verifier internal _burnVerifier;
     IGroth16Verifier internal _batchBurnVerifier;
 
-    function __ZetoFungibleBurnableWithNullifiers_init(
+    function __ZetoFungibleBurnableNullifier_init(
         IGroth16Verifier burnVerifier,
         IGroth16Verifier batchBurnVerifier
     ) public onlyInitializing {

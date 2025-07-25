@@ -15,7 +15,7 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {Commonlib} from "../common.sol";
+import {Commonlib} from "../common/common.sol";
 
 interface IZetoKyc {
     event IdentityRegistered(uint256[2] publicKey, bytes data);

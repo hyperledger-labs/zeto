@@ -24,7 +24,7 @@ contract TenDecimals is Zeto_Anon {
     function decimals()
         public
         pure
-        override(IZeto, ZetoCommon)
+        override
         returns (uint8)
     {
         return 10;

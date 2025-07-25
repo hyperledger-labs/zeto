@@ -53,6 +53,9 @@
     "deposit": {
       "ptau": "powersOfTau28_hez_final_11"
     },
+    "deposit_kyc": {
+      "ptau": "powersOfTau28_hez_final_15"
+    },
     "withdraw": {
       "ptau": "powersOfTau28_hez_final_13",
       "batchPtau": "powersOfTau28_hez_final_14"

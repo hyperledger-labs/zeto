@@ -16,7 +16,7 @@
 pragma solidity ^0.8.27;
 
 import {Groth16Verifier_AnonNullifierQurrencyTransfer} from "../verifiers/verifier_anon_nullifier_qurrency_transfer.sol";
-import {Commonlib} from "../lib/common.sol";
+import {Commonlib} from "../lib/common/common.sol";
 
 contract TestVerifierQurrency {
     Groth16Verifier_AnonNullifierQurrencyTransfer verifier;
