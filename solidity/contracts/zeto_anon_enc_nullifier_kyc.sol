@@ -38,8 +38,17 @@ contract Zeto_AnonEncNullifierKyc is Zeto_AnonEncNullifier, Registry {
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public override initializer {
+        __ZetoAnonEncNullifierKyc_init(name, symbol, initialOwner, verifiers);
+    }
+
+    function __ZetoAnonEncNullifierKyc_init(
+        string memory name_,
+        string memory symbol_,
+        address initialOwner,
+        IZetoInitializable.VerifiersInfo calldata verifiers
+    ) internal onlyInitializing {
         __Registry_init();
-        super.initialize(name, symbol, initialOwner, verifiers);
+        __ZetoAnonEncNullifier_init(name_, symbol_, initialOwner, verifiers);
     }
 
     function extraInputs()

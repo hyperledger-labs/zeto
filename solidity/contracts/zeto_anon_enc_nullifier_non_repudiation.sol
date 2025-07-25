@@ -50,7 +50,21 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public virtual override initializer {
-        super.initialize(name, symbol, initialOwner, verifiers);
+        __ZetoAnonEncNullifierNonRepudiation_init(
+            name,
+            symbol,
+            initialOwner,
+            verifiers
+        );
+    }
+
+    function __ZetoAnonEncNullifierNonRepudiation_init(
+        string memory name_,
+        string memory symbol_,
+        address initialOwner,
+        IZetoInitializable.VerifiersInfo calldata verifiers
+    ) internal onlyInitializing {
+        __ZetoAnonEncNullifier_init(name_, symbol_, initialOwner, verifiers);
     }
 
     function setArbiter(uint256[2] memory _arbiter) public onlyOwner {

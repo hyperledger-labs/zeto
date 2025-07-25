@@ -37,7 +37,16 @@ contract Zeto_AnonEncNullifier is Zeto_AnonNullifier {
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public virtual override initializer {
-        super.initialize(name, symbol, initialOwner, verifiers);
+        __ZetoAnonEncNullifier_init(name, symbol, initialOwner, verifiers);
+    }
+
+    function __ZetoAnonEncNullifier_init(
+        string memory name_,
+        string memory symbol_,
+        address initialOwner,
+        IZetoInitializable.VerifiersInfo calldata verifiers
+    ) internal onlyInitializing {
+        __ZetoAnonNullifier_init(name_, symbol_, initialOwner, verifiers);
     }
 
     struct _DecodedProof {
