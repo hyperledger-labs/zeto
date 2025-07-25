@@ -90,6 +90,14 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     expect(decimals).to.equal(4, "Decimals should be 4");
   });
 
+  it("non-owner should not be able to mint", async function () {
+    const utxo1 = newUTXO(10, Alice);
+    const utxo2 = newUTXO(20, Alice);
+    await expect(doMint(zeto, Alice.signer, [utxo1, utxo2])).to.be.rejectedWith(
+      "OwnableUnauthorizedAccount",
+    );
+  });
+
   it("(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob & Charlie then withdraw should succeed", async function () {
     // first mint the tokens for batch testing
     const inputUtxos = [];

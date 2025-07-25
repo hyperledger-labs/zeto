@@ -59,6 +59,13 @@ describe("Zeto based non-fungible token with anonymity without encryption or nul
     ({ provingKeyFile: provingKey } = loadProvingKeys("nf_anon"));
   });
 
+  it("non-owner should not be able to mint", async function () {
+    const utxo1 = newAssetUTXO(10, "http://ipfs.io/file-hash-1", Alice);
+    await expect(doMint(zeto, Alice.signer, [utxo1])).to.be.rejectedWith(
+      "OwnableUnauthorizedAccount",
+    );
+  });
+
   it("mint to Alice and transfer UTXOs honestly to Bob should succeed", async function () {
     const tokenId = 1001;
     const uri = "http://ipfs.io/file-hash-1";
