@@ -35,7 +35,7 @@ contract BaseStorage is IZetoStorage, IZetoConstants, IZetoLockable {
     function validateInputs(
         uint256[] memory inputs,
         bool inputsLocked
-    ) external view {
+    ) public view {
         // sort the inputs to detect duplicates
         uint256[] memory sortedInputs = Util.sortCommitments(inputs);
         // Check the inputs are all unspent
@@ -68,56 +68,54 @@ contract BaseStorage is IZetoStorage, IZetoConstants, IZetoLockable {
         }
     }
 
-    function validateOutputs(uint256[] memory outputs) external view {
+    function validateOutputs(uint256[] memory outputs) public view {
         // sort the outputs to detect duplicates
         uint256[] memory sortedOutputs = Util.sortCommitments(outputs);
 
         // Check for duplicate outputs
         for (uint256 i = 0; i < sortedOutputs.length; ++i) {
-            if (sortedOutputs[i] == 0) {
+            uint256 output = sortedOutputs[i];
+            if (output == 0) {
                 // skip the zero outputs
                 continue;
             }
-            if (i > 0 && sortedOutputs[i] == sortedOutputs[i - 1]) {
-                revert UTXODuplicate(sortedOutputs[i]);
+            if (i > 0 && output == sortedOutputs[i - 1]) {
+                revert UTXODuplicate(output);
             }
-        }
-
-        // check the outputs are all new - looking in the locked and unlocked UTXOs
-        for (uint256 i = 0; i < outputs.length; ++i) {
+            // check the outputs are all new - looking in the locked and unlocked UTXOs
             if (
-                _utxos[outputs[i]] == UTXOStatus.SPENT ||
-                _lockedUtxos[outputs[i]] == UTXOStatus.SPENT
+                _utxos[output] == UTXOStatus.SPENT ||
+                _lockedUtxos[output] == UTXOStatus.SPENT
             ) {
-                revert UTXOAlreadySpent(outputs[i]);
+                revert UTXOAlreadySpent(output);
             } else if (
-                _utxos[outputs[i]] == UTXOStatus.UNSPENT ||
-                _lockedUtxos[outputs[i]] == UTXOStatus.UNSPENT
+                _utxos[output] == UTXOStatus.UNSPENT ||
+                _lockedUtxos[output] == UTXOStatus.UNSPENT
             ) {
-                revert UTXOAlreadyOwned(outputs[i]);
+                revert UTXOAlreadyOwned(output);
             }
         }
     }
 
+    // Only needed for the nullifier based implementation
     function validateRoot(
         uint256 root,
         bool isLocked
-    ) external view returns (bool) {
-        return true;
+    ) public view returns (bool) {
+        revert("Not implemented");
     }
 
-    function getRoot() external view returns (uint256) {
-        return 0;
+    // Only needed for the nullifier based implementation
+    function getRoot() public view returns (uint256) {
+        revert("Not implemented");
     }
 
-    function getRootForLocked() external view returns (uint256) {
-        return 0;
+    // Only needed for the nullifier based implementation
+    function getRootForLocked() public view returns (uint256) {
+        revert("Not implemented");
     }
 
-    function processInputs(
-        uint256[] memory inputs,
-        bool inputsLocked
-    ) external {
+    function processInputs(uint256[] memory inputs, bool inputsLocked) public {
         mapping(uint256 => UTXOStatus) storage utxos = inputsLocked
             ? _lockedUtxos
             : _utxos;
@@ -129,7 +127,7 @@ contract BaseStorage is IZetoStorage, IZetoConstants, IZetoLockable {
         }
     }
 
-    function processOutputs(uint256[] memory outputs) external {
+    function processOutputs(uint256[] memory outputs) public {
         for (uint256 i = 0; i < outputs.length; ++i) {
             if (outputs[i] != 0) {
                 _utxos[outputs[i]] = UTXOStatus.UNSPENT;
@@ -140,7 +138,7 @@ contract BaseStorage is IZetoStorage, IZetoConstants, IZetoLockable {
     function processLockedOutputs(
         uint256[] memory lockedOutputs,
         address delegate
-    ) external {
+    ) public {
         // put the locked UTXOs into the locked UTXO tree as UNSPENT
         for (uint256 i = 0; i < lockedOutputs.length; ++i) {
             if (lockedOutputs[i] != 0) {
@@ -156,11 +154,13 @@ contract BaseStorage is IZetoStorage, IZetoConstants, IZetoLockable {
         }
     }
 
+    // the call must perform the necessary checks to ensure the call is valid
+    // such as checking the sender is the current delegate
     function delegateLock(
         uint256[] memory utxos,
         address newDelegate,
         bytes calldata data
-    ) external {
+    ) public {
         for (uint256 i = 0; i < utxos.length; ++i) {
             if (utxos[i] == 0) {
                 continue;
@@ -169,14 +169,14 @@ contract BaseStorage is IZetoStorage, IZetoConstants, IZetoLockable {
         }
     }
 
-    function locked(uint256 utxo) external view returns (bool, address) {
+    function locked(uint256 utxo) public view returns (bool, address) {
         if (_lockedUtxos[utxo] == UTXOStatus.UNSPENT) {
             return (true, delegates[utxo]);
         }
         return (false, address(0));
     }
 
-    function spent(uint256 utxo) external view returns (UTXOStatus) {
+    function spent(uint256 utxo) public view returns (UTXOStatus) {
         if (
             _utxos[utxo] == UTXOStatus.SPENT ||
             _lockedUtxos[utxo] == UTXOStatus.SPENT

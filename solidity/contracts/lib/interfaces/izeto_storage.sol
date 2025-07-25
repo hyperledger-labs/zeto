@@ -95,8 +95,8 @@ interface IZetoStorage {
 
     /**
      * @dev move the ability to spend the locked UTXOs to the delegate account.
-    // The sender must be the current delegate.
-    //
+     * The sender must be the current delegate.
+     *
      * @param utxos The UTXOs to lock
      * @param newDelegate The new delegate
      * @param data Additional data to be passed to the lock function

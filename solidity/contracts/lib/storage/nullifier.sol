@@ -46,7 +46,7 @@ contract NullifierStorage is IZetoStorage, IZetoConstants, IZetoLockable {
     function validateInputs(
         uint256[] memory inputs,
         bool inputsLocked
-    ) external view {
+    ) public view {
         // sort the nullifiers to detect duplicates
         uint256[] memory sortedInputs = Util.sortCommitments(inputs);
 
@@ -65,7 +65,7 @@ contract NullifierStorage is IZetoStorage, IZetoConstants, IZetoLockable {
         }
     }
 
-    function validateOutputs(uint256[] memory outputs) external view {
+    function validateOutputs(uint256[] memory outputs) public view {
         // sort the outputs to detect duplicates
         uint256[] memory sortedOutputs = Util.sortCommitments(outputs);
 
@@ -89,7 +89,7 @@ contract NullifierStorage is IZetoStorage, IZetoConstants, IZetoLockable {
     function validateRoot(
         uint256 root,
         bool isLocked
-    ) external view returns (bool) {
+    ) public view returns (bool) {
         // Check if the root has existed before. It does not need to be the latest root.
         // Our SMT is append-only, so if the root has existed before, and the merklet proof
         // is valid, then the leaves still exist in the tree.
@@ -102,18 +102,18 @@ contract NullifierStorage is IZetoStorage, IZetoConstants, IZetoLockable {
         return true;
     }
 
-    function getRoot() external view returns (uint256) {
+    function getRoot() public view returns (uint256) {
         return _commitmentsTree.getRoot();
     }
 
-    function getRootForLocked() external view returns (uint256) {
+    function getRootForLocked() public view returns (uint256) {
         return _lockedCommitmentsTree.getRoot();
     }
 
     function processInputs(
         uint256[] memory nullifiers,
         bool inputsLocked
-    ) external {
+    ) public {
         for (uint256 i = 0; i < nullifiers.length; ++i) {
             if (nullifiers[i] != 0) {
                 _nullifiers[nullifiers[i]] = true;
@@ -121,7 +121,7 @@ contract NullifierStorage is IZetoStorage, IZetoConstants, IZetoLockable {
         }
     }
 
-    function processOutputs(uint256[] memory outputs) external {
+    function processOutputs(uint256[] memory outputs) public {
         for (uint256 i = 0; i < outputs.length; ++i) {
             if (outputs[i] != 0) {
                 _commitmentsTree.addLeaf(outputs[i], outputs[i]);
@@ -132,7 +132,7 @@ contract NullifierStorage is IZetoStorage, IZetoConstants, IZetoLockable {
     function processLockedOutputs(
         uint256[] memory lockedOutputs,
         address delegate
-    ) external {
+    ) public {
         for (uint256 i = 0; i < lockedOutputs.length; ++i) {
             if (lockedOutputs[i] != 0) {
                 _lockedCommitmentsTree.addLeaf(
@@ -143,11 +143,13 @@ contract NullifierStorage is IZetoStorage, IZetoConstants, IZetoLockable {
         }
     }
 
+    // the call must perform the necessary checks to ensure the call is valid
+    // such as checking the sender is the current delegate
     function delegateLock(
         uint256[] memory utxos,
         address delegate,
         bytes calldata data
-    ) external {
+    ) public {
         for (uint256 i = 0; i < utxos.length; ++i) {
             if (utxos[i] == 0) {
                 continue;
@@ -159,11 +161,11 @@ contract NullifierStorage is IZetoStorage, IZetoConstants, IZetoLockable {
         }
     }
 
-    function locked(uint256 utxo) external view returns (bool, address) {
+    function locked(uint256 utxo) public view returns (bool, address) {
         return existsAsLocked(utxo);
     }
 
-    function spent(uint256 utxo) external view returns (UTXOStatus) {
+    function spent(uint256 utxo) public view returns (UTXOStatus) {
         // by design, the contract does not know this
         return UTXOStatus.UNKNOWN;
     }
