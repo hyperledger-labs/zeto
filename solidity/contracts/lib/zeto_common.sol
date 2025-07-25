@@ -106,7 +106,8 @@ abstract contract ZetoCommon is IZeto, IZetoLockable, OwnableUpgradeable {
     }
 
     /**
-     * @dev construct the public inputs and verify the proof.
+     * @dev construct the public inputs and verify the proof. it's a utility function useful for situations
+     *  like an escrow contract orchestrating locking and settlement flows
      *
      * @param inputs Array of UTXOs to be spent by the transaction.
      * @param outputs Array of new UTXOs to generate, for future transactions to spend.
@@ -160,6 +161,8 @@ abstract contract ZetoCommon is IZeto, IZetoLockable, OwnableUpgradeable {
         return commitments;
     }
 
+    // this is a utility function that constructs the public inputs for a proof.
+    // specific implementations of this function are provided by each token implementation
     function constructPublicInputs(
         uint256[] memory inputs,
         uint256[] memory outputs,
@@ -174,6 +177,8 @@ abstract contract ZetoCommon is IZeto, IZetoLockable, OwnableUpgradeable {
         )
     {}
 
+    // this is a utility function that constructs the public inputs for a proof of a lock() call.
+    // specific implementations of this function are provided by each token implementation
     function constructPublicInputsForLock(
         uint256[] memory inputs,
         uint256[] memory outputs,

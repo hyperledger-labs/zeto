@@ -318,6 +318,8 @@ abstract contract ZetoFungible is ZetoCommon {
         emit UTXOWithdraw(amount, inputs, output, msg.sender, data);
     }
 
+    // this is a utility function that constructs the public inputs for a proof of a deposit() call.
+    // specific implementations of this function may be overridden by each token implementation
     function constructPublicInputsForDeposit(
         uint256 amount,
         uint256[] memory outputs,
@@ -349,6 +351,8 @@ abstract contract ZetoFungible is ZetoCommon {
         return new uint256[](0);
     }
 
+    // this is a utility function that constructs the public inputs for a proof of a withdraw() call.
+    // specific implementations of this function may be overridden by each token implementation
     function constructPublicInputsForWithdraw(
         uint256 amount,
         uint256[] memory inputs,
