@@ -96,7 +96,10 @@ abstract contract ZetoCommon is IZeto, IZetoLockable, OwnableUpgradeable {
      *
      * Emits a {UTXOMint} event.
      */
-    function mint(uint256[] memory utxos, bytes calldata data) public virtual {
+    function mint(
+        uint256[] memory utxos,
+        bytes calldata data
+    ) public virtual onlyOwner {
         validateOutputs(utxos);
         processOutputs(utxos);
         emit UTXOMint(utxos, msg.sender, data);
