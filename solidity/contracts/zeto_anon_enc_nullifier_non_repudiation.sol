@@ -30,6 +30,14 @@ import {Zeto_AnonEncNullifier} from "./zeto_anon_enc_nullifier.sol";
 ///        - the encrypted value in the input is derived from the receiver's UTXO value and encrypted with a shared secret using the ECDH protocol between the sender and receiver (this guarantees data availability for the receiver)
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
+    struct _DecodedProof_NonRepudiation {
+        uint256 root;
+        uint256 encryptionNonce;
+        uint256[2] ecdhPublicKey;
+        uint256[] encryptedValuesForReceiver;
+        uint256[] encryptedValuesForAuthority;
+    }
+
     event UTXOTransferNonRepudiation(
         uint256[] inputs,
         uint256[] outputs,
@@ -98,7 +106,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
         (
             _DecodedProof_NonRepudiation memory dp,
             Commonlib.Proof memory proofStruct
-        ) = decodeProof(proof);
+        ) = decodeProof_NonRepudiation(proof);
         nullifiers = checkAndPadCommitments(nullifiers);
         outputs = checkAndPadCommitments(outputs);
         emit UTXOTransferNonRepudiation(
@@ -132,14 +140,6 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
         validateRoot(root, inputsLocked);
     }
 
-    struct _DecodedProof_NonRepudiation {
-        uint256 root;
-        uint256 encryptionNonce;
-        uint256[2] ecdhPublicKey;
-        uint256[] encryptedValuesForReceiver;
-        uint256[] encryptedValuesForAuthority;
-    }
-
     function constructPublicInputs(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
@@ -154,7 +154,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
         (
             _DecodedProof_NonRepudiation memory dp,
             Commonlib.Proof memory proofStruct
-        ) = decodeProof(proof);
+        ) = decodeProof_NonRepudiation(proof);
         uint256 size = _calculatePublicInputsSize(nullifiers, outputs, dp);
         uint256[] memory publicInputs = new uint256[](size);
         _fillPublicInputs(publicInputs, nullifiers, outputs, dp);
@@ -162,10 +162,10 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
         return (publicInputs, proofStruct);
     }
 
-    function decodeProof(
+    function decodeProof_NonRepudiation(
         bytes memory proof
     )
-        internal
+        private
         pure
         returns (
             _DecodedProof_NonRepudiation memory dp,
