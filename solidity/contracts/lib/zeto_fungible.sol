@@ -82,11 +82,6 @@ abstract contract ZetoFungible is ZetoCommon {
         // Check and pad commitments
         uint256[] memory paddedInputs = checkAndPadCommitments(inputs);
         uint256[] memory paddedOutputs = checkAndPadCommitments(outputs);
-        // construct the public inputs for the proof verification
-        (
-            uint256[] memory publicInputs,
-            Commonlib.Proof memory proofStruct
-        ) = constructPublicInputs(paddedInputs, paddedOutputs, proof, false);
         uint256[] memory lockedOutputs;
         validateTransactionProposal(
             paddedInputs,
@@ -95,6 +90,11 @@ abstract contract ZetoFungible is ZetoCommon {
             proof,
             false
         );
+        // construct the public inputs for the proof verification
+        (
+            uint256[] memory publicInputs,
+            Commonlib.Proof memory proofStruct
+        ) = constructPublicInputs(paddedInputs, paddedOutputs, proof, false);
         bool isBatch = (inputs.length > 2 || outputs.length > 2);
         verifyProof(proofStruct, publicInputs, isBatch, false);
         processInputsAndOutputs(paddedInputs, paddedOutputs, false);
@@ -105,7 +105,7 @@ abstract contract ZetoFungible is ZetoCommon {
      * @dev transfer funds that have been previously locked by the sender. The submitted must
      * be the current delegate of the locked UTXOs.
      *
-     * @param inputs Array of UTXOs to be spent by the transaction, they must be locked.
+     * @param lockedInputs Array of UTXOs to be spent by the transaction, they must be locked.
      * @param outputs Array of new UTXOs to generate, for future transactions to spend. They are unlocked.
      * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
      *      that the outputs are valid in terms of obeying mass conservation rules.
@@ -113,33 +113,13 @@ abstract contract ZetoFungible is ZetoCommon {
      * Emits a {UTXOTransfer} event.
      */
     function transferLocked(
-        uint256[] calldata inputs,
+        uint256[] calldata lockedInputs,
+        uint256[] calldata lockedOutputs,
         uint256[] calldata outputs,
         bytes calldata proof,
         bytes calldata data
     ) public virtual {
-        // Check and pad inputs and outputs based on the max size
-        uint256[] memory paddedInputs = checkAndPadCommitments(inputs);
-        uint256[] memory paddedOutputs = checkAndPadCommitments(outputs);
-        // construct the public inputs for the proof verification
-        (
-            uint256[] memory publicInputs,
-            Commonlib.Proof memory proofStruct
-        ) = constructPublicInputs(paddedInputs, paddedOutputs, proof, true);
-
-        uint256[] memory lockedOutputs;
-        validateTransactionProposal(
-            paddedInputs,
-            paddedOutputs,
-            lockedOutputs,
-            proof,
-            true
-        );
-
-        bool isBatch = (inputs.length > 2 || outputs.length > 2);
-        verifyProof(proofStruct, publicInputs, isBatch, true);
-        processInputsAndOutputs(paddedInputs, paddedOutputs, true);
-        emit UTXOTransfer(paddedInputs, paddedOutputs, msg.sender, data);
+        _transferLocked(lockedInputs, lockedOutputs, outputs, proof, data);
     }
 
     /**
@@ -220,7 +200,8 @@ abstract contract ZetoFungible is ZetoCommon {
         bytes calldata proof,
         bytes calldata data
     ) public {
-        transferLocked(nullifiers, outputs, proof, data);
+        uint256[] memory lockedOutputs;
+        _transferLocked(nullifiers, lockedOutputs, outputs, proof, data);
     }
 
     /**
@@ -326,6 +307,47 @@ abstract contract ZetoFungible is ZetoCommon {
         _withdraw(amount, paddedInputs, output, proof);
         processInputsAndOutputs(paddedInputs, paddedOutputs, false);
         emit UTXOWithdraw(amount, paddedInputs, output, msg.sender, data);
+    }
+
+    function _transferLocked(
+        uint256[] memory lockedInputs,
+        uint256[] memory lockedOutputs,
+        uint256[] memory outputs,
+        bytes memory proof,
+        bytes memory data
+    ) internal virtual {
+        // Check and pad inputs and outputs based on the max size
+        uint256[] memory paddedInputs = checkAndPadCommitments(lockedInputs);
+        // combine the locked outputs and the outputs, because the circuits
+        // do not care about the difference between locked and unlocked outputs
+        uint256[] memory allOutputs = new uint256[](
+            lockedOutputs.length + outputs.length
+        );
+        for (uint256 i = 0; i < lockedOutputs.length; i++) {
+            allOutputs[i] = lockedOutputs[i];
+        }
+        for (uint256 i = 0; i < outputs.length; i++) {
+            allOutputs[lockedOutputs.length + i] = outputs[i];
+        }
+        uint256[] memory paddedOutputs = checkAndPadCommitments(allOutputs);
+        validateTransactionProposal(
+            paddedInputs,
+            paddedOutputs,
+            lockedOutputs,
+            proof,
+            true
+        );
+
+        // construct the public inputs for the proof verification
+        (
+            uint256[] memory publicInputs,
+            Commonlib.Proof memory proofStruct
+        ) = constructPublicInputs(paddedInputs, paddedOutputs, proof, true);
+        bool isBatch = (lockedInputs.length > 2 || allOutputs.length > 2);
+        verifyProof(proofStruct, publicInputs, isBatch, true);
+        processInputsAndOutputs(paddedInputs, paddedOutputs, true);
+        processLockedOutputs(lockedOutputs, msg.sender);
+        emit UTXOTransfer(paddedInputs, paddedOutputs, msg.sender, data);
     }
 
     // this is a utility function that constructs the public inputs for a proof of a deposit() call.

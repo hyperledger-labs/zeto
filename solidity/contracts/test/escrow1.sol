@@ -112,8 +112,10 @@ contract zkEscrow1 {
             payment.status == PaymentStatus.APPROVED,
             "Payment not approved"
         );
+        uint256[] memory lockedOutputs;
         zeto.transferLocked(
             payment.lockedInputs,
+            lockedOutputs,
             payment.outputs,
             payment.proof,
             "0x"
