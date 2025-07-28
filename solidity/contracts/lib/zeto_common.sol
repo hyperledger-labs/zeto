@@ -100,9 +100,7 @@ abstract contract ZetoCommon is IZeto, IZetoLockable, OwnableUpgradeable {
         uint256[] memory utxos,
         bytes calldata data
     ) public virtual onlyOwner {
-        validateOutputs(utxos);
-        processOutputs(utxos);
-        emit UTXOMint(utxos, msg.sender, data);
+        _mint(utxos, data);
     }
 
     /**
@@ -130,6 +128,15 @@ abstract contract ZetoCommon is IZeto, IZetoLockable, OwnableUpgradeable {
         bool isBatch = inputs.length > 2 || outputs.length > 2;
         verifyProof(proofStruct, publicInputs, isBatch, inputsLocked);
         return true;
+    }
+
+    function _mint(
+        uint256[] memory utxos,
+        bytes calldata data
+    ) internal virtual {
+        validateOutputs(utxos);
+        processOutputs(utxos);
+        emit UTXOMint(utxos, msg.sender, data);
     }
 
     function checkAndPadCommitments(

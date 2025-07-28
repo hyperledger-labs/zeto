@@ -280,7 +280,7 @@ abstract contract ZetoFungible is ZetoCommon {
             _erc20.transferFrom(msg.sender, address(this), amount),
             "Failed to transfer ERC20 tokens"
         );
-        mint(outputs, data);
+        _mint(outputs, data);
     }
 
     /**
