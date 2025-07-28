@@ -38,6 +38,9 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
         uint256[] encryptedValuesForAuthority;
     }
 
+    // Add storage variable to reduce stack usage
+    _DecodedProof_NonRepudiation private _dpnr;
+
     event UTXOTransferNonRepudiation(
         uint256[] inputs,
         uint256[] outputs,
@@ -72,7 +75,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) internal onlyInitializing {
-        __ZetoAnonEncNullifier_init(name_, symbol_, initialOwner, verifiers);
+        __ZetoFungibleNullifier_init(name_, symbol_, initialOwner, verifiers);
     }
 
     function setArbiter(uint256[2] memory _arbiter) public onlyOwner {
@@ -150,9 +153,12 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
             _DecodedProof_NonRepudiation memory dp,
             Commonlib.Proof memory proofStruct
         ) = decodeProof_NonRepudiation(proof);
-        uint256 size = _calculatePublicInputsSize(nullifiers, outputs, dp);
+        uint256 size = _calculatePublicInputsSize_NonRepudiation(
+            nullifiers,
+            outputs
+        );
         uint256[] memory publicInputs = new uint256[](size);
-        _fillPublicInputs(publicInputs, nullifiers, outputs, dp);
+        _fillPublicInputs_NonRepudiation(publicInputs, nullifiers, outputs, dp);
 
         return (publicInputs, proofStruct);
     }
@@ -187,25 +193,21 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
         );
     }
 
-    function _calculatePublicInputsSize(
+    function _calculatePublicInputsSize_NonRepudiation(
         uint256[] memory nullifiers,
-        uint256[] memory outputs,
-        _DecodedProof_NonRepudiation memory dp
-    ) internal pure returns (uint256) {
+        uint256[] memory outputs
+    ) internal view returns (uint256) {
         return
-            dp.ecdhPublicKey.length + // ecdh public key
-            dp.encryptedValuesForReceiver.length +
-            dp.encryptedValuesForAuthority.length +
+            _dpnr.ecdhPublicKey.length + // ecdh public key
+            _dpnr.encryptedValuesForReceiver.length +
+            _dpnr.encryptedValuesForAuthority.length +
             (nullifiers.length * 2) + // nullifiers and enabled flags
             outputs.length +
             2 + // root and encryptionNonce
             2; // arbiter public key
     }
 
-    // Add storage variable to reduce stack usage
-    _DecodedProof_NonRepudiation private _dpnr;
-
-    function _fillPublicInputs(
+    function _fillPublicInputs_NonRepudiation(
         uint256[] memory publicInputs,
         uint256[] memory nullifiers,
         uint256[] memory outputs,
@@ -217,18 +219,25 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
         uint256 piIndex = 0;
 
         // Split into smaller functions to reduce stack usage
-        piIndex = _fillEcdhAndEncryptedValues(publicInputs, piIndex);
-        piIndex = _fillNullifiersAndRoot(publicInputs, nullifiers, piIndex);
-        piIndex = _fillEnablesAndOutputs(
+        piIndex = _fillEcdhAndEncryptedValues_NonRepudiation(
+            publicInputs,
+            piIndex
+        );
+        piIndex = _fillNullifiersAndRoot_NonRepudiation(
+            publicInputs,
+            nullifiers,
+            piIndex
+        );
+        piIndex = _fillEnablesAndOutputs_NonRepudiation(
             publicInputs,
             nullifiers,
             outputs,
             piIndex
         );
-        _fillNonceAndArbiter(publicInputs, piIndex);
+        _fillNonceAndArbiter_NonRepudiation(publicInputs, piIndex);
     }
 
-    function _fillEcdhAndEncryptedValues(
+    function _fillEcdhAndEncryptedValues_NonRepudiation(
         uint256[] memory publicInputs,
         uint256 piIndex
     ) internal view returns (uint256) {
@@ -247,7 +256,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
         return piIndex;
     }
 
-    function _fillNullifiersAndRoot(
+    function _fillNullifiersAndRoot_NonRepudiation(
         uint256[] memory publicInputs,
         uint256[] memory nullifiers,
         uint256 piIndex
@@ -261,7 +270,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
         return piIndex;
     }
 
-    function _fillEnablesAndOutputs(
+    function _fillEnablesAndOutputs_NonRepudiation(
         uint256[] memory publicInputs,
         uint256[] memory nullifiers,
         uint256[] memory outputs,
@@ -278,7 +287,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
         return piIndex;
     }
 
-    function _fillNonceAndArbiter(
+    function _fillNonceAndArbiter_NonRepudiation(
         uint256[] memory publicInputs,
         uint256 piIndex
     ) internal view {

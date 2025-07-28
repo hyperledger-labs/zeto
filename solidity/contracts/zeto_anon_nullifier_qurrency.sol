@@ -38,6 +38,9 @@ contract Zeto_AnonNullifierQurrency is Zeto_AnonNullifier {
         uint256[25] encapsulatedSharedSecret;
     }
 
+    // Add storage variable to reduce stack usage
+    _DecodedProof_Qurrency private _dpq;
+
     function initialize(
         string calldata name,
         string calldata symbol,
@@ -95,15 +98,23 @@ contract Zeto_AnonNullifierQurrency is Zeto_AnonNullifier {
             _DecodedProof_Qurrency memory dp,
             Commonlib.Proof memory proofStruct
         ) = decodeProof_Qurrency(proof);
-        uint256 size = _calculatePublicInputsSize(
+
+        // Store the decoded proof in storage to reduce stack usage
+        _dpq = dp;
+
+        uint256 size = _calculatePublicInputsSize_Qurrency(
             nullifiers,
             outputs,
-            inputsLocked,
-            dp
+            inputsLocked
         );
 
         uint256[] memory publicInputs = new uint256[](size);
-        _fillPublicInputs(publicInputs, nullifiers, outputs, inputsLocked, dp);
+        _fillPublicInputs_Qurrency(
+            publicInputs,
+            nullifiers,
+            outputs,
+            inputsLocked
+        );
         return (publicInputs, proofStruct);
     }
 
@@ -130,15 +141,11 @@ contract Zeto_AnonNullifierQurrency is Zeto_AnonNullifier {
         return (dp, proofStruct);
     }
 
-    // Add storage variable to reduce stack usage
-    _DecodedProof_Qurrency private _dpq;
-
-    function _calculatePublicInputsSize(
+    function _calculatePublicInputsSize_Qurrency(
         uint256[] memory nullifiers,
         uint256[] memory outputs,
-        bool inputsLocked,
-        _DecodedProof_Qurrency memory dp
-    ) internal pure returns (uint256) {
+        bool inputsLocked
+    ) internal view returns (uint256) {
         // the public inputs for the non-batch proof have the following structure:
         //  - 25 elements for the ML-KEM encapsulated shared secret
         //  - 16 or 64 elements for the encrypted values (3n+1 for 14 or 62 encyrpted elements)
@@ -147,39 +154,39 @@ contract Zeto_AnonNullifierQurrency is Zeto_AnonNullifier {
         //  - 2 or 10 elements for the "enabled" flags (1 for each nullifier)
         //  - 2 or 10 elements for the output commitments
         return
-            dp.encapsulatedSharedSecret.length +
-            dp.encryptedValues.length +
+            _dpq.encapsulatedSharedSecret.length +
+            _dpq.encryptedValues.length +
             (nullifiers.length * 2) + // nullifiers and the enabled flags
             outputs.length +
             2 + // root and encryptionNonce
             (inputsLocked ? 1 : 0); // lock delegate if locked
     }
 
-    function _fillPublicInputs(
+    function _fillPublicInputs_Qurrency(
         uint256[] memory publicInputs,
         uint256[] memory nullifiers,
         uint256[] memory outputs,
-        bool inputsLocked,
-        _DecodedProof_Qurrency memory dp
+        bool inputsLocked
     ) internal {
-        // Store the decoded proof in storage to reduce stack usage
-        _dpq = dp;
-
         uint256 piIndex = 0;
 
         // Split into smaller functions to reduce stack usage
-        piIndex = _fillEncapsulatedAndEncrypted(publicInputs, piIndex);
-        piIndex = _fillNullifiersAndLockDelegate(
+        piIndex = _fillEncapsulatedAndEncrypted_Qurrency(publicInputs, piIndex);
+        piIndex = _fillNullifiersAndLockDelegate_Qurrency(
             publicInputs,
             nullifiers,
             inputsLocked,
             piIndex
         );
-        piIndex = _fillRootAndEnables(publicInputs, nullifiers, piIndex);
-        _fillOutputs(publicInputs, outputs, piIndex);
+        piIndex = _fillRootAndEnables_Qurrency(
+            publicInputs,
+            nullifiers,
+            piIndex
+        );
+        _fillOutputs_Qurrency(publicInputs, outputs, piIndex);
     }
 
-    function _fillEncapsulatedAndEncrypted(
+    function _fillEncapsulatedAndEncrypted_Qurrency(
         uint256[] memory publicInputs,
         uint256 piIndex
     ) internal view returns (uint256) {
@@ -194,7 +201,7 @@ contract Zeto_AnonNullifierQurrency is Zeto_AnonNullifier {
         return piIndex;
     }
 
-    function _fillNullifiersAndLockDelegate(
+    function _fillNullifiersAndLockDelegate_Qurrency(
         uint256[] memory publicInputs,
         uint256[] memory nullifiers,
         bool inputsLocked,
@@ -212,7 +219,7 @@ contract Zeto_AnonNullifierQurrency is Zeto_AnonNullifier {
         return piIndex;
     }
 
-    function _fillRootAndEnables(
+    function _fillRootAndEnables_Qurrency(
         uint256[] memory publicInputs,
         uint256[] memory nullifiers,
         uint256 piIndex
@@ -226,7 +233,7 @@ contract Zeto_AnonNullifierQurrency is Zeto_AnonNullifier {
         return piIndex;
     }
 
-    function _fillOutputs(
+    function _fillOutputs_Qurrency(
         uint256[] memory publicInputs,
         uint256[] memory outputs,
         uint256 piIndex

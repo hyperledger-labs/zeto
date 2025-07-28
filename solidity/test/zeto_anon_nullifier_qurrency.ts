@@ -692,6 +692,7 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
     } else {
       tx = await zeto.connect(signer.signer).transferLocked(
         nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
+        [],
         outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
         proof,
         "0x",

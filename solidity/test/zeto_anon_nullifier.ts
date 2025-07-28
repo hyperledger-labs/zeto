@@ -1374,6 +1374,7 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
     } else {
       tx = await zeto.connect(signer.signer).transferLocked(
         nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
+        [],
         outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
         encodeToBytes(root, encodedProof), // encode the root and proof together
         "0x",
