@@ -40,6 +40,13 @@ abstract contract Registry is OwnableUpgradeable, IZetoKyc {
         _publicKeysTree.initialize(MAX_SMT_DEPTH);
     }
 
+    /**
+     * @dev Register a new Zeto account
+     * @param publicKey The public Babyjubjub key to register
+     * @param data Additional data to be passed to the register function
+     *
+     * Emits a {IdentityRegistered} event.
+     */
     function register(
         uint256[2] calldata publicKey,
         bytes calldata data
@@ -47,9 +54,11 @@ abstract contract Registry is OwnableUpgradeable, IZetoKyc {
         _register(publicKey, data);
     }
 
-    /// @dev returns whether the given public key is registered
-    /// @param publicKey The Babyjubjub public key to check
-    /// @return bool whether the given public key is included in the registry
+    /**
+     * @dev returns whether the given public key is registered
+     * @param publicKey The Babyjubjub public key to check
+     * @return bool whether the given public key is included in the registry
+     */
     function isRegistered(
         uint256[2] calldata publicKey
     ) public view returns (bool) {
@@ -58,12 +67,14 @@ abstract contract Registry is OwnableUpgradeable, IZetoKyc {
         return node.nodeType != SmtLib.NodeType.EMPTY;
     }
 
+    /**
+     * @dev returns the root of the identities tree
+     * @return uint256 the root of the identities tree
+     */
     function getIdentitiesRoot() public view returns (uint256) {
         return _publicKeysTree.getRoot();
     }
 
-    /// @dev Register a new Zeto account
-    /// @param publicKey The public Babyjubjub key to register
     function _register(
         uint256[2] calldata publicKey,
         bytes calldata data

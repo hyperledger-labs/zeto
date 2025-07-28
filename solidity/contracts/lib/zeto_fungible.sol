@@ -72,7 +72,7 @@ abstract contract ZetoFungible is ZetoCommon {
      * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
      *      that the outputs are valid in terms of obeying mass conservation rules.
      *
-     * Emits a {UTXOTransferNonRepudiation} event.
+     * Emits a {UTXOTransfer} event.
      */
     function transfer(
         uint256[] calldata inputs,
@@ -99,7 +99,7 @@ abstract contract ZetoFungible is ZetoCommon {
         bool isBatch = (inputs.length > 2 || outputs.length > 2);
         verifyProof(proofStruct, publicInputs, isBatch, false);
         processInputsAndOutputs(paddedInputs, paddedOutputs, false);
-        emit UTXOTransfer(inputs, outputs, msg.sender, data);
+        emit UTXOTransfer(paddedInputs, paddedOutputs, msg.sender, data);
     }
 
     /**
@@ -140,7 +140,7 @@ abstract contract ZetoFungible is ZetoCommon {
         bool isBatch = (inputs.length > 2 || outputs.length > 2);
         verifyProof(proofStruct, publicInputs, isBatch, true);
         processInputsAndOutputs(paddedInputs, paddedOutputs, true);
-        emit UTXOTransfer(inputs, outputs, msg.sender, data);
+        emit UTXOTransfer(paddedInputs, paddedOutputs, msg.sender, data);
     }
 
     /**
@@ -155,7 +155,7 @@ abstract contract ZetoFungible is ZetoCommon {
      * @param delegate The delegate of the locked UTXOs.
      * @param data Additional data to be passed to the lock function.
      *
-     * Emits a {UTXOTransfer} event.
+     * Emits a {UTXOsLocked} event.
      */
     function lock(
         uint256[] calldata inputs,
@@ -171,25 +171,30 @@ abstract contract ZetoFungible is ZetoCommon {
         (
             uint256[] memory publicInputs,
             Commonlib.Proof memory proofStruct
-        ) = constructPublicInputsForLock(inputs, outputs, lockedOutputs, proof);
+        ) = constructPublicInputsForLock(
+                paddedInputs,
+                outputs,
+                lockedOutputs,
+                proof
+            );
 
         validateTransactionProposal(
-            inputs,
+            paddedInputs,
             outputs,
             lockedOutputs,
             proof,
             false
         );
-        bool isBatch = (inputs.length > 2 ||
+        bool isBatch = (paddedInputs.length > 2 ||
             outputs.length > 2 ||
             lockedOutputs.length > 2);
         verifyProof(proofStruct, publicInputs, isBatch, false);
 
-        processInputsAndOutputs(inputs, outputs, false);
+        processInputsAndOutputs(paddedInputs, outputs, false);
         processLockedOutputs(lockedOutputs, delegate);
 
         emit UTXOsLocked(
-            inputs,
+            paddedInputs,
             outputs,
             lockedOutputs,
             delegate,
@@ -226,6 +231,8 @@ abstract contract ZetoFungible is ZetoCommon {
      * @param utxos The locked UTXO to update the delegate of.
      * @param delegate The new delegate.
      * @param data Additional data to be passed to the delegateLock function.
+     *
+     * Emits a {LockDelegateChanged} event.
      */
     function delegateLock(
         uint256[] calldata utxos,
@@ -252,6 +259,8 @@ abstract contract ZetoFungible is ZetoCommon {
      * @param outputs The UTXOs to be minted.
      * @param proof The proof of the deposit.
      * @param data Additional data to be passed to the deposit function.
+     *
+     * Emits a {UTXOMint} event.
      */
     function deposit(
         uint256 amount,
@@ -291,6 +300,8 @@ abstract contract ZetoFungible is ZetoCommon {
      * @param output The UTXO to be minted.
      * @param proof The proof of the withdrawal.
      * @param data Additional data to be passed to the withdrawal function.
+     *
+     * Emits a {UTXOWithdraw} event.
      */
     function withdraw(
         uint256 amount,
@@ -313,9 +324,9 @@ abstract contract ZetoFungible is ZetoCommon {
             false
         );
 
-        _withdraw(amount, inputs, output, proof);
+        _withdraw(amount, paddedInputs, output, proof);
         processInputsAndOutputs(paddedInputs, paddedOutputs, false);
-        emit UTXOWithdraw(amount, inputs, output, msg.sender, data);
+        emit UTXOWithdraw(amount, paddedInputs, output, msg.sender, data);
     }
 
     // this is a utility function that constructs the public inputs for a proof of a deposit() call.

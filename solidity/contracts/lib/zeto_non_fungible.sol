@@ -125,7 +125,7 @@ contract ZetoNonFungible is ZetoCommon {
      * @param delegate The delegate of the locked output.
      * @param data Additional data to be passed to the lock function.
      *
-     * Emits a {UTXOLock} event.
+     * Emits a {UTXOsLocked} event.
      */
     function lock(
         uint256 input,
@@ -175,7 +175,7 @@ contract ZetoNonFungible is ZetoCommon {
      *      that the locked output is valid in terms of obeying mass conservation rules.
      * @param data Additional data to be passed to the unlock function.
      *
-     * Emits a {UTXOUnlock} event.
+     * Emits a {UTXOTransfer} event.
      */
     function unlock(
         uint256 input,
@@ -193,6 +193,8 @@ contract ZetoNonFungible is ZetoCommon {
      * @param utxo The locked UTXO to update the delegate of.
      * @param delegate The new delegate.
      * @param data Additional data to be passed to the delegateLock function.
+     *
+     * Emits a {LockDelegateChanged} event.
      */
     function delegateLock(
         uint256 utxo,

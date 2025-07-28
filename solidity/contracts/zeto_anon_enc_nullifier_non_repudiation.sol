@@ -94,7 +94,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
      * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
      *      that the outputs are valid in terms of obeying mass conservation rules.
      *
-     * Emits a {UTXOTransferWithEncryptedValues} event.
+     * Emits a {UTXOTransfer}, {UTXOTransferWithEncryptedValues} and a {UTXOTransferNonRepudiation} event.
      */
     function transfer(
         uint256[] calldata nullifiers,

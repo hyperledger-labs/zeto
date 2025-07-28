@@ -34,6 +34,15 @@ abstract contract ZetoFungibleBurnable is ZetoFungibleBase {
         _batchBurnVerifier = batchBurnVerifier;
     }
 
+    /**
+     * @dev Burn a set of inputs
+     * @param inputs The inputs to burn
+     * @param output The output value
+     * @param proof The proof of the burn
+     * @param data Additional data to be passed to the burn function
+     *
+     * Emits a {UTXOBurn} event.
+     */
     function burn(
         uint256[] calldata inputs,
         uint256 output,
