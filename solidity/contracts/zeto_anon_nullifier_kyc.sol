@@ -19,7 +19,6 @@ import {Zeto_AnonNullifier} from "./zeto_anon_nullifier.sol";
 import {Registry} from "./lib/registry.sol";
 import {Commonlib} from "./lib/common/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
-import {console} from "hardhat/console.sol";
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity, history masking and KYC
 /// @author Kaleido, Inc.

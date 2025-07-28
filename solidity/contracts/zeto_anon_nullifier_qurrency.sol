@@ -21,7 +21,6 @@ import {MAX_BATCH} from "./lib/interfaces/izeto.sol";
 import {Zeto_AnonNullifier} from "./zeto_anon_nullifier.sol";
 import {Commonlib} from "./lib/common/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
-import {console} from "hardhat/console.sol";
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and history masking
 /// @author Kaleido, Inc.

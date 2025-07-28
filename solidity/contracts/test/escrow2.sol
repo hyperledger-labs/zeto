@@ -18,8 +18,6 @@ pragma solidity ^0.8.27;
 import {Commonlib} from "../lib/common/common.sol";
 import {Zeto_AnonNullifier} from "../zeto_anon_nullifier.sol";
 
-// import {console} from "hardhat/console.sol";
-
 /// @title A sample on-chain implementation of an escrow contract using Zeto tokens
 /// @author Kaleido, Inc.
 /// @dev Implements escrow based payment flows with Zeto_AnonNullifier tokens

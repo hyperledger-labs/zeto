@@ -22,7 +22,6 @@ import {Commonlib} from "../common/common.sol";
 import {Util} from "../common/util.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
-import {console} from "hardhat/console.sol";
 
 contract NullifierStorage is IZetoStorage, IZetoConstants, IZetoLockable {
     // used for tracking regular (unlocked) UTXOs

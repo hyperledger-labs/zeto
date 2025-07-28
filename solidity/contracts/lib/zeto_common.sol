@@ -21,7 +21,6 @@ import {IZetoLockable} from "./interfaces/izeto_lockable.sol";
 import {IGroth16Verifier} from "./interfaces/izeto_verifier.sol";
 import {IZetoInitializable} from "./interfaces/izeto_initializable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {console} from "hardhat/console.sol";
 import {Util} from "./common/util.sol";
 import {IZetoStorage} from "./interfaces/izeto_storage.sol";
 

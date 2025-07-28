@@ -22,7 +22,6 @@ import {IZetoLockable} from "./interfaces/izeto_lockable.sol";
 import {IZetoInitializable} from "./interfaces/izeto_initializable.sol";
 import {ZetoNonFungible} from "./zeto_non_fungible.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
-import {console} from "hardhat/console.sol";
 import {IZetoStorage} from "./interfaces/izeto_storage.sol";
 import {NullifierStorage} from "./storage/nullifier.sol";
 
