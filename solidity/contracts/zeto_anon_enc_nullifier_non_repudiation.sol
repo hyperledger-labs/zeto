@@ -214,6 +214,24 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
         _DecodedProof_NonRepudiation memory dp
     ) internal view {
         uint256 piIndex = 0;
+
+        // Split into smaller functions to reduce stack usage
+        piIndex = _fillEcdhAndEncryptedValues(publicInputs, dp, piIndex);
+        piIndex = _fillNullifiersAndRoot(publicInputs, nullifiers, dp, piIndex);
+        piIndex = _fillEnablesAndOutputs(
+            publicInputs,
+            nullifiers,
+            outputs,
+            piIndex
+        );
+        _fillNonceAndArbiter(publicInputs, dp, piIndex);
+    }
+
+    function _fillEcdhAndEncryptedValues(
+        uint256[] memory publicInputs,
+        _DecodedProof_NonRepudiation memory dp,
+        uint256 piIndex
+    ) internal pure returns (uint256) {
         // copy the ecdh public key
         for (uint256 i = 0; i < dp.ecdhPublicKey.length; ++i) {
             publicInputs[piIndex++] = dp.ecdhPublicKey[i];
@@ -226,27 +244,48 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
         for (uint256 i = 0; i < dp.encryptedValuesForAuthority.length; ++i) {
             publicInputs[piIndex++] = dp.encryptedValuesForAuthority[i];
         }
+        return piIndex;
+    }
+
+    function _fillNullifiersAndRoot(
+        uint256[] memory publicInputs,
+        uint256[] memory nullifiers,
+        _DecodedProof_NonRepudiation memory dp,
+        uint256 piIndex
+    ) internal pure returns (uint256) {
         // copy input commitments
         for (uint256 i = 0; i < nullifiers.length; i++) {
             publicInputs[piIndex++] = nullifiers[i];
         }
-
         // copy root
         publicInputs[piIndex++] = dp.root;
+        return piIndex;
+    }
 
+    function _fillEnablesAndOutputs(
+        uint256[] memory publicInputs,
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
+        uint256 piIndex
+    ) internal pure returns (uint256) {
         // populate enables
         for (uint256 i = 0; i < nullifiers.length; i++) {
             publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
         }
-
         // copy output commitments
         for (uint256 i = 0; i < outputs.length; i++) {
             publicInputs[piIndex++] = outputs[i];
         }
+        return piIndex;
+    }
 
+    function _fillNonceAndArbiter(
+        uint256[] memory publicInputs,
+        _DecodedProof_NonRepudiation memory dp,
+        uint256 piIndex
+    ) internal view {
         // copy encryption nonce
         publicInputs[piIndex++] = dp.encryptionNonce;
-
         // copy arbiter public key
         publicInputs[piIndex++] = arbiter[0];
         publicInputs[piIndex++] = arbiter[1];
