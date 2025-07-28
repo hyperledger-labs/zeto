@@ -35,7 +35,7 @@ abstract contract ZetoFungibleBurnable is ZetoFungibleBase {
     }
 
     function burn(
-        uint256[] memory inputs,
+        uint256[] calldata inputs,
         uint256 output,
         Commonlib.Proof calldata proof,
         bytes calldata data

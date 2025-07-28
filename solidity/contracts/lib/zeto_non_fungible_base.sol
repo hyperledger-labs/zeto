@@ -30,8 +30,8 @@ import {BaseStorage} from "./storage/base.sol";
 /// @dev Implements common functionalities of Zeto based tokens without nullifiers
 abstract contract ZetoNonFungibleBase is ZetoNonFungible {
     function __ZetoNonFungibleBase_init(
-        string memory name_,
-        string memory symbol_,
+        string calldata name_,
+        string calldata symbol_,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) internal onlyInitializing {

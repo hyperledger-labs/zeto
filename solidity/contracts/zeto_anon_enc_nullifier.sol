@@ -39,8 +39,8 @@ contract Zeto_AnonEncNullifier is Zeto_AnonNullifier {
     }
 
     function initialize(
-        string memory name,
-        string memory symbol,
+        string calldata name,
+        string calldata symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public virtual override initializer {
@@ -48,12 +48,56 @@ contract Zeto_AnonEncNullifier is Zeto_AnonNullifier {
     }
 
     function __ZetoAnonEncNullifier_init(
-        string memory name_,
-        string memory symbol_,
+        string calldata name_,
+        string calldata symbol_,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) internal onlyInitializing {
         __ZetoAnonNullifier_init(name_, symbol_, initialOwner, verifiers);
+    }
+
+    /**
+     * @dev the main function of the contract, which transfers values from one account (represented by Babyjubjub public keys)
+     *      to one or more receiver accounts (also represented by Babyjubjub public keys). One of the two nullifiers may be zero
+     *      if the transaction only needs one UTXO to be spent. Equally one of the two outputs may be zero if the transaction
+     *      only needs to create one new UTXO.
+     *
+     * @param nullifiers Array of nullifiers that are secretly bound to UTXOs to be spent by the transaction.
+     * @param outputs Array of new UTXOs to generate, for future transactions to spend.
+     * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
+     *      that the outputs are valid in terms of obeying mass conservation rules.
+     *
+     * Emits a {UTXOTransferWithEncryptedValues} event.
+     */
+    function transfer(
+        uint256[] calldata nullifiers,
+        uint256[] calldata outputs,
+        bytes calldata proof,
+        bytes calldata data
+    ) public virtual override {
+        super.transfer(nullifiers, outputs, proof, data);
+        (
+            uint256 root,
+            uint256 encryptionNonce,
+            uint256[2] memory ecdhPublicKey,
+            uint256[] memory encryptedValues,
+            Commonlib.Proof memory proofStruct
+        ) = abi.decode(
+                proof,
+                (uint256, uint256, uint256[2], uint256[], Commonlib.Proof)
+            );
+
+        uint256[] memory paddedNullifiers = checkAndPadCommitments(nullifiers);
+        uint256[] memory paddedOutputs = checkAndPadCommitments(outputs);
+        emit UTXOTransferWithEncryptedValues(
+            paddedNullifiers,
+            paddedOutputs,
+            encryptionNonce,
+            ecdhPublicKey,
+            encryptedValues,
+            msg.sender,
+            data
+        );
     }
 
     function constructPublicInputs(
@@ -63,7 +107,6 @@ contract Zeto_AnonEncNullifier is Zeto_AnonNullifier {
         bool inputsLocked
     )
         internal
-        view
         virtual
         override
         returns (uint256[] memory, Commonlib.Proof memory)
@@ -71,7 +114,7 @@ contract Zeto_AnonEncNullifier is Zeto_AnonNullifier {
         (
             _DecodedProof_EncNullifier memory dp,
             Commonlib.Proof memory proofStruct
-        ) = decodeProof(proof);
+        ) = decodeProof_EncNullifier(proof);
         uint256[] memory extra = extraInputs();
         uint256 size = _calculatePublicInputsSize(
             nullifiers,
@@ -85,7 +128,7 @@ contract Zeto_AnonEncNullifier is Zeto_AnonNullifier {
         return (publicInputs, proofStruct);
     }
 
-    function decodeProof(
+    function decodeProof_EncNullifier(
         bytes memory proof
     )
         private
@@ -219,49 +262,5 @@ contract Zeto_AnonEncNullifier is Zeto_AnonNullifier {
         // no extra inputs for this contract
         uint256[] memory empty = new uint256[](0);
         return empty;
-    }
-
-    /**
-     * @dev the main function of the contract, which transfers values from one account (represented by Babyjubjub public keys)
-     *      to one or more receiver accounts (also represented by Babyjubjub public keys). One of the two nullifiers may be zero
-     *      if the transaction only needs one UTXO to be spent. Equally one of the two outputs may be zero if the transaction
-     *      only needs to create one new UTXO.
-     *
-     * @param nullifiers Array of nullifiers that are secretly bound to UTXOs to be spent by the transaction.
-     * @param outputs Array of new UTXOs to generate, for future transactions to spend.
-     * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
-     *      that the outputs are valid in terms of obeying mass conservation rules.
-     *
-     * Emits a {UTXOTransferWithEncryptedValues} event.
-     */
-    function transfer(
-        uint256[] memory nullifiers,
-        uint256[] memory outputs,
-        bytes calldata proof,
-        bytes calldata data
-    ) public virtual override {
-        super.transfer(nullifiers, outputs, proof, data);
-        (
-            uint256 root,
-            uint256 encryptionNonce,
-            uint256[2] memory ecdhPublicKey,
-            uint256[] memory encryptedValues,
-            Commonlib.Proof memory proofStruct
-        ) = abi.decode(
-                proof,
-                (uint256, uint256, uint256[2], uint256[], Commonlib.Proof)
-            );
-
-        nullifiers = checkAndPadCommitments(nullifiers);
-        outputs = checkAndPadCommitments(outputs);
-        emit UTXOTransferWithEncryptedValues(
-            nullifiers,
-            outputs,
-            encryptionNonce,
-            ecdhPublicKey,
-            encryptedValues,
-            msg.sender,
-            data
-        );
     }
 }

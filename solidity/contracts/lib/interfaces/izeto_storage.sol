@@ -37,7 +37,7 @@ interface IZetoStorage {
      * @param inputsLocked Whether the inputs are locked
      */
     function validateInputs(
-        uint256[] memory inputs,
+        uint256[] calldata inputs,
         bool inputsLocked
     ) external view;
 
@@ -45,7 +45,7 @@ interface IZetoStorage {
      * @dev validate the outputs
      * @param outputs The outputs to validate
      */
-    function validateOutputs(uint256[] memory outputs) external view;
+    function validateOutputs(uint256[] calldata outputs) external view;
 
     /**
      * @dev validate the root
@@ -75,13 +75,16 @@ interface IZetoStorage {
      * @param inputs The inputs to process
      * @param inputsLocked Whether the inputs are locked
      */
-    function processInputs(uint256[] memory inputs, bool inputsLocked) external;
+    function processInputs(
+        uint256[] calldata inputs,
+        bool inputsLocked
+    ) external;
 
     /**
      * @dev process the outputs
      * @param outputs The outputs to process
      */
-    function processOutputs(uint256[] memory outputs) external;
+    function processOutputs(uint256[] calldata outputs) external;
 
     /**
      * @dev process the locked outputs
@@ -89,7 +92,7 @@ interface IZetoStorage {
      * @param delegate The delegate to process the locked outputs
      */
     function processLockedOutputs(
-        uint256[] memory lockedOutputs,
+        uint256[] calldata lockedOutputs,
         address delegate
     ) external;
 
@@ -102,7 +105,7 @@ interface IZetoStorage {
      * @param data Additional data to be passed to the lock function
      */
     function delegateLock(
-        uint256[] memory utxos,
+        uint256[] calldata utxos,
         address newDelegate,
         bytes calldata data
     ) external;

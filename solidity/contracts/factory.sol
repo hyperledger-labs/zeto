@@ -36,7 +36,7 @@ contract ZetoTokenFactory is Ownable {
     constructor() Ownable(msg.sender) {}
 
     function registerImplementation(
-        string memory name,
+        string calldata name,
         ImplementationInfo memory implementation
     ) public onlyOwner {
         require(
@@ -53,9 +53,9 @@ contract ZetoTokenFactory is Ownable {
     }
 
     function deployZetoFungibleToken(
-        string memory name,
-        string memory symbol,
-        string memory tokenImplementation,
+        string calldata name,
+        string calldata symbol,
+        string calldata tokenImplementation,
         address initialOwner
     ) public returns (address) {
         ImplementationInfo memory args = implementations[tokenImplementation];
@@ -97,9 +97,9 @@ contract ZetoTokenFactory is Ownable {
     }
 
     function deployZetoNonFungibleToken(
-        string memory name,
-        string memory symbol,
-        string memory tokenImplementation,
+        string calldata name,
+        string calldata symbol,
+        string calldata tokenImplementation,
         address initialOwner
     ) public returns (address) {
         ImplementationInfo memory args = implementations[tokenImplementation];

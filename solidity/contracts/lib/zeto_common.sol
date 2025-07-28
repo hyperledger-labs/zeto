@@ -40,8 +40,8 @@ abstract contract ZetoCommon is IZeto, IZetoLockable, OwnableUpgradeable {
     IGroth16Verifier internal _batchLockVerifier;
 
     function __ZetoCommon_init(
-        string memory name_,
-        string memory symbol_,
+        string calldata name_,
+        string calldata symbol_,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers,
         IZetoStorage storage_
@@ -97,7 +97,7 @@ abstract contract ZetoCommon is IZeto, IZetoLockable, OwnableUpgradeable {
      * Emits a {UTXOMint} event.
      */
     function mint(
-        uint256[] memory utxos,
+        uint256[] calldata utxos,
         bytes calldata data
     ) public virtual onlyOwner {
         _mint(utxos, data);

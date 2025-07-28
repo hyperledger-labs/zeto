@@ -33,8 +33,8 @@ contract Zeto_AnonNullifierBurnable is
     ZetoFungibleBurnableNullifier
 {
     function initialize(
-        string memory name,
-        string memory symbol,
+        string calldata name,
+        string calldata symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public override initializer {
@@ -52,7 +52,6 @@ contract Zeto_AnonNullifierBurnable is
         bool inputsLocked
     )
         internal
-        view
         override(Zeto_AnonNullifier, ZetoCommon)
         returns (uint256[] memory, Commonlib.Proof memory)
     {
@@ -72,7 +71,6 @@ contract Zeto_AnonNullifierBurnable is
         bytes memory proof
     )
         internal
-        view
         override(Zeto_AnonNullifier, ZetoCommon)
         returns (uint256[] memory, Commonlib.Proof memory)
     {

@@ -44,7 +44,7 @@ contract NullifierStorage is IZetoStorage, IZetoConstants, IZetoLockable {
     }
 
     function validateInputs(
-        uint256[] memory inputs,
+        uint256[] calldata inputs,
         bool inputsLocked
     ) public view {
         // sort the nullifiers to detect duplicates
@@ -65,7 +65,7 @@ contract NullifierStorage is IZetoStorage, IZetoConstants, IZetoLockable {
         }
     }
 
-    function validateOutputs(uint256[] memory outputs) public view {
+    function validateOutputs(uint256[] calldata outputs) public view {
         // sort the outputs to detect duplicates
         uint256[] memory sortedOutputs = Util.sortCommitments(outputs);
 
@@ -111,7 +111,7 @@ contract NullifierStorage is IZetoStorage, IZetoConstants, IZetoLockable {
     }
 
     function processInputs(
-        uint256[] memory nullifiers,
+        uint256[] calldata nullifiers,
         bool inputsLocked
     ) public {
         for (uint256 i = 0; i < nullifiers.length; ++i) {
@@ -121,7 +121,7 @@ contract NullifierStorage is IZetoStorage, IZetoConstants, IZetoLockable {
         }
     }
 
-    function processOutputs(uint256[] memory outputs) public {
+    function processOutputs(uint256[] calldata outputs) public {
         for (uint256 i = 0; i < outputs.length; ++i) {
             if (outputs[i] != 0) {
                 _commitmentsTree.addLeaf(outputs[i], outputs[i]);
@@ -130,7 +130,7 @@ contract NullifierStorage is IZetoStorage, IZetoConstants, IZetoLockable {
     }
 
     function processLockedOutputs(
-        uint256[] memory lockedOutputs,
+        uint256[] calldata lockedOutputs,
         address delegate
     ) public {
         for (uint256 i = 0; i < lockedOutputs.length; ++i) {
@@ -146,7 +146,7 @@ contract NullifierStorage is IZetoStorage, IZetoConstants, IZetoLockable {
     // the call must perform the necessary checks to ensure the call is valid
     // such as checking the sender is the current delegate
     function delegateLock(
-        uint256[] memory utxos,
+        uint256[] calldata utxos,
         address delegate,
         bytes calldata data
     ) public {

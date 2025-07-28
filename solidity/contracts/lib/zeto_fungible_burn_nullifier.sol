@@ -61,7 +61,7 @@ abstract contract ZetoFungibleBurnableNullifier is ZetoFungibleNullifier {
     }
 
     function burn(
-        uint256[] memory nullifiers,
+        uint256[] calldata nullifiers,
         uint256 output,
         uint256 root,
         Commonlib.Proof calldata proof,

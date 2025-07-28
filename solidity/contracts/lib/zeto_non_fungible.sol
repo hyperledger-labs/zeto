@@ -29,8 +29,8 @@ import {IZetoStorage} from "./interfaces/izeto_storage.sol";
 ///        - The input UTXOs and output UTXOs are valid in terms of obeying mass conservation rules
 contract ZetoNonFungible is ZetoCommon {
     function __ZetoNonFungible_init(
-        string memory name,
-        string memory symbol,
+        string calldata name,
+        string calldata symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers,
         IZetoStorage storage_

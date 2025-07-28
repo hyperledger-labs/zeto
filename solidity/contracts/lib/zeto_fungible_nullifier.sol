@@ -31,8 +31,8 @@ import {NullifierStorage} from "./storage/nullifier.sol";
 /// @dev Implements common functionalities of Zeto based tokens using nullifiers
 abstract contract ZetoFungibleNullifier is ZetoFungible {
     function __ZetoFungibleNullifier_init(
-        string memory name_,
-        string memory symbol_,
+        string calldata name_,
+        string calldata symbol_,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) internal onlyInitializing {
@@ -45,12 +45,7 @@ abstract contract ZetoFungibleNullifier is ZetoFungible {
         uint256[] memory nullifiers,
         uint256 output,
         bytes memory proof
-    )
-        internal
-        pure
-        override
-        returns (uint256[] memory, Commonlib.Proof memory)
-    {
+    ) internal override returns (uint256[] memory, Commonlib.Proof memory) {
         (uint256 root, Commonlib.Proof memory proofStruct) = abi.decode(
             proof,
             (uint256, Commonlib.Proof)

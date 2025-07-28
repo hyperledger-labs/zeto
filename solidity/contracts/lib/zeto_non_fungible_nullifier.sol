@@ -31,8 +31,8 @@ import {NullifierStorage} from "./storage/nullifier.sol";
 /// @dev Implements common functionalities of Zeto based tokens using nullifiers
 abstract contract ZetoNonFungibleNullifier is ZetoNonFungible {
     function __ZetoNonFungibleNullifier_init(
-        string memory name_,
-        string memory symbol_,
+        string calldata name_,
+        string calldata symbol_,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) internal onlyInitializing {

@@ -30,8 +30,8 @@ import {ZetoCommon} from "./lib/zeto_common.sol";
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
 contract Zeto_AnonBurnable is Zeto_Anon, ZetoFungibleBurnable {
     function initialize(
-        string memory name,
-        string memory symbol,
+        string calldata name,
+        string calldata symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public override initializer {

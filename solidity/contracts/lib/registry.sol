@@ -41,7 +41,7 @@ abstract contract Registry is OwnableUpgradeable, IZetoKyc {
     }
 
     function register(
-        uint256[2] memory publicKey,
+        uint256[2] calldata publicKey,
         bytes calldata data
     ) public onlyOwner {
         _register(publicKey, data);
@@ -51,7 +51,7 @@ abstract contract Registry is OwnableUpgradeable, IZetoKyc {
     /// @param publicKey The Babyjubjub public key to check
     /// @return bool whether the given public key is included in the registry
     function isRegistered(
-        uint256[2] memory publicKey
+        uint256[2] calldata publicKey
     ) public view returns (bool) {
         uint256 nodeKey = _getIdentitiesLeafNodeKey(publicKey);
         SmtLib.Node memory node = _publicKeysTree.getNode(nodeKey);
@@ -65,7 +65,7 @@ abstract contract Registry is OwnableUpgradeable, IZetoKyc {
     /// @dev Register a new Zeto account
     /// @param publicKey The public Babyjubjub key to register
     function _register(
-        uint256[2] memory publicKey,
+        uint256[2] calldata publicKey,
         bytes calldata data
     ) internal {
         uint256 nodeHash = _getIdentitiesLeafNodeHash(publicKey);
@@ -78,13 +78,13 @@ abstract contract Registry is OwnableUpgradeable, IZetoKyc {
     }
 
     function _getIdentitiesLeafNodeHash(
-        uint256[2] memory publicKey
+        uint256[2] calldata publicKey
     ) internal pure returns (uint256) {
         return PoseidonUnit2L.poseidon(publicKey);
     }
 
     function _getIdentitiesLeafNodeKey(
-        uint256[2] memory publicKey
+        uint256[2] calldata publicKey
     ) internal pure returns (uint256) {
         uint256 nodeHash = PoseidonUnit2L.poseidon(publicKey);
         uint256[3] memory params = [nodeHash, nodeHash, uint256(1)];

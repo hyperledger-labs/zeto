@@ -53,8 +53,8 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
     uint256[2] private arbiter;
 
     function initialize(
-        string memory name,
-        string memory symbol,
+        string calldata name,
+        string calldata symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public virtual override initializer {
@@ -67,8 +67,8 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
     }
 
     function __ZetoAnonEncNullifierNonRepudiation_init(
-        string memory name_,
-        string memory symbol_,
+        string calldata name_,
+        string calldata symbol_,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) internal onlyInitializing {
@@ -97,8 +97,8 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
      * Emits a {UTXOTransferWithEncryptedValues} event.
      */
     function transfer(
-        uint256[] memory nullifiers,
-        uint256[] memory outputs,
+        uint256[] calldata nullifiers,
+        uint256[] calldata outputs,
         bytes calldata proof,
         bytes calldata data
     ) public override {
@@ -107,11 +107,11 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
             _DecodedProof_NonRepudiation memory dp,
             Commonlib.Proof memory proofStruct
         ) = decodeProof_NonRepudiation(proof);
-        nullifiers = checkAndPadCommitments(nullifiers);
-        outputs = checkAndPadCommitments(outputs);
+        uint256[] memory paddedNullifiers = checkAndPadCommitments(nullifiers);
+        uint256[] memory paddedOutputs = checkAndPadCommitments(outputs);
         emit UTXOTransferNonRepudiation(
-            nullifiers,
-            outputs,
+            paddedNullifiers,
+            paddedOutputs,
             dp.encryptionNonce,
             dp.ecdhPublicKey,
             dp.encryptedValuesForReceiver,
@@ -145,12 +145,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
         uint256[] memory outputs,
         bytes memory proof,
         bool inputsLocked
-    )
-        internal
-        view
-        override
-        returns (uint256[] memory, Commonlib.Proof memory)
-    {
+    ) internal override returns (uint256[] memory, Commonlib.Proof memory) {
         (
             _DecodedProof_NonRepudiation memory dp,
             Commonlib.Proof memory proofStruct
@@ -207,42 +202,47 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
             2; // arbiter public key
     }
 
+    // Add storage variable to reduce stack usage
+    _DecodedProof_NonRepudiation private _dpnr;
+
     function _fillPublicInputs(
         uint256[] memory publicInputs,
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         _DecodedProof_NonRepudiation memory dp
-    ) internal view {
+    ) internal {
+        // Store the decoded proof in storage to reduce stack usage
+        _dpnr = dp;
+
         uint256 piIndex = 0;
 
         // Split into smaller functions to reduce stack usage
-        piIndex = _fillEcdhAndEncryptedValues(publicInputs, dp, piIndex);
-        piIndex = _fillNullifiersAndRoot(publicInputs, nullifiers, dp, piIndex);
+        piIndex = _fillEcdhAndEncryptedValues(publicInputs, piIndex);
+        piIndex = _fillNullifiersAndRoot(publicInputs, nullifiers, piIndex);
         piIndex = _fillEnablesAndOutputs(
             publicInputs,
             nullifiers,
             outputs,
             piIndex
         );
-        _fillNonceAndArbiter(publicInputs, dp, piIndex);
+        _fillNonceAndArbiter(publicInputs, piIndex);
     }
 
     function _fillEcdhAndEncryptedValues(
         uint256[] memory publicInputs,
-        _DecodedProof_NonRepudiation memory dp,
         uint256 piIndex
-    ) internal pure returns (uint256) {
+    ) internal view returns (uint256) {
         // copy the ecdh public key
-        for (uint256 i = 0; i < dp.ecdhPublicKey.length; ++i) {
-            publicInputs[piIndex++] = dp.ecdhPublicKey[i];
+        for (uint256 i = 0; i < _dpnr.ecdhPublicKey.length; ++i) {
+            publicInputs[piIndex++] = _dpnr.ecdhPublicKey[i];
         }
         // copy the encrypted value, salt and parity bit for receiver
-        for (uint256 i = 0; i < dp.encryptedValuesForReceiver.length; ++i) {
-            publicInputs[piIndex++] = dp.encryptedValuesForReceiver[i];
+        for (uint256 i = 0; i < _dpnr.encryptedValuesForReceiver.length; ++i) {
+            publicInputs[piIndex++] = _dpnr.encryptedValuesForReceiver[i];
         }
         // copy the encrypted value, salt and parity bit for authority
-        for (uint256 i = 0; i < dp.encryptedValuesForAuthority.length; ++i) {
-            publicInputs[piIndex++] = dp.encryptedValuesForAuthority[i];
+        for (uint256 i = 0; i < _dpnr.encryptedValuesForAuthority.length; ++i) {
+            publicInputs[piIndex++] = _dpnr.encryptedValuesForAuthority[i];
         }
         return piIndex;
     }
@@ -250,15 +250,14 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
     function _fillNullifiersAndRoot(
         uint256[] memory publicInputs,
         uint256[] memory nullifiers,
-        _DecodedProof_NonRepudiation memory dp,
         uint256 piIndex
-    ) internal pure returns (uint256) {
+    ) internal view returns (uint256) {
         // copy input commitments
         for (uint256 i = 0; i < nullifiers.length; i++) {
             publicInputs[piIndex++] = nullifiers[i];
         }
         // copy root
-        publicInputs[piIndex++] = dp.root;
+        publicInputs[piIndex++] = _dpnr.root;
         return piIndex;
     }
 
@@ -281,11 +280,10 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
 
     function _fillNonceAndArbiter(
         uint256[] memory publicInputs,
-        _DecodedProof_NonRepudiation memory dp,
         uint256 piIndex
     ) internal view {
         // copy encryption nonce
-        publicInputs[piIndex++] = dp.encryptionNonce;
+        publicInputs[piIndex++] = _dpnr.encryptionNonce;
         // copy arbiter public key
         publicInputs[piIndex++] = arbiter[0];
         publicInputs[piIndex++] = arbiter[1];

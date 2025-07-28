@@ -21,21 +21,16 @@ import {IZetoInitializable} from "../lib/interfaces/izeto_initializable.sol";
 import {ZetoCommon} from "../lib/zeto_common.sol";
 
 contract TenDecimals is Zeto_Anon {
-    function decimals()
-        public
-        pure
-        override
-        returns (uint8)
-    {
+    function decimals() public pure override returns (uint8) {
         return 10;
     }
 
     function initialize(
-        string memory name,
-        string memory symbol,
+        string calldata name,
+        string calldata symbol,
         address initialOwner,
-        IZetoInitializable.VerifiersInfo calldata verifiersInfo
+        IZetoInitializable.VerifiersInfo calldata verifiers
     ) public override initializer {
-        Zeto_Anon.initialize(name, symbol, initialOwner, verifiersInfo);
+        Zeto_Anon.initialize(name, symbol, initialOwner, verifiers);
     }
 }

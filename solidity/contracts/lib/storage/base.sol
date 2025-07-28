@@ -33,7 +33,7 @@ contract BaseStorage is IZetoStorage, IZetoConstants, IZetoLockable {
     mapping(uint256 => address) internal delegates;
 
     function validateInputs(
-        uint256[] memory inputs,
+        uint256[] calldata inputs,
         bool inputsLocked
     ) public view {
         // sort the inputs to detect duplicates
@@ -68,7 +68,7 @@ contract BaseStorage is IZetoStorage, IZetoConstants, IZetoLockable {
         }
     }
 
-    function validateOutputs(uint256[] memory outputs) public view {
+    function validateOutputs(uint256[] calldata outputs) public view {
         // sort the outputs to detect duplicates
         uint256[] memory sortedOutputs = Util.sortCommitments(outputs);
 
@@ -115,7 +115,10 @@ contract BaseStorage is IZetoStorage, IZetoConstants, IZetoLockable {
         revert("Not implemented");
     }
 
-    function processInputs(uint256[] memory inputs, bool inputsLocked) public {
+    function processInputs(
+        uint256[] calldata inputs,
+        bool inputsLocked
+    ) public {
         mapping(uint256 => UTXOStatus) storage utxos = inputsLocked
             ? _lockedUtxos
             : _utxos;
@@ -127,7 +130,7 @@ contract BaseStorage is IZetoStorage, IZetoConstants, IZetoLockable {
         }
     }
 
-    function processOutputs(uint256[] memory outputs) public {
+    function processOutputs(uint256[] calldata outputs) public {
         for (uint256 i = 0; i < outputs.length; ++i) {
             if (outputs[i] != 0) {
                 _utxos[outputs[i]] = UTXOStatus.UNSPENT;
@@ -136,7 +139,7 @@ contract BaseStorage is IZetoStorage, IZetoConstants, IZetoLockable {
     }
 
     function processLockedOutputs(
-        uint256[] memory lockedOutputs,
+        uint256[] calldata lockedOutputs,
         address delegate
     ) public {
         // put the locked UTXOs into the locked UTXO tree as UNSPENT
@@ -157,7 +160,7 @@ contract BaseStorage is IZetoStorage, IZetoConstants, IZetoLockable {
     // the call must perform the necessary checks to ensure the call is valid
     // such as checking the sender is the current delegate
     function delegateLock(
-        uint256[] memory utxos,
+        uint256[] calldata utxos,
         address newDelegate,
         bytes calldata data
     ) public {

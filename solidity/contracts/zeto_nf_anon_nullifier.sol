@@ -36,8 +36,8 @@ contract Zeto_NfAnonNullifier is
     UUPSUpgradeable
 {
     function initialize(
-        string memory name,
-        string memory symbol,
+        string calldata name,
+        string calldata symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {

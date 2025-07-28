@@ -31,9 +31,9 @@ interface IZetoInitializable {
     }
 
     function initialize(
-        string memory name,
-        string memory symbol,
+        string calldata name,
+        string calldata symbol,
         address initialOwner,
-        VerifiersInfo memory verifiersInfo
+        VerifiersInfo calldata verifiersInfo
     ) external;
 }

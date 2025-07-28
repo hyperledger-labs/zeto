@@ -21,12 +21,12 @@ interface IZetoKyc {
     event IdentityRegistered(uint256[2] publicKey, bytes data);
 
     function register(
-        uint256[2] memory publicKey,
+        uint256[2] calldata publicKey,
         bytes calldata data
     ) external;
 
     function isRegistered(
-        uint256[2] memory publicKey
+        uint256[2] calldata publicKey
     ) external view returns (bool);
 
     function getIdentitiesRoot() external view returns (uint256);

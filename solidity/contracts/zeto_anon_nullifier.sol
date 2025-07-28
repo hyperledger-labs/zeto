@@ -33,8 +33,8 @@ import {console} from "hardhat/console.sol";
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 contract Zeto_AnonNullifier is ZetoFungibleNullifier, UUPSUpgradeable {
     function initialize(
-        string memory name,
-        string memory symbol,
+        string calldata name,
+        string calldata symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public virtual initializer {
@@ -42,8 +42,8 @@ contract Zeto_AnonNullifier is ZetoFungibleNullifier, UUPSUpgradeable {
     }
 
     function __ZetoAnonNullifier_init(
-        string memory name_,
-        string memory symbol_,
+        string calldata name_,
+        string calldata symbol_,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) internal onlyInitializing {
@@ -59,7 +59,6 @@ contract Zeto_AnonNullifier is ZetoFungibleNullifier, UUPSUpgradeable {
         bool inputsLocked
     )
         internal
-        view
         virtual
         override
         returns (uint256[] memory, Commonlib.Proof memory)
@@ -119,7 +118,6 @@ contract Zeto_AnonNullifier is ZetoFungibleNullifier, UUPSUpgradeable {
         bytes memory proof
     )
         internal
-        view
         virtual
         override
         returns (uint256[] memory, Commonlib.Proof memory)

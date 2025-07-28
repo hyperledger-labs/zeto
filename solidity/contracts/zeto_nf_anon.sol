@@ -29,8 +29,8 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 ///        - The input UTXOs and output UTXOs are valid in terms of obeying mass conservation rules
 contract Zeto_NfAnon is ZetoNonFungibleBase, UUPSUpgradeable {
     function initialize(
-        string memory name,
-        string memory symbol,
+        string calldata name,
+        string calldata symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public initializer {
