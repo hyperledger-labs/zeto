@@ -65,8 +65,10 @@ contract Zeto_AnonEnc is Zeto_Anon {
                 proof,
                 (uint256, uint256[2], uint256[], Commonlib.Proof)
             );
-        uint256[] memory paddedInputs = checkAndPadCommitments(inputs);
-        uint256[] memory paddedOutputs = checkAndPadCommitments(outputs);
+        (
+            uint256[] memory paddedInputs,
+            uint256[] memory paddedOutputs
+        ) = checkAndPadCommitments(inputs, outputs);
         emit UTXOTransferWithEncryptedValues(
             paddedInputs,
             paddedOutputs,

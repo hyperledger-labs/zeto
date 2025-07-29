@@ -84,8 +84,10 @@ contract Zeto_AnonEncNullifier is Zeto_AnonNullifier {
             Commonlib.Proof memory proofStruct
         ) = decodeProof_EncNullifier(proof);
 
-        uint256[] memory paddedNullifiers = checkAndPadCommitments(nullifiers);
-        uint256[] memory paddedOutputs = checkAndPadCommitments(outputs);
+        (
+            uint256[] memory paddedNullifiers,
+            uint256[] memory paddedOutputs
+        ) = checkAndPadCommitments(nullifiers, outputs);
         emit UTXOTransferWithEncryptedValues(
             paddedNullifiers,
             paddedOutputs,

@@ -110,8 +110,10 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
             _DecodedProof_NonRepudiation memory dp,
             Commonlib.Proof memory proofStruct
         ) = decodeProof_NonRepudiation(proof);
-        uint256[] memory paddedNullifiers = checkAndPadCommitments(nullifiers);
-        uint256[] memory paddedOutputs = checkAndPadCommitments(outputs);
+        (
+            uint256[] memory paddedNullifiers,
+            uint256[] memory paddedOutputs
+        ) = checkAndPadCommitments(nullifiers, outputs);
         emit UTXOTransferNonRepudiation(
             paddedNullifiers,
             paddedOutputs,
