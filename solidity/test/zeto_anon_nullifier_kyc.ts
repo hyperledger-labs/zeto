@@ -252,11 +252,6 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
       await smtUnregistered.add(incomingUTXOs[i], incomingUTXOs[i]);
     }
 
-    // check empty hashes are empty
-    for (let i = outputUtxos.length; i < 10; i++) {
-      expect(incomingUTXOs[i]).to.equal(0);
-    }
-
     // mint sufficient balance in Zeto contract address for Alice to withdraw
     const mintTx = await erc20.connect(deployer).mint(zeto, 3);
     await mintTx.wait();

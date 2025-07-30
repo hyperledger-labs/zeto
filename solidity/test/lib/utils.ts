@@ -183,6 +183,13 @@ export function parseUTXOEvents(
         outputs: event?.args.outputs,
         submitter: event?.args.submitter,
       };
+    } else if (event?.name === "UTXOTransferLocked") {
+      e = {
+        lockedInputs: event?.args.lockedInputs,
+        lockedOutputs: event?.args.lockedOutputs,
+        outputs: event?.args.outputs,
+        submitter: event?.args.submitter,
+      };
     } else if (event?.name === "UTXOTransferWithEncryptedValues") {
       e = {
         inputs: event?.args.inputs,
