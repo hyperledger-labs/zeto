@@ -2,7 +2,6 @@ name: e2e
 
 on:
   workflow_call:
-    inputs:
 
 jobs:
   integration-test-prerequisites:
