@@ -15,7 +15,13 @@
 // limitations under the License.
 
 import { ethers, network } from "hardhat";
-import { Signer, BigNumberish, AddressLike, ZeroAddress } from "ethers";
+import {
+  Signer,
+  BigNumberish,
+  AddressLike,
+  ZeroAddress,
+  AbiCoder,
+} from "ethers";
 import { expect } from "chai";
 import { loadCircuit, encodeProof, Poseidon } from "zeto-js";
 import { groth16 } from "snarkjs";
@@ -82,6 +88,14 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
   it("has 4 decimals", async function () {
     const decimals = await zeto.decimals();
     expect(decimals).to.equal(4, "Decimals should be 4");
+  });
+
+  it("non-owner should not be able to mint", async function () {
+    const utxo1 = newUTXO(10, Alice);
+    const utxo2 = newUTXO(20, Alice);
+    await expect(doMint(zeto, Alice.signer, [utxo1, utxo2])).to.be.rejectedWith(
+      "OwnableUnauthorizedAccount",
+    );
   });
 
   it("(batch) mint to Alice and batch transfer 10 UTXOs honestly to Bob & Charlie then withdraw should succeed", async function () {
@@ -159,7 +173,13 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     // Alice withdraws her UTXOs to ERC20 tokens
     const tx = await zeto
       .connect(Alice.signer)
-      .withdraw(3, inputCommitments, outputCommitments[0], encodedProof, "0x");
+      .withdraw(
+        3,
+        inputCommitments,
+        outputCommitments[0],
+        encodeToBytes(encodedProof),
+        "0x",
+      );
     await tx.wait();
 
     // Alice checks her ERC20 balance
@@ -185,7 +205,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     );
     const tx2 = await zeto
       .connect(Alice.signer)
-      .deposit(100, outputCommitments, encodedProof, "0x");
+      .deposit(100, outputCommitments, encodeToBytes(encodedProof), "0x");
     const result = await tx2.wait();
     console.log(`Method deposit() complete. Gas used: ${result?.gasUsed}`);
   });
@@ -271,7 +291,13 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     // Alice withdraws her UTXOs to ERC20 tokens
     const tx = await zeto
       .connect(Alice.signer)
-      .withdraw(80, inputCommitments, outputCommitments[0], encodedProof, "0x");
+      .withdraw(
+        80,
+        inputCommitments,
+        outputCommitments[0],
+        encodeToBytes(encodedProof),
+        "0x",
+      );
     const result = await tx.wait();
     console.log(`Method withdraw() complete. Gas used: ${result?.gasUsed}`);
 
@@ -338,12 +364,12 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
 
     // check that the burned UTXOs are spent
     let spent = await zetoBurnable.spent(inputCommitments[0]);
-    expect(spent).to.be.true;
+    expect(spent).to.equal(2n); // UTXOStatus.SPENT
     spent = await zetoBurnable.spent(inputCommitments[1]);
-    expect(spent).to.be.true;
+    expect(spent).to.equal(2n); // UTXOStatus.SPENT
     // check that the remaining UTXO is not spent
     spent = await zetoBurnable.spent(inputUtxos[2].hash as BigNumberish);
-    expect(spent).to.be.false;
+    expect(spent).to.equal(1n); // UTXOStatus.UNSPENT
   });
 
   describe("failure cases", function () {
@@ -372,7 +398,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
             10,
             inputCommitments,
             outputCommitments[0],
-            encodedProof,
+            encodeToBytes(encodedProof),
             "0x",
           ),
       ).rejectedWith("UTXOAlreadySpent");
@@ -450,7 +476,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
           result.inputCommitments,
           [result.outputCommitments[0]], // unlocked output
           result.outputCommitments, // locked output
-          result.encodedProof,
+          encodeToBytes(result.encodedProof),
           Alice.ethAddress, // make Alice the delegate who can spend the state (if she has the right proof)
           "0x",
         ),
@@ -472,7 +498,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
         result.inputCommitments,
         [], // unlocked output
         result.outputCommitments, // locked output
-        result.encodedProof,
+        encodeToBytes(result.encodedProof),
         Alice.ethAddress, // make Alice the delegate who can spend the state (if she has the right proof)
         "0x",
       );
@@ -523,7 +549,7 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
             result.inputCommitments,
             [],
             result.outputCommitments,
-            result.encodedProof,
+            encodeToBytes(result.encodedProof),
             Bob.ethAddress,
             "0x",
           ),
@@ -560,10 +586,34 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
             10,
             inputCommitments,
             outputCommitments[0],
-            encodedProof,
+            encodeToBytes(encodedProof),
             "0x",
           ),
       ).to.be.rejectedWith("UTXOAlreadyLocked");
+    });
+
+    it("an invalid lock delegate can NOT use the proper proof to spend the locked state", async function () {
+      const utxo1 = newUTXO(10, Alice);
+      const { inputCommitments, outputCommitments, encodedProof } =
+        await prepareProof(
+          circuit,
+          provingKey,
+          Bob,
+          [lockedUtxo1, ZERO_UTXO],
+          [utxo1, ZERO_UTXO],
+          [Alice, Alice],
+        );
+      // Charlie NOT being the delegate can NOT spend the locked state
+      // using the proof generated by the trade counterparty (Bob in this case)
+      await expect(
+        sendTx(
+          Charlie,
+          inputCommitments,
+          outputCommitments,
+          encodedProof,
+          true,
+        ),
+      ).to.be.rejectedWith("NotLockDelegate");
     });
 
     it("an invalid lock delegate can NOT give the lock to another delegate", async function () {
@@ -694,7 +744,12 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
       await expect(
         zeto
           .connect(Alice.signer)
-          .unlock(inputCommitments, outputCommitments, encodedProof, "0x"),
+          .unlock(
+            inputCommitments,
+            outputCommitments,
+            encodeToBytes(encodedProof),
+            "0x",
+          ),
       ).to.be.fulfilled;
 
       // now Bob as the owner can spend the UTXO as usual
@@ -752,17 +807,18 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
     isLocked = false,
   ) {
     let tx;
+    const proof = encodeToBytes(encodedProof);
     if (isLocked) {
       tx = await zeto.connect(signer.signer).transferLocked(
         inputCommitments.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
         outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
-        encodedProof,
+        proof,
         "0x",
       );
     } else {
       tx = await zeto
         .connect(signer.signer)
-        .transfer(inputCommitments, outputCommitments, encodedProof, "0x");
+        .transfer(inputCommitments, outputCommitments, proof, "0x");
     }
     const results = await tx.wait();
     console.log(`Method transfer() complete. Gas used: ${results?.gasUsed}`);
@@ -772,13 +828,14 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
         continue;
       }
       const owner = await zeto.spent(input);
-      expect(owner).to.equal(true);
+      expect(owner).to.equal(2n); // UTXOStatus.SPENT
     }
     for (const output of outputCommitments) {
       if (output === 0n) {
         continue;
       }
-      expect(await zeto.spent(output)).to.equal(false);
+      const spent = await zeto.spent(output);
+      expect(spent).to.equal(1n); // UTXOStatus.UNSPENT
     }
 
     return results;
@@ -841,6 +898,13 @@ async function prepareProof(
     outputCommitments,
     encodedProof,
   };
+}
+
+function encodeToBytes(proof: any) {
+  return new AbiCoder().encode(
+    ["tuple(uint256[2] pA, uint256[2][2] pB, uint256[2] pC)"],
+    [proof],
+  );
 }
 
 module.exports = {

@@ -18,7 +18,7 @@ pragma solidity ^0.8.27;
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {SmtLib} from "@iden3/contracts/lib/SmtLib.sol";
 import {PoseidonUnit2L, PoseidonUnit3L} from "@iden3/contracts/lib/Poseidon.sol";
-import {Commonlib} from "./common.sol";
+import {Commonlib} from "./common/common.sol";
 import {IZeto} from "./interfaces/izeto.sol";
 import {IZetoKyc} from "./interfaces/izeto_kyc.sol";
 
@@ -40,32 +40,43 @@ abstract contract Registry is OwnableUpgradeable, IZetoKyc {
         _publicKeysTree.initialize(MAX_SMT_DEPTH);
     }
 
+    /**
+     * @dev Register a new Zeto account
+     * @param publicKey The public Babyjubjub key to register
+     * @param data Additional data to be passed to the register function
+     *
+     * Emits a {IdentityRegistered} event.
+     */
     function register(
-        uint256[2] memory publicKey,
+        uint256[2] calldata publicKey,
         bytes calldata data
     ) public onlyOwner {
         _register(publicKey, data);
     }
 
-    /// @dev returns whether the given public key is registered
-    /// @param publicKey The Babyjubjub public key to check
-    /// @return bool whether the given public key is included in the registry
+    /**
+     * @dev returns whether the given public key is registered
+     * @param publicKey The Babyjubjub public key to check
+     * @return bool whether the given public key is included in the registry
+     */
     function isRegistered(
-        uint256[2] memory publicKey
+        uint256[2] calldata publicKey
     ) public view returns (bool) {
         uint256 nodeKey = _getIdentitiesLeafNodeKey(publicKey);
         SmtLib.Node memory node = _publicKeysTree.getNode(nodeKey);
         return node.nodeType != SmtLib.NodeType.EMPTY;
     }
 
+    /**
+     * @dev returns the root of the identities tree
+     * @return uint256 the root of the identities tree
+     */
     function getIdentitiesRoot() public view returns (uint256) {
         return _publicKeysTree.getRoot();
     }
 
-    /// @dev Register a new Zeto account
-    /// @param publicKey The public Babyjubjub key to register
     function _register(
-        uint256[2] memory publicKey,
+        uint256[2] calldata publicKey,
         bytes calldata data
     ) internal {
         uint256 nodeHash = _getIdentitiesLeafNodeHash(publicKey);
@@ -78,13 +89,13 @@ abstract contract Registry is OwnableUpgradeable, IZetoKyc {
     }
 
     function _getIdentitiesLeafNodeHash(
-        uint256[2] memory publicKey
+        uint256[2] calldata publicKey
     ) internal pure returns (uint256) {
         return PoseidonUnit2L.poseidon(publicKey);
     }
 
     function _getIdentitiesLeafNodeKey(
-        uint256[2] memory publicKey
+        uint256[2] calldata publicKey
     ) internal pure returns (uint256) {
         uint256 nodeHash = PoseidonUnit2L.poseidon(publicKey);
         uint256[3] memory params = [nodeHash, nodeHash, uint256(1)];

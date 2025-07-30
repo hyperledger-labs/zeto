@@ -15,33 +15,6 @@
 // limitations under the License.
 pragma circom 2.2.2;
 
-include "./lib/check-positive.circom";
-include "./lib/check-hashes.circom";
+include "./lib/deposit.circom";
 
-template Zeto(nOutputs) {
-  signal input outputCommitments[nOutputs];
-  signal input outputValues[nOutputs];
-  signal input outputSalts[nOutputs];
-  signal input outputOwnerPublicKeys[nOutputs][2];
-  signal output out;
-
-  CheckPositive(nOutputs)(outputValues <== outputValues);
-
-  CommitmentInputs() auxInputs[nOutputs];
-  for (var i = 0; i < nOutputs; i++) {
-    auxInputs[i].value <== outputValues[i];
-    auxInputs[i].salt <== outputSalts[i];
-    auxInputs[i].ownerPublicKey <== outputOwnerPublicKeys[i];
-  }
-
-  CheckHashes(nOutputs)(commitmentHashes <== outputCommitments, commitmentInputs <== auxInputs);
-
-  // calculate the sum of output values and set to the output
-  var sumOutputs = 0;
-  for (var i = 0; i < nOutputs; i++) {
-    sumOutputs = sumOutputs + outputValues[i];
-  }
-  out <== sumOutputs;
-}
-
-component main {public [ outputCommitments ]} = Zeto(2);
+component main {public [ outputCommitments ]} = Deposit(2);

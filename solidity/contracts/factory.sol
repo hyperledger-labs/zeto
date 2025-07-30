@@ -36,7 +36,7 @@ contract ZetoTokenFactory is Ownable {
     constructor() Ownable(msg.sender) {}
 
     function registerImplementation(
-        string memory name,
+        string calldata name,
         ImplementationInfo memory implementation
     ) public onlyOwner {
         require(
@@ -44,7 +44,7 @@ contract ZetoTokenFactory is Ownable {
             "Factory: implementation address is required"
         );
         require(
-            implementation.verifiers.verifier != address(0),
+            address(implementation.verifiers.verifier) != address(0),
             "Factory: verifier address is required"
         );
         // the depositVerifier and withdrawVerifier are optional
@@ -53,9 +53,9 @@ contract ZetoTokenFactory is Ownable {
     }
 
     function deployZetoFungibleToken(
-        string memory name,
-        string memory symbol,
-        string memory tokenImplementation,
+        string calldata name,
+        string calldata symbol,
+        string calldata tokenImplementation,
         address initialOwner
     ) public returns (address) {
         ImplementationInfo memory args = implementations[tokenImplementation];
@@ -66,19 +66,19 @@ contract ZetoTokenFactory is Ownable {
         // check that the registered implementation is for a fungible token
         // and has the required verifier addresses
         require(
-            args.verifiers.depositVerifier != address(0),
+            address(args.verifiers.depositVerifier) != address(0),
             "Factory: depositVerifier address is required"
         );
         require(
-            args.verifiers.withdrawVerifier != address(0),
+            address(args.verifiers.withdrawVerifier) != address(0),
             "Factory: withdrawVerifier address is required"
         );
         require(
-            args.verifiers.batchVerifier != address(0),
+            address(args.verifiers.batchVerifier) != address(0),
             "Factory: batchVerifier address is required"
         );
         require(
-            args.verifiers.batchWithdrawVerifier != address(0),
+            address(args.verifiers.batchWithdrawVerifier) != address(0),
             "Factory: batchWithdrawVerifier address is required"
         );
         address instance = Clones.clone(args.implementation);
@@ -97,9 +97,9 @@ contract ZetoTokenFactory is Ownable {
     }
 
     function deployZetoNonFungibleToken(
-        string memory name,
-        string memory symbol,
-        string memory tokenImplementation,
+        string calldata name,
+        string calldata symbol,
+        string calldata tokenImplementation,
         address initialOwner
     ) public returns (address) {
         ImplementationInfo memory args = implementations[tokenImplementation];

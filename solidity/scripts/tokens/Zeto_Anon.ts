@@ -39,8 +39,8 @@ export async function deployDependencies() {
         withdrawVerifier: withdrawVerifier.target,
         batchVerifier: batchVerifier.target,
         batchWithdrawVerifier: batchWithdrawVerifier.target,
-        lockVerifier: "0x0000000000000000000000000000000000000000",
-        batchLockVerifier: "0x0000000000000000000000000000000000000000",
+        lockVerifier: verifier.target, // for this token, the lock verifier is the same as the regular verifier
+        batchLockVerifier: batchVerifier.target,
         burnVerifier: "0x0000000000000000000000000000000000000000",
         batchBurnVerifier: "0x0000000000000000000000000000000000000000",
       },

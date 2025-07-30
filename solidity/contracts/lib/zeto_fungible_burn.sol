@@ -16,13 +16,13 @@
 pragma solidity ^0.8.27;
 
 import {IGroth16Verifier} from "./interfaces/izeto_verifier.sol";
-import {ZetoBase} from "./zeto_base.sol";
-import {Commonlib} from "./common.sol";
+import {ZetoFungibleBase} from "./zeto_fungible_base.sol";
+import {Commonlib} from "./common/common.sol";
 
 /// @title A feature implementation of a Zeto fungible token burn contract
 /// @author Kaleido, Inc.
 /// @dev Can be added to a Zeto fungible token contract to allow for burning of tokens.
-abstract contract ZetoFungibleBurnable is ZetoBase {
+abstract contract ZetoFungibleBurnable is ZetoFungibleBase {
     IGroth16Verifier internal _burnVerifier;
     IGroth16Verifier internal _batchBurnVerifier;
 
@@ -34,8 +34,17 @@ abstract contract ZetoFungibleBurnable is ZetoBase {
         _batchBurnVerifier = batchBurnVerifier;
     }
 
+    /**
+     * @dev Burn a set of inputs
+     * @param inputs The inputs to burn
+     * @param output The output value
+     * @param proof The proof of the burn
+     * @param data Additional data to be passed to the burn function
+     *
+     * Emits a {UTXOBurn} event.
+     */
     function burn(
-        uint256[] memory inputs,
+        uint256[] calldata inputs,
         uint256 output,
         Commonlib.Proof calldata proof,
         bytes calldata data
