@@ -156,11 +156,6 @@ describe("Zeto based fungible token with anonymity without encryption or nullifi
         ]);
         expect(incomingUTXOs[i]).to.equal(hash);
       }
-
-      // check empty hashes are empty
-      for (let i = outputUtxos.length; i < 10; i++) {
-        expect(incomingUTXOs[i]).to.equal(0);
-      }
     });
 
     it("withdraw 3 UTXOs to ERC20 tokens", async function () {

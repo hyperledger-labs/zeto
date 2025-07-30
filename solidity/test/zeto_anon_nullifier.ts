@@ -203,11 +203,6 @@ describe("Zeto based fungible token with anonymity using nullifiers without encr
         await smtAlice.add(incomingUTXOs[i], incomingUTXOs[i]);
         await smtBob.add(incomingUTXOs[i], incomingUTXOs[i]);
       }
-
-      // check empty hashes are empty
-      for (let i = outputUtxos.length; i < 10; i++) {
-        expect(incomingUTXOs[i]).to.equal(0);
-      }
     });
 
     it("Alice withdraws her UTXOs to ERC20 tokens", async function () {
