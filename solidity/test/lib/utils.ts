@@ -222,7 +222,7 @@ export function parseUTXOEvents(
         tradeId: event?.args.tradeId,
         trade: event?.args.trade,
       };
-    } else if (event?.name === "UTXOsLocked") {
+    } else if (event?.name === "UTXOLocked") {
       e = {
         outputs: event?.args.outputs,
         lockedOutputs: event?.args.lockedOutputs,
