@@ -15,9 +15,8 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {Commonlib} from "../lib/common.sol";
+import {Commonlib} from "../lib/common/common.sol";
 import {Zeto_Anon} from "../zeto_anon.sol";
-// import {console} from "hardhat/console.sol";
 
 /// @title A sample on-chain implementation of an escrow contract using Zeto tokens
 /// @author Kaleido, Inc.
@@ -35,7 +34,7 @@ contract zkEscrow1 {
         uint256[] lockedInputs;
         uint256[] outputs;
         PaymentStatus status;
-        Commonlib.Proof proof;
+        bytes proof;
     }
 
     mapping(uint256 => Payment) public payments;
@@ -62,17 +61,14 @@ contract zkEscrow1 {
         bytes calldata data
     ) public {
         for (uint256 i = 0; i < lockedInputs.length; i++) {
-            bool locked;
-            address delegate;
-            (locked, delegate) = zeto.locked(lockedInputs[i]);
-            require(locked, "Input not locked");
-            require(
-                delegate == address(this),
-                "Input not locked to this contract"
+            (bool isLocked, address currentDelegate) = zeto.locked(
+                lockedInputs[i]
             );
+            require(isLocked, "Input not locked");
+            require(currentDelegate == address(this), "Not lock delegate");
         }
         inflightCount++;
-        Commonlib.Proof memory emptyProof;
+        bytes memory emptyProof;
         payments[inflightCount] = Payment(
             lockedInputs,
             outputs,
@@ -84,7 +80,7 @@ contract zkEscrow1 {
 
     function approvePayment(
         uint256 paymentId,
-        Commonlib.Proof memory proof,
+        bytes memory proof,
         bytes calldata data
     ) public {
         Payment storage payment = payments[paymentId];
@@ -97,7 +93,12 @@ contract zkEscrow1 {
         );
         payment.outputs = zeto.checkAndPadCommitments(payment.outputs);
         require(
-            zeto.verifyProof(payment.lockedInputs, payment.outputs, proof),
+            zeto.constructPublicSignalsAndVerifyProof(
+                payment.lockedInputs,
+                payment.outputs,
+                proof,
+                true
+            ),
             "Invalid proof"
         );
         payment.proof = proof;

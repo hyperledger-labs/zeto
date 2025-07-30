@@ -15,9 +15,8 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {Commonlib} from "../lib/common.sol";
+import {Commonlib} from "../lib/common/common.sol";
 import {Zeto_AnonNullifier} from "../zeto_anon_nullifier.sol";
-// import {console} from "hardhat/console.sol";
 
 /// @title A sample on-chain implementation of an escrow contract using Zeto tokens
 /// @author Kaleido, Inc.
@@ -34,8 +33,7 @@ contract zkEscrow2 {
     struct Payment {
         uint256[] nullifiers;
         uint256[] outputs;
-        uint256 root;
-        Commonlib.Proof proof;
+        bytes proof;
         PaymentStatus status;
     }
 
@@ -63,11 +61,10 @@ contract zkEscrow2 {
         bytes calldata data
     ) public {
         inflightCount++;
-        Commonlib.Proof memory emptyProof;
+        bytes memory emptyProof;
         payments[inflightCount] = Payment(
             nullifiers,
             outputs,
-            0,
             emptyProof,
             PaymentStatus.INITIATED
         );
@@ -76,8 +73,7 @@ contract zkEscrow2 {
 
     function approvePayment(
         uint256 paymentId,
-        uint256 root,
-        Commonlib.Proof memory proof,
+        bytes calldata proof,
         bytes calldata data
     ) public {
         Payment storage payment = payments[paymentId];
@@ -90,11 +86,15 @@ contract zkEscrow2 {
         );
         uint256[] memory outputs = zeto.checkAndPadCommitments(payment.outputs);
         require(
-            zeto.verifyProofLocked(nullifiers, outputs, root, proof),
+            zeto.constructPublicSignalsAndVerifyProof(
+                nullifiers,
+                outputs,
+                proof,
+                true
+            ),
             "Invalid proof"
         );
         payment.proof = proof;
-        payment.root = root;
         payment.status = PaymentStatus.APPROVED;
         emit PaymentApproved(paymentId, data);
     }
@@ -108,7 +108,6 @@ contract zkEscrow2 {
         zeto.transferLocked(
             payment.nullifiers,
             payment.outputs,
-            payment.root,
             payment.proof,
             "0x"
         );

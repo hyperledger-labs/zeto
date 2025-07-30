@@ -15,10 +15,11 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {IGroth16Verifier} from "./lib/interfaces/izeto_verifier.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {Zeto_Anon} from "./zeto_anon.sol";
 import {ZetoFungibleBurnable} from "./lib/zeto_fungible_burn.sol";
+import {Commonlib} from "./lib/common/common.sol";
+import {ZetoCommon} from "./lib/zeto_common.sol";
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity and no encryption
 /// @author Kaleido, Inc.
@@ -29,15 +30,50 @@ import {ZetoFungibleBurnable} from "./lib/zeto_fungible_burn.sol";
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
 contract Zeto_AnonBurnable is Zeto_Anon, ZetoFungibleBurnable {
     function initialize(
-        string memory name,
-        string memory symbol,
+        string calldata name,
+        string calldata symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public override initializer {
         __ZetoAnon_init(name, symbol, initialOwner, verifiers);
         __ZetoFungibleBurnable_init(
-            (IGroth16Verifier)(verifiers.burnVerifier),
-            (IGroth16Verifier)(verifiers.batchBurnVerifier)
+            verifiers.burnVerifier,
+            verifiers.batchBurnVerifier
         );
+    }
+
+    function constructPublicInputs(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        bytes memory proof,
+        bool isLocked
+    )
+        internal
+        view
+        override(Zeto_Anon, ZetoCommon)
+        returns (uint256[] memory, Commonlib.Proof memory)
+    {
+        return
+            Zeto_Anon.constructPublicInputs(inputs, outputs, proof, isLocked);
+    }
+
+    function constructPublicInputsForLock(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        uint256[] memory lockedOutputs,
+        bytes memory proof
+    )
+        internal
+        pure
+        override(Zeto_Anon, ZetoCommon)
+        returns (uint256[] memory, Commonlib.Proof memory)
+    {
+        return
+            Zeto_Anon.constructPublicInputsForLock(
+                inputs,
+                outputs,
+                lockedOutputs,
+                proof
+            );
     }
 }

@@ -16,12 +16,9 @@
 pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
-import {IGroth16Verifier} from "./lib/interfaces/izeto_verifier.sol";
-import {ZetoFungibleWithdraw} from "./lib/zeto_fungible_withdraw.sol";
-import {ZetoBase} from "./lib/zeto_base.sol";
-import {Commonlib} from "./lib/common.sol";
+import {Commonlib} from "./lib/common/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {Zeto_Anon} from "./zeto_anon.sol";
 
 /// @title A sample implementation of a Zeto based fungible token with anonymity, and encryption
 /// @author Kaleido, Inc.
@@ -32,65 +29,14 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 ///        - the sender possesses the private BabyJubjub key, whose public key is part of the pre-image of the input commitment hashes
 ///        - the encrypted value in the input is derived from the receiver's UTXO value and encrypted with a shared secret using
 ///          the ECDH protocol between the sender and receiver (this guarantees data availability for the receiver)
-contract Zeto_AnonEnc is
-    IZeto,
-    ZetoBase,
-    ZetoFungibleWithdraw,
-    UUPSUpgradeable
-{
+contract Zeto_AnonEnc is Zeto_Anon {
     function initialize(
-        string memory name,
-        string memory symbol,
+        string calldata name,
+        string calldata symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
-    ) public initializer {
-        __ZetoBase_init(name, symbol, initialOwner, verifiers);
-        __ZetoFungibleWithdraw_init(
-            (IGroth16Verifier)(verifiers.depositVerifier),
-            (IGroth16Verifier)(verifiers.withdrawVerifier),
-            (IGroth16Verifier)(verifiers.batchWithdrawVerifier)
-        );
-    }
-
-    function _authorizeUpgrade(address) internal override onlyOwner {}
-
-    function constructPublicInputs(
-        uint256[] memory inputs,
-        uint256[] memory outputs,
-        uint256 encryptionNonce,
-        uint256[2] memory ecdhPublicKey,
-        uint256[] memory encryptedValues
-    ) internal pure returns (uint256[] memory publicInputs) {
-        uint256 size = ecdhPublicKey.length +
-            encryptedValues.length +
-            inputs.length +
-            outputs.length +
-            1; // encryptionNonce
-        publicInputs = new uint256[](size);
-        uint256 piIndex = 0;
-        // copy the ecdh public key
-        for (uint256 i = 0; i < ecdhPublicKey.length; ++i) {
-            publicInputs[piIndex++] = ecdhPublicKey[i];
-        }
-
-        // copy the encrypted value, salt and parity bit
-        for (uint256 i = 0; i < encryptedValues.length; ++i) {
-            publicInputs[piIndex++] = encryptedValues[i];
-        }
-        // copy input commitments
-        for (uint256 i = 0; i < inputs.length; i++) {
-            publicInputs[piIndex++] = inputs[i];
-        }
-
-        // copy output commitments
-        for (uint256 i = 0; i < outputs.length; i++) {
-            publicInputs[piIndex++] = outputs[i];
-        }
-
-        // copy encryption nonce
-        publicInputs[piIndex++] = encryptionNonce;
-
-        return publicInputs;
+    ) public virtual override initializer {
+        __ZetoAnon_init(name, symbol, initialOwner, verifiers);
     }
 
     /**
@@ -104,88 +50,104 @@ contract Zeto_AnonEnc is
      * Emits a {UTXOTransferWithEncryptedValues} event.
      */
     function transfer(
+        uint256[] calldata inputs,
+        uint256[] calldata outputs,
+        bytes calldata proof,
+        bytes calldata data
+    ) public virtual override {
+        super.transfer(inputs, outputs, proof, data);
+        (
+            uint256 encryptionNonce,
+            uint256[2] memory ecdhPublicKey,
+            uint256[] memory encryptedValues,
+            Commonlib.Proof memory proofStruct
+        ) = abi.decode(
+                proof,
+                (uint256, uint256[2], uint256[], Commonlib.Proof)
+            );
+        uint256[] memory paddedInputs = checkAndPadCommitments(inputs);
+        uint256[] memory paddedOutputs = checkAndPadCommitments(outputs);
+        emit UTXOTransferWithEncryptedValues(
+            paddedInputs,
+            paddedOutputs,
+            encryptionNonce,
+            ecdhPublicKey,
+            encryptedValues,
+            msg.sender,
+            data
+        );
+    }
+
+    struct _DecodedProof {
+        uint256 encryptionNonce;
+        uint256[2] ecdhPublicKey;
+        uint256[] encryptedValues;
+    }
+
+    function constructPublicInputs(
         uint256[] memory inputs,
         uint256[] memory outputs,
-        uint256 encryptionNonce,
-        uint256[2] memory ecdhPublicKey,
-        uint256[] memory encryptedValues,
-        Commonlib.Proof calldata proof,
-        bytes calldata data
-    ) public returns (bool) {
-        // Check and pad commitments
-        inputs = checkAndPadCommitments(inputs);
-        outputs = checkAndPadCommitments(outputs);
-        uint256[] memory lockedOutputs;
-        validateTransactionProposal(inputs, outputs, lockedOutputs, false);
-
-        // Check the proof
-        uint256[] memory publicInputs = constructPublicInputs(
-            inputs,
-            outputs,
+        bytes memory proof,
+        bool isLocked
+    )
+        internal
+        view
+        virtual
+        override
+        returns (uint256[] memory, Commonlib.Proof memory)
+    {
+        (
+            uint256 encryptionNonce,
+            uint256[2] memory ecdhPublicKey,
+            uint256[] memory encryptedValues,
+            Commonlib.Proof memory proofStruct
+        ) = abi.decode(
+                proof,
+                (uint256, uint256[2], uint256[], Commonlib.Proof)
+            );
+        _DecodedProof memory dp = _DecodedProof(
             encryptionNonce,
             ecdhPublicKey,
             encryptedValues
         );
-        bool isBatch = (inputs.length > 2 || outputs.length > 2);
-        verifyProof(proof, publicInputs, isBatch, false);
+        uint256 size = ecdhPublicKey.length +
+            encryptedValues.length +
+            inputs.length +
+            outputs.length +
+            1; // encryptionNonce
+        uint256[] memory publicInputs = new uint256[](size);
+        _fillPublicInputs(publicInputs, inputs, outputs, dp);
 
-        // accept the transaction proposal and process the inputs and outputs
-        processInputsAndOutputs(inputs, outputs, lockedOutputs, false);
+        return (publicInputs, proofStruct);
+    }
 
-        uint256[] memory encryptedValuesArray = new uint256[](
-            encryptedValues.length
-        );
-        for (uint256 i = 0; i < encryptedValues.length; ++i) {
-            encryptedValuesArray[i] = encryptedValues[i];
+    function _fillPublicInputs(
+        uint256[] memory publicInputs,
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        _DecodedProof memory dp
+    ) internal pure {
+        uint256 piIndex = 0;
+        // copy the ecdh public key
+        for (uint256 i = 0; i < dp.ecdhPublicKey.length; ++i) {
+            publicInputs[piIndex++] = dp.ecdhPublicKey[i];
         }
 
-        emit UTXOTransferWithEncryptedValues(
-            inputs,
-            outputs,
-            encryptionNonce,
-            ecdhPublicKey,
-            encryptedValuesArray,
-            msg.sender,
-            data
-        );
-        return true;
-    }
+        // copy the encrypted value, salt and parity bit
+        for (uint256 i = 0; i < dp.encryptedValues.length; ++i) {
+            publicInputs[piIndex++] = dp.encryptedValues[i];
+        }
+        // copy input commitments
+        for (uint256 i = 0; i < inputs.length; i++) {
+            publicInputs[piIndex++] = inputs[i];
+        }
 
-    function deposit(
-        uint256 amount,
-        uint256[] memory outputs,
-        Commonlib.Proof calldata proof,
-        bytes calldata data
-    ) public {
-        _deposit(amount, outputs, proof);
-        _mint(outputs, data);
-    }
+        // copy output commitments
+        for (uint256 i = 0; i < outputs.length; i++) {
+            publicInputs[piIndex++] = outputs[i];
+        }
 
-    function withdraw(
-        uint256 amount,
-        uint256[] memory inputs,
-        uint256 output,
-        Commonlib.Proof calldata proof,
-        bytes calldata data
-    ) public {
-        uint256[] memory outputs = new uint256[](inputs.length);
-        outputs[0] = output;
-        // Check and pad commitments
-        inputs = checkAndPadCommitments(inputs);
-        outputs = checkAndPadCommitments(outputs);
-        uint256[] memory lockedOutputs;
-        validateTransactionProposal(inputs, outputs, lockedOutputs, false);
-
-        _withdraw(amount, inputs, output, proof);
-
-        processInputsAndOutputs(inputs, outputs, lockedOutputs, false);
-        emit UTXOWithdraw(amount, inputs, output, msg.sender, data);
-    }
-
-    function mint(
-        uint256[] memory utxos,
-        bytes calldata data
-    ) public onlyOwner {
-        _mint(utxos, data);
+        // copy encryption nonce
+        publicInputs[piIndex++] = dp.encryptionNonce;
     }
 }

@@ -18,7 +18,7 @@ pragma solidity ^0.8.27;
 uint256 constant MAX_BATCH = 10;
 uint256 constant MAX_SMT_DEPTH = 64;
 
-interface IZeto {
+interface IZetoConstants {
     error UTXODuplicate(uint256 utxo);
     error UTXOArrayTooLarge(uint256 maxAllowed);
     error UTXONotMinted(uint256 utxo);
@@ -63,7 +63,9 @@ interface IZeto {
         address indexed submitter,
         bytes data
     );
+}
 
+interface IZeto is IZetoConstants {
     /**
      * @dev Returns the name of the token.
      */

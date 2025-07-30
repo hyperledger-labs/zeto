@@ -16,11 +16,9 @@
 pragma solidity ^0.8.27;
 
 import {IZeto} from "./lib/interfaces/izeto.sol";
-import {IGroth16Verifier} from "./lib/interfaces/izeto_verifier.sol";
 import {Zeto_AnonEncNullifier} from "./zeto_anon_enc_nullifier.sol";
-import {ZetoFungibleWithdrawWithNullifiers} from "./lib/zeto_fungible_withdraw_nullifier.sol";
 import {Registry} from "./lib/registry.sol";
-import {Commonlib} from "./lib/common.sol";
+import {Commonlib} from "./lib/common/common.sol";
 import {IZetoInitializable} from "./lib/interfaces/izeto_initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
@@ -35,18 +33,44 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 ///        - the nullifiers represent input commitments that are included in a Sparse Merkle Tree represented by the root hash
 contract Zeto_AnonEncNullifierKyc is Zeto_AnonEncNullifier, Registry {
     function initialize(
-        string memory name,
-        string memory symbol,
+        string calldata name,
+        string calldata symbol,
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) public override initializer {
-        __Registry_init();
-        __Zeto_AnonEncNullifier_init(name, symbol, initialOwner, verifiers);
-        INPUT_SIZE = 19;
-        BATCH_INPUT_SIZE = 75;
+        __ZetoAnonEncNullifierKyc_init(name, symbol, initialOwner, verifiers);
     }
 
-    function extraInputs() internal view override returns (uint256[] memory) {
+    function __ZetoAnonEncNullifierKyc_init(
+        string calldata name_,
+        string calldata symbol_,
+        address initialOwner,
+        IZetoInitializable.VerifiersInfo calldata verifiers
+    ) internal onlyInitializing {
+        __Registry_init();
+        __ZetoAnonEncNullifier_init(name_, symbol_, initialOwner, verifiers);
+    }
+
+    function extraInputs()
+        internal
+        view
+        virtual
+        override
+        returns (uint256[] memory)
+    {
+        uint256[] memory extras = new uint256[](1);
+
+        extras[0] = getIdentitiesRoot();
+        return extras;
+    }
+
+    function extraInputsForDeposit()
+        internal
+        view
+        virtual
+        override
+        returns (uint256[] memory)
+    {
         uint256[] memory extras = new uint256[](1);
 
         extras[0] = getIdentitiesRoot();

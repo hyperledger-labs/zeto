@@ -15,19 +15,23 @@
 // limitations under the License.
 pragma solidity ^0.8.27;
 
-import {Commonlib} from "./common.sol";
+import {Commonlib} from "./common/common.sol";
 import {IZeto, MAX_BATCH} from "./interfaces/izeto.sol";
+import {IZetoLockable} from "./interfaces/izeto_lockable.sol";
 import {IGroth16Verifier} from "./interfaces/izeto_verifier.sol";
 import {IZetoInitializable} from "./interfaces/izeto_initializable.sol";
-import {Arrays} from "@openzeppelin/contracts/utils/Arrays.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {Util} from "./common/util.sol";
+import {IZetoStorage} from "./interfaces/izeto_storage.sol";
 
 /// @title A sample base implementation of a Zeto based token contract
 /// @author Kaleido, Inc.
 /// @dev Implements common functionalities of Zeto based tokens
-abstract contract ZetoCommon is IZeto, OwnableUpgradeable {
+abstract contract ZetoCommon is IZeto, IZetoLockable, OwnableUpgradeable {
     string private _name;
     string private _symbol;
+
+    IZetoStorage internal _storage;
 
     IGroth16Verifier internal _verifier;
     IGroth16Verifier internal _batchVerifier;
@@ -35,18 +39,20 @@ abstract contract ZetoCommon is IZeto, OwnableUpgradeable {
     IGroth16Verifier internal _batchLockVerifier;
 
     function __ZetoCommon_init(
-        string memory name_,
-        string memory symbol_,
+        string calldata name_,
+        string calldata symbol_,
         address initialOwner,
-        IZetoInitializable.VerifiersInfo calldata verifiers
+        IZetoInitializable.VerifiersInfo calldata verifiers,
+        IZetoStorage storage_
     ) internal onlyInitializing {
         __Ownable_init(initialOwner);
         _name = name_;
         _symbol = symbol_;
-        _verifier = (IGroth16Verifier)(verifiers.verifier);
-        _lockVerifier = (IGroth16Verifier)(verifiers.lockVerifier);
-        _batchVerifier = (IGroth16Verifier)(verifiers.batchVerifier);
-        _batchLockVerifier = (IGroth16Verifier)(verifiers.batchLockVerifier);
+        _verifier = verifiers.verifier;
+        _lockVerifier = verifiers.lockVerifier;
+        _batchVerifier = verifiers.batchVerifier;
+        _batchLockVerifier = verifiers.batchLockVerifier;
+        _storage = storage_;
     }
 
     /**
@@ -80,6 +86,58 @@ abstract contract ZetoCommon is IZeto, OwnableUpgradeable {
         return 4;
     }
 
+    /**
+     * @dev This function is used to mint new UTXOs, as an example implementation,
+     * which is only callable by the owner.
+     *
+     * @param utxos Array of UTXOs to be minted.
+     * @param data Additional data to be passed to the mint function.
+     *
+     * Emits a {UTXOMint} event.
+     */
+    function mint(
+        uint256[] calldata utxos,
+        bytes calldata data
+    ) public virtual onlyOwner {
+        _mint(utxos, data);
+    }
+
+    /**
+     * @dev construct the public inputs and verify the proof. it's a utility function useful for situations
+     *  like an escrow contract orchestrating locking and settlement flows
+     *
+     * @param inputs Array of UTXOs to be spent by the transaction.
+     * @param outputs Array of new UTXOs to generate, for future transactions to spend.
+     * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
+     *      that the outputs are valid in terms of obeying mass conservation rules.
+     * @param inputsLocked Whether the inputs are locked.
+     *
+     * @return True if the proof is valid, false otherwise.
+     */
+    function constructPublicSignalsAndVerifyProof(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        bytes memory proof,
+        bool inputsLocked
+    ) public returns (bool) {
+        (
+            uint256[] memory publicInputs,
+            Commonlib.Proof memory proofStruct
+        ) = constructPublicInputs(inputs, outputs, proof, inputsLocked);
+        bool isBatch = inputs.length > 2 || outputs.length > 2;
+        verifyProof(proofStruct, publicInputs, isBatch, inputsLocked);
+        return true;
+    }
+
+    function _mint(
+        uint256[] memory utxos,
+        bytes calldata data
+    ) internal virtual {
+        validateOutputs(utxos);
+        processOutputs(utxos);
+        emit UTXOMint(utxos, msg.sender, data);
+    }
+
     function checkAndPadCommitments(
         uint256[] memory commitments
     ) public pure returns (uint256[] memory) {
@@ -109,30 +167,148 @@ abstract contract ZetoCommon is IZeto, OwnableUpgradeable {
         return commitments;
     }
 
-    function sortCommitments(
-        uint256[] memory utxos
-    ) internal pure returns (uint256[] memory) {
-        uint256[] memory sorted = new uint256[](utxos.length);
-        for (uint256 i = 0; i < utxos.length; ++i) {
-            sorted[i] = utxos[i];
+    // this is a utility function that constructs the public inputs for a proof.
+    // specific implementations of this function are provided by each token implementation
+    function constructPublicInputs(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        bytes memory proof,
+        bool inputsLocked
+    )
+        internal
+        virtual
+        returns (
+            uint256[] memory publicInputs,
+            Commonlib.Proof memory proofStruct
+        )
+    {}
+
+    // this is a utility function that constructs the public inputs for a proof of a lock() call.
+    // specific implementations of this function are provided by each token implementation
+    function constructPublicInputsForLock(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        uint256[] memory lockedOutputs,
+        bytes memory proof
+    )
+        internal
+        virtual
+        returns (
+            uint256[] memory publicInputs,
+            Commonlib.Proof memory proofStruct
+        )
+    {}
+
+    function validateTransactionProposal(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        uint256[] memory lockedOutputs,
+        bytes memory proof,
+        bool inputsLocked
+    ) internal view virtual {
+        uint256[] memory allOutputs = new uint256[](
+            outputs.length + lockedOutputs.length
+        );
+        for (uint256 i = 0; i < outputs.length; i++) {
+            allOutputs[i] = outputs[i];
         }
-        sorted = Arrays.sort(sorted);
-        return sorted;
+        for (uint256 i = 0; i < lockedOutputs.length; i++) {
+            allOutputs[outputs.length + i] = lockedOutputs[i];
+        }
+        validateInputs(inputs, inputsLocked);
+        validateOutputs(allOutputs);
+    }
+
+    function validateInputs(
+        uint256[] memory inputs,
+        bool inputsLocked
+    ) internal view virtual {
+        _storage.validateInputs(inputs, inputsLocked);
+    }
+
+    function validateOutputs(uint256[] memory outputs) internal view virtual {
+        _storage.validateOutputs(outputs);
+    }
+
+    function validateRoot(
+        uint256 root,
+        bool inputsLocked
+    ) internal view virtual {
+        _storage.validateRoot(root, inputsLocked);
+    }
+
+    function getRoot() public view virtual returns (uint256) {
+        return _storage.getRoot();
+    }
+
+    function getRootForLocked() public view virtual returns (uint256) {
+        return _storage.getRootForLocked();
+    }
+
+    function processInputsAndOutputs(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        bool inputsLocked
+    ) internal virtual {
+        processInputs(inputs, inputsLocked);
+        processOutputs(outputs);
+    }
+
+    function processInputs(
+        uint256[] memory inputs,
+        bool inputsLocked
+    ) internal virtual {
+        _storage.processInputs(inputs, inputsLocked);
+    }
+
+    function processOutputs(uint256[] memory outputs) internal virtual {
+        _storage.processOutputs(outputs);
+    }
+
+    function processLockedOutputs(
+        uint256[] memory lockedOutputs,
+        address delegate
+    ) internal virtual {
+        for (uint256 i = 0; i < lockedOutputs.length; ++i) {
+            if (lockedOutputs[i] == 0) {
+                continue;
+            }
+            (bool isLocked, address currentDelegate) = locked(lockedOutputs[i]);
+            if (isLocked) {
+                // if the UTXO is locked, check if the sender is the current delegate
+                if (currentDelegate != msg.sender) {
+                    revert NotLockDelegate(
+                        lockedOutputs[i],
+                        currentDelegate,
+                        msg.sender
+                    );
+                }
+            }
+        }
+        _storage.processLockedOutputs(lockedOutputs, delegate);
     }
 
     function verifyProof(
-        Commonlib.Proof calldata proof,
+        Commonlib.Proof memory proof,
         uint256[] memory publicInputs,
         bool isBatch,
-        bool isLocked
+        bool inputsLocked
     ) public view returns (bool) {
-        IGroth16Verifier verifier = isLocked
+        IGroth16Verifier verifier = inputsLocked
             ? (isBatch ? _batchLockVerifier : _lockVerifier)
             : (isBatch ? _batchVerifier : _verifier);
         require(
             verifier.verify(proof.pA, proof.pB, proof.pC, publicInputs),
-            "Invalid proof (batch)"
+            "Invalid proof"
         );
         return true;
+    }
+
+    function spent(uint256 utxo) public view returns (IZetoStorage.UTXOStatus) {
+        return _storage.spent(utxo);
+    }
+
+    function locked(uint256 utxo) public view returns (bool, address) {
+        return _storage.locked(utxo);
     }
 }
