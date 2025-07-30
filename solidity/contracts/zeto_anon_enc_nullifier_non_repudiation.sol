@@ -75,7 +75,7 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) internal onlyInitializing {
-        __ZetoFungibleNullifier_init(name_, symbol_, initialOwner, verifiers);
+        __ZetoAnonEncNullifier_init(name_, symbol_, initialOwner, verifiers);
     }
 
     function setArbiter(uint256[2] memory _arbiter) public onlyOwner {
@@ -86,37 +86,18 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
         return arbiter;
     }
 
-    /**
-     * @dev the main function of the contract, which transfers values from one account (represented by Babyjubjub public keys)
-     *      to one or more receiver accounts (also represented by Babyjubjub public keys). One of the two nullifiers may be zero
-     *      if the transaction only needs one UTXO to be spent. Equally one of the two outputs may be zero if the transaction
-     *      only needs to create one new UTXO.
-     *
-     * @param nullifiers Array of nullifiers that are secretly bound to UTXOs to be spent by the transaction.
-     * @param outputs Array of new UTXOs to generate, for future transactions to spend.
-     * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
-     *      that the outputs are valid in terms of obeying mass conservation rules.
-     *
-     * Emits a {UTXOTransfer}, {UTXOTransferWithEncryptedValues} and a {UTXOTransferNonRepudiation} event.
-     */
-    function transfer(
-        uint256[] calldata nullifiers,
-        uint256[] calldata outputs,
-        bytes calldata proof,
-        bytes calldata data
-    ) public override {
-        super.transfer(nullifiers, outputs, proof, data);
-        (
-            _DecodedProof_NonRepudiation memory dp,
-            Commonlib.Proof memory proofStruct
-        ) = decodeProof_NonRepudiation(proof);
-        (
-            uint256[] memory paddedNullifiers,
-            uint256[] memory paddedOutputs
-        ) = checkAndPadCommitments(nullifiers, outputs);
+    function emitTransferEvent(
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
+        bytes memory proof,
+        bytes memory data
+    ) internal override {
+        (_DecodedProof_NonRepudiation memory dp, ) = decodeProof_NonRepudiation(
+            proof
+        );
         emit UTXOTransferNonRepudiation(
-            paddedNullifiers,
-            paddedOutputs,
+            nullifiers,
+            outputs,
             dp.encryptionNonce,
             dp.ecdhPublicKey,
             dp.encryptedValuesForReceiver,
@@ -155,12 +136,14 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
             _DecodedProof_NonRepudiation memory dp,
             Commonlib.Proof memory proofStruct
         ) = decodeProof_NonRepudiation(proof);
+        // Store the decoded proof in storage to reduce stack usage
+        _dpnr = dp;
         uint256 size = _calculatePublicInputsSize_NonRepudiation(
             nullifiers,
             outputs
         );
         uint256[] memory publicInputs = new uint256[](size);
-        _fillPublicInputs_NonRepudiation(publicInputs, nullifiers, outputs, dp);
+        _fillPublicInputs_NonRepudiation(publicInputs, nullifiers, outputs);
 
         return (publicInputs, proofStruct);
     }
@@ -212,12 +195,8 @@ contract Zeto_AnonEncNullifierNonRepudiation is Zeto_AnonEncNullifier {
     function _fillPublicInputs_NonRepudiation(
         uint256[] memory publicInputs,
         uint256[] memory nullifiers,
-        uint256[] memory outputs,
-        _DecodedProof_NonRepudiation memory dp
+        uint256[] memory outputs
     ) internal {
-        // Store the decoded proof in storage to reduce stack usage
-        _dpnr = dp;
-
         uint256 piIndex = 0;
 
         // Split into smaller functions to reduce stack usage

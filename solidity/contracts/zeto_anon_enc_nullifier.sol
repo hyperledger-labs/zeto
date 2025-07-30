@@ -56,41 +56,21 @@ contract Zeto_AnonEncNullifier is Zeto_AnonNullifier {
         address initialOwner,
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) internal onlyInitializing {
-        __ZetoFungibleNullifier_init(name_, symbol_, initialOwner, verifiers);
+        __ZetoAnonNullifier_init(name_, symbol_, initialOwner, verifiers);
     }
 
-    /**
-     * @dev the main function of the contract, which transfers values from one account (represented by Babyjubjub public keys)
-     *      to one or more receiver accounts (also represented by Babyjubjub public keys). One of the two nullifiers may be zero
-     *      if the transaction only needs one UTXO to be spent. Equally one of the two outputs may be zero if the transaction
-     *      only needs to create one new UTXO.
-     *
-     * @param nullifiers Array of nullifiers that are secretly bound to UTXOs to be spent by the transaction.
-     * @param outputs Array of new UTXOs to generate, for future transactions to spend.
-     * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
-     *      that the outputs are valid in terms of obeying mass conservation rules.
-     *
-     * Emits a {UTXOTransfer} and a {UTXOTransferWithEncryptedValues} event.
-     */
-    function transfer(
-        uint256[] calldata nullifiers,
-        uint256[] calldata outputs,
-        bytes calldata proof,
-        bytes calldata data
-    ) public virtual override {
-        super.transfer(nullifiers, outputs, proof, data);
-        (
-            _DecodedProof_EncNullifier memory dp,
-            Commonlib.Proof memory proofStruct
-        ) = decodeProof_EncNullifier(proof);
-
-        (
-            uint256[] memory paddedNullifiers,
-            uint256[] memory paddedOutputs
-        ) = checkAndPadCommitments(nullifiers, outputs);
+    function emitTransferEvent(
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
+        bytes memory proof,
+        bytes memory data
+    ) internal virtual override {
+        (_DecodedProof_EncNullifier memory dp, ) = decodeProof_EncNullifier(
+            proof
+        );
         emit UTXOTransferWithEncryptedValues(
-            paddedNullifiers,
-            paddedOutputs,
+            nullifiers,
+            outputs,
             dp.encryptionNonce,
             dp.ecdhPublicKey,
             dp.encryptedValues,

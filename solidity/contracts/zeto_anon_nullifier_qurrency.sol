@@ -50,23 +50,12 @@ contract Zeto_AnonNullifierQurrency is Zeto_AnonNullifier {
         __ZetoAnonNullifier_init(name, symbol, initialOwner, verifiers);
     }
 
-    /**
-     * @dev the main function of the contract.
-     *
-     * @param nullifiers Array of nullifiers that are secretly bound to UTXOs to be spent by the transaction.
-     * @param outputs Array of new UTXOs to generate, for future transactions to spend.
-     * @param proof A zero knowledge proof that the submitter is authorized to spend the inputs, and
-     *      that the outputs are valid in terms of obeying mass conservation rules.
-     *
-     * Emits a {UTXOTransfer} and a {UTXOTransferWithMlkemEncryptedValues} event.
-     */
-    function transfer(
-        uint256[] calldata nullifiers,
-        uint256[] calldata outputs,
-        bytes calldata proof,
-        bytes calldata data
-    ) public override {
-        super.transfer(nullifiers, outputs, proof, data);
+    function emitTransferEvent(
+        uint256[] memory nullifiers,
+        uint256[] memory outputs,
+        bytes memory proof,
+        bytes memory data
+    ) internal override {
         (
             _DecodedProof_Qurrency memory dp,
             Commonlib.Proof memory proofStruct

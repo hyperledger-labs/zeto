@@ -48,7 +48,7 @@ contract Zeto_AnonEncNullifierKyc is Zeto_AnonEncNullifier, Registry {
         IZetoInitializable.VerifiersInfo calldata verifiers
     ) internal onlyInitializing {
         __Registry_init();
-        __ZetoFungibleNullifier_init(name_, symbol_, initialOwner, verifiers);
+        __ZetoAnonEncNullifier_init(name_, symbol_, initialOwner, verifiers);
     }
 
     function extraInputs()
