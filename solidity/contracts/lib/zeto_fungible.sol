@@ -350,7 +350,7 @@ abstract contract ZetoFungible is ZetoCommon {
         );
 
         processInputsAndOutputs(paddedInputs, paddedOutputs, false);
-        emit UTXOWithdraw(amount, paddedInputs, output, msg.sender, data);
+        emit UTXOWithdraw(amount, inputs, output, msg.sender, data);
     }
 
     function emitTransferEvent(
