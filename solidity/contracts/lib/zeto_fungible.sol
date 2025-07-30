@@ -100,7 +100,8 @@ abstract contract ZetoFungible is ZetoCommon {
         bool isBatch = (inputs.length > 2 || outputs.length > 2);
         verifyProof(proofStruct, publicInputs, isBatch, false);
         processInputsAndOutputs(paddedInputs, paddedOutputs, false);
-        emit UTXOTransfer(paddedInputs, paddedOutputs, msg.sender, data);
+
+        emitTransferEvent(inputs, outputs, proof, data);
     }
 
     /**
@@ -136,7 +137,7 @@ abstract contract ZetoFungible is ZetoCommon {
      * @param delegate The delegate of the locked UTXOs.
      * @param data Additional data to be passed to the lock function.
      *
-     * Emits a {UTXOsLocked} event.
+     * Emits a {UTXOLocked} event.
      */
     function lock(
         uint256[] calldata inputs,
@@ -185,12 +186,12 @@ abstract contract ZetoFungible is ZetoCommon {
         processInputsAndOutputs(paddedInputs, outputs, false);
         processLockedOutputs(lockedOutputs, delegate);
 
-        emit UTXOsLocked(
-            paddedInputs,
-            outputs,
+        emit UTXOLocked(
+            inputs,
             lockedOutputs,
-            delegate,
+            outputs,
             msg.sender,
+            delegate,
             data
         );
     }
@@ -352,6 +353,31 @@ abstract contract ZetoFungible is ZetoCommon {
         emit UTXOWithdraw(amount, paddedInputs, output, msg.sender, data);
     }
 
+    function emitTransferEvent(
+        uint256[] memory inputs,
+        uint256[] memory outputs,
+        bytes memory proof,
+        bytes memory data
+    ) internal virtual {
+        emit UTXOTransfer(inputs, outputs, msg.sender, data);
+    }
+
+    function emitTransferLockedEvent(
+        uint256[] memory lockedInputs,
+        uint256[] memory lockedOutputs,
+        uint256[] memory outputs,
+        bytes memory proof,
+        bytes memory data
+    ) internal virtual {
+        emit UTXOTransferLocked(
+            lockedInputs,
+            lockedOutputs,
+            outputs,
+            msg.sender,
+            data
+        );
+    }
+
     function _transferLocked(
         uint256[] memory lockedInputs,
         uint256[] memory lockedOutputs,
@@ -392,7 +418,14 @@ abstract contract ZetoFungible is ZetoCommon {
         verifyProof(proofStruct, publicInputs, isBatch, true);
         processInputsAndOutputs(paddedInputs, paddedOutputs, true);
         processLockedOutputs(lockedOutputs, msg.sender);
-        emit UTXOTransfer(paddedInputs, paddedOutputs, msg.sender, data);
+
+        emitTransferLockedEvent(
+            lockedInputs,
+            lockedOutputs,
+            outputs,
+            proof,
+            data
+        );
     }
 
     // this is a utility function that constructs the public inputs for a proof of a deposit() call.
