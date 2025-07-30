@@ -67,25 +67,12 @@ abstract contract ZetoFungibleNullifier is ZetoFungible {
         return (publicInputs, proofStruct);
     }
 
-    /**
-     * @dev Calculates the total size needed for withdraw public inputs array
-     * @param nullifiers Array of nullifiers
-     * @return size The total size needed for public inputs
-     */
     function _calculateWithdrawPublicInputsSize(
         uint256[] memory nullifiers
     ) internal pure returns (uint256 size) {
         size = (nullifiers.length * 2) + 3; // nullifiers, enabled flags, amount, root, output
     }
 
-    /**
-     * @dev Populates the withdraw public inputs array with all required data
-     * @param publicInputs The array to populate
-     * @param amount The withdrawal amount
-     * @param nullifiers Array of nullifiers
-     * @param root The merkle root
-     * @param output The output commitment
-     */
     function _fillWithdrawPublicInputs(
         uint256[] memory publicInputs,
         uint256 amount,
@@ -111,13 +98,6 @@ abstract contract ZetoFungibleNullifier is ZetoFungible {
         _fillWithdrawOutput(publicInputs, output, piIndex);
     }
 
-    /**
-     * @dev Copies the withdrawal amount to the public inputs array
-     * @param publicInputs The array to populate
-     * @param amount The withdrawal amount
-     * @param startIndex Starting index in publicInputs
-     * @return nextIndex The next available index
-     */
     function _fillWithdrawAmount(
         uint256[] memory publicInputs,
         uint256 amount,
@@ -127,13 +107,6 @@ abstract contract ZetoFungibleNullifier is ZetoFungible {
         return startIndex + 1;
     }
 
-    /**
-     * @dev Copies nullifiers to the withdraw public inputs array
-     * @param publicInputs The array to populate
-     * @param nullifiers Array of nullifiers to copy
-     * @param startIndex Starting index in publicInputs
-     * @return nextIndex The next available index
-     */
     function _fillWithdrawNullifiers(
         uint256[] memory publicInputs,
         uint256[] memory nullifiers,
@@ -146,13 +119,6 @@ abstract contract ZetoFungibleNullifier is ZetoFungible {
         return piIndex;
     }
 
-    /**
-     * @dev Copies the root to the withdraw public inputs array
-     * @param publicInputs The array to populate
-     * @param root The merkle root
-     * @param startIndex Starting index in publicInputs
-     * @return nextIndex The next available index
-     */
     function _fillWithdrawRoot(
         uint256[] memory publicInputs,
         uint256 root,
@@ -162,13 +128,6 @@ abstract contract ZetoFungibleNullifier is ZetoFungible {
         return startIndex + 1;
     }
 
-    /**
-     * @dev Populates enabled flags for withdraw based on nullifier values
-     * @param publicInputs The array to populate
-     * @param nullifiers Array of nullifiers
-     * @param startIndex Starting index in publicInputs
-     * @return nextIndex The next available index
-     */
     function _fillWithdrawEnabledFlags(
         uint256[] memory publicInputs,
         uint256[] memory nullifiers,
@@ -181,12 +140,6 @@ abstract contract ZetoFungibleNullifier is ZetoFungible {
         return piIndex;
     }
 
-    /**
-     * @dev Copies the output commitment to the withdraw public inputs array
-     * @param publicInputs The array to populate
-     * @param output The output commitment
-     * @param startIndex Starting index in publicInputs
-     */
     function _fillWithdrawOutput(
         uint256[] memory publicInputs,
         uint256 output,
