@@ -11,6 +11,7 @@ jobs:
   setup-prerequisites:
     uses: ./.github/workflows/e2e-deps.yaml
   integration-test:
+    needs: setup-prerequisites
     runs-on: ubuntu-latest
     services:
       postgres:
