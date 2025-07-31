@@ -33,6 +33,23 @@ jobs:
         with:
           go-version: 1.24
 
+      - name: Setup node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Checkout Zeto
+        uses: actions/checkout@v4
+        with:
+          path: zeto
+          fetch-depth: 0
+
+      - name: Download zeto artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.setup-prerequisites.outputs.artifacts-name }}
+          path: ${{ runner.temp }}/zeto-artifacts
+
       - name: Run golang e2e tests
         env:
           PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
