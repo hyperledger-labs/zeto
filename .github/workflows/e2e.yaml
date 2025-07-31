@@ -54,6 +54,10 @@ jobs:
           name: ${{ needs.setup-prerequisites.outputs.artifacts-name }}
           path: ${{ runner.temp }}/zeto-artifacts
 
+      - name: Setup temp dir for the artifacts
+        run: |
+          ls -R ${{ runner.temp }}/zeto-artifacts
+
       - name: Run golang e2e tests
         env:
           PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
