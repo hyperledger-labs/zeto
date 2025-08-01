@@ -3,14 +3,14 @@ name: e2e
 on:
   workflow_call:
     outputs:
-      artifact-name:
+      artifacts-name:
         description: "the name of the artifacts containing ZK circuit assemblies and proving keys"
         value: ${{ jobs.integration-test-prerequisites.outputs.artifacts-name }}
 jobs:
   integration-test-prerequisites:
     runs-on: ubuntu-latest
     outputs:
-      artifacts-name: ${{ steps.artifact-name.outputs.artifact-name }}
+      artifacts-name: ${{ steps.artifacts-name.outputs.artifacts-name }}
     steps:
       - name: Install circom
         uses: supplypike/setup-bin@v4
@@ -56,15 +56,15 @@ jobs:
           fi
 
       - name: Generate unique artifact name
-        id: artifact-name
+        id: artifacts-name
         run: |
-          echo "artifact-name=zeto-artifacts-$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
+          echo "artifacts-name=zeto-artifacts-$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
 
       - name: Upload zeto artifacts
         id: upload-artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.artifact-name.outputs.artifact-name }}
+          name: ${{ steps.artifacts-name.outputs.artifacts-name }}
           path: ${{ runner.temp }}/zeto-artifacts
           retention-days: 5
           if-no-files-found: error
