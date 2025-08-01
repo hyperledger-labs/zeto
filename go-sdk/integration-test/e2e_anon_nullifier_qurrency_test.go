@@ -89,6 +89,12 @@ func (s *E2ETestSuite) TestZeto_anon_nullifier_qurrency_SuccessfulProving() {
 	mlkemCiphertextBytes, err := zetoCrypto.RecoverMlkemCiphertextBytes(mlkemCiphertextStrs)
 	assert.NoError(s.T(), err, "Failed to recover MLKEM ciphertext bytes")
 	assert.Equal(s.T(), 768, len(mlkemCiphertextBytes), "MLKEM ciphertext bytes length mismatch")
+	// temporary debug to catch the case where the ciphertext bytes are not 768 bytes
+	if len(mlkemCiphertextBytes) != 768 {
+		fmt.Printf("MLKEM ciphertext bytes length: %d\n", len(mlkemCiphertextBytes))
+		fmt.Printf("MLKEM ciphertext strings: %s\n", mlkemCiphertextStrs)
+		fmt.Printf("MLKEM ciphertext bytes: %v\n", mlkemCiphertextBytes)
+	}
 
 	ss, err := sk.Scheme().Decapsulate(sk, mlkemCiphertextBytes)
 	assert.NoError(s.T(), err, "Failed to decapsulate ciphertext")
