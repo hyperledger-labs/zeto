@@ -60,6 +60,9 @@ jobs:
           CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts/${{ needs.setup-prerequisites.outputs.artifacts-name }}
         working-directory: zeto/go-sdk
         run: |
+          echo "PROVING_KEYS_ROOT: $PROVING_KEYS_ROOT"
+          echo "CIRCUITS_ROOT: $CIRCUITS_ROOT"
+          ls -la $PROVING_KEYS_ROOT
           make e2e
 
       - name: Run js e2e tests
