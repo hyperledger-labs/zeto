@@ -2,12 +2,15 @@ name: e2e
 
 on:
   workflow_call:
-
+    outputs:
+      artifact-name:
+        description: "the name of the artifacts containing ZK circuit assemblies and proving keys"
+        value: ${{ jobs.integration-test-prerequisites.outputs.artifacts-name }}
 jobs:
   integration-test-prerequisites:
     runs-on: ubuntu-latest
     outputs:
-      artifacts-name: ${{ steps.upload-artifacts.outputs.artifact-name }}
+      artifacts-name: ${{ steps.artifact-name.outputs.artifact-name }}
     steps:
       - name: Install circom
         uses: supplypike/setup-bin@v4
