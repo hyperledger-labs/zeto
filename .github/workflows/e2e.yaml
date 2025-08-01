@@ -54,22 +54,18 @@ jobs:
           name: ${{ needs.setup-prerequisites.outputs.artifacts-name }}
           path: ${{ runner.temp }}/zeto-artifacts
 
-      - name: Setup temp dir for the artifacts
-        run: |
-          ls -R ${{ runner.temp }}/zeto-artifacts
-
       - name: Run golang e2e tests
         env:
-          PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
-          CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts
+          PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts/${{ needs.setup-prerequisites.outputs.artifacts-name }}
+          CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts/${{ needs.setup-prerequisites.outputs.artifacts-name }}
         working-directory: zeto/go-sdk
         run: |
           make e2e
 
       - name: Run js e2e tests
         env:
-          PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
-          CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts
+          PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts/${{ needs.setup-prerequisites.outputs.artifacts-name }}
+          CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts/${{ needs.setup-prerequisites.outputs.artifacts-name }}
         working-directory: zeto/zkp/js
         run: |
           npm install
@@ -77,8 +73,8 @@ jobs:
 
       - name: Run Zeto Tokens hardhat tests as upgradeable contracts
         env:
-          PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
-          CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts
+          PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts/${{ needs.setup-prerequisites.outputs.artifacts-name }}
+          CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts/${{ needs.setup-prerequisites.outputs.artifacts-name }}
         working-directory: zeto/solidity
         run: |
           npm install
@@ -87,8 +83,8 @@ jobs:
       - name: Run Zeto Tokens hardhat tests as cloned contracts
         env:
           USE_FACTORY: true
-          PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts
-          CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts
+          PROVING_KEYS_ROOT: ${{ runner.temp }}/zeto-artifacts/${{ needs.setup-prerequisites.outputs.artifacts-name }}
+          CIRCUITS_ROOT: ${{ runner.temp }}/zeto-artifacts/${{ needs.setup-prerequisites.outputs.artifacts-name }}
         working-directory: zeto/solidity
         run: |
           npm install
