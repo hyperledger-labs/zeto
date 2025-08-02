@@ -62,6 +62,7 @@ jobs:
         run: |
           echo "PROVING_KEYS_ROOT: $PROVING_KEYS_ROOT"
           echo "CIRCUITS_ROOT: $CIRCUITS_ROOT"
+          ls -la ${{ runner.temp }}/zeto-artifacts
           ls -la $PROVING_KEYS_ROOT
           make e2e
 
