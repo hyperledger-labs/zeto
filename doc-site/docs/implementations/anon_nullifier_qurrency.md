@@ -13,14 +13,14 @@ To implement post-quantum secure encryption, these circuits use the public key e
 The encryption is performed in the follow step, according to the ML-KEM scheme:
 
 - A 256-bit randomness is generated, and used as a private input to the ZKP circuit, which carries out the ML-KEM key encapsulation protocol along with the public key of the auditing authority
-  - The public key is statically programmed into the circuit. This is to avoid making it a signal which would be very inefficient due to the large size of the public key (1184 bytes)
-  - <span style="color:red">IMPORTANT:</span> This means for a real world deployment, the deployer MUST update the circuit with the auditing authority's public key and re-compile the circuit
+    - The public key is statically programmed into the circuit. This is to avoid making it a signal which would be very inefficient due to the large size of the public key (1184 bytes)
+    - <span style="color:red">IMPORTANT:</span> This means for a real world deployment, the deployer MUST update the circuit with the auditing authority's public key and re-compile the circuit
 - The result of the ML-KEM protocol is a 256-bit shared secret
-  - In addition, an encapsulated shared secret is also generated to be shared with the receiver (the auditing authority) to recover the shared secret
+    - In addition, an encapsulated shared secret is also generated to be shared with the receiver (the auditing authority) to recover the shared secret
 - The secrets targeted for the auditing authority are encrypted with this shared secret, and sent as part of the transaction payload
 - The ciphertext for the encrypted secrets, and the encapsulated shared secret for the ML-KEM decapsulation (the process to recover the shared secret) are returned by the circuit as output signals
 - The auditing authority can then use their private key, along with the encapsulated shared secret which is included in the emitted blockchain event, to recover the shared secret via the ML-KEM decapsulation protocol
-  - The recovered shared secret can then be used to decrypt the ciphertext of the encrypted secrets, giving the auditing authority full information about the secrets involved in the transaction
+    - The recovered shared secret can then be used to decrypt the ciphertext of the encrypted secrets, giving the auditing authority full information about the secrets involved in the transaction
 
 The statements in the proof include:
 
