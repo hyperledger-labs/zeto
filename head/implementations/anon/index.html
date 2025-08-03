@@ -1407,7 +1407,7 @@
 </tr>
 </tbody>
 </table>
-<p>This is the simplest version of the ZKP circuit. Because the secrets required to open the commitment hashes, namely the output UTXO value and salt, are NOT encrypted and published as part of the transaction payload, using this version requires the secrets to be transmitted from the sender to the receiver in off-chain channels.</p>
+<p>This is the simplest version of the ZKP circuit. Because the secrets required to open the commitment hashes, namely the output UTXO value and salt, are NOT published as part of the transaction payload, using this version requires the secrets to be transmitted from the sender to the receiver in off-chain channels.</p>
 <p>The statements in the proof include:</p>
 <ul>
 <li>each value in the output commitments must be a positive number in the range 0 ~ (2**40 - 1)</li>
