@@ -252,11 +252,6 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
       await smtUnregistered.add(incomingUTXOs[i], incomingUTXOs[i]);
     }
 
-    // check empty hashes are empty
-    for (let i = outputUtxos.length; i < 10; i++) {
-      expect(incomingUTXOs[i]).to.equal(0);
-    }
-
     // mint sufficient balance in Zeto contract address for Alice to withdraw
     const mintTx = await erc20.connect(deployer).mint(zeto, 3);
     await mintTx.wait();
@@ -1751,6 +1746,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
     } else {
       tx = await zeto.connect(signer.signer).transferLocked(
         nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
+        [],
         outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
         encodeToBytes(root, encodedProof),
         "0x",
@@ -1758,8 +1754,7 @@ describe("Zeto based fungible token with anonymity, KYC, using nullifiers withou
     }
     const results: ContractTransactionReceipt | null = await tx.wait();
     console.log(
-      `Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${
-        results?.gasUsed
+      `Time to execute transaction: ${Date.now() - startTx}ms. Gas used: ${results?.gasUsed
       }`,
     );
     return results;

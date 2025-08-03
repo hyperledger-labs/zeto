@@ -178,10 +178,11 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
 
       const signerAddress = await Alice.signer.getAddress();
       const events = parseUTXOEvents(zeto, result.txResult!);
-      expect(events[0].submitter).to.equal(signerAddress);
-      expect(events[0].inputs).to.deep.equal(nullifiers.map((n) => n.hash));
+      const event = events[0];
+      expect(event.submitter).to.equal(signerAddress);
+      expect(event.inputs).to.deep.equal(nullifiers.map((n) => n.hash));
 
-      const incomingUTXOs: any = events[0].outputs;
+      const incomingUTXOs: any = event.outputs;
       // check the non-empty output hashes are correct
       for (let i = 0; i < outputUtxos.length; i++) {
         // Bob uses the information received from Alice to reconstruct the UTXO sent to him
@@ -196,11 +197,6 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
         expect(incomingUTXOs[i]).to.equal(hash);
         await smtAlice.add(incomingUTXOs[i], incomingUTXOs[i]);
         await smtBob.add(incomingUTXOs[i], incomingUTXOs[i]);
-      }
-
-      // check empty hashes are empty
-      for (let i = outputUtxos.length; i < 10; i++) {
-        expect(incomingUTXOs[i]).to.equal(0);
       }
 
       // mint sufficient balance in Zeto contract address for Alice to withdraw
@@ -377,7 +373,7 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
       // Bob parses the UTXOs from the onchain event
       const signerAddress = await Alice.signer.getAddress();
       const events = parseUTXOEvents(zeto, result2.txResult!);
-      event = events[1]; // skip the first event which is the UTXOTransfer event
+      event = events[0];
       expect(event.submitter).to.equal(signerAddress);
       expect(event.inputs).to.deep.equal([nullifier1.hash, nullifier2.hash]);
       expect(event.outputs).to.deep.equal([_utxo3.hash, utxo4.hash]);
@@ -692,6 +688,7 @@ describe("Zeto based fungible token with anonymity using nullifiers with Kyber e
     } else {
       tx = await zeto.connect(signer.signer).transferLocked(
         nullifiers.filter((ic) => ic !== 0n), // trim off empty utxo hashes to check padding logic for batching works
+        [],
         outputCommitments.filter((oc) => oc !== 0n), // trim off empty utxo hashes to check padding logic for batching works
         proof,
         "0x",
