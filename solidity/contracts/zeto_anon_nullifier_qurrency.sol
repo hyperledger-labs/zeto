@@ -132,6 +132,9 @@ contract Zeto_AnonNullifierQurrency is Zeto_AnonNullifier {
 
     // Add storage variable to reduce stack usage
     _DecodedProof_Qurrency private _dpq;
+    // Additional storage variables to reduce stack usage
+    uint256[] private _publicInputs;
+    uint256 private _piIndex;
 
     function _calculatePublicInputsSize(
         uint256[] memory nullifiers,
@@ -164,76 +167,59 @@ contract Zeto_AnonNullifierQurrency is Zeto_AnonNullifier {
     ) internal {
         // Store the decoded proof in storage to reduce stack usage
         _dpq = dp;
-
-        uint256 piIndex = 0;
+        _publicInputs = publicInputs;
+        _piIndex = 0;
 
         // Split into smaller functions to reduce stack usage
-        piIndex = _fillEncapsulatedAndEncrypted(publicInputs, piIndex);
-        piIndex = _fillNullifiersAndLockDelegate(
-            publicInputs,
-            nullifiers,
-            inputsLocked,
-            piIndex
-        );
-        piIndex = _fillRootAndEnables(publicInputs, nullifiers, piIndex);
-        _fillOutputs(publicInputs, outputs, piIndex);
+        _fillEncapsulatedSharedSecret();
+        _fillEncryptedValues();
+        _fillNullifiersAndLockDelegate(nullifiers, inputsLocked);
+        _fillRootAndEnables(nullifiers);
+        _fillOutputs(outputs);
     }
 
-    function _fillEncapsulatedAndEncrypted(
-        uint256[] memory publicInputs,
-        uint256 piIndex
-    ) internal view returns (uint256) {
+    function _fillEncapsulatedSharedSecret() internal {
         // copy the ML-KEM encapsulated shared secret
         for (uint256 i = 0; i < _dpq.encapsulatedSharedSecret.length; ++i) {
-            publicInputs[piIndex++] = _dpq.encapsulatedSharedSecret[i];
+            _publicInputs[_piIndex++] = _dpq.encapsulatedSharedSecret[i];
         }
+    }
+
+    function _fillEncryptedValues() internal {
         // copy the encrypted output values
         for (uint256 i = 0; i < _dpq.encryptedValues.length; ++i) {
-            publicInputs[piIndex++] = _dpq.encryptedValues[i];
+            _publicInputs[_piIndex++] = _dpq.encryptedValues[i];
         }
-        return piIndex;
     }
 
     function _fillNullifiersAndLockDelegate(
-        uint256[] memory publicInputs,
         uint256[] memory nullifiers,
-        bool inputsLocked,
-        uint256 piIndex
-    ) internal view returns (uint256) {
+        bool inputsLocked
+    ) internal {
         // copy nullifiers
         for (uint256 i = 0; i < nullifiers.length; i++) {
-            publicInputs[piIndex++] = nullifiers[i];
+            _publicInputs[_piIndex++] = nullifiers[i];
         }
         // when verifying locked transfers, additional public input
         // for the lock delegate
         if (inputsLocked) {
-            publicInputs[piIndex++] = uint256(uint160(msg.sender));
+            _publicInputs[_piIndex++] = uint256(uint160(msg.sender));
         }
-        return piIndex;
     }
 
-    function _fillRootAndEnables(
-        uint256[] memory publicInputs,
-        uint256[] memory nullifiers,
-        uint256 piIndex
-    ) internal view returns (uint256) {
+    function _fillRootAndEnables(uint256[] memory nullifiers) internal {
         // copy root
-        publicInputs[piIndex++] = _dpq.root;
+        _publicInputs[_piIndex++] = _dpq.root;
         // populate enables
         for (uint256 i = 0; i < nullifiers.length; i++) {
-            publicInputs[piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
+            _publicInputs[_piIndex++] = (nullifiers[i] == 0) ? 0 : 1;
         }
-        return piIndex;
     }
 
-    function _fillOutputs(
-        uint256[] memory publicInputs,
-        uint256[] memory outputs,
-        uint256 piIndex
-    ) internal pure {
+    function _fillOutputs(uint256[] memory outputs) internal {
         // copy output commitments
         for (uint256 i = 0; i < outputs.length; i++) {
-            publicInputs[piIndex++] = outputs[i];
+            _publicInputs[_piIndex++] = outputs[i];
         }
     }
 }
