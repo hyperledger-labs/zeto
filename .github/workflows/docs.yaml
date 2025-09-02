@@ -45,15 +45,11 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Update doc site for release
-        if: github.event.action == 'released' && github.ref_name != env.LATEST_TAG
-        working-directory: doc-site
-        run: mike deploy ${{ github.event.release.tag_name }} --push
-
-      - name: Update doc site for latest release
-        if: github.event.action == 'released' && github.ref_name == env.LATEST_TAG
+        if: github.ref_name != env.LATEST_TAG
         working-directory: doc-site
         run: |
-          mike deploy ${{ github.event.release.tag_name }} latest -u --push
+          mike deploy ${{ env.LATEST_TAG }} --push
+          mike deploy ${{ env.LATEST_TAG }} latest -u --push
           mike set-default --push latest
 
       - name: Update doc site for `main` branch
