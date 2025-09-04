@@ -102,9 +102,8 @@ contract Zeto_AnonNullifierQurrency is Zeto_AnonNullifier {
             dp
         );
 
-        uint256[] memory publicInputs = new uint256[](size);
-        _fillPublicInputs(publicInputs, nullifiers, outputs, inputsLocked, dp);
-        return (publicInputs, proofStruct);
+        _fillPublicInputs(size, nullifiers, outputs, inputsLocked, dp);
+        return (_publicInputs, proofStruct);
     }
 
     function decodeProof_Qurrency(
@@ -159,7 +158,7 @@ contract Zeto_AnonNullifierQurrency is Zeto_AnonNullifier {
     }
 
     function _fillPublicInputs(
-        uint256[] memory publicInputs,
+        uint256 size,
         uint256[] memory nullifiers,
         uint256[] memory outputs,
         bool inputsLocked,
@@ -167,7 +166,7 @@ contract Zeto_AnonNullifierQurrency is Zeto_AnonNullifier {
     ) internal {
         // Store the decoded proof in storage to reduce stack usage
         _dpq = dp;
-        _publicInputs = publicInputs;
+        _publicInputs = new uint256[](size);
         _piIndex = 0;
 
         // Split into smaller functions to reduce stack usage
